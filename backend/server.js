@@ -9,6 +9,8 @@ const fs = require('fs');
 const contentFilter = require('./utils/contentFilter');
 const { rateLimiters } = require('./utils/rateLimiter');
 const duplicateDetector = require('./utils/duplicateDetector');
+const { calculateDistance, formatDistance, generateStaticMapUrl } = require('./utils/locationUtils');
+const { MobileLocationService } = require('./utils/mobileLocationUtils');
 require('dotenv').config();
 
 const app = express();
@@ -33,6 +35,9 @@ pool.connect((err, client, release) => {
     release();
   }
 });
+
+// Initialize mobile location service
+global.mobileLocationService = new MobileLocationService(pool);
 
 // Make pool available globally
 global.pool = pool;
@@ -351,12 +356,20 @@ app.get('/api/ads', async (req, res) => {
       location,
       minPrice,
       maxPrice,
+      condition,
+      datePosted,
+      dateFrom,
+      dateTo,
       sortBy = 'newest',
+      sortOrder = 'desc',
       limit = 20,
-      offset = 0
+      offset = 0,
+      lat,
+      lng,
+      radius = 25
     } = req.query;
 
-    console.log('🔍 API Call to /ads with params:', { search, category, location, minPrice, maxPrice, sortBy, limit, offset });
+    console.log('🔍 API Call to /ads with params:', { search, category, location, minPrice, maxPrice, condition, datePosted, dateFrom, dateTo, sortBy, sortOrder, limit, offset });
 
     let queryConditions = ['a.status = $1'];
     let queryParams = ['approved'];
@@ -410,34 +423,124 @@ app.get('/api/ads', async (req, res) => {
       queryParams.push(parseFloat(maxPrice));
     }
 
+    // Add condition filter
+    if (condition && condition !== 'all') {
+      paramCount++;
+      queryConditions.push(`a.condition = $${paramCount}`);
+      queryParams.push(condition);
+    }
+
+    // Add date posted filters
+    if (datePosted && datePosted !== 'any') {
+      const now = new Date();
+      let dateThreshold;
+
+      switch (datePosted) {
+        case 'hour':
+          dateThreshold = new Date(now.getTime() - 60 * 60 * 1000);
+          break;
+        case 'day':
+          dateThreshold = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '3days':
+          dateThreshold = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+          break;
+        case 'week':
+          dateThreshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          dateThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'custom':
+          // Handle custom date range
+          if (dateFrom) {
+            paramCount++;
+            queryConditions.push(`a.created_at >= $${paramCount}`);
+            queryParams.push(new Date(dateFrom));
+          }
+          if (dateTo) {
+            paramCount++;
+            queryConditions.push(`a.created_at <= $${paramCount}`);
+            queryParams.push(new Date(dateTo));
+          }
+          break;
+      }
+
+      if (dateThreshold && datePosted !== 'custom') {
+        paramCount++;
+        queryConditions.push(`a.created_at >= $${paramCount}`);
+        queryParams.push(dateThreshold);
+      }
+    }
+
     // Determine sorting
     let orderByClause;
-    switch (sortBy) {
-      case 'price-low':
-        orderByClause = 'a.is_featured DESC, a.price ASC, a.created_at DESC';
-        break;
-      case 'price-high':
-        orderByClause = 'a.is_featured DESC, a.price DESC, a.created_at DESC';
-        break;
-      case 'oldest':
-        orderByClause = 'a.is_featured DESC, a.created_at ASC';
-        break;
-      case 'popular':
-        orderByClause = 'a.is_featured DESC, a.view_count DESC, a.created_at DESC';
-        break;
-      case 'newest':
-      default:
-        orderByClause = 'a.is_featured DESC, a.created_at DESC';
-        break;
+    if (sortBy && sortOrder) {
+      // Handle new format: sortBy and sortOrder separately
+      const order = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      switch (sortBy) {
+        case 'price':
+          orderByClause = `a.is_featured DESC, a.price ${order}, a.created_at DESC`;
+          break;
+        case 'views':
+          orderByClause = `a.is_featured DESC, a.view_count ${order}, a.created_at DESC`;
+          break;
+        case 'distance':
+          if (lat && lng) {
+            orderByClause = `distance ${order}, a.is_featured DESC, a.created_at DESC`;
+          } else {
+            orderByClause = 'a.is_featured DESC, a.created_at DESC';
+          }
+          break;
+        case 'date':
+        default:
+          orderByClause = `a.is_featured DESC, a.created_at ${order}`;
+          break;
+      }
+    } else {
+      // Handle legacy format for backward compatibility
+      switch (sortBy) {
+        case 'price-low':
+          orderByClause = 'a.is_featured DESC, a.price ASC, a.created_at DESC';
+          break;
+        case 'price-high':
+          orderByClause = 'a.is_featured DESC, a.price DESC, a.created_at DESC';
+          break;
+        case 'oldest':
+          orderByClause = 'a.is_featured DESC, a.created_at ASC';
+          break;
+        case 'popular':
+          orderByClause = 'a.is_featured DESC, a.view_count DESC, a.created_at DESC';
+          break;
+        case 'newest':
+        default:
+          orderByClause = 'a.is_featured DESC, a.created_at DESC';
+          break;
+      }
+    }
+
+    // Build SELECT clause with distance calculation if coordinates provided
+    let selectClause = `
+        a.id, a.title, a.description, a.price, a.condition, a.view_count,
+        a.seller_name, a.seller_phone, a.created_at, a.is_featured,
+        a.latitude, a.longitude,
+        c.name as category_name, c.icon as category_icon,
+        l.name as location_name, l.latitude as location_latitude, l.longitude as location_longitude,
+        (SELECT filename FROM ad_images WHERE ad_id = a.id AND is_primary = true LIMIT 1) as primary_image`;
+
+    if (lat && lng) {
+      selectClause += `,
+        (6371 * acos(
+          cos(radians(${parseFloat(lat)})) *
+          cos(radians(COALESCE(a.latitude, l.latitude))) *
+          cos(radians(COALESCE(a.longitude, l.longitude)) - radians(${parseFloat(lng)})) +
+          sin(radians(${parseFloat(lat)})) *
+          sin(radians(COALESCE(a.latitude, l.latitude)))
+        )) AS distance`;
     }
 
     const query = `
-      SELECT
-        a.id, a.title, a.description, a.price, a.condition, a.view_count,
-        a.seller_name, a.seller_phone, a.created_at, a.is_featured,
-        c.name as category_name, c.icon as category_icon,
-        l.name as location_name,
-        (SELECT filename FROM ad_images WHERE ad_id = a.id AND is_primary = true LIMIT 1) as primary_image
+      SELECT ${selectClause}
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN locations l ON a.location_id = l.id
@@ -479,6 +582,107 @@ app.get('/api/ads', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching ads',
+      error: error.message
+    });
+  }
+});
+
+// Get nearby ads endpoint
+app.get('/api/ads/nearby', async (req, res) => {
+  try {
+    const { lat, lng, radius = 25, limit = 20, category, minPrice, maxPrice } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude are required'
+      });
+    }
+
+    console.log('📍 Nearby ads request:', { lat, lng, radius, limit, category });
+
+    let queryConditions = ['a.status = $1'];
+    let queryParams = ['approved'];
+    let paramCount = 1;
+
+    // Add category filter
+    if (category && category !== 'all') {
+      paramCount++;
+      if (!isNaN(parseInt(category))) {
+        queryConditions.push(`a.category_id = $${paramCount}`);
+        queryParams.push(parseInt(category));
+      } else {
+        queryConditions.push(`(c.name ILIKE $${paramCount} OR c.slug ILIKE $${paramCount})`);
+        queryParams.push(category);
+      }
+    }
+
+    // Add price filters
+    if (minPrice && !isNaN(minPrice)) {
+      paramCount++;
+      queryConditions.push(`a.price >= $${paramCount}`);
+      queryParams.push(parseFloat(minPrice));
+    }
+
+    if (maxPrice && !isNaN(maxPrice)) {
+      paramCount++;
+      queryConditions.push(`a.price <= $${paramCount}`);
+      queryParams.push(parseFloat(maxPrice));
+    }
+
+    const query = `
+      SELECT *
+      FROM (
+        SELECT
+          a.id, a.title, a.description, a.price, a.condition, a.view_count,
+          a.seller_name, a.seller_phone, a.created_at, a.is_featured,
+          a.latitude, a.longitude,
+          c.name as category_name, c.icon as category_icon,
+          l.name as location_name, l.latitude as location_latitude, l.longitude as location_longitude,
+          (SELECT filename FROM ad_images WHERE ad_id = a.id AND is_primary = true LIMIT 1) as primary_image,
+          (6371 * acos(
+            cos(radians(${parseFloat(lat)})) *
+            cos(radians(COALESCE(a.latitude, l.latitude))) *
+            cos(radians(COALESCE(a.longitude, l.longitude)) - radians(${parseFloat(lng)})) +
+            sin(radians(${parseFloat(lat)})) *
+            sin(radians(COALESCE(a.latitude, l.latitude)))
+          )) AS distance
+        FROM ads a
+        LEFT JOIN categories c ON a.category_id = c.id
+        LEFT JOIN locations l ON a.location_id = l.id
+        WHERE ${queryConditions.join(' AND ')}
+          AND ((a.latitude IS NOT NULL AND a.longitude IS NOT NULL)
+           OR (l.latitude IS NOT NULL AND l.longitude IS NOT NULL))
+      ) ads_with_distance
+      WHERE distance <= ${parseFloat(radius)}
+      ORDER BY distance ASC, is_featured DESC, created_at DESC
+      LIMIT ${parseInt(limit)}
+    `;
+
+    const result = await pool.query(query, queryParams);
+
+    // Add formatted distance to each result
+    const adsWithDistance = result.rows.map(ad => ({
+      ...ad,
+      formatted_distance: formatDistance(ad.distance)
+    }));
+
+    console.log(`📍 Found ${result.rows.length} nearby ads within ${radius}km`);
+
+    res.json({
+      success: true,
+      data: adsWithDistance,
+      searchParams: {
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        radius: parseFloat(radius)
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching nearby ads:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching nearby ads',
       error: error.message
     });
   }
@@ -572,6 +776,249 @@ app.get('/api/locations', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching locations',
+      error: error.message
+    });
+  }
+});
+
+// Location search/autocomplete API for mobile
+app.get('/api/locations/search', async (req, res) => {
+  try {
+    const { q, lat, lng, limit = 10 } = req.query;
+
+    if (!q || q.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query must be at least 2 characters'
+      });
+    }
+
+    let query = `
+      SELECT l.*,
+        CASE
+          WHEN $2::decimal IS NOT NULL AND $3::decimal IS NOT NULL THEN
+            (6371 * acos(
+              cos(radians($2)) *
+              cos(radians(l.latitude)) *
+              cos(radians(l.longitude) - radians($3)) +
+              sin(radians($2)) *
+              sin(radians(l.latitude))
+            ))
+          ELSE NULL
+        END AS distance
+      FROM locations l
+      WHERE LOWER(l.name) LIKE LOWER($1)
+        AND l.latitude IS NOT NULL
+        AND l.longitude IS NOT NULL
+    `;
+
+    const params = [`%${q}%`];
+
+    if (lat && lng) {
+      params.push(parseFloat(lat), parseFloat(lng));
+      query += ' ORDER BY distance ASC, l.name ASC';
+    } else {
+      params.push(null, null);
+      query += ' ORDER BY l.name ASC';
+    }
+
+    query += ` LIMIT $4`;
+    params.push(parseInt(limit));
+
+    const result = await pool.query(query, params);
+
+    console.log(`🔍 Location search for "${q}" found ${result.rows.length} results`);
+
+    res.json({
+      success: true,
+      data: result.rows.map(location => ({
+        id: location.id,
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        distance: location.distance ? `${location.distance.toFixed(1)}km` : null
+      })),
+      query: q,
+      userLocation: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null
+    });
+  } catch (error) {
+    console.error('❌ Error in location search:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error searching locations',
+      error: error.message
+    });
+  }
+});
+
+// Reverse geocoding - get location info from coordinates
+app.get('/api/locations/reverse', async (req, res) => {
+  try {
+    const { lat, lng, radius = 50 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude are required'
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid coordinates'
+      });
+    }
+
+    const query = `
+      SELECT * FROM (
+        SELECT l.*,
+          (6371 * acos(
+            cos(radians($1)) *
+            cos(radians(l.latitude)) *
+            cos(radians(l.longitude) - radians($2)) +
+            sin(radians($1)) *
+            sin(radians(l.latitude))
+          )) AS distance
+        FROM locations l
+        WHERE l.latitude IS NOT NULL
+          AND l.longitude IS NOT NULL
+      ) locations_with_distance
+      WHERE distance <= $3
+      ORDER BY distance ASC
+      LIMIT 5
+    `;
+
+    const result = await pool.query(query, [latitude, longitude, parseFloat(radius)]);
+
+    console.log(`📍 Reverse geocoding for (${lat}, ${lng}) found ${result.rows.length} locations`);
+
+    res.json({
+      success: true,
+      data: result.rows.map(location => ({
+        id: location.id,
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        distance: `${location.distance.toFixed(1)}km`
+      })),
+      coordinates: { lat: latitude, lng: longitude },
+      searchRadius: `${radius}km`
+    });
+  } catch (error) {
+    console.error('❌ Error in reverse geocoding:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error finding nearby locations',
+      error: error.message
+    });
+  }
+});
+
+// Get popular locations with ads count (for mobile quick access)
+app.get('/api/locations/popular', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const query = `
+      SELECT l.*, COUNT(a.id) as ad_count
+      FROM locations l
+      LEFT JOIN ads a ON l.id = a.location_id
+      WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+      GROUP BY l.id, l.name, l.latitude, l.longitude
+      ORDER BY ad_count DESC, l.name ASC
+      LIMIT $1
+    `;
+
+    const result = await pool.query(query, [parseInt(limit)]);
+
+    console.log(`🏙️ Found ${result.rows.length} popular locations`);
+
+    res.json({
+      success: true,
+      data: result.rows.map(location => ({
+        id: location.id,
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        adCount: parseInt(location.ad_count)
+      }))
+    });
+  } catch (error) {
+    console.error('❌ Error fetching popular locations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching popular locations',
+      error: error.message
+    });
+  }
+});
+
+// Location suggestions based on user activity (future: user preferences)
+app.get('/api/locations/suggestions', async (req, res) => {
+  try {
+    const { lat, lng, limit = 5 } = req.query;
+
+    let query, params;
+
+    if (lat && lng) {
+      // Location-based suggestions
+      query = `
+        SELECT l.*, COUNT(a.id) as ad_count,
+          (6371 * acos(
+            cos(radians($1)) *
+            cos(radians(l.latitude)) *
+            cos(radians(l.longitude) - radians($2)) +
+            sin(radians($1)) *
+            sin(radians(l.latitude))
+          )) AS distance
+        FROM locations l
+        LEFT JOIN ads a ON l.id = a.location_id
+        WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+        GROUP BY l.id, l.name, l.latitude, l.longitude
+        HAVING distance <= 100
+        ORDER BY ad_count DESC, distance ASC
+        LIMIT $3
+      `;
+      params = [parseFloat(lat), parseFloat(lng), parseInt(limit)];
+    } else {
+      // Popular locations fallback
+      query = `
+        SELECT l.*, COUNT(a.id) as ad_count
+        FROM locations l
+        LEFT JOIN ads a ON l.id = a.location_id
+        WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+        GROUP BY l.id, l.name, l.latitude, l.longitude
+        ORDER BY ad_count DESC, l.name ASC
+        LIMIT $1
+      `;
+      params = [parseInt(limit)];
+    }
+
+    const result = await pool.query(query, params);
+
+    console.log(`💡 Generated ${result.rows.length} location suggestions`);
+
+    res.json({
+      success: true,
+      data: result.rows.map(location => ({
+        id: location.id,
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        adCount: parseInt(location.ad_count),
+        distance: location.distance ? `${location.distance.toFixed(1)}km` : null
+      })),
+      userLocation: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null
+    });
+  } catch (error) {
+    console.error('❌ Error generating location suggestions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error generating location suggestions',
       error: error.message
     });
   }

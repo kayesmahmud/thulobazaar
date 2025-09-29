@@ -5,6 +5,7 @@ import ApiService from '../services/api';
 import Header from './Header';
 import RecentlyViewed from './RecentlyViewed';
 import { useAuth } from '../context/AuthContext';
+import { generateBikroyStyleURL, getCategorySlug } from '../utils/seoUtils';
 
 function Home() {
   const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
@@ -161,15 +162,15 @@ function Home() {
       <section className="banner-section">
         <div className="banner">
           <div className="banner-content">
-            <div className="banner-item" onClick={() => navigate('/search?category=Fashion')} style={{ cursor: 'pointer' }}>
+            <div className="banner-item" onClick={() => navigate(generateBikroyStyleURL('Fashion'))} style={{ cursor: 'pointer' }}>
               <span className="banner-icon">👗</span>
               <span>Fashion</span>
             </div>
-            <div className="banner-item" onClick={() => navigate('/search?category=Vehicles')} style={{ cursor: 'pointer' }}>
+            <div className="banner-item" onClick={() => navigate(generateBikroyStyleURL('Vehicles'))} style={{ cursor: 'pointer' }}>
               <span className="banner-icon">🚗</span>
               <span>Vehicles</span>
             </div>
-            <div className="banner-item" onClick={() => navigate('/search?category=Electronics')} style={{ cursor: 'pointer' }}>
+            <div className="banner-item" onClick={() => navigate(generateBikroyStyleURL('Electronics'))} style={{ cursor: 'pointer' }}>
               <span className="banner-icon">📱</span>
               <span>Electronics</span>
             </div>
@@ -192,7 +193,7 @@ function Home() {
             <div
               key={category.id}
               className="category-card"
-              onClick={() => navigate(`/search?category=${category.name}`)}
+              onClick={() => navigate(generateBikroyStyleURL(category.name))}
               style={{ cursor: 'pointer' }}
             >
               <div className="category-icon">{category.icon}</div>

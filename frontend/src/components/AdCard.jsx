@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import LazyImage from './LazyImage';
+import { formatDateTime } from '../utils/dateUtils';
 
 function AdCard({ ad }) {
   const navigate = useNavigate();
@@ -11,17 +12,6 @@ function AdCard({ ad }) {
     }).format(price);
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) return 'Today';
-    if (diffDays === 2) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
-  };
 
   const handleCardClick = () => {
     navigate(`/ad/${ad.id}`);
@@ -89,8 +79,7 @@ function AdCard({ ad }) {
         <div className="ad-price">{formatPrice(ad.price)}</div>
 
         <div className="ad-meta">
-          <span className="ad-time">{formatDate(ad.created_at)}</span>
-          <span className="ad-views">👁️ {ad.view_count}</span>
+          <span className="ad-time">🕒 {formatDateTime(ad.created_at)}</span>
         </div>
 
         <div className="ad-seller">

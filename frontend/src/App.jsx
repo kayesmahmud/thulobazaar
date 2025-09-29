@@ -8,6 +8,7 @@ import PostAd from './components/PostAd';
 import Dashboard from './components/Dashboard';
 import EditAd from './components/EditAd';
 import Browse from './components/Browse';
+import NearbyAds from './components/NearbyAds';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import { AuthProvider } from './context/AuthContext';
@@ -27,9 +28,12 @@ function App() {
 
           {/* Browse pages - Bikroy-style URL structure */}
           <Route path="/ads" element={<Browse />} />
-          <Route path="/ads/category/:categorySlug" element={<Browse />} />
+          <Route path="/ads/nearby" element={<NearbyAds />} />
           <Route path="/ads/:locationSlug" element={<Browse />} />
           <Route path="/ads/:locationSlug/:categorySlug" element={<Browse />} />
+
+          {/* Legacy routes for backward compatibility */}
+          <Route path="/ads/category/:categorySlug" element={<Browse />} />
 
           <Route path="/post-ad" element={<PostAd />} />
           <Route path="/dashboard" element={<Dashboard />} />

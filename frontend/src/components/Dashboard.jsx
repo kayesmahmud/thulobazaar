@@ -353,8 +353,6 @@ function Dashboard() {
                             <div style={{ fontSize: '14px', color: '#64748b' }}>
                               <span>📍 {ad.location_name}</span>
                               <span style={{ margin: '0 12px' }}>•</span>
-                              <span>👁️ {ad.view_count} views</span>
-                              <span style={{ margin: '0 12px' }}>•</span>
                               <span>📅 {formatDate(ad.created_at)}</span>
                             </div>
                           </div>

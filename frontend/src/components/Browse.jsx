@@ -3,13 +3,14 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import ApiService from '../services/api';
 import SimpleHeader from './SimpleHeader';
 import { parseBrowseUrl, generateMetaTitle, generateMetaDescription, generateBreadcrumbs } from '../utils/urlUtils';
+import { parseBikroyStyleURL, getCategoryFromSlug } from '../utils/seoUtils';
 
 function Browse() {
   const params = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Handle different URL patterns
+  // Handle Bikroy-style URL patterns
   const getPageParams = () => {
     const { locationSlug, categorySlug } = params;
     const pathname = window.location.pathname;
@@ -17,30 +18,45 @@ function Browse() {
     console.log('🔍 Raw params:', { locationSlug, categorySlug });
     console.log('🔍 Pathname:', pathname);
 
+    // Parse using Bikroy-style URL parser
+    const parsed = parseBikroyStyleURL(pathname);
+
+    if (parsed.isValid) {
+      console.log('🔍 Bikroy-style URL parsed:', parsed);
+      // Convert category slug back to actual category name
+      const categoryName = parsed.category ? getCategoryFromSlug(parsed.category) : null;
+      return {
+        locationSlug: parsed.location,
+        categorySlug: parsed.category,
+        categoryName: categoryName
+      };
+    }
+
+    // Fallback to original logic for backward compatibility
     // Pattern: /ads/category/vehicles - handled by route /ads/category/:categorySlug
     if (pathname.startsWith('/ads/category/') && categorySlug && !locationSlug) {
-      console.log('🔍 Detected category-only pattern');
-      return { locationSlug: null, categorySlug: categorySlug };
+      console.log('🔍 Detected category-only pattern (legacy)');
+      return { locationSlug: null, categorySlug: categorySlug, categoryName: getCategoryFromSlug(categorySlug) };
     }
 
     // Pattern: /ads/kathmandu/electronics - handled by route /ads/:locationSlug/:categorySlug
     if (locationSlug && categorySlug) {
       console.log('🔍 Detected location + category pattern');
-      return { locationSlug: locationSlug, categorySlug: categorySlug };
+      return { locationSlug: locationSlug, categorySlug: categorySlug, categoryName: getCategoryFromSlug(categorySlug) };
     }
 
     // Pattern: /ads/electronics - handled by route /ads/:locationSlug (could be location or category)
     if (locationSlug && !categorySlug) {
       console.log('🔍 Detected single parameter pattern');
-      return { locationSlug: locationSlug, categorySlug: null };
+      return { locationSlug: locationSlug, categorySlug: null, categoryName: null };
     }
 
     // Pattern: /ads - handled by route /ads
     console.log('🔍 Detected base pattern');
-    return { locationSlug: null, categorySlug: null };
+    return { locationSlug: null, categorySlug: null, categoryName: null };
   };
 
-  const { locationSlug, categorySlug } = getPageParams();
+  const { locationSlug, categorySlug, categoryName } = getPageParams();
 
   const [ads, setAds] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -77,20 +93,25 @@ function Browse() {
       let actualCategory = null;
       let actualLocation = null;
 
-      if (categorySlug) {
-        console.log('🔍 Looking for category with slug:', categorySlug);
+      if (categoryName) {
+        console.log('🔍 Looking for category with name:', categoryName);
         console.log('🔍 Available categories:', categoriesData.map(cat => ({ id: cat.id, name: cat.name, slug: cat.slug })));
-        actualCategory = categoriesData.find(cat => cat.slug === categorySlug);
-        console.log('🔍 Found category:', actualCategory);
+        // First try exact name match
+        actualCategory = categoriesData.find(cat => cat.name === categoryName);
 
-        // If no match by slug, try by name (case-insensitive)
+        // If no exact match, try case-insensitive match
         if (!actualCategory) {
-          console.log('🔍 No slug match, trying by name...');
           actualCategory = categoriesData.find(cat =>
-            cat.name.toLowerCase() === categorySlug.toLowerCase()
+            cat.name.toLowerCase() === categoryName.toLowerCase()
           );
-          console.log('🔍 Found category by name:', actualCategory);
         }
+
+        // If still no match and we have a slug, try by slug
+        if (!actualCategory && categorySlug) {
+          actualCategory = categoriesData.find(cat => cat.slug === categorySlug);
+        }
+
+        console.log('🔍 Found category:', actualCategory);
       }
 
       if (locationSlug) {
@@ -103,13 +124,16 @@ function Browse() {
         }
       }
 
-      console.log('🔍 Browse Debug:', {
+      console.log('🔍 Browse Debug - DETAILED:', {
+        'URL pathname': window.location.pathname,
         locationSlug,
         categorySlug,
+        categoryName,
+        'getCategoryFromSlug result': categorySlug ? getCategoryFromSlug(categorySlug) : 'no slug',
         actualCategory,
         actualLocation,
-        categoriesData,
-        locationsData
+        'Available categories': categoriesData.map(cat => ({ id: cat.id, name: cat.name, slug: cat.slug })),
+        'API will receive category': actualCategory ? actualCategory.id : (categoryName ? categoryName : 'NO CATEGORY')
       });
 
       setCurrentCategory(actualCategory);
@@ -123,6 +147,13 @@ function Browse() {
 
       if (actualCategory) {
         searchOptions.category = actualCategory.id;
+        console.log('📡 API will use category ID:', actualCategory.id, 'for category:', actualCategory.name);
+      } else if (categoryName) {
+        // Fallback: use category name directly if category object not found
+        searchOptions.category = categoryName;
+        console.log('📡 API will use category NAME (fallback):', categoryName);
+      } else {
+        console.log('📡 API will use NO CATEGORY');
       }
 
       if (actualLocation) {
@@ -139,10 +170,24 @@ function Browse() {
       if (sortBy) searchOptions.sortBy = sortBy;
 
       // Load ads
+      console.log('📡 Making API call with options:', searchOptions);
       const adsResponse = await ApiService.getAds(searchOptions);
+      console.log('📡 API Response received:', adsResponse);
+      console.log('📡 Response data:', adsResponse.data);
+      console.log('📡 Response pagination:', adsResponse.pagination);
+      console.log('📡 Response total from pagination:', adsResponse.pagination?.total);
+      console.log('📡 Setting ads to:', adsResponse.data || []);
+      console.log('📡 Setting totalAds to:', adsResponse.pagination?.total || 0);
+
       setAds(adsResponse.data || []);
-      setTotalAds(adsResponse.total || 0);
-      setTotalPages(Math.ceil((adsResponse.total || 0) / ITEMS_PER_PAGE));
+      setTotalAds(adsResponse.pagination?.total || 0);
+      setTotalPages(Math.ceil((adsResponse.pagination?.total || 0) / ITEMS_PER_PAGE));
+
+      // Final state verification
+      console.log('🔄 After setting state:');
+      console.log('🔄 ads will be set to:', adsResponse.data || []);
+      console.log('🔄 ads.length:', (adsResponse.data || []).length);
+      console.log('🔄 totalAds will be set to:', adsResponse.pagination?.total || 0);
 
     } catch (err) {
       console.error('Error loading browse data:', err);

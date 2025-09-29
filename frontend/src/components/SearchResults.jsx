@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import AdCard from './AdCard';
 import SimpleHeader from './SimpleHeader';
 import RecentlyViewed from './RecentlyViewed';
+import AdvancedFilters from './AdvancedFilters';
 import ApiService from '../services/api';
 
 function SearchResults() {
@@ -32,22 +33,61 @@ function SearchResults() {
       location: urlParams.get('location') || 'all',
       minPrice: urlParams.get('minPrice') || '',
       maxPrice: urlParams.get('maxPrice') || '',
-      sortBy: urlParams.get('sortBy') || 'newest'
+      condition: urlParams.get('condition') || 'all',
+      datePosted: urlParams.get('datePosted') || 'any',
+      dateFrom: urlParams.get('dateFrom') || '',
+      dateTo: urlParams.get('dateTo') || '',
+      sortBy: urlParams.get('sortBy') || 'date',
+      sortOrder: urlParams.get('sortOrder') || 'desc'
     };
   };
 
   const [searchFilters, setSearchFilters] = useState(getInitialFilters);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    priceRange: [
+      parseInt(searchFilters.minPrice) || 0,
+      parseInt(searchFilters.maxPrice) || 5000000
+    ],
+    condition: searchFilters.condition,
+    datePosted: searchFilters.datePosted,
+    customDateRange: {
+      from: searchFilters.dateFrom,
+      to: searchFilters.dateTo
+    },
+    sortBy: searchFilters.sortBy,
+    sortOrder: searchFilters.sortOrder
+  });
 
   // Update filters when URL changes
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
-    setSearchFilters({
+    const newFilters = {
       search: urlParams.get('search') || '',
       category: urlParams.get('category') || 'all',
       location: urlParams.get('location') || 'all',
       minPrice: urlParams.get('minPrice') || '',
       maxPrice: urlParams.get('maxPrice') || '',
-      sortBy: urlParams.get('sortBy') || 'newest'
+      condition: urlParams.get('condition') || 'all',
+      datePosted: urlParams.get('datePosted') || 'any',
+      dateFrom: urlParams.get('dateFrom') || '',
+      dateTo: urlParams.get('dateTo') || '',
+      sortBy: urlParams.get('sortBy') || 'date',
+      sortOrder: urlParams.get('sortOrder') || 'desc'
+    };
+    setSearchFilters(newFilters);
+    setAdvancedFilters({
+      priceRange: [
+        parseInt(newFilters.minPrice) || 0,
+        parseInt(newFilters.maxPrice) || 5000000
+      ],
+      condition: newFilters.condition,
+      datePosted: newFilters.datePosted,
+      customDateRange: {
+        from: newFilters.dateFrom,
+        to: newFilters.dateTo
+      },
+      sortBy: newFilters.sortBy,
+      sortOrder: newFilters.sortOrder
     });
   }, [location.search]);
 
@@ -81,7 +121,16 @@ function SearchResults() {
         if (searchFilters.location !== 'all') searchParams.location = searchFilters.location;
         if (searchFilters.minPrice) searchParams.minPrice = searchFilters.minPrice;
         if (searchFilters.maxPrice) searchParams.maxPrice = searchFilters.maxPrice;
-        if (searchFilters.sortBy !== 'newest') searchParams.sortBy = searchFilters.sortBy;
+        if (searchFilters.condition !== 'all') searchParams.condition = searchFilters.condition;
+        if (searchFilters.datePosted !== 'any') {
+          searchParams.datePosted = searchFilters.datePosted;
+          if (searchFilters.datePosted === 'custom') {
+            if (searchFilters.dateFrom) searchParams.dateFrom = searchFilters.dateFrom;
+            if (searchFilters.dateTo) searchParams.dateTo = searchFilters.dateTo;
+          }
+        }
+        if (searchFilters.sortBy !== 'date') searchParams.sortBy = searchFilters.sortBy;
+        if (searchFilters.sortOrder !== 'desc') searchParams.sortOrder = searchFilters.sortOrder;
 
         console.log('📤 API request params:', searchParams);
         const response = await ApiService.getAds(searchParams);
@@ -107,15 +156,47 @@ function SearchResults() {
       [field]: value
     };
     setSearchFilters(newFilters);
+    updateURL(newFilters);
+  };
 
+  const handleAdvancedFiltersChange = (filters) => {
+    setAdvancedFilters(filters);
+
+    // Convert advanced filters to search filters format
+    const newFilters = {
+      ...searchFilters,
+      minPrice: filters.priceRange[0].toString(),
+      maxPrice: filters.priceRange[1].toString(),
+      condition: filters.condition,
+      datePosted: filters.datePosted,
+      dateFrom: filters.customDateRange.from,
+      dateTo: filters.customDateRange.to,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
+    };
+
+    setSearchFilters(newFilters);
+    updateURL(newFilters);
+  };
+
+  const updateURL = (filters) => {
     // Update URL
     const urlParams = new URLSearchParams();
-    if (newFilters.search.trim()) urlParams.append('search', newFilters.search.trim());
-    if (newFilters.category !== 'all') urlParams.append('category', newFilters.category);
-    if (newFilters.location !== 'all') urlParams.append('location', newFilters.location);
-    if (newFilters.minPrice) urlParams.append('minPrice', newFilters.minPrice);
-    if (newFilters.maxPrice) urlParams.append('maxPrice', newFilters.maxPrice);
-    if (newFilters.sortBy !== 'newest') urlParams.append('sortBy', newFilters.sortBy);
+    if (filters.search.trim()) urlParams.append('search', filters.search.trim());
+    if (filters.category !== 'all') urlParams.append('category', filters.category);
+    if (filters.location !== 'all') urlParams.append('location', filters.location);
+    if (filters.minPrice) urlParams.append('minPrice', filters.minPrice);
+    if (filters.maxPrice) urlParams.append('maxPrice', filters.maxPrice);
+    if (filters.condition !== 'all') urlParams.append('condition', filters.condition);
+    if (filters.datePosted !== 'any') {
+      urlParams.append('datePosted', filters.datePosted);
+      if (filters.datePosted === 'custom') {
+        if (filters.dateFrom) urlParams.append('dateFrom', filters.dateFrom);
+        if (filters.dateTo) urlParams.append('dateTo', filters.dateTo);
+      }
+    }
+    if (filters.sortBy !== 'date') urlParams.append('sortBy', filters.sortBy);
+    if (filters.sortOrder !== 'desc') urlParams.append('sortOrder', filters.sortOrder);
 
     const queryString = urlParams.toString();
     navigate(`/search${queryString ? `?${queryString}` : ''}`, { replace: true });
@@ -129,20 +210,36 @@ function SearchResults() {
   };
 
   const clearAllFilters = () => {
-    setSearchFilters({
+    const clearedFilters = {
       search: '',
       category: 'all',
       location: 'all',
       minPrice: '',
       maxPrice: '',
-      sortBy: 'newest'
+      condition: 'all',
+      datePosted: 'any',
+      dateFrom: '',
+      dateTo: '',
+      sortBy: 'date',
+      sortOrder: 'desc'
+    };
+    setSearchFilters(clearedFilters);
+    setAdvancedFilters({
+      priceRange: [0, 5000000],
+      condition: 'all',
+      datePosted: 'any',
+      customDateRange: { from: '', to: '' },
+      sortBy: 'date',
+      sortOrder: 'desc'
     });
     navigate('/search', { replace: true });
   };
 
   const hasActiveFilters = searchFilters.search || searchFilters.category !== 'all' ||
     searchFilters.location !== 'all' || searchFilters.minPrice ||
-    searchFilters.maxPrice || searchFilters.sortBy !== 'newest';
+    searchFilters.maxPrice || searchFilters.condition !== 'all' ||
+    searchFilters.datePosted !== 'any' || searchFilters.sortBy !== 'date' ||
+    searchFilters.sortOrder !== 'desc';
 
   if (loading || authLoading) {
     return (
@@ -282,163 +379,95 @@ function SearchResults() {
           minHeight: '70vh'
         }}>
           {/* Left Sidebar - Filters */}
-          <div className="sidebar" style={{
-            backgroundColor: '#f8fafc',
-            padding: '20px',
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            height: 'fit-content',
-            position: 'sticky',
-            top: '20px'
-          }}>
-            <h3 style={{
-              margin: '0 0 20px 0',
-              color: '#1e293b',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              borderBottom: '2px solid #dc1e4a',
-              paddingBottom: '10px'
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Basic Filters */}
+            <div className="sidebar" style={{
+              backgroundColor: '#f8fafc',
+              padding: '20px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
             }}>
-              🔍 Refine Search
-            </h3>
-
-            {/* Category Filter */}
-            <div style={{ marginBottom: '24px' }}>
-              <h4 style={{
-                margin: '0 0 12px 0',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: '600'
+              <h3 style={{
+                margin: '0 0 20px 0',
+                color: '#1e293b',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                borderBottom: '2px solid #dc1e4a',
+                paddingBottom: '10px'
               }}>
-                📂 Category
-              </h4>
-              <select
-                value={searchFilters.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
+                🔍 Basic Filters
+              </h3>
+
+              {/* Category Filter */}
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{
+                  margin: '0 0 8px 0',
+                  color: '#374151',
                   fontSize: '14px',
-                  backgroundColor: 'white',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.icon} {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Location Filter */}
-            <div style={{ marginBottom: '24px' }}>
-              <h4 style={{
-                margin: '0 0 12px 0',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                📍 Location
-              </h4>
-              <select
-                value={searchFilters.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  backgroundColor: 'white',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="all">All of Nepal</option>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.name}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Price Range */}
-            <div style={{ marginBottom: '24px' }}>
-              <h4 style={{
-                margin: '0 0 12px 0',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                💰 Price Range (NPR)
-              </h4>
-              <div style={{ marginBottom: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="Min Price"
-                  value={searchFilters.minPrice}
-                  onChange={(e) => handleInputChange('minPrice', e.target.value)}
+                  fontWeight: '600'
+                }}>
+                  📂 Category
+                </h4>
+                <select
+                  value={searchFilters.category}
+                  onChange={(e) => handleInputChange('category', e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '8px 12px',
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    marginBottom: '8px',
+                    backgroundColor: 'white',
                     boxSizing: 'border-box'
                   }}
-                />
-                <input
-                  type="number"
-                  placeholder="Max Price"
-                  value={searchFilters.maxPrice}
-                  onChange={(e) => handleInputChange('maxPrice', e.target.value)}
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.name}>
+                      {category.icon} {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Location Filter */}
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{
+                  margin: '0 0 8px 0',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  📍 Location
+                </h4>
+                <select
+                  value={searchFilters.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '8px 12px',
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     fontSize: '14px',
+                    backgroundColor: 'white',
                     boxSizing: 'border-box'
                   }}
-                />
+                >
+                  <option value="all">All of Nepal</option>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.name}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Sort By */}
-            <div style={{ marginBottom: '24px' }}>
-              <h4 style={{
-                margin: '0 0 12px 0',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                📊 Sort By
-              </h4>
-              <select
-                value={searchFilters.sortBy}
-                onChange={(e) => handleInputChange('sortBy', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  backgroundColor: 'white',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="newest">🆕 Newest First</option>
-                <option value="oldest">🕐 Oldest First</option>
-                <option value="price-low">💸 Price: Low to High</option>
-                <option value="price-high">💰 Price: High to Low</option>
-                <option value="popular">🔥 Most Popular</option>
-              </select>
-            </div>
+            {/* Advanced Filters */}
+            <AdvancedFilters
+              onFiltersChange={handleAdvancedFiltersChange}
+              initialFilters={advancedFilters}
+            />
 
             {/* Clear All Filters */}
             <button
@@ -457,39 +486,6 @@ function SearchResults() {
             >
               🗑️ Clear All Filters
             </button>
-
-            {/* Active Filters Summary */}
-            {hasActiveFilters && (
-              <div style={{
-                marginTop: '20px',
-                padding: '12px',
-                backgroundColor: '#e0f2fe',
-                borderRadius: '6px',
-                border: '1px solid #0891b2'
-              }}>
-                <div style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#0e7490',
-                  marginBottom: '8px'
-                }}>
-                  Active Filters:
-                </div>
-                <div style={{ fontSize: '11px', color: '#155e75', lineHeight: '1.4' }}>
-                  {searchFilters.search && <div>Search: "{searchFilters.search}"</div>}
-                  {searchFilters.category !== 'all' && <div>Category: {searchFilters.category}</div>}
-                  {searchFilters.location !== 'all' && <div>Location: {searchFilters.location}</div>}
-                  {searchFilters.minPrice && <div>Min: NPR {searchFilters.minPrice}</div>}
-                  {searchFilters.maxPrice && <div>Max: NPR {searchFilters.maxPrice}</div>}
-                  {searchFilters.sortBy !== 'newest' && <div>Sort: {
-                    searchFilters.sortBy === 'price-low' ? 'Price Low-High' :
-                    searchFilters.sortBy === 'price-high' ? 'Price High-Low' :
-                    searchFilters.sortBy === 'oldest' ? 'Oldest First' :
-                    searchFilters.sortBy === 'popular' ? 'Most Popular' : searchFilters.sortBy
-                  }</div>}
-                </div>
-              </div>
-            )}
 
             {/* Recently Viewed */}
             <RecentlyViewed maxItems={3} />

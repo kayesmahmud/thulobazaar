@@ -468,7 +468,7 @@ function AdminPanel() {
                           {formatPrice(ad.price)}
                         </div>
                         <div style={{ fontSize: '14px', color: '#64748b' }}>
-                          📍 {ad.location_name} • 👁️ {ad.view_count} views • 🕒 {formatDate(ad.created_at)}
+                          📍 {ad.location_name} • 🕒 {formatDate(ad.created_at)}
                         </div>
                         <div style={{ fontSize: '14px', color: '#64748b' }}>
                           📧 {ad.user_email} • 📞 {ad.seller_phone}
