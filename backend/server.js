@@ -80,7 +80,7 @@ const upload = multer({
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
   credentials: true
 }));
 app.use(express.json());
@@ -1889,6 +1889,9 @@ app.post('/api/reply-message', rateLimiters.messaging, authenticateToken, async 
   }
 });
 
+// Search routes (Typesense integration)
+app.use('/api/search', require('./routes/search'));
+
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -1901,4 +1904,5 @@ app.listen(PORT, () => {
   console.log(`   - http://localhost:${PORT}/api/test`);
   console.log(`   - http://localhost:${PORT}/api/ads`);
   console.log(`   - http://localhost:${PORT}/api/categories`);
+  console.log(`   - http://localhost:${PORT}/api/search (Typesense powered)`);
 });

@@ -45,8 +45,8 @@ function SearchResults() {
   const [searchFilters, setSearchFilters] = useState(getInitialFilters);
   const [advancedFilters, setAdvancedFilters] = useState({
     priceRange: [
-      parseInt(searchFilters.minPrice) || 0,
-      parseInt(searchFilters.maxPrice) || 5000000
+      searchFilters.minPrice ? parseInt(searchFilters.minPrice) : 0,
+      searchFilters.maxPrice ? parseInt(searchFilters.maxPrice) : 5000000
     ],
     condition: searchFilters.condition,
     datePosted: searchFilters.datePosted,
@@ -77,8 +77,8 @@ function SearchResults() {
     setSearchFilters(newFilters);
     setAdvancedFilters({
       priceRange: [
-        parseInt(newFilters.minPrice) || 0,
-        parseInt(newFilters.maxPrice) || 5000000
+        newFilters.minPrice ? parseInt(newFilters.minPrice) : 0,
+        newFilters.maxPrice ? parseInt(newFilters.maxPrice) : 5000000
       ],
       condition: newFilters.condition,
       datePosted: newFilters.datePosted,
@@ -185,8 +185,8 @@ function SearchResults() {
     if (filters.search.trim()) urlParams.append('search', filters.search.trim());
     if (filters.category !== 'all') urlParams.append('category', filters.category);
     if (filters.location !== 'all') urlParams.append('location', filters.location);
-    if (filters.minPrice) urlParams.append('minPrice', filters.minPrice);
-    if (filters.maxPrice) urlParams.append('maxPrice', filters.maxPrice);
+    if (filters.minPrice && filters.minPrice !== '0' && filters.minPrice !== '') urlParams.append('minPrice', filters.minPrice);
+    if (filters.maxPrice && filters.maxPrice !== '5000000' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
     if (filters.condition !== 'all') urlParams.append('condition', filters.condition);
     if (filters.datePosted !== 'any') {
       urlParams.append('datePosted', filters.datePosted);

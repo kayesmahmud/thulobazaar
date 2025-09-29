@@ -23,7 +23,6 @@ function App() {
           <Route path="/all-ads" element={<AllAds />} />
 
           {/* SEO-friendly ad URLs with backward compatibility */}
-          <Route path="/ad/:slug" element={<AdDetail />} />
           <Route path="/ad/:id" element={<AdDetail />} />
 
           {/* Browse pages - Bikroy-style URL structure */}

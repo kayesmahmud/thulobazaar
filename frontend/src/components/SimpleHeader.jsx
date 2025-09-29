@@ -22,8 +22,18 @@ function SimpleHeader({ showUserWelcome = false }) {
     setMobileMenuOpen(false);
   };
 
-  const handleNavigation = (path) => {
-    navigate(path);
+  const handleNavigation = (path, event = null) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    try {
+      navigate(path);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback to direct window navigation if React Router fails
+      window.location.href = path;
+    }
     closeMobileMenu();
   };
 
@@ -34,7 +44,7 @@ function SimpleHeader({ showUserWelcome = false }) {
           <div className="top-header-content">
             {/* Logo */}
             <div className="logo">
-              <a href="/" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>
+              <a href="/" onClick={(e) => handleNavigation('/', e)}>
                 <img src="/logo.png" alt="Thulobazaar" className="logo-image" />
               </a>
             </div>
@@ -162,7 +172,7 @@ function SimpleHeader({ showUserWelcome = false }) {
                 <div className="mobile-nav-links">
                   <button
                     className="mobile-nav-btn"
-                    onClick={() => handleNavigation('/')}
+                    onClick={(e) => handleNavigation('/', e)}
                   >
                     🏠 Home
                   </button>

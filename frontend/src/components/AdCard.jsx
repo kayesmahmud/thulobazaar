@@ -13,8 +13,16 @@ function AdCard({ ad }) {
   };
 
 
-  const handleCardClick = () => {
-    navigate(`/ad/${ad.id}`);
+  const handleCardClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      navigate(`/ad/${ad.id}`);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback to direct window navigation if React Router fails
+      window.location.href = `/ad/${ad.id}`;
+    }
   };
 
   return (
@@ -28,14 +36,14 @@ function AdCard({ ad }) {
             alt={ad.title}
             style={{
               width: '100%',
-              height: '200px',
+              height: '100%',
               objectFit: 'cover',
               borderRadius: '8px 8px 0 0'
             }}
             placeholder={
               <div style={{
                 width: '100%',
-                height: '200px',
+                height: '100%',
                 backgroundColor: '#f1f5f9',
                 borderRadius: '8px 8px 0 0',
                 display: 'flex',
@@ -57,7 +65,7 @@ function AdCard({ ad }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '200px',
+              height: '100%',
               backgroundColor: '#f1f5f9',
               fontSize: '48px',
               borderRadius: '8px 8px 0 0'
