@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
 import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
+import BusinessVerificationForm from './BusinessVerificationForm';
+import { generateAdUrl } from '../utils/urlUtils';
 
 function Dashboard() {
   const { user, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('my-ads');
   const [userAds, setUserAds] = useState([]);
@@ -17,34 +21,72 @@ function Dashboard() {
   const [replyModal, setReplyModal] = useState({ isOpen: false, messageId: null, buyerName: '', adTitle: '' });
   const [replyMessage, setReplyMessage] = useState('');
   const [replyError, setReplyError] = useState(null);
+  const [businessVerificationModal, setBusinessVerificationModal] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
 
   useEffect(() => {
     // Redirect if not authenticated
     if (!isAuthenticated) {
-      navigate('/');
+      navigate(`/${language}`);
+      return;
+    }
+
+    // Block editors and super_admins from accessing dashboard
+    if (user && (user.role === 'editor' || user.role === 'super_admin')) {
+      alert('Editors and admins cannot access user dashboard');
+      navigate(`/${language}`);
       return;
     }
 
     // Load user's data
     loadUserData();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, language]);
 
   const loadUserData = async () => {
     try {
       setLoading(true);
-      const [ads, receivedMessages] = await Promise.all([
+      const [ads, receivedMessages, verificationStatusData] = await Promise.all([
         ApiService.getUserAds(),
-        ApiService.getContactMessages('received')
+        ApiService.getContactMessages('received'),
+        ApiService.getBusinessVerificationStatus().catch(() => null)
       ]);
       setUserAds(ads);
       setContactMessages(receivedMessages);
-      console.log('✅ User data loaded:', { ads, receivedMessages });
+
+      let processedVerificationStatus = null;
+      if (verificationStatusData) {
+        if (verificationStatusData.latestRequest) {
+          // If there's a latest request, use its status
+          processedVerificationStatus = {
+            status: verificationStatusData.latestRequest.status,
+            rejection_reason: verificationStatusData.latestRequest.rejection_reason
+          };
+        } else if (verificationStatusData.userStatus.business_verification_status) {
+          // If no latest request but user is verified (e.g., pre-approved or old system)
+          processedVerificationStatus = {
+            status: verificationStatusData.userStatus.business_verification_status
+          };
+        } else {
+          // No request, no verification status, so user hasn't applied
+          processedVerificationStatus = { status: 'not_applied' };
+        }
+      }
+
+      setVerificationStatus(processedVerificationStatus);
+      console.log('✅ User data loaded:', { ads, receivedMessages, verificationStatusData, processedVerificationStatus });
+      console.log('Dashboard - verificationStatus after fetch:', processedVerificationStatus);
     } catch (err) {
       console.error('❌ Error loading user data:', err);
       setError('Failed to load your data. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = () => {
+    setBusinessVerificationModal(false);
+    alert('✅ Business verification request submitted successfully! Our team will review your application within 1-2 business days.');
+    loadUserData(); // Reload to get updated status
   };
 
   const handleDeleteAd = async (adId) => {
@@ -141,6 +183,112 @@ function Dashboard() {
           </p>
         </div>
 
+        {/* Business Verification Banner */}
+        {verificationStatus && verificationStatus.status === 'not_applied' && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '2px solid #fbbf24',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '32px' }}>✓</span>
+                <h3 style={{ margin: 0, color: '#92400e', fontSize: '18px', fontWeight: 'bold' }}>
+                  Get Your Business Verified!
+                </h3>
+              </div>
+              <p style={{ margin: 0, color: '#92400e', fontSize: '14px' }}>
+                Unlock golden verified badge, 30-40% discount on promotions, and increased trust
+              </p>
+            </div>
+            <button
+              onClick={() => setBusinessVerificationModal(true)}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#fbbf24',
+                color: '#92400e',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Apply Now →
+            </button>
+          </div>
+        )}
+
+        {/* Verification Status Banner */}
+        {verificationStatus && verificationStatus.status !== 'not_applied' && (
+          <div style={{
+            backgroundColor: verificationStatus.status === 'pending' ? '#fef3c7' :
+                          verificationStatus.status === 'approved' ? '#d1fae5' : '#fee2e2',
+            border: `2px solid ${verificationStatus.status === 'pending' ? '#fbbf24' :
+                                 verificationStatus.status === 'approved' ? '#10b981' : '#ef4444'}`,
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '24px' }}>
+                    {verificationStatus.status === 'pending' ? '⏳' :
+                     verificationStatus.status === 'approved' ? '✓' : '✗'}
+                  </span>
+                  <h3 style={{
+                    margin: 0,
+                    color: verificationStatus.status === 'pending' ? '#92400e' :
+                           verificationStatus.status === 'approved' ? '#065f46' : '#991b1b',
+                    fontSize: '18px',
+                    fontWeight: 'bold'
+                  }}>
+                    Business Verification {verificationStatus.status === 'pending' ? 'Pending' :
+                                          verificationStatus.status === 'approved' ? 'Approved!' : 'Rejected'}
+                  </h3>
+                </div>
+                <p style={{
+                  margin: 0,
+                  color: verificationStatus.status === 'pending' ? '#92400e' :
+                         verificationStatus.status === 'approved' ? '#065f46' : '#991b1b',
+                  fontSize: '14px'
+                }}>
+                  {verificationStatus.status === 'pending' && 'Your application is under review. We\'ll notify you within 1-2 business days.'}
+                  {verificationStatus.status === 'approved' && 'Congratulations! Your business account is now verified with a golden badge.'}
+                  {verificationStatus.status === 'rejected' && `Reason: ${verificationStatus.rejection_reason || 'Please contact support for more information'}`}
+                </p>
+              </div>
+              {verificationStatus.status === 'rejected' && (
+                <button
+                  onClick={() => setBusinessVerificationModal(true)}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Apply Again
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div style={{
           display: 'grid',
@@ -229,21 +377,6 @@ function Dashboard() {
             >
               Messages ({contactMessages.length})
             </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              style={{
-                flex: 1,
-                padding: '16px 24px',
-                border: 'none',
-                backgroundColor: activeTab === 'profile' ? '#f8fafc' : 'white',
-                borderBottom: activeTab === 'profile' ? '2px solid #dc1e4a' : '2px solid transparent',
-                color: activeTab === 'profile' ? '#dc1e4a' : '#64748b',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Profile
-            </button>
           </div>
 
           {/* Tab Content */}
@@ -276,7 +409,7 @@ function Dashboard() {
                       Start by posting your first ad to reach potential buyers
                     </p>
                     <button
-                      onClick={() => navigate('/post-ad')}
+                      onClick={() => navigate(`/${language}/post-ad`)}
                       style={{
                         backgroundColor: '#dc1e4a',
                         color: 'white',
@@ -360,7 +493,11 @@ function Dashboard() {
 
                         <div className="dashboard-ad-actions" style={{ display: 'flex', gap: '8px' }}>
                           <button
-                            onClick={() => navigate(`/ad/${ad.id}`)}
+                            onClick={() => {
+                              console.log('Dashboard - View button clicked for ad:', ad);
+                              const slug = generateAdUrl(ad);
+                              navigate(`/${language}${slug}`);
+                            }}
                             style={{
                               backgroundColor: 'transparent',
                               border: '1px solid #3b82f6',
@@ -375,7 +512,7 @@ function Dashboard() {
                           </button>
 
                           <button
-                            onClick={() => navigate(`/edit-ad/${ad.id}`)}
+                            onClick={() => navigate(`/${language}/edit-ad/${ad.id}`)}
                             style={{
                               backgroundColor: 'transparent',
                               border: '1px solid #64748b',
@@ -549,7 +686,15 @@ function Dashboard() {
                             </button>
                           )}
                           <button
-                            onClick={() => navigate(`/ad/${message.ad_id}`)}
+                            onClick={() => {
+                              console.log('Dashboard - View Ad button clicked for message:', message);
+                              const slug = generateAdUrl({
+                                title: message.ad_title,
+                                location_name: message.ad_location || 'nepal',
+                                id: message.ad_id
+                              });
+                              navigate(`/${language}${slug}`);
+                            }}
                             style={{
                               backgroundColor: 'transparent',
                               color: '#64748b',
@@ -568,77 +713,6 @@ function Dashboard() {
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {activeTab === 'profile' && (
-              <div>
-                <h3 style={{ margin: '0 0 16px 0', color: '#1e293b' }}>Profile Information</h3>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '16px'
-                }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                      Full Name
-                    </label>
-                    <div style={{
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      color: '#64748b'
-                    }}>
-                      {user?.fullName || 'Not provided'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                      Email
-                    </label>
-                    <div style={{
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      color: '#64748b'
-                    }}>
-                      {user?.email || 'Not provided'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                      Phone
-                    </label>
-                    <div style={{
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      color: '#64748b'
-                    }}>
-                      {user?.phone || 'Not provided'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                      Member Since
-                    </label>
-                    <div style={{
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      color: '#64748b'
-                    }}>
-                      {user?.createdAt ? formatDate(user.createdAt) : 'Not available'}
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -809,6 +883,14 @@ function Dashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Business Verification Modal */}
+      {businessVerificationModal && (
+        <BusinessVerificationForm
+          onClose={() => setBusinessVerificationModal(false)}
+          onSuccess={handleVerificationSuccess}
+        />
       )}
     </div>
   );

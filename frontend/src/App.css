@@ -1949,3 +1949,19 @@ body {
         font-size: 24px !important;
     }
 }
+/* ===== SEARCH RESULTS MOBILE RESPONSIVE ===== */
+/* Hide desktop-only filters on mobile */
+@media (max-width: 768px) {
+    .desktop-only-filters {
+        display: none !important;
+    }
+    
+    .main-content-grid {
+        grid-template-columns: 1fr !important;
+        padding: 16px !important;
+    }
+    
+    .content-area {
+        width: 100%;
+    }
+}

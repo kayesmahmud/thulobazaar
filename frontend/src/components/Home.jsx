@@ -5,10 +5,13 @@ import ApiService from '../services/api';
 import Header from './Header';
 import RecentlyViewed from './RecentlyViewed';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { generateBikroyStyleURL, getCategorySlug } from '../utils/seoUtils';
 
 function Home() {
+  console.log('Home component rendering...');
   const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -52,9 +55,9 @@ function Home() {
       searchParams.append('search', searchFilters.search.trim());
     }
 
-    // Navigate to search results page
+    // Navigate to search results page with language prefix
     const queryString = searchParams.toString();
-    navigate(`/search${queryString ? `?${queryString}` : ''}`);
+    navigate(`/${language}/search${queryString ? `?${queryString}` : ''}`);
   };
 
   const handleInputChange = (field, value) => {
@@ -72,10 +75,10 @@ function Home() {
 
   const handlePostAdClick = () => {
     if (isAuthenticated) {
-      navigate('/post-ad');
+      navigate(`/${language}/post-ad`);
     } else {
       // This will be handled by the Header component's auth modal
-      navigate('/');
+      navigate(`/${language}`);
     }
   };
 
@@ -158,33 +161,6 @@ function Home() {
         </div>
       </div>
 
-      {/* Banner */}
-      <section className="banner-section">
-        <div className="banner">
-          <div className="banner-content">
-            <div className="banner-item" onClick={() => navigate(generateBikroyStyleURL('Fashion'))} style={{ cursor: 'pointer' }}>
-              <span className="banner-icon">👗</span>
-              <span>Fashion</span>
-            </div>
-            <div className="banner-item" onClick={() => navigate(generateBikroyStyleURL('Vehicles'))} style={{ cursor: 'pointer' }}>
-              <span className="banner-icon">🚗</span>
-              <span>Vehicles</span>
-            </div>
-            <div className="banner-item" onClick={() => navigate(generateBikroyStyleURL('Electronics'))} style={{ cursor: 'pointer' }}>
-              <span className="banner-icon">📱</span>
-              <span>Electronics</span>
-            </div>
-            <div className="banner-item" onClick={() => navigate('/all-ads')} style={{ cursor: 'pointer' }}>
-              <span className="banner-icon">📦</span>
-              <span>More</span>
-            </div>
-          </div>
-          <div className="banner-cta">
-            <button className="banner-btn" onClick={handlePostAdClick}>POST FREE ADS</button>
-          </div>
-        </div>
-      </section>
-
       {/* Categories Section - Now with real data */}
       <section className="categories-section">
         <h2 className="section-title">Browse items by category</h2>
@@ -193,7 +169,10 @@ function Home() {
             <div
               key={category.id}
               className="category-card"
-              onClick={() => navigate(generateBikroyStyleURL(category.name))}
+              onClick={() => {
+                const categorySlug = getCategorySlug(category.name).toLowerCase();
+                navigate(`/${language}/${categorySlug}`);
+              }}
               style={{ cursor: 'pointer' }}
             >
               <div className="category-icon">{category.icon}</div>
@@ -218,7 +197,7 @@ function Home() {
         <div className="featured-grid">
           {ads.length > 0 ? (
             ads.map((ad) => (
-              <AdCard key={ad.id} ad={ad} />
+              <AdCard key={ad.id} ad={ad} language={language} />
             ))
           ) : (
             <div style={{

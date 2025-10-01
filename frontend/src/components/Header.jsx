@@ -1,21 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
+import ApiService from '../services/api';
 
 function Header() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login' });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const dropdownRef = useRef(null);
 
   const handlePostAdClick = () => {
     if (isAuthenticated) {
-      navigate('/post-ad');
+      // Prevent editors and super_admins from posting ads
+      if (user?.role === 'editor' || user?.role === 'super_admin') {
+        alert('Editors and admins cannot post ads');
+        return;
+      }
+      navigate(`/${language}/post-ad`);
     } else {
       setAuthModal({ isOpen: true, mode: 'login' });
     }
-    setMobileMenuOpen(false); // Close mobile menu after action
+    setMobileMenuOpen(false);
   };
 
   const closeMobileMenu = () => {
@@ -23,8 +34,51 @@ function Header() {
   };
 
   const handleNavigation = (path) => {
-    navigate(path);
+    navigate(`/${language}${path}`);
     closeMobileMenu();
+  };
+
+  const handleLogoClick = () => {
+    navigate(`/${language}`);
+    setMobileMenuOpen(false);
+  };
+
+  // Fetch profile data when authenticated (skip for admin/editor)
+  useEffect(() => {
+    if (isAuthenticated && user && user.role !== 'super_admin' && user.role !== 'editor') {
+      fetchProfile();
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchProfile = async () => {
+    try {
+      const data = await ApiService.getProfile();
+      setProfileData(data);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -33,39 +87,20 @@ function Header() {
         <div className="top-header">
           <div className="top-header-content">
             {/* Logo */}
-            <div className="logo">
-              <a href="/" onClick={(e) => { e.preventDefault(); handleNavigation('/'); }}>
-                <img src="/logo.png" alt="Thulobazaar" className="logo-image" />
-              </a>
+            <div className="logo" onClick={handleLogoClick} style={{cursor: 'pointer'}}>
+              <img src="/logo.png" alt="Thulobazaar" className="logo-image" />
             </div>
 
             {/* Desktop Navigation */}
             <div className="desktop-nav">
-              <a href="/all-ads" className="all-ads-link" onClick={(e) => { e.preventDefault(); handleNavigation('/all-ads'); }}>
+              <button
+                className="nav-link-btn all-ads-link"
+                onClick={() => handleNavigation('/all-ads')}
+              >
                 All Ads
-              </a>
+              </button>
               <div className="auth-buttons">
-                {isAuthenticated ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '14px', color: '#64748b' }}>
-                      Welcome, {user?.fullName}!
-                    </span>
-                    <button
-                      className="signin-btn"
-                      onClick={() => handleNavigation('/dashboard')}
-                      style={{ backgroundColor: '#3b82f6' }}
-                    >
-                      Dashboard
-                    </button>
-                    <button
-                      className="signin-btn"
-                      onClick={() => { logout(); closeMobileMenu(); }}
-                      style={{ backgroundColor: '#64748b' }}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                ) : (
+                {!isAuthenticated && (
                   <>
                     <button
                       className="signin-btn"
@@ -85,6 +120,178 @@ function Header() {
               <button className="post-ad-btn" onClick={handlePostAdClick}>
                 POST FREE AD
               </button>
+
+              {/* Profile Dropdown - Hide for editor and super_admin */}
+              {isAuthenticated && user?.role !== 'editor' && user?.role !== 'super_admin' && (
+                <div ref={dropdownRef} style={{ position: 'relative' }}>
+                  <div
+                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      overflow: 'hidden',
+                      border: '2px solid #e2e8f0',
+                      backgroundColor: '#3b82f6'
+                    }}
+                  >
+                    {profileData?.avatar ? (
+                      <img
+                        src={`http://localhost:5000/uploads/avatars/${profileData.avatar}`}
+                        alt={profileData.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '16px',
+                        fontWeight: 'bold'
+                      }}>
+                        {getInitials(user?.fullName)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {profileDropdownOpen && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50px',
+                      right: '0',
+                      backgroundColor: 'white',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      minWidth: '200px',
+                      zIndex: 1000,
+                      overflow: 'hidden'
+                    }}>
+                      {/* User Info */}
+                      <div style={{
+                        padding: '12px 16px',
+                        borderBottom: '1px solid #e2e8f0',
+                        backgroundColor: '#f8fafc'
+                      }}>
+                        <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
+                          {user?.fullName}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          {user?.email}
+                        </div>
+                      </div>
+
+                      {/* Menu Items */}
+                      {/* Hide profile and dashboard for editors */}
+                      {user?.role !== 'editor' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              handleNavigation('/profile');
+                              setProfileDropdownOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: 'none',
+                              backgroundColor: 'white',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#334155',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          >
+                            👤 My Profile
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              handleNavigation('/dashboard');
+                              setProfileDropdownOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              border: 'none',
+                              backgroundColor: 'white',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#334155',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          >
+                            📊 My Dashboard
+                          </button>
+                        </>
+                      )}
+
+                      {/* Editor Dashboard Link - Only for editors and super admins */}
+                      {(user?.role === 'editor' || user?.role === 'super_admin') && (
+                        <button
+                          onClick={() => {
+                            handleNavigation('/editor');
+                            setProfileDropdownOpen(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: 'none',
+                            backgroundColor: 'white',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#6b21a8',
+                            fontWeight: '600',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f3e8ff'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                        >
+                          🛡️ Editor Panel
+                        </button>
+                      )}
+
+                      <div style={{ borderTop: '1px solid #e2e8f0' }}>
+                        <button
+                          onClick={() => {
+                            logout();
+                            setProfileDropdownOpen(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: 'none',
+                            backgroundColor: 'white',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#dc2626',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                        >
+                          🚪 Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Mobile Hamburger Menu Button */}
@@ -120,7 +327,7 @@ function Header() {
               <div className="mobile-menu-content">
                 {/* Auth Section - Now First */}
                 <div className="mobile-auth-section">
-                  {isAuthenticated ? (
+                  {isAuthenticated && user?.role !== 'editor' && user?.role !== 'super_admin' ? (
                     <div className="mobile-user-info">
                       <div className="mobile-welcome">
                         Welcome, {user?.fullName}!
@@ -171,12 +378,31 @@ function Header() {
                     📋 All Ads
                   </button>
 
-                  {isAuthenticated && (
+                  {isAuthenticated && user?.role !== 'editor' && (
+                    <>
+                      <button
+                        className="mobile-nav-btn"
+                        onClick={() => handleNavigation('/profile')}
+                      >
+                        👤 Profile
+                      </button>
+                      <button
+                        className="mobile-nav-btn"
+                        onClick={() => handleNavigation('/dashboard')}
+                      >
+                        📊 Dashboard
+                      </button>
+                    </>
+                  )}
+
+                  {/* Editor Panel for editors */}
+                  {isAuthenticated && (user?.role === 'editor' || user?.role === 'super_admin') && (
                     <button
                       className="mobile-nav-btn"
-                      onClick={() => handleNavigation('/dashboard')}
+                      onClick={() => handleNavigation('/editor')}
+                      style={{ color: '#6b21a8', fontWeight: '600' }}
                     >
-                      📊 Dashboard
+                      🛡️ Editor Panel
                     </button>
                   )}
                 </div>

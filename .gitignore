@@ -104,3 +104,8 @@ Thumbs.db
 
 # Uploads directory (if you have file uploads)
 uploads/
+
+# Typesense
+backend/typesense-server
+backend/typesense-server-*.tar.gz
+backend/typesense-data/

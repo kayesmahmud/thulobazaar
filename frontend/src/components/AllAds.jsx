@@ -469,6 +469,97 @@ function AllAds() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-content">
+          <div className="footer-top">
+            {/* Help & Support */}
+            <div className="footer-section">
+              <h3>Help & Support</h3>
+              <ul className="footer-links">
+                <li><a href="#">Help Center</a></li>
+                <li><a href="#">Stay Safe</a></li>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">Customer Service</a></li>
+                <li><a href="#">Report an Issue</a></li>
+              </ul>
+            </div>
+
+            {/* About Thulobazaar */}
+            <div className="footer-section">
+              <h3>About Thulobazaar</h3>
+              <ul className="footer-links">
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Terms & Conditions</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Sitemap</a></li>
+              </ul>
+            </div>
+
+            {/* Quick Links */}
+            <div className="footer-section">
+              <h3>Quick Links</h3>
+              <ul className="footer-links">
+                <li><a href="#">All Categories</a></li>
+                <li><a href="#">Featured Ads</a></li>
+                <li><a href="#">Post Free Ad</a></li>
+                <li><a href="#">Promote Your Ad</a></li>
+                <li><a href="#">Membership</a></li>
+              </ul>
+            </div>
+
+            {/* Connect & Download */}
+            <div className="footer-section">
+              <div className="social-section">
+                <h3>Follow Us</h3>
+                <p className="social-text">Stay connected for latest updates</p>
+                <div className="social-icons">
+                  <a href="#" className="social-icon">📘</a>
+                  <a href="#" className="social-icon">📷</a>
+                  <a href="#" className="social-icon">🐦</a>
+                  <a href="#" className="social-icon">🔗</a>
+                  <a href="#" className="social-icon">📺</a>
+                </div>
+              </div>
+
+              <div className="app-download">
+                <p className="app-title">Download Our App</p>
+                <div className="app-buttons">
+                  <a href="#" className="app-button">
+                    <span className="app-icon">📱</span>
+                    <div>
+                      <div style={{fontSize: '12px', color: '#94a3b8'}}>Get it on</div>
+                      <div style={{fontWeight: '600'}}>Google Play</div>
+                    </div>
+                  </a>
+                  <a href="#" className="app-button">
+                    <span className="app-icon">🍎</span>
+                    <div>
+                      <div style={{fontSize: '12px', color: '#94a3b8'}}>Download on the</div>
+                      <div style={{fontWeight: '600'}}>App Store</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="footer-bottom">
+            <div className="footer-copyright">
+              © 2024 Thulobazaar. All rights reserved. Made with ❤️ in Nepal
+            </div>
+            <div className="footer-legal">
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+              <a href="#">Cookies</a>
+              <a href="#">Accessibility</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

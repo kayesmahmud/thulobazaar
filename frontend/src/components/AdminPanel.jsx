@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import ApiService from '../services/api';
 
 function AdminPanel() {
-  const { user, isAuthenticated, isAdmin, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Admin-specific state (separate from regular user auth)
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState('');
@@ -16,21 +19,37 @@ function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [selectedAdStatus, setSelectedAdStatus] = useState('all');
 
+  // Check admin authentication on mount
   useEffect(() => {
-    // Don't redirect while auth is still loading
-    if (authLoading) {
+    const editorToken = localStorage.getItem('editorToken');
+    const editorData = localStorage.getItem('editorData');
+
+    if (!editorToken || !editorData) {
+      navigate('/admin');
       return;
     }
 
-    // Check if user is authenticated and is admin
-    if (!isAuthenticated || !isAdmin) {
-      navigate('/');
-      return;
+    try {
+      const userData = JSON.parse(editorData);
+      if (userData.role !== 'super_admin') {
+        alert('Access denied. Super Admin privileges required.');
+        navigate('/admin');
+        return;
+      }
+      setUser(userData);
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error('Error parsing admin data:', err);
+      navigate('/admin');
     }
+  }, [navigate]);
 
-    // Load initial data
-    loadDashboardData();
-  }, [isAuthenticated, isAdmin, navigate, authLoading]);
+  // Load initial data after authentication
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadDashboardData();
+    }
+  }, [isAuthenticated, user]);
 
   const loadDashboardData = async () => {
     try {
@@ -97,11 +116,7 @@ function AdminPanel() {
     }
   };
 
-  if (!isAuthenticated || !isAdmin) {
-    return null;
-  }
-
-  if (authLoading) {
+  if (dataLoading && !user) {
     return (
       <div style={{
         display: 'flex',
@@ -165,8 +180,10 @@ function AdminPanel() {
             </button>
             <button
               onClick={() => {
-                logout();
-                navigate('/');
+                // Admin logout - clear editor tokens (admin uses same tokens as editor)
+                localStorage.removeItem('editorToken');
+                localStorage.removeItem('editorData');
+                navigate('/admin');
               }}
               style={{
                 backgroundColor: '#ef4444',

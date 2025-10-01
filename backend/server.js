@@ -11,6 +11,7 @@ const { rateLimiters } = require('./utils/rateLimiter');
 const duplicateDetector = require('./utils/duplicateDetector');
 const { calculateDistance, formatDistance, generateStaticMapUrl } = require('./utils/locationUtils');
 const { MobileLocationService } = require('./utils/mobileLocationUtils');
+const profileRoutes = require('./routes/profileRoutes'); // Import new profile routes
 require('dotenv').config();
 
 const app = express();
@@ -1891,6 +1892,9 @@ app.post('/api/reply-message', rateLimiters.messaging, authenticateToken, async 
 
 // Search routes (Typesense integration)
 app.use('/api/search', require('./routes/search'));
+
+// Profile routes
+app.use('/api/profiles', profileRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {

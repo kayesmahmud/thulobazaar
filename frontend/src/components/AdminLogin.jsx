@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 
 function AdminLogin() {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -26,16 +24,37 @@ function AdminLogin() {
     setError('');
 
     try {
-      const result = await login(formData.email, formData.password);
+      // Use dedicated admin/editor login endpoint
+      const response = await fetch('http://localhost:5000/api/admin-auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
 
-      // Check if user is admin
-      if (result.user.role !== 'admin') {
-        setError('Access denied. Admin privileges required.');
-        return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Login failed');
       }
 
-      // Redirect to admin panel
-      navigate('/admin/dashboard');
+      // Store auth data in localStorage (separate from regular user auth)
+      localStorage.setItem('editorToken', data.token);
+      localStorage.setItem('editorData', JSON.stringify(data.user));
+
+      // Force reload to update AuthContext with new user data
+      // Redirect based on role
+      if (data.user.role === 'editor') {
+        window.location.href = '/en/editor';
+      } else if (data.user.role === 'super_admin') {
+        window.location.href = '/admin/dashboard';
+      } else {
+        throw new Error('Invalid role');
+      }
     } catch (err) {
       console.error('❌ Admin login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');

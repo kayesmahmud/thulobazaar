@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
   const [filters, setFilters] = useState({
@@ -15,6 +15,8 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
   });
 
   const [showCustomDate, setShowCustomDate] = useState(false);
+  const isInitialMount = useRef(true);
+  const isUpdatingFromParent = useRef(false);
 
 
   // Date preset options
@@ -38,7 +40,42 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
     { label: 'Most Popular', value: 'views', order: 'desc' }
   ];
 
+  // Update internal state when initialFilters change (from parent)
   useEffect(() => {
+    isUpdatingFromParent.current = true;
+    setFilters({
+      priceRange: [0, 5000000],
+      condition: 'all',
+      datePosted: 'any',
+      customDateRange: {
+        from: '',
+        to: ''
+      },
+      sortBy: 'date',
+      sortOrder: 'desc',
+      ...initialFilters
+    });
+
+    // Set custom date visibility based on datePosted value
+    setShowCustomDate(initialFilters.datePosted === 'custom');
+
+    // Reset the flag after the update
+    setTimeout(() => {
+      isUpdatingFromParent.current = false;
+    }, 0);
+  }, [JSON.stringify(initialFilters)]);
+
+  // Only call onFiltersChange when user actually changes filters, not during initialization
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (isUpdatingFromParent.current) {
+      return;
+    }
+
     onFiltersChange(filters);
   }, [filters, onFiltersChange]);
 

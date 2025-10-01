@@ -12,12 +12,14 @@ import NearbyAds from './components/NearbyAds';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <Routes>
+        <LanguageProvider>
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/all-ads" element={<AllAds />} />
@@ -40,6 +42,7 @@ function App() {
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminPanel />} />
         </Routes>
+        </LanguageProvider>
       </Router>
     </AuthProvider>
   )

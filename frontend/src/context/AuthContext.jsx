@@ -28,11 +28,20 @@ export const AuthProvider = ({ children }) => {
         });
 
         if (token && userData) {
-          console.log('🔄 Verifying token with profile API...');
-          // Verify token is still valid by fetching profile
-          const profile = await ApiService.getProfile();
-          setUser(profile);
-          console.log('✅ User authenticated from localStorage:', profile);
+          const parsedUserData = JSON.parse(userData);
+          console.log('🔄 Checking user role:', parsedUserData.role);
+
+          // For admin/editor accounts, just use stored data (they're in separate tables)
+          if (parsedUserData.role === 'super_admin' || parsedUserData.role === 'editor') {
+            setUser(parsedUserData);
+            console.log('✅ Admin/Editor authenticated from localStorage:', parsedUserData);
+          } else {
+            // For regular users, verify token with profile API
+            console.log('🔄 Verifying regular user token with profile API...');
+            const profile = await ApiService.getProfile();
+            setUser(profile);
+            console.log('✅ User authenticated from localStorage:', profile);
+          }
         } else {
           console.log('ℹ️ No stored auth data found');
         }
@@ -99,7 +108,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     isAuthenticated: !!user,
-    isAdmin: !!user && user.role === 'admin'
+    isAdmin: !!user && user.role === 'super_admin'
   };
 
   return (

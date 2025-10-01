@@ -239,7 +239,7 @@ function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
                   fontWeight: '500',
                   color: '#374151'
                 }}>
-                  Phone Number
+                  Phone Number (Optional)
                 </label>
                 <input
                   type="tel"
@@ -253,8 +253,16 @@ function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
                     fontSize: '14px',
                     outline: 'none'
                   }}
-                  placeholder="+977-9800000000"
+                  placeholder="9841234567"
                 />
+                <small style={{
+                  fontSize: '12px',
+                  color: '#64748b',
+                  display: 'block',
+                  marginTop: '4px'
+                }}>
+                  Enter 10 digit phone number (e.g., 9841234567)
+                </small>
               </div>
 
             </>

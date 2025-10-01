@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import ApiService from '../services/api';
 import SimpleHeader from './SimpleHeader';
+import AdCard from './AdCard';
 import { parseBrowseUrl, generateMetaTitle, generateMetaDescription, generateBreadcrumbs } from '../utils/urlUtils';
 import { parseBikroyStyleURL, getCategoryFromSlug } from '../utils/seoUtils';
 
@@ -197,28 +198,6 @@ function Browse() {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-NP', {
-      style: 'currency',
-      currency: 'NPR',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const handleAdClick = (ad) => {
-    const titleSlug = ad.title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
-    const locationSlug = ad.location_name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
-    navigate(`/ad/${titleSlug}-${locationSlug}-${ad.id}`);
-  };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -359,85 +338,12 @@ function Browse() {
             {/* Ads Grid */}
             <div className="main-content-grid" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '20px',
               marginBottom: '40px'
             }}>
               {ads.map((ad) => (
-                <div
-                  key={ad.id}
-                  className="ad-card"
-                  onClick={() => handleAdClick(ad)}
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '1px solid #e2e8f0',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      backgroundColor: '#f1f5f9',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '18px'
-                    }}>
-                      {ad.category_icon || '📦'}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{
-                        margin: 0,
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        color: '#1e293b',
-                        lineHeight: '1.3'
-                      }}>
-                        {ad.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '12px' }}>
-                    <span style={{
-                      color: '#dc1e4a',
-                      fontSize: '18px',
-                      fontWeight: 'bold'
-                    }}>
-                      {formatPrice(ad.price)}
-                    </span>
-                  </div>
-
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#64748b',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span>📍 {ad.location_name}</span>
-                    <span>{formatDate(ad.created_at)}</span>
-                  </div>
-                </div>
+                <AdCard key={ad.id} ad={ad} />
               ))}
             </div>
 

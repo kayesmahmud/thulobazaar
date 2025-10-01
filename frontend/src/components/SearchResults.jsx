@@ -1,16 +1,21 @@
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AdCard from './AdCard';
 import SimpleHeader from './SimpleHeader';
 import RecentlyViewed from './RecentlyViewed';
 import AdvancedFilters from './AdvancedFilters';
 import ApiService from '../services/api';
+import { getCategoryFromSlug, getCategorySlug, reverseCategoryMappings } from '../utils/seoUtils';
 
 function SearchResults() {
   const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const { category: categoryParam } = useParams();
+  console.log('SearchResults Render - categoryParam:', categoryParam);
 
   const [ads, setAds] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -24,12 +29,22 @@ function SearchResults() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
 
-  // Initialize search filters from URL params immediately
-  const getInitialFilters = () => {
-    const urlParams = new URLSearchParams(location.search);
-    return {
+  // Get category from URL path (/en/fashion) or query params (?category=Fashion)
+  const urlParams = new URLSearchParams(location.search);
+  let categoryFromURL = 'all';
+
+  if (categoryParam && categoryParam !== 'search' && categoryParam !== 'en' && categoryParam !== 'ne') {
+    // Path-based category: /en/fashion → Fashion
+    categoryFromURL = getCategoryFromSlug(categoryParam);
+  } else if (urlParams.get('category')) {
+    // Query param category: ?category=Fashion
+    categoryFromURL = urlParams.get('category');
+  }
+  console.log('SearchResults Render - categoryFromURL (after getCategoryFromSlug):', categoryFromURL);
+
+  const searchFilters = {
       search: urlParams.get('search') || '',
-      category: urlParams.get('category') || 'all',
+      category: categoryFromURL,
       location: urlParams.get('location') || 'all',
       minPrice: urlParams.get('minPrice') || '',
       maxPrice: urlParams.get('maxPrice') || '',
@@ -37,13 +52,13 @@ function SearchResults() {
       datePosted: urlParams.get('datePosted') || 'any',
       dateFrom: urlParams.get('dateFrom') || '',
       dateTo: urlParams.get('dateTo') || '',
-      sortBy: urlParams.get('sortBy') || 'date',
+      sortBy: urlParams.get('sortBy') || 'newest',
       sortOrder: urlParams.get('sortOrder') || 'desc'
-    };
   };
 
-  const [searchFilters, setSearchFilters] = useState(getInitialFilters);
-  const [advancedFilters, setAdvancedFilters] = useState({
+  console.log('SearchResults Render - searchFilters (initial):', searchFilters);
+
+  const advancedFilters = {
     priceRange: [
       searchFilters.minPrice ? parseInt(searchFilters.minPrice) : 0,
       searchFilters.maxPrice ? parseInt(searchFilters.maxPrice) : 5000000
@@ -56,40 +71,12 @@ function SearchResults() {
     },
     sortBy: searchFilters.sortBy,
     sortOrder: searchFilters.sortOrder
-  });
+  };
 
-  // Update filters when URL changes
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const newFilters = {
-      search: urlParams.get('search') || '',
-      category: urlParams.get('category') || 'all',
-      location: urlParams.get('location') || 'all',
-      minPrice: urlParams.get('minPrice') || '',
-      maxPrice: urlParams.get('maxPrice') || '',
-      condition: urlParams.get('condition') || 'all',
-      datePosted: urlParams.get('datePosted') || 'any',
-      dateFrom: urlParams.get('dateFrom') || '',
-      dateTo: urlParams.get('dateTo') || '',
-      sortBy: urlParams.get('sortBy') || 'date',
-      sortOrder: urlParams.get('sortOrder') || 'desc'
-    };
-    setSearchFilters(newFilters);
-    setAdvancedFilters({
-      priceRange: [
-        newFilters.minPrice ? parseInt(newFilters.minPrice) : 0,
-        newFilters.maxPrice ? parseInt(newFilters.maxPrice) : 5000000
-      ],
-      condition: newFilters.condition,
-      datePosted: newFilters.datePosted,
-      customDateRange: {
-        from: newFilters.dateFrom,
-        to: newFilters.dateTo
-      },
-      sortBy: newFilters.sortBy,
-      sortOrder: newFilters.sortOrder
-    });
-  }, [location.search]);
+  // Track if we're currently updating to prevent loops
+
+
+  console.log('Component Render - searchFilters:', searchFilters);
 
   // Load categories and locations
   useEffect(() => {
@@ -108,17 +95,29 @@ function SearchResults() {
     fetchStaticData();
   }, []);
 
-  // Perform search when filters change
+  // Combined useEffect: Update filters from URL and perform search
   useEffect(() => {
-    const performSearch = async () => {
+
+    const performSearchWithNewFilters = async () => {
       try {
         setSearchLoading(true);
+
         console.log('🔍 Searching with filters:', searchFilters);
 
+        // Build search params
         const searchParams = {};
         if (searchFilters.search.trim()) searchParams.search = searchFilters.search.trim();
         if (searchFilters.category !== 'all') searchParams.category = searchFilters.category;
-        if (searchFilters.location !== 'all') searchParams.location = searchFilters.location;
+        if (searchFilters.location !== 'all') {
+          // Convert location name back to ID for API call
+          const selectedLocation = locations.find(loc => loc.name === searchFilters.location);
+          if (selectedLocation) {
+            searchParams.location = selectedLocation.id;
+          } else {
+            // If location name not found, treat as 'all' or handle error
+            searchParams.location = 'all';
+          }
+        }
         if (searchFilters.minPrice) searchParams.minPrice = searchFilters.minPrice;
         if (searchFilters.maxPrice) searchParams.maxPrice = searchFilters.maxPrice;
         if (searchFilters.condition !== 'all') searchParams.condition = searchFilters.condition;
@@ -129,8 +128,8 @@ function SearchResults() {
             if (searchFilters.dateTo) searchParams.dateTo = searchFilters.dateTo;
           }
         }
-        if (searchFilters.sortBy !== 'date') searchParams.sortBy = searchFilters.sortBy;
-        if (searchFilters.sortOrder !== 'desc') searchParams.sortOrder = searchFilters.sortOrder;
+        if (searchFilters.sortBy && searchFilters.sortBy !== 'newest') searchParams.sortBy = searchFilters.sortBy;
+        if (searchFilters.sortOrder && searchFilters.sortOrder !== 'desc') searchParams.sortOrder = searchFilters.sortOrder;
 
         console.log('📤 API request params:', searchParams);
         const response = await ApiService.getAds(searchParams);
@@ -146,22 +145,24 @@ function SearchResults() {
       }
     };
 
-    // Always perform search with current filters
-    performSearch();
-  }, [searchFilters]);
+    performSearchWithNewFilters();
+  }, [location.pathname, location.search]); // Watch both path and query params
 
   const handleInputChange = (field, value) => {
+    console.log('handleInputChange - field:', field, 'value:', value);
+    // Only update if value actually changed
+    if (searchFilters[field] == value) {
+      return;
+    }
+
     const newFilters = {
       ...searchFilters,
       [field]: value
     };
-    setSearchFilters(newFilters);
     updateURL(newFilters);
   };
 
   const handleAdvancedFiltersChange = (filters) => {
-    setAdvancedFilters(filters);
-
     // Convert advanced filters to search filters format
     const newFilters = {
       ...searchFilters,
@@ -175,15 +176,15 @@ function SearchResults() {
       sortOrder: filters.sortOrder
     };
 
-    setSearchFilters(newFilters);
     updateURL(newFilters);
   };
 
   const updateURL = (filters) => {
-    // Update URL
+    // Build the new URL from filters
     const urlParams = new URLSearchParams();
+
+    // Don't include category in query params if it's set (use path instead)
     if (filters.search.trim()) urlParams.append('search', filters.search.trim());
-    if (filters.category !== 'all') urlParams.append('category', filters.category);
     if (filters.location !== 'all') urlParams.append('location', filters.location);
     if (filters.minPrice && filters.minPrice !== '0' && filters.minPrice !== '') urlParams.append('minPrice', filters.minPrice);
     if (filters.maxPrice && filters.maxPrice !== '5000000' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
@@ -195,11 +196,32 @@ function SearchResults() {
         if (filters.dateTo) urlParams.append('dateTo', filters.dateTo);
       }
     }
-    if (filters.sortBy !== 'date') urlParams.append('sortBy', filters.sortBy);
-    if (filters.sortOrder !== 'desc') urlParams.append('sortOrder', filters.sortOrder);
+    if (filters.sortBy && filters.sortBy !== 'newest') urlParams.append('sortBy', filters.sortBy);
+    if (filters.sortOrder && filters.sortOrder !== 'desc') urlParams.append('sortOrder', filters.sortOrder);
 
-    const queryString = urlParams.toString();
-    navigate(`/search${queryString ? `?${queryString}` : ''}`, { replace: true });
+    const newQueryString = urlParams.toString();
+
+    // Determine the base path
+    let basePath;
+    if (filters.category && filters.category !== 'all') {
+      // Use clean URL: /en/fashion
+      const categorySlug = getCategorySlug(filters.category).toLowerCase();
+      basePath = `/${language}/${categorySlug}`;
+    } else {
+      // Use search path: /en/search
+      basePath = `/${language}/search`;
+    }
+
+    const newUrl = `${basePath}${newQueryString ? `?${newQueryString}` : ''}`;
+    const currentUrl = location.pathname + location.search;
+
+    // Only navigate if URL is actually different
+    if (newUrl !== currentUrl) {
+      console.log('🔄 Navigating from', currentUrl, 'to', newUrl);
+      navigate(newUrl, { replace: true });
+    } else {
+      console.log('⏭️ URL unchanged, skipping navigation');
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -210,29 +232,7 @@ function SearchResults() {
   };
 
   const clearAllFilters = () => {
-    const clearedFilters = {
-      search: '',
-      category: 'all',
-      location: 'all',
-      minPrice: '',
-      maxPrice: '',
-      condition: 'all',
-      datePosted: 'any',
-      dateFrom: '',
-      dateTo: '',
-      sortBy: 'date',
-      sortOrder: 'desc'
-    };
-    setSearchFilters(clearedFilters);
-    setAdvancedFilters({
-      priceRange: [0, 5000000],
-      condition: 'all',
-      datePosted: 'any',
-      customDateRange: { from: '', to: '' },
-      sortBy: 'date',
-      sortOrder: 'desc'
-    });
-    navigate('/search', { replace: true });
+    navigate(`/${language}/search`, { replace: true });
   };
 
   const hasActiveFilters = searchFilters.search || searchFilters.category !== 'all' ||
@@ -280,12 +280,13 @@ function SearchResults() {
       {/* Header */}
       <SimpleHeader showUserWelcome={true} />
 
+
       {/* Search Bar Section */}
       <div className="search-section">
         <div className="search-content">
           {/* Search Bar Container - Same as Homepage */}
           <div className="search-bar-container">
-            <form className="search-form" onSubmit={(e) => { e.preventDefault(); handleInputChange('search', searchFilters.search); }}>
+            <form className="search-form" onSubmit={(e) => { e.preventDefault(); handleInputChange('search', e.currentTarget.elements.query.value); }}>
               <input
                 name="query"
                 type="search"
@@ -293,8 +294,8 @@ function SearchResults() {
                 aria-label="Search input"
                 className="search-input"
                 placeholder="What are you looking for?"
-                value={searchFilters.search}
-                onChange={(e) => handleInputChange('search', e.target.value)}
+                defaultValue={searchFilters.search}
+                onKeyPress={handleKeyPress}
               />
               <div className="search-button-container">
                 <button
@@ -378,8 +379,8 @@ function SearchResults() {
           gap: '30px',
           minHeight: '70vh'
         }}>
-          {/* Left Sidebar - Filters */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Left Sidebar - Filters (Hidden on mobile) */}
+          <div className="desktop-only-filters" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Basic Filters */}
             <div className="sidebar" style={{
               backgroundColor: '#f8fafc',
@@ -532,7 +533,7 @@ function SearchResults() {
             }}>
               {ads.length > 0 ? (
                 ads.map((ad) => (
-                  <AdCard key={ad.id} ad={ad} />
+                  <AdCard key={ad.id} ad={ad} language={language} />
                 ))
               ) : (
                 <div style={{
@@ -583,17 +584,27 @@ function SearchResults() {
               <button onClick={() => setShowLocationModal(false)}>×</button>
             </div>
             <div className="mobile-modal-content">
-              {['all', ...locations.map(loc => loc.name)].map((location) => (
+              <button
+                className={`mobile-modal-option ${searchFilters.location === 'all' ? 'selected' : ''}`}
+                onClick={() => {
+                  handleInputChange('location', 'all');
+                  setShowLocationModal(false);
+                }}
+              >
+                All of Nepal
+                {searchFilters.location === 'all' && <span className="checkmark">✓</span>}
+              </button>
+              {locations.map((location) => (
                 <button
-                  key={location}
-                  className={`mobile-modal-option ${searchFilters.location === location ? 'selected' : ''}`}
+                  key={location.id}
+                  className={`mobile-modal-option ${searchFilters.location == location.name ? 'selected' : ''}`}
                   onClick={() => {
-                    handleInputChange('location', location);
+                    handleInputChange('location', location.name);
                     setShowLocationModal(false);
                   }}
                 >
-                  {location === 'all' ? 'All of Nepal' : location}
-                  {searchFilters.location === location && <span className="checkmark">✓</span>}
+                  {location.name}
+                  {searchFilters.location == location.name && <span className="checkmark">✓</span>}
                 </button>
               ))}
             </div>
@@ -610,17 +621,27 @@ function SearchResults() {
               <button onClick={() => setShowCategoryModal(false)}>×</button>
             </div>
             <div className="mobile-modal-content">
-              {['all', ...categories.map(cat => cat.name)].map((category) => (
+              <button
+                className={`mobile-modal-option ${searchFilters.category === 'all' ? 'selected' : ''}`}
+                onClick={() => {
+                  handleInputChange('category', 'all');
+                  setShowCategoryModal(false);
+                }}
+              >
+                All Categories
+                {searchFilters.category === 'all' && <span className="checkmark">✓</span>}
+              </button>
+              {categories.map((cat) => (
                 <button
-                  key={category}
-                  className={`mobile-modal-option ${searchFilters.category === category ? 'selected' : ''}`}
+                  key={cat.id}
+                  className={`mobile-modal-option ${searchFilters.category == cat.name ? 'selected' : ''}`}
                   onClick={() => {
-                    handleInputChange('category', category);
+                    handleInputChange('category', cat.name);
                     setShowCategoryModal(false);
                   }}
                 >
-                  {category === 'all' ? 'All Categories' : category}
-                  {searchFilters.category === category && <span className="checkmark">✓</span>}
+                  {cat.name}
+                  {searchFilters.category == cat.name && <span className="checkmark">✓</span>}
                 </button>
               ))}
             </div>
@@ -637,6 +658,27 @@ function SearchResults() {
               <button onClick={() => setShowSortModal(false)}>×</button>
             </div>
             <div className="mobile-modal-content">
+              {/* Condition Filter */}
+              <div className="mobile-modal-section">
+                <h4>Condition</h4>
+                {[
+                  { value: 'all', label: 'All Conditions' },
+                  { value: 'new', label: 'New' },
+                  { value: 'used', label: 'Used' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    className={`mobile-modal-option ${searchFilters.condition === option.value ? 'selected' : ''}`}
+                    onClick={() => {
+                      handleInputChange('condition', option.value);
+                    }}
+                  >
+                    {option.label}
+                    {searchFilters.condition === option.value && <span className="checkmark">✓</span>}
+                  </button>
+                ))}
+              </div>
+
               <div className="mobile-modal-section">
                 <h4>Sort By</h4>
                 {[
@@ -651,7 +693,6 @@ function SearchResults() {
                     className={`mobile-modal-option ${searchFilters.sortBy === option.value ? 'selected' : ''}`}
                     onClick={() => {
                       handleInputChange('sortBy', option.value);
-                      setShowSortModal(false);
                     }}
                   >
                     {option.label}
@@ -676,17 +717,122 @@ function SearchResults() {
                     onChange={(e) => handleInputChange('maxPrice', e.target.value)}
                   />
                 </div>
-                <button
-                  className="apply-price-btn"
-                  onClick={() => setShowSortModal(false)}
-                >
-                  Apply Price Filter
-                </button>
               </div>
+
+              {/* Apply Button */}
+              <button
+                className="apply-filters-btn"
+                onClick={() => setShowSortModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: '#dc1e4a',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  marginTop: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-content">
+          <div className="footer-top">
+            {/* Help & Support */}
+            <div className="footer-section">
+              <h3>Help & Support</h3>
+              <ul className="footer-links">
+                <li><a href="#">Help Center</a></li>
+                <li><a href="#">Stay Safe</a></li>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">Customer Service</a></li>
+                <li><a href="#">Report an Issue</a></li>
+              </ul>
+            </div>
+
+            {/* About Thulobazaar */}
+            <div className="footer-section">
+              <h3>About Thulobazaar</h3>
+              <ul className="footer-links">
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Terms & Conditions</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Sitemap</a></li>
+              </ul>
+            </div>
+
+            {/* Quick Links */}
+            <div className="footer-section">
+              <h3>Quick Links</h3>
+              <ul className="footer-links">
+                <li><a href="#">All Categories</a></li>
+                <li><a href="#">Featured Ads</a></li>
+                <li><a href="#">Post Free Ad</a></li>
+                <li><a href="#">Promote Your Ad</a></li>
+                <li><a href="#">Membership</a></li>
+              </ul>
+            </div>
+
+            {/* Connect & Download */}
+            <div className="footer-section">
+              <div className="social-section">
+                <h3>Follow Us</h3>
+                <p className="social-text">Stay connected for latest updates</p>
+                <div className="social-icons">
+                  <a href="#" className="social-icon">📘</a>
+                  <a href="#" className="social-icon">📷</a>
+                  <a href="#" className="social-icon">🐦</a>
+                  <a href="#" className="social-icon">🔗</a>
+                  <a href="#" className="social-icon">📺</a>
+                </div>
+              </div>
+
+              <div className="app-download">
+                <p className="app-title">Download Our App</p>
+                <div className="app-buttons">
+                  <a href="#" className="app-button">
+                    <span className="app-icon">📱</span>
+                    <div>
+                      <div style={{fontSize: '12px', color: '#94a3b8'}}>Get it on</div>
+                      <div style={{fontWeight: '600'}}>Google Play</div>
+                    </div>
+                  </a>
+                  <a href="#" className="app-button">
+                    <span className="app-icon">🍎</span>
+                    <div>
+                      <div style={{fontSize: '12px', color: '#94a3b8'}}>Download on the</div>
+                      <div style={{fontWeight: '600'}}>App Store</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="footer-bottom">
+            <div className="footer-copyright">
+              © 2024 Thulobazaar. All rights reserved. Made with ❤️ in Nepal
+            </div>
+            <div className="footer-legal">
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+              <a href="#">Cookies</a>
+              <a href="#">Accessibility</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
