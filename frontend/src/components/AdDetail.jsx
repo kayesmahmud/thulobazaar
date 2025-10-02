@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ApiService from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
 import SimpleHeader from './SimpleHeader';
 import Breadcrumb from './Breadcrumb';
@@ -11,13 +12,13 @@ import { extractAdIdFromUrl } from '../utils/urlUtils';
 function AdDetail() {
   const { id, slug } = useParams();
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   // Extract actual ID from URL - handle both old (/ad/21) and new (/ad/wooden-bed-kathmandu-21) formats
   const getAdId = () => {
     if (slug) {
       // New format: extract ID from SEO-friendly slug
-      const extractedId = extractAdIdFromUrl(`/ad/${slug}`);
-      return extractedId || slug;
+      return extractAdIdFromUrl(`/ad/${slug}`);
     }
     // Old format: ID is direct
     return id;
@@ -45,6 +46,11 @@ function AdDetail() {
 
   useEffect(() => {
     const fetchAd = async () => {
+      if (!adId) {
+        setError('Invalid ad URL.');
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const adData = await ApiService.getAd(adId);
@@ -95,7 +101,7 @@ function AdDetail() {
 
   const handlePostAdClick = () => {
     if (isAuthenticated) {
-      navigate('/post-ad');
+      navigate(`/${language}/post-ad`);
     } else {
       setAuthModal({ isOpen: true, mode: 'login' });
     }
@@ -202,7 +208,7 @@ function AdDetail() {
       }}>
         <h2>⚠️ Error</h2>
         <p>{error}</p>
-        <button onClick={() => navigate('/')}>
+        <button onClick={() => navigate(`/${language}`)}>
           Back to Home
         </button>
       </div>
@@ -219,7 +225,7 @@ function AdDetail() {
         flexDirection: 'column'
       }}>
         <h2>Ad not found</h2>
-        <button onClick={() => navigate('/')}>
+        <button onClick={() => navigate(`/${language}`)}>
           Back to Home
         </button>
       </div>
@@ -497,11 +503,19 @@ function AdDetail() {
                     {ad.seller_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>
-                      {ad.seller_name}
+                    <div style={{ fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {ad.business_verification_status === 'approved' && ad.business_name ? ad.business_name : ad.seller_name}
+                      {ad.business_verification_status === 'approved' && (
+                        <img
+                          src="/golden-badge.png"
+                          alt="Verified Business"
+                          title="Verified Business"
+                          style={{ width: '20px', height: '20px' }}
+                        />
+                      )}
                     </div>
                     <div style={{ color: '#64748b', fontSize: '14px' }}>
-                      Seller
+                      {ad.business_verification_status === 'approved' ? 'Verified Business' : 'Seller'}
                     </div>
                   </div>
                 </div>

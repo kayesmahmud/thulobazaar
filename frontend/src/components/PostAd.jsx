@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
 import ImageUpload from './ImageUpload';
 import ErrorMessage from './ErrorMessage';
@@ -8,6 +9,7 @@ import SimpleHeader from './SimpleHeader';
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -30,7 +32,7 @@ function PostAd() {
   useEffect(() => {
     // Redirect if not authenticated
     if (!isAuthenticated) {
-      navigate('/');
+      navigate(`/${language}`);
       return;
     }
 
@@ -121,7 +123,7 @@ function PostAd() {
 
       // Redirect to home page after 2 seconds
       setTimeout(() => {
-        navigate('/');
+        navigate(`/${language}`);
       }, 2000);
 
     } catch (err) {

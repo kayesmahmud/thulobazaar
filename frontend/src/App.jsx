@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css'
 import Home from './components/Home';
 import SearchResults from './components/SearchResults';
@@ -11,6 +11,8 @@ import Browse from './components/Browse';
 import NearbyAds from './components/NearbyAds';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
+import EditorDashboard from './components/EditorDashboard';
+import Profile from './components/Profile';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 
@@ -20,28 +22,38 @@ function App() {
       <Router>
         <LanguageProvider>
           <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/all-ads" element={<AllAds />} />
+            {/* Root redirect to English */}
+            <Route path="/" element={<Navigate to="/en" replace />} />
 
-          {/* SEO-friendly ad URLs with backward compatibility */}
-          <Route path="/ad/:id" element={<AdDetail />} />
+            {/* Language-prefixed routes */}
+            <Route path="/:lang">
+              {/* Home page */}
+              <Route index element={<Home />} />
 
-          {/* Browse pages - Bikroy-style URL structure */}
-          <Route path="/ads" element={<Browse />} />
-          <Route path="/ads/nearby" element={<NearbyAds />} />
-          <Route path="/ads/:locationSlug" element={<Browse />} />
-          <Route path="/ads/:locationSlug/:categorySlug" element={<Browse />} />
+              {/* Other routes */}
+              <Route path="search" element={<SearchResults />} />
+              <Route path="all-ads" element={<AllAds />} />
+              <Route path="post-ad" element={<PostAd />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="editor" element={<EditorDashboard />} />
+              <Route path="edit-ad/:id" element={<EditAd />} />
+              <Route path="profile" element={<Profile />} />
 
-          {/* Legacy routes for backward compatibility */}
-          <Route path="/ads/category/:categorySlug" element={<Browse />} />
+              {/* Browse pages - Bikroy-style URL structure */}
+              <Route path="ads" element={<Browse />} />
+              <Route path="ads/nearby" element={<NearbyAds />} />
+              <Route path="ads/:locationSlug" element={<Browse />} />
+              <Route path="ads/:locationSlug/:categorySlug" element={<Browse />} />
+              <Route path="ads/category/:categorySlug" element={<Browse />} />
 
-          <Route path="/post-ad" element={<PostAd />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/edit-ad/:id" element={<EditAd />} />
-          <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminPanel />} />
-        </Routes>
+              {/* SEO-friendly ad URLs */}
+              <Route path="ad/:slug" element={<AdDetail />} />
+            </Route>
+
+            {/* Admin routes (no language prefix) */}
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminPanel />} />
+          </Routes>
         </LanguageProvider>
       </Router>
     </AuthProvider>

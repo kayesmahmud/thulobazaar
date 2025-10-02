@@ -350,7 +350,7 @@ router.put('/verification-requests/:id/approve',
 
     // Calculate subscription end date
     const subscriptionEnd = new Date();
-    subscriptionEnd.setMonth(subscriptionEnd.getMonth() + subscriptionMonths);
+    subscriptionEnd.setMonth(subscriptionEnd.getMonth() + parseInt(subscriptionMonths, 10));
 
     // Update request status
     await pool.query(
@@ -400,7 +400,7 @@ router.put('/verification-requests/:id/approve',
       [
         req_data.user_id,
         `${subscriptionMonths}-month`,
-        req_data.payment_amount,
+        req_data.payment_amount || 0,
         req_data.payment_reference,
         subscriptionEnd
       ]

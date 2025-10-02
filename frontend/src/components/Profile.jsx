@@ -25,7 +25,7 @@ function Profile() {
     name: '',
     bio: '',
     phone: '',
-    location_id: ''
+    locationId: ''
   });
 
   // Image upload states
@@ -57,24 +57,25 @@ function Profile() {
 
   // Fetch profile and locations
   useEffect(() => {
-    console.log('Profile useEffect - isAuthenticated:', isAuthenticated);
-    if (isAuthenticated) {
+    console.log('Profile useEffect - user:', user);
+    if (user) {
       fetchProfileData();
       fetchLocations();
     }
-  }, [isAuthenticated]);
+  }, [user]);
 
   const fetchProfileData = async () => {
     console.log('Profile - fetchProfileData called');
     try {
       setLoading(true);
       const data = await ApiService.getProfile();
+      console.log('Profile - Fetched data:', data);
       setProfile(data);
       setFormData({
         name: data.name || '',
         bio: data.bio || '',
         phone: data.phone || '',
-        location_id: data.location_id || ''
+        locationId: data.location_id || ''
       });
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -105,8 +106,26 @@ function Profile() {
     setSuccessMessage('');
 
     try {
-      const response = await ApiService.updateProfile(formData);
-      setProfile(response.data);
+      // Convert formData to match backend expected field names
+      const dataToSend = {
+        name: formData.name,
+        bio: formData.bio,
+        phone: formData.phone,
+        location_id: formData.locationId ? parseInt(formData.locationId, 10) : null,
+      };
+      console.log('Profile - Sending data to backend:', dataToSend);
+      const response = await ApiService.updateProfile(dataToSend);
+      console.log('Profile - Backend response:', response);
+
+      // Update profile with new data
+      const updatedUser = response.data;
+      setProfile(updatedUser);
+      setFormData({
+        name: updatedUser.name || '',
+        bio: updatedUser.bio || '',
+        phone: updatedUser.phone || '',
+        locationId: updatedUser.location_id || ''
+      });
       setUnsavedChanges(false);
       setSuccessMessage('Profile updated successfully!');
 
@@ -732,8 +751,8 @@ function Profile() {
                 Location
               </label>
               <select
-                value={formData.location_id}
-                onChange={(e) => handleInputChange('location_id', e.target.value)}
+                value={formData.locationId}
+                onChange={(e) => handleInputChange('locationId', e.target.value)}
                 style={{
                   width: '100%',
                   padding: '12px',

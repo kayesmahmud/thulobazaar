@@ -1,9 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import LazyImage from './LazyImage';
 import { formatDateTime } from '../utils/dateUtils';
+import { useLanguage } from '../context/LanguageContext';
+import { generateAdUrl } from '../utils/urlUtils';
 
 function AdCard({ ad }) {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-NP', {
       style: 'currency',
@@ -17,11 +21,13 @@ function AdCard({ ad }) {
     e.preventDefault();
     e.stopPropagation();
     try {
-      navigate(`/ad/${ad.id}`);
+      const adUrl = generateAdUrl(ad);
+      navigate(`/${language}${adUrl}`);
     } catch (error) {
       console.error('Navigation error:', error);
       // Fallback to direct window navigation if React Router fails
-      window.location.href = `/ad/${ad.id}`;
+      const adUrl = generateAdUrl(ad);
+      window.location.href = `/${language}${adUrl}`;
     }
   };
 

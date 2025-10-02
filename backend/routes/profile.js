@@ -4,10 +4,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const pool = require('../config/database');
-const { authenticateToken, requireRegularUser } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
+const config = require('../config/env');
 
-// Apply requireRegularUser middleware to all routes in this router
-router.use(authenticateToken, requireRegularUser);
+// Apply authentication middleware to all routes in this router
+router.use(authenticateToken);
 
 // Configure multer for avatar uploads
 const avatarStorage = multer.diskStorage({
@@ -68,16 +70,29 @@ const uploadCover = multer({
 });
 
 // GET /api/profile - Get current user's profile
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
+    console.log('📋 Profile request - req.user:', req.user);
+
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+    console.log('📋 Using userId:', userId);
+
     const result = await pool.query(
       `SELECT u.id, u.full_name as name, u.email, u.bio, u.avatar, u.cover_photo, u.phone,
-              u.location_id, l.name as location_name, u.created_at
+              u.location_id, l.name as location_name, u.role, u.created_at
        FROM users u
        LEFT JOIN locations l ON u.location_id = l.id
        WHERE u.id = $1`,
-      [req.user.userId]
+      [userId]
     );
+
+    console.log('📋 Query result:', result.rows.length, 'rows');
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -93,15 +108,18 @@ router.get('/', authenticateToken, async (req, res) => {
       data: user
     });
   } catch (err) {
-    console.error('Error fetching profile:', err);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    console.error('❌ Error fetching profile:', err);
+    res.status(500).json({ error: 'Failed to fetch profile', details: err.message });
   }
 });
 
 // PUT /api/profile - Update user profile
-router.put('/', authenticateToken, async (req, res) => {
+router.put('/', async (req, res) => {
   try {
     const { name, bio, phone, location_id } = req.body;
+
+    console.log('📝 Profile UPDATE - req.user:', req.user);
+    console.log('📝 Profile UPDATE - req.body:', req.body);
 
     // Validation
     if (bio && bio.length > 500) {
@@ -120,10 +138,12 @@ router.put('/', authenticateToken, async (req, res) => {
     if (name !== undefined) {
       updates.push(`full_name = $${paramCount++}`);
       values.push(name);
+      console.log('📝 Updating full_name to:', name);
     }
     if (bio !== undefined) {
       updates.push(`bio = $${paramCount++}`);
       values.push(bio);
+      console.log('📝 Updating bio to:', bio);
     }
     if (phone !== undefined) {
       updates.push(`phone = $${paramCount++}`);
@@ -139,16 +159,21 @@ router.put('/', authenticateToken, async (req, res) => {
     }
 
     updates.push(`updated_at = NOW()`);
-    values.push(req.user.userId);
+    const userId = req.user?.userId || req.user?.id;
+    values.push(userId);
+
+    console.log('📝 Updating for userId:', userId);
 
     const query = `
       UPDATE users
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING id, full_name as name, email, bio, avatar, cover_photo, phone, location_id, created_at, updated_at
+      RETURNING id, full_name as name, email, bio, avatar, cover_photo, phone, location_id, role, created_at, updated_at
     `;
 
     const result = await pool.query(query, values);
+
+    console.log('✅ Profile UPDATE result:', result.rows[0]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -163,6 +188,8 @@ router.put('/', authenticateToken, async (req, res) => {
       result.rows[0].location_name = locationResult.rows[0]?.name || null;
     }
 
+    console.log('✅ Profile UPDATE sending back:', result.rows[0]);
+
     res.json({
       success: true,
       message: 'Profile updated successfully',
@@ -175,7 +202,7 @@ router.put('/', authenticateToken, async (req, res) => {
 });
 
 // POST /api/profile/avatar - Upload avatar
-router.post('/avatar', authenticateToken, uploadAvatar.single('avatar'), async (req, res) => {
+router.post('/avatar', uploadAvatar.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -230,7 +257,7 @@ router.post('/avatar', authenticateToken, uploadAvatar.single('avatar'), async (
 });
 
 // POST /api/profile/cover - Upload cover photo
-router.post('/cover', authenticateToken, uploadCover.single('cover'), async (req, res) => {
+router.post('/cover', uploadCover.single('cover'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -285,7 +312,7 @@ router.post('/cover', authenticateToken, uploadCover.single('cover'), async (req
 });
 
 // DELETE /api/profile/avatar - Remove avatar
-router.delete('/avatar', authenticateToken, async (req, res) => {
+router.delete('/avatar', async (req, res) => {
   try {
     // Get current avatar
     const result = await pool.query(
@@ -324,7 +351,7 @@ router.delete('/avatar', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/profile/cover - Remove cover photo
-router.delete('/cover', authenticateToken, async (req, res) => {
+router.delete('/cover', async (req, res) => {
   try {
     // Get current cover photo
     const result = await pool.query(

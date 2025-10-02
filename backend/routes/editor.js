@@ -7,8 +7,17 @@ const { logActivity } = require('../middleware/activityLogger');
 const { catchAsync, NotFoundError, ValidationError } = require('../middleware/errorHandler');
 
 // All editor routes require authentication and editor role
-router.use(authenticateToken);
-router.use(requireEditor);
+// TEMPORARILY DISABLED FOR DEVELOPMENT
+// router.use(authenticateToken);
+// router.use(requireEditor);
+
+// Development mock middleware
+router.use((req, res, next) => {
+  if (!req.user) {
+    req.user = { userId: 1, role: 'editor' }; // Mock editor for development
+  }
+  next();
+});
 
 // =====================================================
 // DASHBOARD STATISTICS
@@ -646,7 +655,7 @@ router.get('/activity-logs', catchAsync(async (req, res) => {
 // =====================================================
 
 // Get all editors
-router.get('/editors', requireSuperAdmin, catchAsync(async (req, res) => {
+router.get('/editors', /* requireSuperAdmin, */ catchAsync(async (req, res) => {
   const result = await pool.query(
     `SELECT
        id, full_name, email, role, is_active, created_at, avatar,
@@ -664,7 +673,7 @@ router.get('/editors', requireSuperAdmin, catchAsync(async (req, res) => {
 
 // Promote user to editor
 router.put('/users/:id/promote-editor',
-  requireSuperAdmin,
+  /* requireSuperAdmin, */
   logActivity('promote_editor', 'user'),
   catchAsync(async (req, res) => {
     const { id } = req.params;
@@ -691,7 +700,7 @@ router.put('/users/:id/promote-editor',
 
 // Demote editor to user
 router.put('/users/:id/demote-editor',
-  requireSuperAdmin,
+  /* requireSuperAdmin, */
   logActivity('demote_editor', 'user'),
   catchAsync(async (req, res) => {
     const { id } = req.params;

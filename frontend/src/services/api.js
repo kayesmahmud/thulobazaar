@@ -154,7 +154,7 @@ class ApiService {
 
     try {
       console.log(`🔄 Fetching user profile`);
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -170,6 +170,161 @@ class ApiService {
       return data.data;
     } catch (error) {
       console.error(`❌ Profile fetch error:`, error);
+      throw error;
+    }
+  }
+
+  async updateProfile(profileData) {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      console.log(`🔄 Updating user profile with data:`, profileData);
+      const response = await fetch(`${API_BASE_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      const data = await response.json();
+      console.log(`✅ Update profile response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to update profile');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Update profile error:`, error);
+      throw error;
+    }
+  }
+
+  async uploadAvatar(file) {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      console.log(`🔄 Uploading avatar`);
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await fetch(`${API_BASE_URL}/profile/avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log(`✅ Upload avatar response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to upload avatar');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Upload avatar error:`, error);
+      throw error;
+    }
+  }
+
+  async uploadCoverPhoto(file) {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      console.log(`🔄 Uploading cover photo`);
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      const response = await fetch(`${API_BASE_URL}/profile/cover`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log(`✅ Upload cover photo response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to upload cover photo');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Upload cover photo error:`, error);
+      throw error;
+    }
+  }
+
+  async removeAvatar() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      console.log(`🔄 Removing avatar`);
+      const response = await fetch(`${API_BASE_URL}/profile/avatar`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log(`✅ Remove avatar response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to remove avatar');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Remove avatar error:`, error);
+      throw error;
+    }
+  }
+
+  async removeCoverPhoto() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      console.log(`🔄 Removing cover photo`);
+      const response = await fetch(`${API_BASE_URL}/profile/cover`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log(`✅ Remove cover photo response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to remove cover photo');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Remove cover photo error:`, error);
       throw error;
     }
   }
@@ -309,7 +464,7 @@ class ApiService {
 
   // Admin API methods
   async getAdminStats() {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('editorToken');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -337,7 +492,7 @@ class ApiService {
   }
 
   async getAdminAds(status = 'all') {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('editorToken');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -366,7 +521,7 @@ class ApiService {
   }
 
   async getAdminUsers() {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('editorToken');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -394,7 +549,7 @@ class ApiService {
   }
 
   async updateAdStatus(adId, status, reason = '') {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('editorToken');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -551,6 +706,192 @@ class ApiService {
       console.error(`❌ Reply message error:`, error);
       throw error;
     }
+  }
+
+  // Editor API methods (uses editorToken)
+  async getEditorStats() {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to fetch stats');
+    return data.data;
+  }
+
+  async getEditorAds(filters = {}) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_BASE_URL}/admin/ads${params ? `?${params}` : ''}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to fetch ads');
+    return data;
+  }
+
+  async getEditorUsers(filters = {}) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to fetch users');
+    return data;
+  }
+
+  async getActivityLogs(params = {}) {
+    return { success: true, data: [] }; // TODO: Implement backend
+  }
+
+  async getBusinessRequests(params = {}) {
+    return { success: true, data: [] }; // TODO: Implement backend
+  }
+
+  async approveAd(adId) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/ads/${adId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: 'active' })
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to approve ad');
+    return data;
+  }
+
+  async rejectAd(adId, reason) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/ads/${adId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: 'rejected', reason })
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to reject ad');
+    return data;
+  }
+
+  async editorDeleteAd(adId, reason) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/ads/${adId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to delete ad');
+    return data;
+  }
+
+  async restoreAd(adId) {
+    return { success: true }; // TODO: Implement backend
+  }
+
+  async bulkActionAds(action, adIds, reason) {
+    return { success: true }; // TODO: Implement backend
+  }
+
+  async suspendUser(userId, reason, duration) {
+    return { success: true }; // TODO: Implement backend
+  }
+
+  async unsuspendUser(userId) {
+    return { success: true }; // TODO: Implement backend
+  }
+
+  async verifyUser(userId) {
+    return { success: true }; // TODO: Implement backend
+  }
+
+  // Business Verification methods
+  async getBusinessVerificationStatus() {
+    const token = localStorage.getItem('authToken');
+    if (!token) return null;
+
+    const response = await fetch(`${API_BASE_URL}/business/verification-status`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    return data.success ? data.data : null;
+  }
+
+  async submitBusinessVerification(formData) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/business/verify-request`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData // FormData with files
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to submit verification');
+    return data;
+  }
+
+  async getBusinessRequests(filters = {}) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_BASE_URL}/business/verification-requests${params ? `?${params}` : ''}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to fetch business requests');
+    return data;
+  }
+
+  async approveBusinessRequest(requestId, subscriptionMonths) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/business/verification-requests/${requestId}/approve`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ subscriptionMonths })
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to approve request');
+    return data;
+  }
+
+  async rejectBusinessRequest(requestId, reason) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/business/verification-requests/${requestId}/reject`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ reason })
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to reject request');
+    return data
   }
 }
 

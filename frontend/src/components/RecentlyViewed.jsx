@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LazyImage from './LazyImage';
 import { recentlyViewedUtils } from '../utils/recentlyViewed';
+import { generateAdUrl } from '../utils/urlUtils';
+import { useLanguage } from '../context/LanguageContext';
 
 function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   useEffect(() => {
     // Load recently viewed ads
@@ -47,8 +50,9 @@ function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
     return date.toLocaleDateString();
   };
 
-  const handleAdClick = (adId) => {
-    navigate(`/ad/${adId}`);
+  const handleAdClick = (ad) => {
+    const adUrl = generateAdUrl(ad);
+    navigate(`/${language}${adUrl}`);
   };
 
   const handleClearAll = () => {
@@ -109,7 +113,7 @@ function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
         {recentlyViewed.map((ad) => (
           <div
             key={ad.id}
-            onClick={() => handleAdClick(ad.id)}
+            onClick={() => handleAdClick(ad)}
             style={{
               display: 'flex',
               gap: '12px',
@@ -214,7 +218,7 @@ function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
           marginTop: '12px'
         }}>
           <button
-            onClick={() => navigate('/recently-viewed')}
+            onClick={() => navigate(`/${language}/recently-viewed`)}
             style={{
               fontSize: '12px',
               color: '#3b82f6',

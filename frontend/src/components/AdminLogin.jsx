@@ -25,7 +25,7 @@ function AdminLogin() {
 
     try {
       // Use dedicated admin/editor login endpoint
-      const response = await fetch('http://localhost:5000/api/admin-auth/login', {
+      const response = await fetch('http://localhost:5000/api/admin/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -217,7 +217,7 @@ function AdminLogin() {
         {/* Back to site link */}
         <div style={{ textAlign: 'center' }}>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/en')}
             style={{
               background: 'none',
               border: 'none',

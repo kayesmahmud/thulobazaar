@@ -121,8 +121,8 @@ function Header() {
                 POST FREE AD
               </button>
 
-              {/* Profile Dropdown - Hide for editor and super_admin */}
-              {isAuthenticated && user?.role !== 'editor' && user?.role !== 'super_admin' && (
+              {/* Profile Dropdown */}
+              {isAuthenticated && (
                 <div ref={dropdownRef} style={{ position: 'relative' }}>
                   <div
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}

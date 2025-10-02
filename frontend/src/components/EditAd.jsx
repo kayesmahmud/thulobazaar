@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
 import SimpleHeader from './SimpleHeader';
 
 function EditAd() {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -29,7 +31,7 @@ function EditAd() {
   useEffect(() => {
     // Redirect if not authenticated
     if (!isAuthenticated) {
-      navigate('/');
+      navigate(`/${language}`);
       return;
     }
 
@@ -174,7 +176,7 @@ function EditAd() {
 
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/${language}/dashboard`);
       }, 2000);
 
     } catch (err) {
@@ -215,7 +217,7 @@ function EditAd() {
       }}>
         <h2>⚠️ Error</h2>
         <p>{error}</p>
-        <button onClick={() => navigate('/dashboard')}>
+        <button onClick={() => navigate(`/${language}/dashboard`)}>
           Back to Dashboard
         </button>
       </div>
@@ -579,7 +581,7 @@ function EditAd() {
             }}>
               <button
                 type="button"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(`/${language}/dashboard`)}
                 style={{
                   backgroundColor: 'transparent',
                   color: '#64748b',

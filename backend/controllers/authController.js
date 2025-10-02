@@ -97,9 +97,21 @@ class AuthController {
       throw new AuthenticationError('User not found');
     }
 
+    // Transform snake_case to camelCase for frontend
+    const userData = {
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.is_active,
+      locationId: user.location_id,
+      createdAt: user.created_at
+    };
+
     res.json({
       success: true,
-      user
+      data: userData
     });
   }
 

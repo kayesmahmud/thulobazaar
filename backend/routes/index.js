@@ -6,9 +6,12 @@ const authRoutes = require('./authRoutes');
 const adRoutes = require('./adRoutes');
 const categoryRoutes = require('./categoryRoutes');
 const locationRoutes = require('./locationRoutes');
+const adminAuthRoutes = require('./adminAuth');
+console.log('Admin auth routes loaded:', !!adminAuthRoutes);
 
 // Mount routes
 router.use('/auth', authRoutes);
+router.use('/admin-auth', adminAuthRoutes);
 router.use('/ads', adRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/locations', locationRoutes);

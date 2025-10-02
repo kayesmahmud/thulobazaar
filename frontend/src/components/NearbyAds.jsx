@@ -5,9 +5,12 @@ import SimpleHeader from './SimpleHeader';
 import InteractiveMap from './InteractiveMap';
 import { getUserLocation, nepaliCities } from '../utils/locationUtils';
 import { formatDateTime } from '../utils/dateUtils';
+import { generateAdUrl } from '../utils/urlUtils';
+import { useLanguage } from '../context/LanguageContext';
 
 function NearbyAds() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -93,9 +96,8 @@ function NearbyAds() {
   };
 
   const handleAdClick = (ad) => {
-    const titleSlug = ad.title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
-    const locationSlug = ad.location_name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
-    navigate(`/ad/${titleSlug}-${locationSlug}-${ad.id}`);
+    const adUrl = generateAdUrl(ad);
+    navigate(`/${language}${adUrl}`);
   };
 
   const formatPrice = (price) => {

@@ -94,6 +94,8 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  console.log('🔑 Auth middleware - Token present:', !!token);
+
   if (!token) {
     return res.status(401).json({
       success: false,
@@ -103,51 +105,19 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
+      console.log('❌ Token verification failed:', err.message);
       return res.status(403).json({
         success: false,
         message: 'Invalid or expired token'
       });
     }
+    console.log('✅ Token verified - User:', user);
     req.user = user;
     next();
   });
 };
 
-// Admin authentication middleware
-const authenticateAdmin = async (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access token required'
-      });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Check if user is admin
-    const result = await pool.query('SELECT id, email, role FROM users WHERE id = $1', [decoded.userId]);
-
-    if (result.rows.length === 0 || result.rows[0].role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required'
-      });
-    }
-
-    req.user = decoded;
-    req.admin = result.rows[0];
-    next();
-  } catch (error) {
-    return res.status(403).json({
-      success: false,
-      message: 'Invalid or expired token'
-    });
-  }
-};
+// Admin authentication middleware - REMOVED (now in routes/admin.js)
 
 // User registration
 app.post('/api/auth/register', rateLimiters.auth, async (req, res) => {
@@ -263,12 +233,12 @@ app.post('/api/auth/login', rateLimiters.auth, async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    console.log(`✅ User logged in: ${user.email}`);
+    console.log(`✅ User logged in: ${user.email} (userId: ${user.id})`);
 
     res.json({
       success: true,
@@ -295,49 +265,8 @@ app.post('/api/auth/login', rateLimiters.auth, async (req, res) => {
   }
 });
 
-// Get current user profile
-app.get('/api/auth/profile', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT u.id, u.email, u.full_name, u.phone, u.location_id, u.created_at, u.role,
-              l.name as location_name
-       FROM users u
-       LEFT JOIN locations l ON u.location_id = l.id
-       WHERE u.id = $1`,
-      [req.user.userId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    const user = result.rows[0];
-
-    res.json({
-      success: true,
-      data: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        phone: user.phone,
-        locationId: user.location_id,
-        locationName: user.location_name,
-        createdAt: user.created_at,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching user profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching user profile',
-      error: error.message
-    });
-  }
-});
+// The routes for getting and updating user profiles have been moved to /routes/profile.js
+// and are mounted via app.use('/api/profile', ...);
 
 // Test route
 app.get('/api/test', (req, res) => {
@@ -696,12 +625,14 @@ app.get('/api/ads/:id', async (req, res) => {
     const query = `
       SELECT
         a.id, a.title, a.description, a.price, a.condition, a.view_count,
-        a.seller_name, a.seller_phone, a.created_at, a.is_featured,
+        a.seller_name, a.seller_phone, a.created_at, a.is_featured, a.user_id,
         c.name as category_name, c.icon as category_icon,
-        l.name as location_name
+        l.name as location_name,
+        u.business_verification_status, u.business_name
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN locations l ON a.location_id = l.id
+      LEFT JOIN users u ON a.user_id = u.id
       WHERE a.id = $1 AND a.status = 'approved'
     `;
 
@@ -1350,8 +1281,9 @@ app.put('/api/ads/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Admin API Routes
+// Admin API Routes - MOVED TO routes/admin.js
 
+/*
 // Get admin dashboard stats
 app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   try {
@@ -1540,6 +1472,7 @@ app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
     });
   }
 });
+*/
 
 // Contact seller endpoint
 app.post('/api/contact-seller', rateLimiters.messaging, authenticateToken, async (req, res) => {
@@ -1894,7 +1827,16 @@ app.post('/api/reply-message', rateLimiters.messaging, authenticateToken, async 
 app.use('/api/search', require('./routes/search'));
 
 // Profile routes
-app.use('/api/profiles', profileRoutes);
+app.use('/api/profile', require('./routes/profile'));
+
+// Admin/Editor authentication routes
+app.use('/api/admin/auth', require('./routes/adminAuth'));
+
+// Admin panel routes
+app.use('/api/admin', require('./routes/admin'));
+
+// Business verification routes
+app.use('/api/business', require('./routes/business'));
 
 // Error handling
 app.use((err, req, res, next) => {

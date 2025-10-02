@@ -19,37 +19,36 @@ export const AuthProvider = ({ children }) => {
     // Check if user is logged in on app start
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const userToken = localStorage.getItem('authToken');
         const userData = localStorage.getItem('userData');
+        const editorToken = localStorage.getItem('editorToken');
+        const editorData = localStorage.getItem('editorData');
 
         console.log('🔍 AuthContext init check:', {
-          hasToken: !!token,
-          hasUserData: !!userData
+          hasUserToken: !!userToken,
+          hasUserData: !!userData,
+          hasEditorToken: !!editorToken,
+          hasEditorData: !!editorData
         });
 
-        if (token && userData) {
-          const parsedUserData = JSON.parse(userData);
-          console.log('🔄 Checking user role:', parsedUserData.role);
-
-          // For admin/editor accounts, just use stored data (they're in separate tables)
-          if (parsedUserData.role === 'super_admin' || parsedUserData.role === 'editor') {
-            setUser(parsedUserData);
-            console.log('✅ Admin/Editor authenticated from localStorage:', parsedUserData);
-          } else {
-            // For regular users, verify token with profile API
-            console.log('🔄 Verifying regular user token with profile API...');
-            const profile = await ApiService.getProfile();
-            setUser(profile);
-            console.log('✅ User authenticated from localStorage:', profile);
-          }
+        // Only load regular user data in AuthContext
+        // Editor/Admin data should only be used in editor/admin pages
+        if (userToken && userData) {
+          // For regular users, verify token with profile API
+          console.log('🔄 Verifying regular user token with profile API...');
+          const profile = await ApiService.getProfile();
+          setUser(profile);
+          console.log('✅ User authenticated from localStorage:', profile);
         } else {
           console.log('ℹ️ No stored auth data found');
         }
       } catch (error) {
         console.log('❌ Authentication check failed:', error);
-        // Clear invalid token
+        // Clear invalid tokens
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        localStorage.removeItem('editorToken');
+        localStorage.removeItem('editorData');
       } finally {
         setLoading(false);
       }
@@ -60,6 +59,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      setLoading(true);
       const result = await ApiService.login(email, password);
 
       // Store token and user data
@@ -73,11 +73,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const register = async (userData) => {
     try {
+      setLoading(true);
       const result = await ApiService.register(userData);
 
       // Store token and user data
@@ -91,12 +94,16 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Registration failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
+    localStorage.removeItem('editorToken');
+    localStorage.removeItem('editorData');
     setUser(null);
     console.log('✅ User logged out');
   };

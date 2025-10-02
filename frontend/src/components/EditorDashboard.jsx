@@ -45,7 +45,7 @@ function EditorDashboard() {
     const editorData = localStorage.getItem('editorData');
 
     if (!editorToken || !editorData) {
-      navigate(`/${language}/editor-login`);
+      navigate('/admin');
       return;
     }
 
@@ -53,7 +53,7 @@ function EditorDashboard() {
       const userData = JSON.parse(editorData);
       if (userData.role !== 'editor' && userData.role !== 'super_admin') {
         alert('Access denied. Editor privileges required.');
-        navigate(`/${language}/editor-login`);
+        navigate('/admin');
         return;
       }
       setUser(userData);
@@ -61,7 +61,7 @@ function EditorDashboard() {
       setLoading(false);
     } catch (err) {
       console.error('Error parsing editor data:', err);
-      navigate(`/${language}/editor-login`);
+      navigate('/admin');
     }
   }, [navigate, language]);
 
@@ -90,6 +90,7 @@ function EditorDashboard() {
   const fetchStats = async () => {
     try {
       const data = await ApiService.getEditorStats();
+      console.log('📊 Stats received:', data);
       setStats(data);
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -328,7 +329,7 @@ function EditorDashboard() {
                 // Editor logout - clear editor tokens only
                 localStorage.removeItem('editorToken');
                 localStorage.removeItem('editorData');
-                navigate(`/${language}/editor-login`);
+                navigate('/admin');
               }}
               style={{
                 marginLeft: '15px',
@@ -388,7 +389,7 @@ function EditorDashboard() {
               <div className="stat-card">
                 <div className="stat-icon">📊</div>
                 <div className="stat-content">
-                  <h3>{stats.total_ads}</h3>
+                  <h3>{stats.totalAds}</h3>
                   <p>Total Ads</p>
                 </div>
               </div>
@@ -428,7 +429,7 @@ function EditorDashboard() {
               <div className="stat-card">
                 <div className="stat-icon">👥</div>
                 <div className="stat-content">
-                  <h3>{stats.total_users}</h3>
+                  <h3>{stats.totalUsers}</h3>
                   <p>Total Users</p>
                 </div>
               </div>

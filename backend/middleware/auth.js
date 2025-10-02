@@ -9,15 +9,19 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
+  console.log('🔐 [Middleware/Auth] Token present:', !!token);
+
   if (!token) {
     throw new AuthenticationError('Access token required');
   }
 
   jwt.verify(token, config.JWT_SECRET, (err, user) => {
     if (err) {
+      console.log('❌ [Middleware/Auth] Token verification failed:', err.message);
       throw new AuthenticationError('Invalid or expired token');
     }
 
+    console.log('✅ [Middleware/Auth] Token decoded successfully - user:', user);
     req.user = user;
     next();
   });

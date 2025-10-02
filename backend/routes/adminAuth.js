@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/database');
 const config = require('../config/env');
+const { Admin, Editor } = require('../models');
 const { catchAsync, ValidationError, AuthenticationError } = require('../middleware/errorHandler');
 
 // Admin/Editor Login (separate from regular users)
@@ -16,46 +15,34 @@ router.post('/login', catchAsync(async (req, res) => {
 
   let user = null;
   let userType = null;
+  let passwordVerified = false;
 
   // Check admins table first
-  const adminResult = await pool.query(
-    'SELECT * FROM admins WHERE email = $1 AND is_active = true',
-    [email]
-  );
-
-  if (adminResult.rows.length > 0) {
-    user = adminResult.rows[0];
-    userType = 'super_admin';
-  } else {
-    // Check editors table
-    const editorResult = await pool.query(
-      'SELECT * FROM editors WHERE email = $1 AND is_active = true',
-      [email]
-    );
-
-    if (editorResult.rows.length > 0) {
-      user = editorResult.rows[0];
-      userType = 'editor';
+  const admin = await Admin.findByEmail(email);
+  if (admin) {
+    passwordVerified = await Admin.verifyPassword(password, admin.password_hash);
+    if (passwordVerified) {
+      user = admin;
+      userType = 'super_admin';
     }
   }
 
-  // If user not found in either table
+  // If not found in admins, check editors table
   if (!user) {
-    throw new AuthenticationError('Invalid email or password');
+    const editor = await Editor.findByEmail(email);
+    if (editor) {
+      passwordVerified = await Editor.verifyPassword(password, editor.password_hash);
+      if (passwordVerified) {
+        user = editor;
+        userType = 'editor';
+      }
+    }
   }
 
-  // Verify password
-  const isValidPassword = await bcrypt.compare(password, user.password_hash);
-  if (!isValidPassword) {
+  // If user not found or password invalid
+  if (!user || !passwordVerified) {
     throw new AuthenticationError('Invalid email or password');
   }
-
-  // Update last login
-  const tableName = userType === 'super_admin' ? 'admins' : 'editors';
-  await pool.query(
-    `UPDATE ${tableName} SET last_login = CURRENT_TIMESTAMP WHERE id = $1`,
-    [user.id]
-  );
 
   // Generate JWT token
   const token = jwt.sign(

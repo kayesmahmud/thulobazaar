@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ApiService from '../services/api';
+import { generateAdUrl } from '../utils/urlUtils';
 
 function AdminPanel() {
   const navigate = useNavigate();
@@ -166,7 +167,7 @@ function AdminPanel() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span>Welcome, {user?.fullName} (Admin)</span>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/en')}
               style={{
                 backgroundColor: '#3b82f6',
                 color: 'white',
@@ -505,7 +506,7 @@ function AdminPanel() {
                       {/* Actions */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <button
-                          onClick={() => navigate(`/ad/${ad.id}`)}
+                          onClick={() => navigate(`/en${generateAdUrl(ad)}`)}
                           style={{
                             backgroundColor: '#3b82f6',
                             color: 'white',

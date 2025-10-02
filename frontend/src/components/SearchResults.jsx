@@ -183,8 +183,8 @@ function SearchResults() {
     // Build the new URL from filters
     const urlParams = new URLSearchParams();
 
-    // Don't include category in query params if it's set (use path instead)
     if (filters.search.trim()) urlParams.append('search', filters.search.trim());
+    if (filters.category && filters.category !== 'all') urlParams.append('category', filters.category);
     if (filters.location !== 'all') urlParams.append('location', filters.location);
     if (filters.minPrice && filters.minPrice !== '0' && filters.minPrice !== '') urlParams.append('minPrice', filters.minPrice);
     if (filters.maxPrice && filters.maxPrice !== '5000000' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
@@ -202,15 +202,7 @@ function SearchResults() {
     const newQueryString = urlParams.toString();
 
     // Determine the base path
-    let basePath;
-    if (filters.category && filters.category !== 'all') {
-      // Use clean URL: /en/fashion
-      const categorySlug = getCategorySlug(filters.category).toLowerCase();
-      basePath = `/${language}/${categorySlug}`;
-    } else {
-      // Use search path: /en/search
-      basePath = `/${language}/search`;
-    }
+    const basePath = `/${language}/search`;
 
     const newUrl = `${basePath}${newQueryString ? `?${newQueryString}` : ''}`;
     const currentUrl = location.pathname + location.search;

@@ -17,7 +17,7 @@ function SimpleHeader({ showUserWelcome = false }) {
 
   const handlePostAdClick = () => {
     if (isAuthenticated) {
-      navigate('/post-ad');
+      navigate(`/${language}/post-ad`);
     } else {
       setAuthModal({ isOpen: true, mode: 'login' });
     }
@@ -39,7 +39,7 @@ function SimpleHeader({ showUserWelcome = false }) {
   };
 
   const handleLogoClick = () => {
-    navigate('/');
+    navigate(`/${language}`);
     setMobileMenuOpen(false);
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
 import SimpleHeader from './SimpleHeader';
 import AdCard from './AdCard';
@@ -10,6 +11,7 @@ function Browse() {
   const params = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   // Handle Bikroy-style URL patterns
   const getPageParams = () => {
@@ -318,7 +320,7 @@ function Browse() {
               Try adjusting your search criteria or check back later.
             </p>
             <button
-              onClick={() => navigate('/post-ad')}
+              onClick={() => navigate(`/${language}/post-ad`)}
               style={{
                 backgroundColor: '#dc1e4a',
                 color: 'white',

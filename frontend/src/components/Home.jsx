@@ -171,7 +171,7 @@ function Home() {
               className="category-card"
               onClick={() => {
                 const categorySlug = getCategorySlug(category.name).toLowerCase();
-                navigate(`/${language}/${categorySlug}`);
+                navigate(`/${language}/ads/category/${categorySlug}`);
               }}
               style={{ cursor: 'pointer' }}
             >
