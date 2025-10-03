@@ -488,20 +488,34 @@ function AdDetail() {
                   gap: '12px',
                   marginBottom: '12px'
                 }}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    backgroundColor: '#3b82f6',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '18px'
-                  }}>
-                    {ad.seller_name.charAt(0).toUpperCase()}
-                  </div>
+                  {ad.seller_avatar ? (
+                    <img
+                      src={`http://localhost:5000/uploads/avatars/${ad.seller_avatar}`}
+                      alt={ad.seller_name}
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #e2e8f0'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      backgroundColor: '#3b82f6',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '18px'
+                    }}>
+                      {ad.seller_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {ad.business_verification_status === 'approved' && ad.business_name ? ad.business_name : ad.seller_name}
@@ -515,7 +529,7 @@ function AdDetail() {
                       )}
                     </div>
                     <div style={{ color: '#64748b', fontSize: '14px' }}>
-                      {ad.business_verification_status === 'approved' ? 'Verified Business' : 'Seller'}
+                      {ad.business_verification_status === 'approved' ? 'Verified Business Account' : 'Seller'}
                     </div>
                   </div>
                 </div>

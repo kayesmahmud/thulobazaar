@@ -93,12 +93,13 @@ function SimpleHeader({ showUserWelcome = false }) {
 
             {/* Desktop Navigation */}
             <div className="desktop-nav">
-              <button
-                className="nav-link-btn all-ads-link"
+              <a
+                className="all-ads-link"
                 onClick={() => handleNavigation('/all-ads')}
+                style={{ cursor: 'pointer' }}
               >
                 All Ads
-              </button>
+              </a>
               <div className="auth-buttons">
                 {!isAuthenticated && (
                   <>

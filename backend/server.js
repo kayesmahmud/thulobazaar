@@ -626,9 +626,10 @@ app.get('/api/ads/:id', async (req, res) => {
       SELECT
         a.id, a.title, a.description, a.price, a.condition, a.view_count,
         a.seller_name, a.seller_phone, a.created_at, a.is_featured, a.user_id,
+        a.category_id, a.location_id,
         c.name as category_name, c.icon as category_icon,
         l.name as location_name,
-        u.business_verification_status, u.business_name
+        u.business_verification_status, u.business_name, u.avatar as seller_avatar
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN locations l ON a.location_id = l.id

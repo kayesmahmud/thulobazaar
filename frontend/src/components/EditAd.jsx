@@ -59,8 +59,8 @@ function EditAd() {
         description: ad.description || '',
         price: ad.price || '',
         condition: ad.condition || '',
-        categoryId: '',  // Will be set after categories load
-        locationId: '',  // Will be set after locations load
+        categoryId: ad.category_id ? ad.category_id.toString() : '',
+        locationId: ad.location_id ? ad.location_id.toString() : '',
         sellerName: ad.seller_name || '',
         sellerPhone: ad.seller_phone || ''
       });
@@ -85,29 +85,8 @@ function EditAd() {
       console.log('🏷️ Categories loaded:', categoriesData);
       console.log('📍 Locations loaded:', locationsData);
 
-      // If we have ad data, find and set the category and location IDs
+      // Clean up temporary ad data if exists
       if (window.currentAd) {
-        const ad = window.currentAd;
-
-        // Find category ID by name
-        const matchingCategory = categoriesData.find(cat => cat.name === ad.category_name);
-        const categoryId = matchingCategory ? matchingCategory.id.toString() : '';
-
-        // Find location ID by name
-        const matchingLocation = locationsData.find(loc => loc.name === ad.location_name);
-        const locationId = matchingLocation ? matchingLocation.id.toString() : '';
-
-        console.log('🎯 Found Category ID:', categoryId, 'for name:', ad.category_name);
-        console.log('🎯 Found Location ID:', locationId, 'for name:', ad.location_name);
-
-        // Update form data with the found IDs
-        setFormData(prev => ({
-          ...prev,
-          categoryId: categoryId,
-          locationId: locationId
-        }));
-
-        // Clean up
         delete window.currentAd;
       }
     } catch (err) {
