@@ -15,13 +15,15 @@ import EditorDashboard from './components/EditorDashboard';
 import Profile from './components/Profile';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ToastProvider } from './components/common/Toast';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <LanguageProvider>
-          <Routes>
+      <ToastProvider>
+        <Router>
+          <LanguageProvider>
+            <Routes>
             {/* Root redirect to English */}
             <Route path="/" element={<Navigate to="/en" replace />} />
 
@@ -53,9 +55,10 @@ function App() {
             {/* Admin routes (no language prefix) */}
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminPanel />} />
-          </Routes>
-        </LanguageProvider>
-      </Router>
+            </Routes>
+          </LanguageProvider>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   )
 }

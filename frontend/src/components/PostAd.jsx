@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useToast } from './common/Toast';
 import ApiService from '../services/api';
 import ImageUpload from './ImageUpload';
 import ErrorMessage from './ErrorMessage';
@@ -11,9 +12,9 @@ function PostAd() {
   const { user, isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState('');
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
@@ -70,16 +71,14 @@ function PostAd() {
       ...prev,
       [field]: value
     }));
-    // Clear messages when user starts typing
+    // Clear error when user starts typing
     if (error) setError(null);
-    if (success) setSuccess('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess('');
 
     try {
       // Validate required fields
@@ -119,7 +118,11 @@ function PostAd() {
       const result = await ApiService.createAd(adData, selectedImages);
       console.log('✅ Ad created successfully:', result);
 
-      setSuccess('Your ad has been posted successfully! Redirecting...');
+      // Show success toast notification
+      toast.success('Your ad has been posted successfully and is pending approval!', {
+        title: 'Success!',
+        duration: 3000
+      });
 
       // Redirect to home page after 2 seconds
       setTimeout(() => {
@@ -173,21 +176,6 @@ function PostAd() {
               Fill in the details below to post your ad
             </p>
           </div>
-
-          {/* Success message */}
-          {success && (
-            <div style={{
-              backgroundColor: '#dcfce7',
-              border: '1px solid #bbf7d0',
-              color: '#166534',
-              padding: '12px',
-              borderRadius: '8px',
-              marginBottom: '24px',
-              fontSize: '14px'
-            }}>
-              {success}
-            </div>
-          )}
 
           {/* Error message */}
           <ErrorMessage
