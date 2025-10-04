@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import LazyImage from './LazyImage';
 import { recentlyViewedUtils } from '../utils/recentlyViewed';
 import { generateAdUrl } from '../utils/urlUtils';
@@ -235,5 +236,15 @@ function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
     </div>
   );
 }
+
+RecentlyViewed.propTypes = {
+  showTitle: PropTypes.bool,
+  maxItems: PropTypes.number
+};
+
+RecentlyViewed.defaultProps = {
+  showTitle: true,
+  maxItems: 5
+};
 
 export default RecentlyViewed;

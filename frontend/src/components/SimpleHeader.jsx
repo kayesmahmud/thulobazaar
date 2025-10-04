@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
@@ -387,5 +388,13 @@ function SimpleHeader({ showUserWelcome = false }) {
     </>
   );
 }
+
+SimpleHeader.propTypes = {
+  showUserWelcome: PropTypes.bool
+};
+
+SimpleHeader.defaultProps = {
+  showUserWelcome: false
+};
 
 export default SimpleHeader;

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 function ImageUpload({ onImagesChange, maxImages = 5 }) {
   const [selectedImages, setSelectedImages] = useState([]);
@@ -248,5 +249,14 @@ function ImageUpload({ onImagesChange, maxImages = 5 }) {
     </div>
   );
 }
+
+ImageUpload.propTypes = {
+  onImagesChange: PropTypes.func.isRequired,
+  maxImages: PropTypes.number
+};
+
+ImageUpload.defaultProps = {
+  maxImages: 5
+};
 
 export default ImageUpload;

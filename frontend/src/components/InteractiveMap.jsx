@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import PropTypes from 'prop-types';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icons in React-Leaflet
@@ -176,5 +177,38 @@ function InteractiveMap({
     </div>
   );
 }
+
+InteractiveMap.propTypes = {
+  ads: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      title: PropTypes.string.isRequired,
+      price: PropTypes.number.isRequired,
+      latitude: PropTypes.number,
+      longitude: PropTypes.number,
+      location_latitude: PropTypes.number,
+      location_longitude: PropTypes.number,
+      location_name: PropTypes.string,
+      category_name: PropTypes.string,
+      formatted_distance: PropTypes.string
+    })
+  ),
+  center: PropTypes.arrayOf(PropTypes.number),
+  zoom: PropTypes.number,
+  height: PropTypes.string,
+  onAdClick: PropTypes.func,
+  className: PropTypes.string,
+  style: PropTypes.object
+};
+
+InteractiveMap.defaultProps = {
+  ads: [],
+  center: [27.7172, 85.3240],
+  zoom: 12,
+  height: '400px',
+  onAdClick: null,
+  className: '',
+  style: {}
+};
 
 export default InteractiveMap;

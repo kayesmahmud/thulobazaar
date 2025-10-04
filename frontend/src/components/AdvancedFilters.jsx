@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
   const [filters, setFilters] = useState({
@@ -410,5 +411,24 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
     </div>
   );
 }
+
+AdvancedFilters.propTypes = {
+  onFiltersChange: PropTypes.func.isRequired,
+  initialFilters: PropTypes.shape({
+    priceRange: PropTypes.arrayOf(PropTypes.number),
+    condition: PropTypes.string,
+    datePosted: PropTypes.string,
+    customDateRange: PropTypes.shape({
+      from: PropTypes.string,
+      to: PropTypes.string
+    }),
+    sortBy: PropTypes.string,
+    sortOrder: PropTypes.string
+  })
+};
+
+AdvancedFilters.defaultProps = {
+  initialFilters: {}
+};
 
 export default AdvancedFilters;

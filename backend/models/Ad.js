@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { AD_STATUS, PAGINATION } = require('../config/constants');
 
 class Ad {
   /**
@@ -39,6 +40,7 @@ class Ad {
 
   /**
    * Find all ads with filters
+   * Optimized to fetch images in a single query using JSON aggregation
    */
   static async findAll(filters = {}) {
     const {
@@ -51,21 +53,34 @@ class Ad {
       datePosted,
       dateFrom,
       dateTo,
-      status = 'approved',
+      status = AD_STATUS.APPROVED,
       userId,
       sortBy = 'newest',
       sortOrder = 'desc',
-      limit = 20,
-      offset = 0
+      limit = PAGINATION.DEFAULT_LIMIT,
+      offset = PAGINATION.DEFAULT_OFFSET
     } = filters;
 
     let query = `
       SELECT a.*, c.name as category_name, c.slug as category_slug,
              l.name as location_name, l.slug as location_slug,
-             (SELECT COUNT(*) FROM ad_images WHERE ad_id = a.id) as image_count
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'id', ai.id,
+                   'ad_id', ai.ad_id,
+                   'image_url', ai.image_url,
+                   'is_primary', ai.is_primary,
+                   'created_at', ai.created_at
+                 )
+                 ORDER BY ai.is_primary DESC, ai.created_at ASC
+               ) FILTER (WHERE ai.id IS NOT NULL),
+               '[]'
+             ) as images
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN locations l ON a.location_id = l.id
+      LEFT JOIN ad_images ai ON a.id = ai.ad_id
       WHERE 1=1
     `;
 
@@ -151,6 +166,9 @@ class Ad {
       }
     }
 
+    // Group by all non-aggregated columns
+    query += ` GROUP BY a.id, c.name, c.slug, l.name, l.slug`;
+
     // Sorting
     const sortOptions = {
       newest: 'a.created_at DESC',
@@ -208,9 +226,9 @@ class Ad {
         category_id, location_id, seller_name, seller_phone,
         user_id, status, view_count, is_featured
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', 0, false)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, false)
       RETURNING *`,
-      [title, slug, description, price, condition, categoryId, locationId, sellerName, sellerPhone, userId]
+      [title, slug, description, price, condition, categoryId, locationId, sellerName, sellerPhone, userId, AD_STATUS.PENDING]
     );
 
     return result.rows[0];

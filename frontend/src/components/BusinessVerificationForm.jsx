@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import ApiService from '../services/api';
 
 function BusinessVerificationForm({ onClose, onSuccess }) {
@@ -514,5 +515,10 @@ function BusinessVerificationForm({ onClose, onSuccess }) {
     </div>
   );
 }
+
+BusinessVerificationForm.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func
+};
 
 export default BusinessVerificationForm;

@@ -1,5 +1,6 @@
 const pool = require('../config/database');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
+const { SECURITY } = require('../config/constants');
 
 class User {
   /**
@@ -29,7 +30,7 @@ class User {
    */
   static async create(userData) {
     const { email, password, fullName, phone, locationId } = userData;
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, SECURITY.BCRYPT_SALT_ROUNDS);
 
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, full_name, phone, location_id, role, is_active)
@@ -65,7 +66,7 @@ class User {
    * Update user password
    */
   static async updatePassword(id, newPassword) {
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await bcrypt.hash(newPassword, SECURITY.BCRYPT_SALT_ROUNDS);
 
     await pool.query(
       'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import ApiService from '../services/api';
 
@@ -311,5 +312,12 @@ function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
     </div>
   );
 }
+
+AuthModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  mode: PropTypes.oneOf(['login', 'register']),
+  onAuthSuccess: PropTypes.func
+};
 
 export default AuthModal;

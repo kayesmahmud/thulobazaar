@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
 function Breadcrumb({ items = [], style = {} }) {
   const navigate = useNavigate();
@@ -76,5 +77,21 @@ function Breadcrumb({ items = [], style = {} }) {
     </div>
   );
 }
+
+Breadcrumb.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      path: PropTypes.string,
+      current: PropTypes.bool
+    })
+  ),
+  style: PropTypes.object
+};
+
+Breadcrumb.defaultProps = {
+  items: [],
+  style: {}
+};
 
 export default Breadcrumb;

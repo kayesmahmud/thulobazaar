@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 
 function StaticMap({ latitude, longitude, width = 300, height = 200, zoom = 15, className = '', style = {} }) {
   const [imageError, setImageError] = useState(false);
@@ -119,5 +120,23 @@ function StaticMap({ latitude, longitude, width = 300, height = 200, zoom = 15, 
     </div>
   );
 }
+
+StaticMap.propTypes = {
+  latitude: PropTypes.number,
+  longitude: PropTypes.number,
+  width: PropTypes.number,
+  height: PropTypes.number,
+  zoom: PropTypes.number,
+  className: PropTypes.string,
+  style: PropTypes.object
+};
+
+StaticMap.defaultProps = {
+  width: 300,
+  height: 200,
+  zoom: 15,
+  className: '',
+  style: {}
+};
 
 export default StaticMap;

@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
@@ -12,6 +12,7 @@ const duplicateDetector = require('./utils/duplicateDetector');
 const { calculateDistance, formatDistance, generateStaticMapUrl } = require('./utils/locationUtils');
 const { MobileLocationService } = require('./utils/mobileLocationUtils');
 const profileRoutes = require('./routes/profileRoutes'); // Import new profile routes
+const { SECURITY, FILE_LIMITS, AD_STATUS, PAGINATION, LOCATION } = require('./config/constants');
 require('dotenv').config();
 
 const app = express();
@@ -73,8 +74,8 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 5 // Maximum 5 images per ad
+    fileSize: FILE_LIMITS.MAX_FILE_SIZE,
+    files: FILE_LIMITS.MAX_FILES_PER_AD
   },
   fileFilter: fileFilter
 });
@@ -142,7 +143,7 @@ app.post('/api/auth/register', rateLimiters.auth, async (req, res) => {
     }
 
     // Hash password
-    const saltRounds = 12;
+    const saltRounds = SECURITY.BCRYPT_SALT_ROUNDS;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Insert user

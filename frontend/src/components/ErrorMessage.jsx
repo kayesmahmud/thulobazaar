@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 function ErrorMessage({ error, onClose }) {
   if (!error) return null;
@@ -118,5 +119,20 @@ function ErrorMessage({ error, onClose }) {
     </div>
   );
 }
+
+ErrorMessage.propTypes = {
+  error: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.shape({
+      message: PropTypes.string,
+      title: PropTypes.string,
+      severity: PropTypes.oneOf(['high', 'medium', 'low']),
+      suggestion: PropTypes.string,
+      structured: PropTypes.bool,
+      type: PropTypes.string
+    })
+  ]),
+  onClose: PropTypes.func
+};
 
 export default ErrorMessage;

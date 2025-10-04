@@ -1,5 +1,7 @@
 const { Ad, AdImage } = require('../models');
 const { NotFoundError, ValidationError, AuthenticationError } = require('../middleware/errorHandler');
+const { generateSlug } = require('../utils/slugUtils');
+const { PAGINATION } = require('../config/constants');
 
 class AdController {
   /**
@@ -18,8 +20,8 @@ class AdController {
       dateTo,
       sortBy = 'newest',
       sortOrder = 'desc',
-      limit = 20,
-      offset = 0
+      limit = PAGINATION.DEFAULT_LIMIT,
+      offset = PAGINATION.DEFAULT_OFFSET
     } = req.query;
 
     console.log('🔍 API Call to /ads with params:', {
@@ -44,19 +46,12 @@ class AdController {
       offset: parseInt(offset)
     });
 
-    // Get images for each ad
-    const adsWithImages = await Promise.all(
-      ads.map(async (ad) => {
-        const images = await AdImage.findByAdId(ad.id);
-        return { ...ad, images };
-      })
-    );
-
+    // Images are now included in the ads result from the optimized query
     console.log(`✅ Found ${ads.length} ads (${total} total)`);
 
     res.json({
       success: true,
-      ads: adsWithImages,
+      ads,
       total,
       limit: parseInt(limit),
       offset: parseInt(offset)
@@ -114,11 +109,8 @@ class AdController {
       sellerPhone
     } = req.body;
 
-    // Generate slug from title
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') + '-' + Date.now();
+    // Generate unique slug from title
+    const slug = await generateSlug(title);
 
     // Create ad
     const ad = await Ad.create({
@@ -191,10 +183,7 @@ class AdController {
     // Generate new slug if title changed
     let slug = existingAd.slug;
     if (title && title !== existingAd.title) {
-      slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') + '-' + Date.now();
+      slug = await generateSlug(title, id);
     }
 
     // Update ad
@@ -260,7 +249,7 @@ class AdController {
    * Get user's own ads
    */
   static async getMyAds(req, res) {
-    const { limit = 20, offset = 0, status } = req.query;
+    const { limit = PAGINATION.DEFAULT_LIMIT, offset = PAGINATION.DEFAULT_OFFSET, status } = req.query;
 
     const { ads, total } = await Ad.findAll({
       userId: req.user.userId,
@@ -269,17 +258,10 @@ class AdController {
       offset: parseInt(offset)
     });
 
-    // Get images for each ad
-    const adsWithImages = await Promise.all(
-      ads.map(async (ad) => {
-        const images = await AdImage.findByAdId(ad.id);
-        return { ...ad, images };
-      })
-    );
-
+    // Images are now included in the ads result from the optimized query
     res.json({
       success: true,
-      ads: adsWithImages,
+      ads,
       total,
       limit: parseInt(limit),
       offset: parseInt(offset)

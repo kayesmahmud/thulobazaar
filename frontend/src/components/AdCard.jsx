@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import LazyImage from './LazyImage';
 import { formatDateTime } from '../utils/dateUtils';
 import { useLanguage } from '../context/LanguageContext';
@@ -103,5 +104,19 @@ function AdCard({ ad }) {
     </div>
   );
 }
+
+AdCard.propTypes = {
+  ad: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    price: PropTypes.number.isRequired,
+    primary_image: PropTypes.string,
+    location_name: PropTypes.string.isRequired,
+    category_icon: PropTypes.string,
+    created_at: PropTypes.string.isRequired,
+    seller_name: PropTypes.string.isRequired,
+    is_featured: PropTypes.bool
+  }).isRequired
+};
 
 export default AdCard;
