@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import ApiService from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -231,8 +232,59 @@ function AdDetail() {
     );
   }
 
+  // Generate SEO-friendly description
+  const metaDescription = ad.description
+    ? ad.description.substring(0, 160)
+    : `${ad.title} - ${ad.price} NPR in ${ad.location_name}. ${ad.category_name}`;
+
+  // Canonical URL
+  const canonicalUrl = `${window.location.origin}/${language}/ad/${slug || ad.id}`;
+
   return (
     <div>
+      <Helmet>
+        <title>{ad.title} - Thulobazaar</title>
+        <meta name="description" content={metaDescription} />
+        <meta name="keywords" content={`${ad.category_name}, ${ad.location_name}, Nepal classifieds, buy ${ad.title}`} />
+        <link rel="canonical" href={canonicalUrl} />
+
+        {/* Open Graph tags for social media */}
+        <meta property="og:title" content={`${ad.title} - Thulobazaar`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:type" content="product" />
+        <meta property="og:url" content={canonicalUrl} />
+        {ad.primary_image && (
+          <meta property="og:image" content={`http://localhost:5000/uploads/ads/${ad.primary_image}`} />
+        )}
+        <meta property="og:site_name" content="Thulobazaar" />
+
+        {/* Twitter Card tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${ad.title} - Thulobazaar`} />
+        <meta name="twitter:description" content={metaDescription} />
+        {ad.primary_image && (
+          <meta name="twitter:image" content={`http://localhost:5000/uploads/ads/${ad.primary_image}`} />
+        )}
+
+        {/* Product schema for rich snippets */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": ad.title,
+            "description": metaDescription,
+            "image": ad.primary_image ? `http://localhost:5000/uploads/ads/${ad.primary_image}` : undefined,
+            "offers": {
+              "@type": "Offer",
+              "price": ad.price,
+              "priceCurrency": "NPR",
+              "availability": "https://schema.org/InStock",
+              "url": canonicalUrl
+            }
+          })}
+        </script>
+      </Helmet>
+
       <SimpleHeader showUserWelcome={true} />
 
       <Breadcrumb

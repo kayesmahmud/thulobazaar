@@ -1,4 +1,5 @@
 const config = require('../config/env');
+const logger = require('../utils/logger');
 
 /**
  * Custom Error Classes
@@ -121,7 +122,7 @@ const sendErrorDev = (err, res) => {
 /**
  * Production error response
  */
-const sendErrorProd = (err, res) => {
+const sendErrorProd = (err, req, res) => {
   // Operational, trusted error: send message to client
   if (err.isOperational) {
     res.status(err.statusCode).json({
@@ -131,7 +132,11 @@ const sendErrorProd = (err, res) => {
   }
   // Programming or unknown error: don't leak error details
   else {
-    console.error('❌ ERROR:', err);
+    // Use structured logging
+    logger.logError(err, req, {
+      type: 'UnhandledError',
+      isOperational: false,
+    });
 
     res.status(500).json({
       success: false,
@@ -147,22 +152,21 @@ const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  // Log error for debugging
+  // Use structured logging
   if (err.statusCode >= 500) {
-    console.error('❌ Server Error:', {
-      message: err.message,
-      stack: err.stack,
-      url: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
-      userId: req.user?.userId,
+    // Server errors - log with full context
+    logger.logError(err, req, {
+      type: 'ServerError',
+      severity: 'high',
     });
-  } else {
-    console.warn('⚠️  Client Error:', {
+  } else if (err.statusCode >= 400) {
+    // Client errors - log as warnings
+    logger.warn('Client Error', {
       message: err.message,
+      statusCode: err.statusCode,
       url: req.originalUrl,
       method: req.method,
-      statusCode: err.statusCode,
+      userId: req.user?.userId,
     });
   }
 
@@ -182,10 +186,10 @@ const errorHandler = (err, req, res, next) => {
       error = handleDatabaseError(err);
     }
 
-    sendErrorProd(error, res);
+    sendErrorProd(error, req, res);
   } else {
     // Default to production-like behavior
-    sendErrorProd(err, res);
+    sendErrorProd(err, req, res);
   }
 };
 
@@ -217,4 +221,5 @@ module.exports = {
   errorHandler,
   notFound,
   catchAsync,
+  logger, // Export logger for use in other modules
 };

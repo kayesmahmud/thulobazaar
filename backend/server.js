@@ -3,7 +3,6 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const contentFilter = require('./utils/contentFilter');
@@ -11,7 +10,8 @@ const { rateLimiters } = require('./utils/rateLimiter');
 const duplicateDetector = require('./utils/duplicateDetector');
 const { calculateDistance, formatDistance, generateStaticMapUrl } = require('./utils/locationUtils');
 const { MobileLocationService } = require('./utils/mobileLocationUtils');
-const profileRoutes = require('./routes/profileRoutes'); // Import new profile routes
+const profileRoutes = require('./routes/profileRoutes');
+const { upload, validateFileType } = require('./middleware/secureFileUpload');
 const { SECURITY, FILE_LIMITS, AD_STATUS, PAGINATION, LOCATION } = require('./config/constants');
 require('dotenv').config();
 
@@ -44,41 +44,7 @@ global.mobileLocationService = new MobileLocationService(pool);
 // Make pool available globally
 global.pool = pool;
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = 'uploads/ads';
-    // Ensure directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename with timestamp and random string
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    cb(null, 'ad-' + uniqueSuffix + extension);
-  }
-});
-
-// File filter for images only
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: FILE_LIMITS.MAX_FILE_SIZE,
-    files: FILE_LIMITS.MAX_FILES_PER_AD
-  },
-  fileFilter: fileFilter
-});
+// File upload is now handled by secure middleware in ./middleware/secureFileUpload.js
 
 // Middleware
 app.use(cors({
@@ -959,7 +925,7 @@ app.get('/api/locations/suggestions', async (req, res) => {
 });
 
 // Create new ad (protected route)
-app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('images', 5), async (req, res) => {
+app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('images', 5), validateFileType, async (req, res) => {
   try {
     const { title, description, price, condition, categoryId, locationId, sellerName, sellerPhone } = req.body;
     const userId = req.user.userId;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AdCard from './AdCard';
@@ -267,8 +268,36 @@ function SearchResults() {
   }
 
 
+  // Generate SEO meta data based on filters
+  const generatePageTitle = () => {
+    const parts = [];
+    if (searchFilters.search) parts.push(searchFilters.search);
+    if (searchFilters.category && searchFilters.category !== 'all') parts.push(searchFilters.category);
+    if (searchFilters.location && searchFilters.location !== 'all') parts.push(`in ${searchFilters.location}`);
+    return parts.length > 0 ? `${parts.join(' ')} - Thulobazaar` : 'Search Results - Thulobazaar';
+  };
+
+  const generateMetaDescription = () => {
+    const category = searchFilters.category !== 'all' ? searchFilters.category : 'items';
+    const location = searchFilters.location !== 'all' ? ` in ${searchFilters.location}` : ' across Nepal';
+    return `Find ${category}${location}. Browse ${ads.length} ads on Thulobazaar, Nepal's leading classifieds marketplace.`;
+  };
+
   return (
     <div>
+      <Helmet>
+        <title>{generatePageTitle()}</title>
+        <meta name="description" content={generateMetaDescription()} />
+        <meta name="keywords" content={`${searchFilters.category}, ${searchFilters.location}, Nepal classifieds, ${searchFilters.search}`} />
+        <link rel="canonical" href={`${window.location.origin}${location.pathname}${location.search}`} />
+
+        {/* Open Graph tags */}
+        <meta property="og:title" content={generatePageTitle()} />
+        <meta property="og:description" content={generateMetaDescription()} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${window.location.origin}${location.pathname}${location.search}`} />
+      </Helmet>
+
       {/* Header */}
       <SimpleHeader showUserWelcome={true} />
 

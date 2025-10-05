@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
@@ -14,6 +14,9 @@ function Header() {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const dropdownRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+  const mobileMenuButtonRef = useRef(null);
+  const profileButtonRef = useRef(null);
 
   const handlePostAdClick = () => {
     if (isAuthenticated) {
@@ -31,6 +34,10 @@ function Header() {
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
+    // Return focus to the button that opened the menu
+    if (mobileMenuButtonRef.current) {
+      mobileMenuButtonRef.current.focus();
+    }
   };
 
   const handleNavigation = (path) => {
@@ -38,9 +45,15 @@ function Header() {
     closeMobileMenu();
   };
 
-  const handleLogoClick = () => {
-    navigate(`/${language}`);
-    setMobileMenuOpen(false);
+  const toggleProfileDropdown = () => {
+    setProfileDropdownOpen(!profileDropdownOpen);
+  };
+
+  const handleProfileKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleProfileDropdown();
+    }
   };
 
   // Fetch profile data when authenticated (skip for admin/editor)
@@ -71,6 +84,17 @@ function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Focus management for mobile menu
+  useEffect(() => {
+    if (mobileMenuOpen && mobileMenuRef.current) {
+      // Move focus into the mobile menu
+      const firstFocusable = mobileMenuRef.current.querySelector('button');
+      if (firstFocusable) {
+        firstFocusable.focus();
+      }
+    }
+  }, [mobileMenuOpen]);
+
   const getInitials = (name) => {
     if (!name) return '?';
     return name
@@ -87,19 +111,18 @@ function Header() {
         <div className="top-header">
           <div className="top-header-content">
             {/* Logo */}
-            <div className="logo" onClick={handleLogoClick} style={{cursor: 'pointer'}}>
+            <Link to={`/${language}`} className="logo" style={{cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center'}}>
               <img src="/logo.png" alt="Thulobazaar" className="logo-image" />
-            </div>
+            </Link>
 
             {/* Desktop Navigation */}
             <div className="desktop-nav">
-              <a
+              <Link
+                to={`/${language}/all-ads`}
                 className="all-ads-link"
-                onClick={() => handleNavigation('/all-ads')}
-                style={{ cursor: 'pointer' }}
               >
                 All Ads
-              </a>
+              </Link>
               <div className="auth-buttons">
                 {!isAuthenticated && (
                   <>
@@ -125,8 +148,13 @@ function Header() {
               {/* Profile Dropdown */}
               {isAuthenticated && (
                 <div ref={dropdownRef} style={{ position: 'relative' }}>
-                  <div
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  <button
+                    ref={profileButtonRef}
+                    onClick={toggleProfileDropdown}
+                    onKeyDown={handleProfileKeyDown}
+                    aria-label="Profile menu"
+                    aria-expanded={profileDropdownOpen}
+                    aria-haspopup="true"
                     style={{
                       width: '40px',
                       height: '40px',
@@ -134,7 +162,8 @@ function Header() {
                       cursor: 'pointer',
                       overflow: 'hidden',
                       border: '2px solid #e2e8f0',
-                      backgroundColor: '#3b82f6'
+                      backgroundColor: '#3b82f6',
+                      padding: 0
                     }}
                   >
                     {profileData?.avatar ? (
@@ -161,7 +190,7 @@ function Header() {
                         {getInitials(user?.fullName)}
                       </div>
                     )}
-                  </div>
+                  </button>
 
                   {/* Dropdown Menu */}
                   {profileDropdownOpen && (
@@ -297,9 +326,11 @@ function Header() {
 
             {/* Mobile Hamburger Menu Button */}
             <button
+              ref={mobileMenuButtonRef}
               className="mobile-menu-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
             >
               <div className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}>
                 <span></span>
@@ -313,7 +344,13 @@ function Header() {
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
           <div className="mobile-menu-overlay" onClick={closeMobileMenu}>
-            <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            <div
+              ref={mobileMenuRef}
+              className="mobile-menu"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Mobile navigation menu"
+            >
               <div className="mobile-menu-header">
                 <img src="/logo.png" alt="Thulobazaar" className="mobile-logo" />
                 <button

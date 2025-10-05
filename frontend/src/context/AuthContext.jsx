@@ -59,7 +59,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      setLoading(true);
+      // Don't set loading to true during login - prevents page shake
+      // Loading state is only for initial auth check on app startup
       const result = await ApiService.login(email, password);
 
       // Store token and user data
@@ -73,14 +74,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const register = async (userData) => {
     try {
-      setLoading(true);
+      // Don't set loading to true during registration - prevents page shake
+      // Loading state is only for initial auth check on app startup
       const result = await ApiService.register(userData);
 
       // Store token and user data
@@ -94,8 +94,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Registration failed:', error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 

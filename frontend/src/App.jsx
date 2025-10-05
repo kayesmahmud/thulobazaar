@@ -1,21 +1,25 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import './App.css'
-import Home from './components/Home';
-import SearchResults from './components/SearchResults';
-import AllAds from './components/AllAds';
-import AdDetail from './components/AdDetail';
-import PostAd from './components/PostAd';
-import Dashboard from './components/Dashboard';
-import EditAd from './components/EditAd';
-import Browse from './components/Browse';
-import NearbyAds from './components/NearbyAds';
-import AdminLogin from './components/AdminLogin';
-import AdminPanel from './components/AdminPanel';
-import EditorDashboard from './components/EditorDashboard';
-import Profile from './components/Profile';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ToastProvider } from './components/common/Toast';
+import PageLoader from './components/common/PageLoader';
+
+// Lazy-loaded page components for code splitting
+const Home = lazy(() => import('./components/Home'));
+const SearchResults = lazy(() => import('./components/SearchResults'));
+const AllAds = lazy(() => import('./components/AllAds'));
+const AdDetail = lazy(() => import('./components/AdDetail'));
+const PostAd = lazy(() => import('./components/PostAd'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const EditAd = lazy(() => import('./components/EditAd'));
+const Browse = lazy(() => import('./components/Browse'));
+const NearbyAds = lazy(() => import('./components/NearbyAds'));
+const AdminLogin = lazy(() => import('./components/AdminLogin'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const EditorDashboard = lazy(() => import('./components/EditorDashboard'));
+const Profile = lazy(() => import('./components/Profile'));
 
 function App() {
   return (
@@ -23,7 +27,8 @@ function App() {
       <ToastProvider>
         <Router>
           <LanguageProvider>
-            <Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
             {/* Root redirect to English */}
             <Route path="/" element={<Navigate to="/en" replace />} />
 
@@ -55,7 +60,8 @@ function App() {
             {/* Admin routes (no language prefix) */}
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminPanel />} />
-            </Routes>
+              </Routes>
+            </Suspense>
           </LanguageProvider>
         </Router>
       </ToastProvider>
