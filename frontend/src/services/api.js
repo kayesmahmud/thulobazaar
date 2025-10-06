@@ -91,12 +91,16 @@ class ApiService {
   }
 
   // Get categories
-  async getCategories() {
-    return this.get('/categories');
+  async getCategories(includeSubcategories = false) {
+    const params = includeSubcategories ? '?includeSubcategories=true' : '';
+    return this.get(`/categories${params}`);
   }
 
-  // Get locations
-  async getLocations() {
+  // Get locations (optionally filter by parent_id for hierarchical selection)
+  async getLocations(parentId = null) {
+    if (parentId !== null) {
+      return this.get(`/locations?parent_id=${parentId}`);
+    }
     return this.get('/locations');
   }
 
@@ -400,7 +404,7 @@ class ApiService {
         throw new Error(data.message || 'Failed to fetch user ads');
       }
 
-      return data.data;
+      return data; // Return full response including pagination
     } catch (error) {
       console.error(`❌ Fetch user ads error:`, error);
       throw error;

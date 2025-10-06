@@ -672,8 +672,37 @@ app.get('/api/ads/:id', async (req, res) => {
 // Get categories
 app.get('/api/categories', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM categories ORDER BY name');
-    console.log(`✅ Found ${result.rows.length} categories`);
+    const { includeSubcategories } = req.query;
+
+    let result;
+    if (includeSubcategories === 'true') {
+      // Fetch categories with subcategories nested
+      result = await pool.query(`
+        SELECT
+          c.*,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', sub.id,
+                'name', sub.name,
+                'slug', sub.slug,
+                'parent_id', sub.parent_id
+              ) ORDER BY sub.id
+            ) FILTER (WHERE sub.id IS NOT NULL),
+            '[]'
+          ) as subcategories
+        FROM categories c
+        LEFT JOIN categories sub ON sub.parent_id = c.id
+        WHERE c.parent_id IS NULL
+        GROUP BY c.id
+        ORDER BY c.id
+      `);
+    } else {
+      // Fetch only top-level categories
+      result = await pool.query('SELECT * FROM categories WHERE parent_id IS NULL ORDER BY id');
+    }
+
+    console.log(`✅ Found ${result.rows.length} categories${includeSubcategories === 'true' ? ' with subcategories' : ''}`);
 
     res.json({
       success: true,
@@ -689,11 +718,29 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
-// Get locations
+// Get locations (supports hierarchical filtering with parent_id)
 app.get('/api/locations', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM locations ORDER BY name');
-    console.log(`✅ Found ${result.rows.length} locations`);
+    const { parent_id } = req.query;
+
+    let query;
+    let params = [];
+
+    if (parent_id !== undefined) {
+      // Fetch children of specific parent (or provinces if parent_id is null/empty)
+      if (parent_id === '' || parent_id === 'null') {
+        query = 'SELECT * FROM locations WHERE parent_id IS NULL ORDER BY name';
+      } else {
+        query = 'SELECT * FROM locations WHERE parent_id = $1 ORDER BY name';
+        params = [parseInt(parent_id)];
+      }
+    } else {
+      // Fetch all locations (backward compatibility)
+      query = 'SELECT * FROM locations ORDER BY name';
+    }
+
+    const result = await pool.query(query, params);
+    console.log(`✅ Found ${result.rows.length} locations${parent_id !== undefined ? ` (parent_id: ${parent_id || 'NULL'})` : ''}`);
 
     res.json({
       success: true,

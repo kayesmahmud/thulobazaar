@@ -2,13 +2,39 @@ const pool = require('../config/database');
 
 class Category {
   /**
-   * Find all categories
+   * Find all categories (top-level only by default)
    */
-  static async findAll() {
-    const result = await pool.query(
-      'SELECT * FROM categories ORDER BY name ASC'
-    );
-    return result.rows;
+  static async findAll(includeSubcategories = false) {
+    if (includeSubcategories) {
+      // Return hierarchical structure with subcategories nested
+      const result = await pool.query(
+        `SELECT
+          c.*,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', sub.id,
+                'name', sub.name,
+                'slug', sub.slug,
+                'parent_id', sub.parent_id
+              ) ORDER BY sub.name
+            ) FILTER (WHERE sub.id IS NOT NULL),
+            '[]'
+          ) as subcategories
+         FROM categories c
+         LEFT JOIN categories sub ON sub.parent_id = c.id
+         WHERE c.parent_id IS NULL
+         GROUP BY c.id
+         ORDER BY c.name ASC`
+      );
+      return result.rows;
+    } else {
+      // Return only top-level categories
+      const result = await pool.query(
+        'SELECT * FROM categories WHERE parent_id IS NULL ORDER BY name ASC'
+      );
+      return result.rows;
+    }
   }
 
   /**
@@ -75,13 +101,14 @@ class Category {
   }
 
   /**
-   * Get category with ad count
+   * Get category with ad count (top-level only)
    */
   static async findAllWithCount() {
     const result = await pool.query(
       `SELECT c.*, COUNT(a.id) as ad_count
        FROM categories c
        LEFT JOIN ads a ON c.id = a.category_id AND a.status = 'approved'
+       WHERE c.parent_id IS NULL
        GROUP BY c.id
        ORDER BY c.name ASC`
     );

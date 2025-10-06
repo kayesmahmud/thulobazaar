@@ -6,7 +6,11 @@ class CategoryController {
    * Get all categories
    */
   static async getAll(req, res) {
-    const categories = await Category.findAllWithCount();
+    const { includeSubcategories } = req.query;
+
+    const categories = includeSubcategories === 'true'
+      ? await Category.findAll(true)
+      : await Category.findAllWithCount();
 
     console.log(`✅ Found ${categories.length} categories`);
 

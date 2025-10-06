@@ -59,16 +59,22 @@ export const parseBikroyStyleURL = (pathname) => {
 
 // Category name mappings for better SEO
 export const categoryMappings = {
+  'Mobiles': 'mobiles',
   'Electronics': 'electronics',
   'Vehicles': 'vehicles',
-  'Fashion': 'fashion',
-  'Furniture': 'furniture',
-  'Real Estate': 'real-estate',
+  'Home & Living': 'home-living',
+  'Property': 'property',
+  'Pets & Animals': 'pets-animals',
+  'Men\'s Fashion & Grooming': 'mens-fashion-grooming',
+  'Women\'s Fashion & Beauty': 'womens-fashion-beauty',
+  'Hobbies, Sports & Kids': 'hobbies-sports-kids',
+  'Business & Industry': 'business-industry',
+  'Education': 'education',
+  'Essentials': 'essentials',
   'Jobs': 'jobs',
   'Services': 'services',
-  'Sports': 'sports',
-  'Books': 'books',
-  'Pets': 'pets'
+  'Agriculture': 'agriculture',
+  'Overseas Jobs': 'overseas-jobs'
 };
 
 // Reverse mapping for URL parsing

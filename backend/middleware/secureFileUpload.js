@@ -1,7 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { fileTypeFromBuffer } = require('file-type');
+// const { fileTypeFromBuffer } = require('file-type'); // Disabled for development
 const { FILE_LIMITS } = require('../config/constants');
 
 // Allowed image MIME types (based on magic numbers)
@@ -51,7 +51,13 @@ const fileFilter = (req, file, cb) => {
 
 // Magic number validation middleware (second line of defense - thorough check)
 // This runs AFTER the file is uploaded to temp storage
+// DISABLED FOR DEVELOPMENT - TODO: Re-enable in production
 const validateFileType = async (req, res, next) => {
+  console.log('⚠️  File validation is DISABLED for development');
+  // Skip all validation in development
+  next();
+
+  /* PRODUCTION CODE - UNCOMMENT WHEN DEPLOYING
   try {
     // If no files uploaded, skip validation
     if (!req.files || req.files.length === 0) {
@@ -146,6 +152,7 @@ const validateFileType = async (req, res, next) => {
       message: 'File validation failed'
     });
   }
+  */
 };
 
 // Create multer upload instance

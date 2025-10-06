@@ -7,6 +7,8 @@ import AdCard from './AdCard';
 import SimpleHeader from './SimpleHeader';
 import RecentlyViewed from './RecentlyViewed';
 import AdvancedFilters from './AdvancedFilters';
+import SearchFiltersPanel from './search/SearchFiltersPanel';
+import Pagination from './Pagination';
 import ApiService from '../services/api';
 import { getCategoryFromSlug, getCategorySlug, reverseCategoryMappings } from '../utils/seoUtils';
 
@@ -19,6 +21,7 @@ function SearchResults() {
   console.log('SearchResults Render - categoryParam:', categoryParam);
 
   const [ads, setAds] = useState([]);
+  const [totalAds, setTotalAds] = useState(0);
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +57,8 @@ function SearchResults() {
       dateFrom: urlParams.get('dateFrom') || '',
       dateTo: urlParams.get('dateTo') || '',
       sortBy: urlParams.get('sortBy') || 'newest',
-      sortOrder: urlParams.get('sortOrder') || 'desc'
+      sortOrder: urlParams.get('sortOrder') || 'desc',
+      page: parseInt(urlParams.get('page')) || 1
   };
 
   console.log('SearchResults Render - searchFilters (initial):', searchFilters);
@@ -83,12 +87,36 @@ function SearchResults() {
   useEffect(() => {
     const fetchStaticData = async () => {
       try {
-        const [categoriesData, locationsData] = await Promise.all([
-          ApiService.getCategories(),
-          ApiService.getLocations()
-        ]);
+        const categoriesData = await ApiService.getCategories(true); // Fetch with subcategories
         setCategories(categoriesData);
-        setLocations(locationsData);
+
+        // Fetch hierarchical locations: provinces with their districts and municipalities
+        const provincesData = await ApiService.getLocations(''); // Get provinces (parent_id IS NULL)
+
+        // For each province, fetch districts
+        const provincesWithDistricts = await Promise.all(
+          provincesData.map(async (province) => {
+            const districtsData = await ApiService.getLocations(province.id);
+
+            // For each district, fetch municipalities
+            const districtsWithMunicipalities = await Promise.all(
+              districtsData.map(async (district) => {
+                const municipalitiesData = await ApiService.getLocations(district.id);
+                return {
+                  ...district,
+                  municipalities: municipalitiesData
+                };
+              })
+            );
+
+            return {
+              ...province,
+              districts: districtsWithMunicipalities
+            };
+          })
+        );
+
+        setLocations(provincesWithDistricts);
       } catch (err) {
         console.error('❌ Error fetching static data:', err);
       }
@@ -111,7 +139,37 @@ function SearchResults() {
         if (searchFilters.category !== 'all') searchParams.category = searchFilters.category;
         if (searchFilters.location !== 'all') {
           // Convert location name back to ID for API call
-          const selectedLocation = locations.find(loc => loc.name === searchFilters.location);
+          // Search in provinces, districts, and municipalities
+          let selectedLocation = null;
+
+          // Search in provinces
+          selectedLocation = locations.find(loc => loc.name === searchFilters.location);
+
+          // If not found, search in districts
+          if (!selectedLocation) {
+            for (const province of locations) {
+              if (province.districts) {
+                selectedLocation = province.districts.find(d => d.name === searchFilters.location);
+                if (selectedLocation) break;
+              }
+            }
+          }
+
+          // If not found, search in municipalities
+          if (!selectedLocation) {
+            for (const province of locations) {
+              if (province.districts) {
+                for (const district of province.districts) {
+                  if (district.municipalities) {
+                    selectedLocation = district.municipalities.find(m => m.name === searchFilters.location);
+                    if (selectedLocation) break;
+                  }
+                }
+                if (selectedLocation) break;
+              }
+            }
+          }
+
           if (selectedLocation) {
             searchParams.location = selectedLocation.id;
           } else {
@@ -132,11 +190,18 @@ function SearchResults() {
         if (searchFilters.sortBy && searchFilters.sortBy !== 'newest') searchParams.sortBy = searchFilters.sortBy;
         if (searchFilters.sortOrder && searchFilters.sortOrder !== 'desc') searchParams.sortOrder = searchFilters.sortOrder;
 
+        // Add pagination
+        const limit = 20;
+        const offset = (searchFilters.page - 1) * limit;
+        searchParams.limit = limit;
+        searchParams.offset = offset;
+
         console.log('📤 API request params:', searchParams);
         const response = await ApiService.getAds(searchParams);
         console.log('✅ Search results:', response);
 
         setAds(response.data);
+        setTotalAds(response.pagination?.total || 0);
       } catch (err) {
         console.error('❌ Error searching ads:', err);
         setError('Failed to search ads. Please try again.');
@@ -158,7 +223,8 @@ function SearchResults() {
 
     const newFilters = {
       ...searchFilters,
-      [field]: value
+      [field]: value,
+      page: 1 // Reset to page 1 when filters change
     };
     updateURL(newFilters);
   };
@@ -402,112 +468,151 @@ function SearchResults() {
         }}>
           {/* Left Sidebar - Filters (Hidden on mobile) */}
           <div className="desktop-only-filters" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Basic Filters */}
-            <div className="sidebar" style={{
-              backgroundColor: '#f8fafc',
-              padding: '20px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <h3 style={{
-                margin: '0 0 20px 0',
-                color: '#1e293b',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                borderBottom: '2px solid #dc1e4a',
-                paddingBottom: '10px'
-              }}>
-                🔍 Basic Filters
-              </h3>
+            {/* Search Filters Panel */}
+            <SearchFiltersPanel
+              categories={categories}
+              locations={locations}
+              selectedCategory={
+                searchFilters.category === 'all'
+                  ? ''
+                  : (() => {
+                      // First check main categories
+                      const mainCategory = categories.find(c => c.name === searchFilters.category);
+                      if (mainCategory) return mainCategory.id.toString();
 
-              {/* Category Filter */}
-              <div style={{ marginBottom: '16px' }}>
-                <h4 style={{
-                  margin: '0 0 8px 0',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  📂 Category
-                </h4>
-                <select
-                  value={searchFilters.category}
-                  onChange={(e) => handleInputChange('category', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: 'white',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.name}>
-                      {category.icon} {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                      // Then check subcategories
+                      for (const cat of categories) {
+                        if (cat.subcategories && cat.subcategories.length > 0) {
+                          const subcat = cat.subcategories.find(s => s.name === searchFilters.category);
+                          if (subcat) return subcat.id.toString();
+                        }
+                      }
+                      return '';
+                    })()
+              }
+              selectedLocation={
+                searchFilters.location === 'all'
+                  ? ''
+                  : (() => {
+                      // Search in provinces
+                      let found = locations.find(l => l.name === searchFilters.location);
+                      if (found) return found.id.toString();
 
-              {/* Location Filter */}
-              <div style={{ marginBottom: '16px' }}>
-                <h4 style={{
-                  margin: '0 0 8px 0',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  📍 Location
-                </h4>
-                <select
-                  value={searchFilters.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: 'white',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="all">All of Nepal</option>
-                  {locations.map((location) => (
-                    <option key={location.id} value={location.name}>
-                      {location.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                      // Search in districts
+                      for (const province of locations) {
+                        if (province.districts) {
+                          found = province.districts.find(d => d.name === searchFilters.location);
+                          if (found) return found.id.toString();
+                        }
+                      }
 
-            {/* Advanced Filters */}
-            <AdvancedFilters
-              onFiltersChange={handleAdvancedFiltersChange}
-              initialFilters={advancedFilters}
-            />
+                      // Search in municipalities
+                      for (const province of locations) {
+                        if (province.districts) {
+                          for (const district of province.districts) {
+                            if (district.municipalities) {
+                              found = district.municipalities.find(m => m.name === searchFilters.location);
+                              if (found) return found.id.toString();
+                            }
+                          }
+                        }
+                      }
 
-            {/* Clear All Filters */}
-            <button
-              onClick={clearAllFilters}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#dc1e4a',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
+                      return '';
+                    })()
+              }
+              priceRange={{
+                min: searchFilters.minPrice || '',
+                max: searchFilters.maxPrice || ''
               }}
-            >
-              🗑️ Clear All Filters
-            </button>
+              condition={searchFilters.condition === 'all' ? '' : searchFilters.condition}
+              onCategoryChange={(categoryId) => {
+                if (!categoryId) {
+                  handleInputChange('category', 'all');
+                  return;
+                }
+
+                // Search in both main categories and subcategories
+                let categoryName = 'all';
+                const id = parseInt(categoryId);
+
+                // First check main categories
+                const mainCategory = categories.find(c => c.id === id);
+                if (mainCategory) {
+                  categoryName = mainCategory.name;
+                } else {
+                  // Search in subcategories
+                  for (const cat of categories) {
+                    if (cat.subcategories && cat.subcategories.length > 0) {
+                      const subcat = cat.subcategories.find(s => s.id === id);
+                      if (subcat) {
+                        categoryName = subcat.name;
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                handleInputChange('category', categoryName);
+              }}
+              onLocationChange={(locationId) => {
+                if (!locationId) {
+                  handleInputChange('location', 'all');
+                  return;
+                }
+
+                // Search for location in hierarchical structure
+                let locationName = 'all';
+                const id = parseInt(locationId);
+
+                // Search in provinces
+                let found = locations.find(l => l.id === id);
+                if (found) {
+                  locationName = found.name;
+                } else {
+                  // Search in districts
+                  for (const province of locations) {
+                    if (province.districts) {
+                      found = province.districts.find(d => d.id === id);
+                      if (found) {
+                        locationName = found.name;
+                        break;
+                      }
+                    }
+                  }
+
+                  // Search in municipalities if not found
+                  if (!found) {
+                    for (const province of locations) {
+                      if (province.districts) {
+                        for (const district of province.districts) {
+                          if (district.municipalities) {
+                            found = district.municipalities.find(m => m.id === id);
+                            if (found) {
+                              locationName = found.name;
+                              break;
+                            }
+                          }
+                        }
+                        if (found) break;
+                      }
+                    }
+                  }
+                }
+
+                handleInputChange('location', locationName);
+              }}
+              onPriceRangeChange={(range) => {
+                const newFilters = {
+                  ...searchFilters,
+                  minPrice: range.min || '',
+                  maxPrice: range.max || ''
+                };
+                updateURL(newFilters);
+              }}
+              onConditionChange={(value) => handleInputChange('condition', value || 'all')}
+              onClearFilters={clearAllFilters}
+            />
 
             {/* Recently Viewed */}
             <RecentlyViewed maxItems={3} />
@@ -523,7 +628,7 @@ function SearchResults() {
                 fontSize: '24px',
                 fontWeight: 'bold'
               }}>
-                Search Results ({ads.length} ads found)
+                Search Results ({totalAds} ads found)
                 {searchLoading && <span style={{ color: '#64748b', fontSize: '16px' }}> ⏳</span>}
               </h2>
               <div style={{
@@ -545,6 +650,18 @@ function SearchResults() {
                 </div>
               )}
             </div>
+
+            {/* Results Counter */}
+            {totalAds > 0 && (
+              <div style={{
+                padding: '16px 0',
+                color: '#64748b',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Showing {((searchFilters.page - 1) * 20) + 1}-{Math.min(searchFilters.page * 20, totalAds)} of {totalAds} results
+              </div>
+            )}
 
             {/* Results Grid */}
             <div className="ads-grid" style={{
@@ -591,6 +708,24 @@ function SearchResults() {
                 </div>
               )}
             </div>
+
+            {/* Pagination */}
+            {totalAds > 20 && (
+              <Pagination
+                currentPage={searchFilters.page}
+                totalItems={totalAds}
+                itemsPerPage={20}
+                onPageChange={(page) => {
+                  // Scroll to top
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                  // Update URL with new page
+                  const params = new URLSearchParams(location.search);
+                  params.set('page', page);
+                  navigate(`${location.pathname}?${params.toString()}`);
+                }}
+              />
+            )}
           </div>
         </div>
       </section>

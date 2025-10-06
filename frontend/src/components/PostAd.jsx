@@ -19,6 +19,16 @@ function PostAd() {
   const [locations, setLocations] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
 
+  // Category cascading state
+  const [mainCategoryId, setMainCategoryId] = useState('');
+  const [subcategories, setSubcategories] = useState([]);
+
+  // Location cascading state
+  const [provinceId, setProvinceId] = useState('');
+  const [districts, setDistricts] = useState([]);
+  const [districtId, setDistrictId] = useState('');
+  const [municipalities, setMunicipalities] = useState([]);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -40,12 +50,13 @@ function PostAd() {
     // Load categories and locations
     const loadData = async () => {
       try {
-        const [categoriesData, locationsData] = await Promise.all([
-          ApiService.getCategories(),
-          ApiService.getLocations()
+        // Load categories with subcategories and provinces (parent_id IS NULL)
+        const [categoriesData, provincesData] = await Promise.all([
+          ApiService.getCategories(true), // true to include subcategories
+          ApiService.getLocations('') // empty string for parent_id NULL
         ]);
         setCategories(categoriesData);
-        setLocations(locationsData);
+        setLocations(provincesData);
       } catch (err) {
         console.error('Error loading form data:', err);
         setError(new Error('Failed to load form data. Please refresh the page.'));
@@ -75,6 +86,75 @@ function PostAd() {
     if (error) setError(null);
   };
 
+  // Category cascade handlers
+  const handleMainCategoryChange = (categoryId) => {
+    setMainCategoryId(categoryId);
+
+    // Find the selected category and its subcategories
+    const selectedCategory = categories.find(cat => cat.id === parseInt(categoryId));
+
+    if (selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
+      setSubcategories(selectedCategory.subcategories);
+      // Clear subcategory selection and formData.categoryId
+      setFormData(prev => ({ ...prev, categoryId: '' }));
+    } else {
+      // No subcategories, use main category as final selection
+      setSubcategories([]);
+      setFormData(prev => ({ ...prev, categoryId: categoryId }));
+    }
+
+    if (error) setError(null);
+  };
+
+  const handleSubcategoryChange = (subcategoryId) => {
+    setFormData(prev => ({ ...prev, categoryId: subcategoryId }));
+    if (error) setError(null);
+  };
+
+  // Location cascade handlers
+  const handleProvinceChange = async (provinceId) => {
+    setProvinceId(provinceId);
+    setDistrictId('');
+    setDistricts([]);
+    setMunicipalities([]);
+    setFormData(prev => ({ ...prev, locationId: '' }));
+
+    if (provinceId) {
+      try {
+        const districtsData = await ApiService.getLocations(provinceId);
+        setDistricts(districtsData);
+      } catch (err) {
+        console.error('Error loading districts:', err);
+        setError(new Error('Failed to load districts. Please try again.'));
+      }
+    }
+
+    if (error) setError(null);
+  };
+
+  const handleDistrictChange = async (districtId) => {
+    setDistrictId(districtId);
+    setMunicipalities([]);
+    setFormData(prev => ({ ...prev, locationId: '' }));
+
+    if (districtId) {
+      try {
+        const municipalitiesData = await ApiService.getLocations(districtId);
+        setMunicipalities(municipalitiesData);
+      } catch (err) {
+        console.error('Error loading municipalities:', err);
+        setError(new Error('Failed to load municipalities. Please try again.'));
+      }
+    }
+
+    if (error) setError(null);
+  };
+
+  const handleMunicipalityChange = (municipalityId) => {
+    setFormData(prev => ({ ...prev, locationId: municipalityId }));
+    if (error) setError(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -91,11 +171,23 @@ function PostAd() {
       if (!formData.price || parseFloat(formData.price) <= 0) {
         throw new Error('Valid price is required');
       }
+      if (!mainCategoryId) {
+        throw new Error('Please select a category');
+      }
+      if (subcategories.length > 0 && !formData.categoryId) {
+        throw new Error('Please select a subcategory');
+      }
       if (!formData.categoryId) {
         throw new Error('Category is required');
       }
+      if (!provinceId) {
+        throw new Error('Please select a province');
+      }
+      if (!districtId) {
+        throw new Error('Please select a district');
+      }
       if (!formData.locationId) {
-        throw new Error('Location is required');
+        throw new Error('Please select a municipality');
       }
       if (!formData.sellerName.trim()) {
         throw new Error('Seller name is required');
@@ -327,77 +419,210 @@ function PostAd() {
               />
             </div>
 
-            {/* Category and Location Row */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '20px',
-              marginBottom: '24px'
-            }}>
-              {/* Category */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Category *
-                </label>
-                <select
-                  required
-                  value={formData.categoryId}
-                  onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.icon} {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Category Selection (Cascading) */}
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                margin: '0 0 16px 0',
+                color: '#1e293b',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}>
+                Category
+              </h3>
 
-              {/* Location */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Location *
-                </label>
-                <select
-                  required
-                  value={formData.locationId}
-                  onChange={(e) => handleInputChange('locationId', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: subcategories.length > 0 ? '1fr 1fr' : '1fr',
+                gap: '20px'
+              }}>
+                {/* Main Category */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
                     fontSize: '16px',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="">Select Location</option>
-                  {locations.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name}
-                    </option>
-                  ))}
-                </select>
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Main Category *
+                  </label>
+                  <select
+                    required
+                    value={mainCategoryId}
+                    onChange={(e) => handleMainCategoryChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="">Select Main Category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.icon} {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subcategory (conditional) */}
+                {subcategories.length > 0 && (
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Subcategory *
+                    </label>
+                    <select
+                      required
+                      value={formData.categoryId}
+                      onChange={(e) => handleSubcategoryChange(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="">Select Subcategory</option>
+                      {subcategories.map((subcategory) => (
+                        <option key={subcategory.id} value={subcategory.id}>
+                          {subcategory.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Location Selection (Cascading) */}
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                margin: '0 0 16px 0',
+                color: '#1e293b',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}>
+                Location
+              </h3>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '20px'
+              }}>
+                {/* Province */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Province *
+                  </label>
+                  <select
+                    required
+                    value={provinceId}
+                    onChange={(e) => handleProvinceChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="">Select Province</option>
+                    {locations.map((province) => (
+                      <option key={province.id} value={province.id}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* District (conditional) */}
+                {provinceId && (
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      District *
+                    </label>
+                    <select
+                      required
+                      value={districtId}
+                      onChange={(e) => handleDistrictChange(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="">Select District</option>
+                      {districts.map((district) => (
+                        <option key={district.id} value={district.id}>
+                          {district.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Municipality (conditional) */}
+                {districtId && (
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Municipality *
+                    </label>
+                    <select
+                      required
+                      value={formData.locationId}
+                      onChange={(e) => handleMunicipalityChange(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="">Select Municipality</option>
+                      {municipalities.map((municipality) => (
+                        <option key={municipality.id} value={municipality.id}>
+                          {municipality.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 

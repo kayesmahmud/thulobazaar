@@ -48,13 +48,13 @@ function Dashboard() {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      const [ads, receivedMessages, verificationStatusData, individualVerificationData] = await Promise.all([
+      const [adsResponse, receivedMessages, verificationStatusData, individualVerificationData] = await Promise.all([
         ApiService.getUserAds(),
         ApiService.getContactMessages('received'),
         ApiService.getBusinessVerificationStatus().catch(() => null),
         ApiService.getIndividualVerificationStatus().catch(() => null)
       ]);
-      setUserAds(ads);
+      setUserAds(adsResponse.data || []);
       setContactMessages(receivedMessages);
 
       let processedVerificationStatus = null;

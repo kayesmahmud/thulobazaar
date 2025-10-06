@@ -36,8 +36,8 @@ function Browse() {
     }
 
     // Fallback to original logic for backward compatibility
-    // Pattern: /ads/category/vehicles - handled by route /ads/category/:categorySlug
-    if (pathname.startsWith('/ads/category/') && categorySlug && !locationSlug) {
+    // Pattern: /en/ads/category/vehicles - handled by route /ads/category/:categorySlug
+    if (pathname.includes('/ads/category/') && categorySlug && !locationSlug) {
       console.log('🔍 Detected category-only pattern (legacy)');
       return { locationSlug: null, categorySlug: categorySlug, categoryName: getCategoryFromSlug(categorySlug) };
     }
@@ -149,8 +149,8 @@ function Browse() {
       };
 
       if (actualCategory) {
-        searchOptions.category = actualCategory.id;
-        console.log('📡 API will use category ID:', actualCategory.id, 'for category:', actualCategory.name);
+        searchOptions.category = actualCategory.name;
+        console.log('📡 API will use category NAME:', actualCategory.name);
       } else if (categoryName) {
         // Fallback: use category name directly if category object not found
         searchOptions.category = categoryName;

@@ -22,7 +22,6 @@ function Profile() {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    bio: '',
     phone: '',
     locationId: ''
   });
@@ -57,7 +56,6 @@ function Profile() {
       setProfile(data);
       setFormData({
         name: data.name || '',
-        bio: data.bio || '',
         phone: data.phone || '',
         locationId: data.location_id || ''
       });
@@ -93,7 +91,6 @@ function Profile() {
       // Convert formData to match backend expected field names
       const dataToSend = {
         name: formData.name,
-        bio: formData.bio,
         phone: formData.phone,
         location_id: formData.locationId ? parseInt(formData.locationId, 10) : null,
       };
@@ -106,7 +103,6 @@ function Profile() {
       setProfile(updatedUser);
       setFormData({
         name: updatedUser.name || '',
-        bio: updatedUser.bio || '',
         phone: updatedUser.phone || '',
         locationId: updatedUser.location_id || ''
       });
@@ -138,9 +134,6 @@ function Profile() {
       </div>
     );
   }
-
-  const bioCharCount = formData.bio.length;
-  const bioMaxChars = 500;
 
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
@@ -254,47 +247,6 @@ function Profile() {
                   gap: '4px'
                 }}>
                   🔒 Your name is locked because you have a verified badge
-                </div>
-              )}
-            </div>
-
-            {/* Bio */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontWeight: '600',
-                color: '#334155',
-                fontSize: '14px'
-              }}>
-                Bio
-                <span style={{ color: '#64748b', fontWeight: '400', marginLeft: '8px' }}>
-                  ({bioCharCount}/{bioMaxChars})
-                </span>
-              </label>
-              <textarea
-                value={formData.bio}
-                onChange={(e) => {
-                  if (e.target.value.length <= bioMaxChars) {
-                    handleInputChange('bio', e.target.value);
-                  }
-                }}
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
-                }}
-                placeholder="Tell us about yourself..."
-              />
-              {bioCharCount >= bioMaxChars && (
-                <div style={{ color: '#dc1e4a', fontSize: '13px', marginTop: '4px' }}>
-                  Character limit reached
                 </div>
               )}
             </div>

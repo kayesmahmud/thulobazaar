@@ -51,10 +51,14 @@ class AdController {
 
     res.json({
       success: true,
-      ads,
-      total,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      data: ads,
+      pagination: {
+        total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        page: Math.floor(parseInt(offset) / parseInt(limit)) + 1,
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
     });
   }
 
@@ -261,10 +265,14 @@ class AdController {
     // Images are now included in the ads result from the optimized query
     res.json({
       success: true,
-      ads,
-      total,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      data: ads,
+      pagination: {
+        total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        page: Math.floor(parseInt(offset) / parseInt(limit)) + 1,
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
     });
   }
 
