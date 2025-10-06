@@ -274,6 +274,20 @@ function BusinessVerificationForm({ onClose, onSuccess }) {
             )}
 
             <form onSubmit={handleSubmit}>
+              {/* Name Matching Info */}
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '20px'
+              }}>
+                <strong style={{ color: '#92400e' }}>⚠️ Important: Name Matching Required</strong>
+                <p style={{ margin: '4px 0 0 0', color: '#92400e', fontSize: '14px' }}>
+                  The business name you enter below must match EXACTLY with the name on your business license/PAN card
+                </p>
+              </div>
+
               {/* Business Name */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{
@@ -298,7 +312,7 @@ function BusinessVerificationForm({ onClose, onSuccess }) {
                     fontSize: '14px',
                     boxSizing: 'border-box'
                   }}
-                  placeholder="Enter your business name"
+                  placeholder="Enter business name (must match license/PAN card)"
                 />
               </div>
 

@@ -6,6 +6,7 @@ import ApiService from '../services/api';
 import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
 import BusinessVerificationForm from './BusinessVerificationForm';
+import IndividualVerificationForm from './IndividualVerificationForm';
 import { generateAdUrl } from '../utils/urlUtils';
 
 function Dashboard() {
@@ -23,6 +24,8 @@ function Dashboard() {
   const [replyError, setReplyError] = useState(null);
   const [businessVerificationModal, setBusinessVerificationModal] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
+  const [individualVerificationModal, setIndividualVerificationModal] = useState(false);
+  const [individualVerificationStatus, setIndividualVerificationStatus] = useState(null);
 
   useEffect(() => {
     // Redirect if not authenticated
@@ -45,10 +48,11 @@ function Dashboard() {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      const [ads, receivedMessages, verificationStatusData] = await Promise.all([
+      const [ads, receivedMessages, verificationStatusData, individualVerificationData] = await Promise.all([
         ApiService.getUserAds(),
         ApiService.getContactMessages('received'),
-        ApiService.getBusinessVerificationStatus().catch(() => null)
+        ApiService.getBusinessVerificationStatus().catch(() => null),
+        ApiService.getIndividualVerificationStatus().catch(() => null)
       ]);
       setUserAds(ads);
       setContactMessages(receivedMessages);
@@ -73,7 +77,13 @@ function Dashboard() {
       }
 
       setVerificationStatus(processedVerificationStatus);
-      console.log('✅ User data loaded:', { ads, receivedMessages, verificationStatusData, processedVerificationStatus });
+
+      // Process individual verification status
+      if (individualVerificationData) {
+        setIndividualVerificationStatus(individualVerificationData);
+      }
+
+      console.log('✅ User data loaded:', { ads, receivedMessages, verificationStatusData, individualVerificationData, processedVerificationStatus });
       console.log('Dashboard - verificationStatus after fetch:', processedVerificationStatus);
     } catch (err) {
       console.error('❌ Error loading user data:', err);
@@ -205,7 +215,7 @@ function Dashboard() {
                 </h3>
               </div>
               <p style={{ margin: 0, color: '#92400e', fontSize: '14px' }}>
-                Unlock golden verified badge, 30-40% discount on promotions, and increased trust
+                Verify your business shop with license - Get golden badge + 30-40% discount on promotions
               </p>
             </div>
             <button
@@ -267,6 +277,24 @@ function Dashboard() {
                   {verificationStatus.status === 'rejected' && `Reason: ${verificationStatus.rejection_reason || 'Please contact support for more information'}`}
                 </p>
               </div>
+              {verificationStatus.status === 'approved' && user?.shop_slug && (
+                <button
+                  onClick={() => navigate(`/${language}/shop/${user.shop_slug}`)}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  View My Shop
+                </button>
+              )}
               {verificationStatus.status === 'rejected' && (
                 <button
                   onClick={() => setBusinessVerificationModal(true)}
@@ -287,6 +315,160 @@ function Dashboard() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Individual Seller Verification Banner - available to all users */}
+        {user && (
+          <>
+            {/* Show approved banner if verified */}
+            {individualVerificationStatus && individualVerificationStatus.verified && user?.seller_slug && (
+              <div style={{
+                backgroundColor: '#d1fae5',
+                border: '2px solid #10b981',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '24px' }}>✓</span>
+                      <h3 style={{
+                        margin: 0,
+                        color: '#065f46',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }}>
+                        Individual Seller Verification Approved!
+                      </h3>
+                    </div>
+                    <p style={{
+                      margin: 0,
+                      color: '#065f46',
+                      fontSize: '14px'
+                    }}>
+                      Congratulations! Your individual seller account is now verified with a blue badge.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/${language}/seller/${user.seller_slug}`)}
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#3B82F6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    View My Shop
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Show banner if not verified and no pending request */}
+            {individualVerificationStatus && !individualVerificationStatus.verified && !individualVerificationStatus.hasRequest && (
+              <div style={{
+                backgroundColor: '#dbeafe',
+                border: '2px solid #3B82F6',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '32px' }}>✓</span>
+                    <h3 style={{ margin: 0, color: '#1e40af', fontSize: '18px', fontWeight: 'bold' }}>
+                      Get Verified with Your Personal Name
+                    </h3>
+                  </div>
+                  <p style={{ margin: 0, color: '#1e40af', fontSize: '14px' }}>
+                    Verify your identity with ID card - Get blue verified badge on your personal name
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIndividualVerificationModal(true)}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#3B82F6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Apply Now →
+                </button>
+              </div>
+            )}
+
+            {/* Show status banner if there's a pending/rejected request */}
+            {individualVerificationStatus && individualVerificationStatus.hasRequest && (
+              <div style={{
+                backgroundColor: individualVerificationStatus.request.status === 'pending' ? '#dbeafe' : '#fee2e2',
+                border: `2px solid ${individualVerificationStatus.request.status === 'pending' ? '#3B82F6' : '#ef4444'}`,
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '24px' }}>
+                        {individualVerificationStatus.request.status === 'pending' ? '⏳' : '✗'}
+                      </span>
+                      <h3 style={{
+                        margin: 0,
+                        color: individualVerificationStatus.request.status === 'pending' ? '#1e40af' : '#991b1b',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }}>
+                        Individual Verification {individualVerificationStatus.request.status === 'pending' ? 'Pending' : 'Rejected'}
+                      </h3>
+                    </div>
+                    <p style={{
+                      margin: 0,
+                      color: individualVerificationStatus.request.status === 'pending' ? '#1e40af' : '#991b1b',
+                      fontSize: '14px'
+                    }}>
+                      {individualVerificationStatus.request.status === 'pending' && 'Your application is under review. We\'ll notify you within 1-2 business days.'}
+                      {individualVerificationStatus.request.status === 'rejected' && `Reason: ${individualVerificationStatus.request.rejection_reason || 'Please contact support for more information'}`}
+                    </p>
+                  </div>
+                  {individualVerificationStatus.request.status === 'rejected' && (
+                    <button
+                      onClick={() => setIndividualVerificationModal(true)}
+                      style={{
+                        padding: '12px 24px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Apply Again
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Stats Cards */}
@@ -890,6 +1072,17 @@ function Dashboard() {
         <BusinessVerificationForm
           onClose={() => setBusinessVerificationModal(false)}
           onSuccess={handleVerificationSuccess}
+        />
+      )}
+
+      {/* Individual Verification Modal */}
+      {individualVerificationModal && (
+        <IndividualVerificationForm
+          onSuccess={async () => {
+            setIndividualVerificationModal(false);
+            await loadUserData();
+          }}
+          onCancel={() => setIndividualVerificationModal(false)}
         />
       )}
     </div>

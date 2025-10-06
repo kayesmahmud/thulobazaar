@@ -19,6 +19,7 @@ function EditorDashboard() {
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [businessRequests, setBusinessRequests] = useState([]);
+  const [individualRequests, setIndividualRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -84,6 +85,8 @@ function EditorDashboard() {
       fetchActivityLogs();
     } else if (activeTab === 'business') {
       fetchBusinessRequests();
+    } else if (activeTab === 'individual') {
+      fetchIndividualRequests();
     }
   }, [activeTab, adFilters, userFilters, isAuthenticated, user]);
 
@@ -297,6 +300,45 @@ function EditorDashboard() {
     }
   };
 
+  // Individual verification methods
+  const fetchIndividualRequests = async () => {
+    setLoading(true);
+    try {
+      const response = await ApiService.getIndividualRequests({ status: 'pending' });
+      setIndividualRequests(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching individual requests:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleApproveIndividual = async (requestId) => {
+    if (!confirm('Are you sure you want to approve this individual seller?')) return;
+
+    try {
+      await ApiService.approveIndividualRequest(requestId);
+      fetchIndividualRequests();
+      alert('Individual seller approved successfully');
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const handleRejectIndividual = async (requestId) => {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+
+    try {
+      await ApiService.rejectIndividualRequest(requestId, reason);
+      fetchIndividualRequests();
+      alert('Individual verification rejected');
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
   const toggleAdSelection = (adId) => {
     setSelectedAds(prev =>
       prev.includes(adId)
@@ -373,6 +415,12 @@ function EditorDashboard() {
             onClick={() => setActiveTab('business')}
           >
             Business Verification
+          </button>
+          <button
+            className={activeTab === 'individual' ? 'active' : ''}
+            onClick={() => setActiveTab('individual')}
+          >
+            Individual Verification
           </button>
           <button
             className={activeTab === 'activity' ? 'active' : ''}
@@ -723,6 +771,94 @@ function EditorDashboard() {
                 {businessRequests.length === 0 && (
                   <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
                     No pending business verification requests
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Individual Verification Tab */}
+        {activeTab === 'individual' && (
+          <div className="individual-section">
+            <h2>Individual Seller Verification Requests</h2>
+            {loading ? (
+              <div className="loading">Loading individual requests...</div>
+            ) : (
+              <div className="data-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>User</th>
+                      <th>ID Type</th>
+                      <th>ID Number</th>
+                      <th>Submitted</th>
+                      <th>Documents</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {individualRequests.map(request => (
+                      <tr key={request.id}>
+                        <td>{request.id}</td>
+                        <td>
+                          <div><strong>{request.full_name}</strong></div>
+                          <div style={{fontSize: '12px', color: '#64748b'}}>{request.email}</div>
+                          {request.phone && <div style={{fontSize: '11px', color: '#64748b'}}>{request.phone}</div>}
+                        </td>
+                        <td style={{textTransform: 'capitalize'}}>{request.id_document_type?.replace('_', ' ')}</td>
+                        <td>{request.id_document_number}</td>
+                        <td>{new Date(request.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                            {request.id_document_front && (
+                              <a
+                                href={`http://localhost:5000/uploads/individual_verification/${request.id_document_front}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{color: '#3b82f6', textDecoration: 'underline', fontSize: '12px'}}
+                              >
+                                ID Front
+                              </a>
+                            )}
+                            {request.id_document_back && (
+                              <a
+                                href={`http://localhost:5000/uploads/individual_verification/${request.id_document_back}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{color: '#3b82f6', textDecoration: 'underline', fontSize: '12px'}}
+                              >
+                                ID Back
+                              </a>
+                            )}
+                            {request.selfie_with_id && (
+                              <a
+                                href={`http://localhost:5000/uploads/individual_verification/${request.selfie_with_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{color: '#3b82f6', textDecoration: 'underline', fontSize: '12px'}}
+                              >
+                                Selfie
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                        <td className="action-buttons">
+                          <button onClick={() => handleApproveIndividual(request.id)} className="btn-approve">
+                            ✓ Approve
+                          </button>
+                          <button onClick={() => handleRejectIndividual(request.id)} className="btn-reject">
+                            ✗ Reject
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {individualRequests.length === 0 && (
+                  <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                    No pending individual verification requests
                   </div>
                 )}
               </div>

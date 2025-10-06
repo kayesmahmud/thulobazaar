@@ -159,7 +159,7 @@ function SimpleHeader({ showUserWelcome = false }) {
                         fontSize: '16px',
                         fontWeight: 'bold'
                       }}>
-                        {getInitials(user?.fullName)}
+                        {getInitials(user?.fullName || user?.full_name)}
                       </div>
                     )}
                   </div>
@@ -184,7 +184,7 @@ function SimpleHeader({ showUserWelcome = false }) {
                         backgroundColor: '#f8fafc'
                       }}>
                         <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
-                          {user?.fullName}
+                          {user?.fullName || user?.full_name}
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                           {user?.email}

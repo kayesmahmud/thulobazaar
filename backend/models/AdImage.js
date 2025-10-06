@@ -1,4 +1,6 @@
 const pool = require('../config/database');
+const fs = require('fs').promises;
+const path = require('path');
 
 class AdImage {
   /**
@@ -60,10 +62,28 @@ class AdImage {
    * Delete image
    */
   static async delete(id) {
+    // Get image info before deleting
+    const imageResult = await pool.query(
+      'SELECT filename FROM ad_images WHERE id = $1',
+      [id]
+    );
+
     const result = await pool.query(
       'DELETE FROM ad_images WHERE id = $1 RETURNING *',
       [id]
     );
+
+    // Delete the actual file from server
+    if (imageResult.rows[0]?.filename) {
+      const filePath = path.join(__dirname, '../uploads/ads', imageResult.rows[0].filename);
+      try {
+        await fs.unlink(filePath);
+        console.log('✅ Deleted image file:', imageResult.rows[0].filename);
+      } catch (err) {
+        console.log('⚠️ Image file not found or already deleted:', imageResult.rows[0].filename);
+      }
+    }
+
     return result.rows[0];
   }
 
@@ -71,7 +91,27 @@ class AdImage {
    * Delete all images for an ad
    */
   static async deleteByAdId(adId) {
+    // Get all image filenames before deleting
+    const imagesResult = await pool.query(
+      'SELECT filename FROM ad_images WHERE ad_id = $1',
+      [adId]
+    );
+
+    // Delete from database
     await pool.query('DELETE FROM ad_images WHERE ad_id = $1', [adId]);
+
+    // Delete all actual files from server
+    for (const image of imagesResult.rows) {
+      if (image.filename) {
+        const filePath = path.join(__dirname, '../uploads/ads', image.filename);
+        try {
+          await fs.unlink(filePath);
+          console.log('✅ Deleted image file:', image.filename);
+        } catch (err) {
+          console.log('⚠️ Image file not found or already deleted:', image.filename);
+        }
+      }
+    }
   }
 
   /**

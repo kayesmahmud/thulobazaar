@@ -21,29 +21,20 @@ export const AuthProvider = ({ children }) => {
       try {
         const userToken = localStorage.getItem('authToken');
         const userData = localStorage.getItem('userData');
-        const editorToken = localStorage.getItem('editorToken');
-        const editorData = localStorage.getItem('editorData');
 
-        console.log('🔍 AuthContext init check:', {
-          hasUserToken: !!userToken,
-          hasUserData: !!userData,
-          hasEditorToken: !!editorToken,
-          hasEditorData: !!editorData
-        });
+
 
         // Only load regular user data in AuthContext
         // Editor/Admin data should only be used in editor/admin pages
         if (userToken && userData) {
           // For regular users, verify token with profile API
-          console.log('🔄 Verifying regular user token with profile API...');
           const profile = await ApiService.getProfile();
           setUser(profile);
-          console.log('✅ User authenticated from localStorage:', profile);
         } else {
-          console.log('ℹ️ No stored auth data found');
+          // No stored auth data found
         }
       } catch (error) {
-        console.log('❌ Authentication check failed:', error);
+        console.error('Authentication check failed:', error);
         // Clear invalid tokens
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
@@ -63,16 +54,19 @@ export const AuthProvider = ({ children }) => {
       // Loading state is only for initial auth check on app startup
       const result = await ApiService.login(email, password);
 
-      // Store token and user data
+      // Store token
       localStorage.setItem('authToken', result.token);
-      localStorage.setItem('userData', JSON.stringify(result.user));
 
-      setUser(result.user);
-      console.log('✅ User logged in:', result.user);
+      // Fetch full profile to ensure all data is up-to-date
+      const profile = await ApiService.getProfile();
+      
+      // Store complete user data
+      localStorage.setItem('userData', JSON.stringify(profile));
+      setUser(profile);
 
       return result;
     } catch (error) {
-      console.error('❌ Login failed:', error);
+      console.error('Login failed:', error);
       throw error;
     }
   };
@@ -83,16 +77,19 @@ export const AuthProvider = ({ children }) => {
       // Loading state is only for initial auth check on app startup
       const result = await ApiService.register(userData);
 
-      // Store token and user data
+      // Store token
       localStorage.setItem('authToken', result.token);
-      localStorage.setItem('userData', JSON.stringify(result.user));
 
-      setUser(result.user);
-      console.log('✅ User registered:', result.user);
+      // Fetch full profile to ensure all data is up-to-date
+      const profile = await ApiService.getProfile();
+
+      // Store complete user data
+      localStorage.setItem('userData', JSON.stringify(profile));
+      setUser(profile);
 
       return result;
     } catch (error) {
-      console.error('❌ Registration failed:', error);
+      console.error('Registration failed:', error);
       throw error;
     }
   };
@@ -103,7 +100,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('editorToken');
     localStorage.removeItem('editorData');
     setUser(null);
-    console.log('✅ User logged out');
   };
 
   const value = {

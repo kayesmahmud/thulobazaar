@@ -20,6 +20,8 @@ const AdminLogin = lazy(() => import('./components/AdminLogin'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const EditorDashboard = lazy(() => import('./components/EditorDashboard'));
 const Profile = lazy(() => import('./components/Profile'));
+const ShopProfile = lazy(() => import('./components/ShopProfile'));
+const SellerProfile = lazy(() => import('./components/SellerProfile'));
 
 function App() {
   return (
@@ -55,6 +57,10 @@ function App() {
 
               {/* SEO-friendly ad URLs */}
               <Route path="ad/:slug" element={<AdDetail />} />
+
+              {/* Shop and Seller Profile pages */}
+              <Route path="shop/:shopSlug" element={<ShopProfile />} />
+              <Route path="seller/:sellerSlug" element={<SellerProfile />} />
             </Route>
 
             {/* Admin routes (no language prefix) */}

@@ -112,7 +112,7 @@ function SearchFiltersPanel({
       <div style={{ marginBottom: spacing.lg }}>
         <label style={styles.label.default}>Condition</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-          {['new', 'like-new', 'used', 'refurbished'].map(cond => (
+          {['new', 'used'].map(cond => (
             <label
               key={cond}
               style={{

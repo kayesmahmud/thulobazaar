@@ -194,4 +194,249 @@ router.delete('/ads/:id', /* requireSuperAdmin, */ catchAsync(async (req, res) =
   });
 }));
 
+// =====================================================
+// INDIVIDUAL SELLER VERIFICATION MANAGEMENT
+// =====================================================
+
+// Get all individual verification requests
+router.get('/individual-verifications', catchAsync(async (req, res) => {
+  const { status } = req.query;
+
+  let query = `
+    SELECT
+      ivr.*,
+      u.full_name,
+      u.email,
+      u.phone
+    FROM individual_verification_requests ivr
+    JOIN users u ON ivr.user_id = u.id
+  `;
+
+  const params = [];
+  if (status) {
+    query += ' WHERE ivr.status = $1';
+    params.push(status);
+  }
+
+  query += ' ORDER BY ivr.created_at DESC';
+
+  const result = await pool.query(query, params);
+
+  res.json({
+    success: true,
+    data: result.rows
+  });
+}));
+
+// Get single verification request details
+router.get('/individual-verifications/:id', catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const query = `
+    SELECT
+      ivr.*,
+      u.full_name,
+      u.email,
+      u.phone,
+      u.seller_slug
+    FROM individual_verification_requests ivr
+    JOIN users u ON ivr.user_id = u.id
+    WHERE ivr.id = $1
+  `;
+
+  const result = await pool.query(query, [id]);
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: 'Verification request not found'
+    });
+  }
+
+  res.json({
+    success: true,
+    data: result.rows[0]
+  });
+}));
+
+// Approve individual verification
+router.post('/individual-verifications/:id/approve', catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const editorId = req.user.userId;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Get the verification request with full_name
+    const verificationResult = await client.query(
+      'SELECT user_id, full_name FROM individual_verification_requests WHERE id = $1 AND status = $2',
+      [id, 'pending']
+    );
+
+    if (verificationResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Pending verification request not found'
+      });
+    }
+
+    const userId = verificationResult.rows[0].user_id;
+    const fullName = verificationResult.rows[0].full_name;
+
+    // Generate seller slug from user's full name
+    const generateSlug = (name) => {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+        .trim()
+        .replace(/\s+/g, '-')          // Replace spaces with hyphens
+        .replace(/-+/g, '-');          // Replace multiple hyphens with single
+    };
+
+    let sellerSlug = generateSlug(fullName);
+
+    // Check if slug exists and make it unique
+    const existingSlug = await client.query('SELECT id FROM users WHERE seller_slug = $1', [sellerSlug]);
+    if (existingSlug.rows.length > 0) {
+      sellerSlug = `${sellerSlug}-${Date.now()}`;
+    }
+
+    // Update verification request
+    await client.query(
+      `UPDATE individual_verification_requests
+       SET status = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      ['approved', editorId, id]
+    );
+
+    // Mark user as verified, update full_name to verified name, set seller_slug and verified_seller_name (locked while verified)
+    await client.query(
+      `UPDATE users
+       SET individual_verified = true,
+           individual_verified_at = CURRENT_TIMESTAMP,
+           full_name = $1,
+           seller_slug = $2,
+           verified_seller_name = $3
+       WHERE id = $4`,
+      [fullName, sellerSlug, fullName, userId]
+    );
+
+    await client.query('COMMIT');
+
+    console.log('✅ Individual verification approved:', { id, userId, editorId });
+
+    res.json({
+      success: true,
+      message: 'Verification request approved successfully'
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}));
+
+// Reject individual verification
+router.post('/individual-verifications/:id/reject', catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  const editorId = req.user.userId;
+
+  if (!reason) {
+    return res.status(400).json({
+      success: false,
+      message: 'Rejection reason is required'
+    });
+  }
+
+  const result = await pool.query(
+    `UPDATE individual_verification_requests
+     SET status = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP, rejection_reason = $3
+     WHERE id = $4 AND status = $5
+     RETURNING user_id`,
+    ['rejected', editorId, reason, id, 'pending']
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: 'Pending verification request not found'
+    });
+  }
+
+  console.log('❌ Individual verification rejected:', { id, reason, editorId });
+
+  res.json({
+    success: true,
+    message: 'Verification request rejected successfully'
+  });
+}));
+
+// Revoke individual seller verification (for violations)
+router.post('/revoke-individual-verification/:userId', catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const { reason } = req.body;
+  const editorId = req.user.userId;
+
+  if (!reason) {
+    return res.status(400).json({
+      success: false,
+      message: 'Reason for revocation is required'
+    });
+  }
+
+  // Revoke verification and clear expiry date - user becomes normal user immediately
+  await pool.query(
+    `UPDATE users
+     SET individual_verified = false,
+         individual_verification_expires_at = NULL,
+         verified_seller_name = NULL
+     WHERE id = $1 AND individual_verified = true`,
+    [userId]
+  );
+
+  console.log('🚫 Individual verification revoked:', { userId, reason, editorId });
+
+  res.json({
+    success: true,
+    message: 'Individual verification revoked successfully. User can now edit their name.'
+  });
+}));
+
+// Revoke business verification (for violations)
+router.post('/revoke-business-verification/:userId', catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const { reason } = req.body;
+  const editorId = req.user.userId;
+
+  if (!reason) {
+    return res.status(400).json({
+      success: false,
+      message: 'Reason for revocation is required'
+    });
+  }
+
+  // Revoke verification and clear expiry date - user becomes normal user immediately
+  await pool.query(
+    `UPDATE users
+     SET business_verification_status = 'revoked',
+         business_verification_expires_at = NULL,
+         account_type = 'individual'
+     WHERE id = $1 AND business_verification_status = 'approved'`,
+    [userId]
+  );
+
+  console.log('🚫 Business verification revoked:', { userId, reason, editorId });
+
+  res.json({
+    success: true,
+    message: 'Business verification revoked successfully. User reverted to individual account.'
+  });
+}));
+
 module.exports = router;

@@ -352,6 +352,24 @@ router.put('/verification-requests/:id/approve',
     const subscriptionEnd = new Date();
     subscriptionEnd.setMonth(subscriptionEnd.getMonth() + parseInt(subscriptionMonths, 10));
 
+    // Generate shop slug from business name
+    const generateSlug = (name) => {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+        .trim()
+        .replace(/\s+/g, '-')          // Replace spaces with hyphens
+        .replace(/-+/g, '-');          // Replace multiple hyphens with single
+    };
+
+    let shopSlug = generateSlug(req_data.business_name);
+
+    // Check if slug exists and make it unique
+    const existingSlug = await pool.query('SELECT id FROM users WHERE shop_slug = $1', [shopSlug]);
+    if (existingSlug.rows.length > 0) {
+      shopSlug = `${shopSlug}-${Date.now()}`;
+    }
+
     // Update request status
     await pool.query(
       `UPDATE business_verification_requests
@@ -360,26 +378,30 @@ router.put('/verification-requests/:id/approve',
       [editorId, id]
     );
 
-    // Update user to business account
+    // Update user to business account (business_name and full_name are locked while verified)
     await pool.query(
       `UPDATE users SET
          account_type = 'business',
          business_verification_status = 'approved',
-         business_name = $1,
-         business_license_document = $2,
-         business_category = $3,
-         business_description = $4,
-         business_website = $5,
-         business_phone = $6,
-         business_address = $7,
+         full_name = $1,
+         business_name = $2,
+         shop_slug = $3,
+         business_license_document = $4,
+         business_category = $5,
+         business_description = $6,
+         business_website = $7,
+         business_phone = $8,
+         business_address = $9,
          business_verified_at = CURRENT_TIMESTAMP,
-         business_verified_by = $8,
+         business_verified_by = $10,
          business_subscription_start = CURRENT_TIMESTAMP,
-         business_subscription_end = $9,
+         business_subscription_end = $11,
          business_subscription_status = 'active'
-       WHERE id = $10`,
+       WHERE id = $12`,
       [
         req_data.business_name,
+        req_data.business_name,
+        shopSlug,
         req_data.business_license_document,
         req_data.business_category,
         req_data.business_description,

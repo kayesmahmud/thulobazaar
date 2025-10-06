@@ -112,12 +112,29 @@ app.post('/api/auth/register', rateLimiters.auth, async (req, res) => {
     const saltRounds = SECURITY.BCRYPT_SALT_ROUNDS;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert user
+    // Generate seller_slug from full name
+    const generateSlug = (name) => {
+      return name.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+    };
+
+    let sellerSlug = generateSlug(fullName);
+
+    // Check if slug already exists and make it unique
+    const existingSlug = await pool.query('SELECT id FROM users WHERE seller_slug = $1', [sellerSlug]);
+    if (existingSlug.rows.length > 0) {
+      sellerSlug = `${sellerSlug}-${Date.now()}`;
+    }
+
+    // Insert user with seller_slug
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, full_name, phone)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, full_name, phone, created_at`,
-      [email, passwordHash, fullName, phone]
+      `INSERT INTO users (email, password_hash, full_name, phone, seller_slug)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, full_name, phone, created_at, account_type, shop_slug, seller_slug, business_verification_status, individual_verified`,
+      [email, passwordHash, fullName, phone, sellerSlug]
     );
 
     const user = result.rows[0];
@@ -140,7 +157,12 @@ app.post('/api/auth/register', rateLimiters.auth, async (req, res) => {
           email: user.email,
           fullName: user.full_name,
           phone: user.phone,
-          createdAt: user.created_at
+          createdAt: user.created_at,
+          account_type: user.account_type,
+          shop_slug: user.shop_slug,
+          seller_slug: user.seller_slug,
+          business_verification_status: user.business_verification_status,
+          individual_verified: user.individual_verified
         },
         token
       }
@@ -169,7 +191,7 @@ app.post('/api/auth/login', rateLimiters.auth, async (req, res) => {
 
     // Find user
     const result = await pool.query(
-      'SELECT id, email, password_hash, full_name, phone, location_id, is_active, role FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, full_name, phone, location_id, is_active, role, account_type, shop_slug, seller_slug, business_verification_status, individual_verified FROM users WHERE email = $1',
       [email]
     );
 
@@ -217,7 +239,12 @@ app.post('/api/auth/login', rateLimiters.auth, async (req, res) => {
           fullName: user.full_name,
           phone: user.phone,
           locationId: user.location_id,
-          role: user.role
+          role: user.role,
+          account_type: user.account_type,
+          shop_slug: user.shop_slug,
+          seller_slug: user.seller_slug,
+          business_verification_status: user.business_verification_status,
+          individual_verified: user.individual_verified
         },
         token
       }
@@ -596,7 +623,8 @@ app.get('/api/ads/:id', async (req, res) => {
         a.category_id, a.location_id,
         c.name as category_name, c.icon as category_icon,
         l.name as location_name,
-        u.business_verification_status, u.business_name, u.avatar as seller_avatar
+        u.business_verification_status, u.business_name, u.avatar as seller_avatar,
+        u.account_type, u.shop_slug, u.seller_slug, u.individual_verified
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN locations l ON a.location_id = l.id
@@ -1805,6 +1833,12 @@ app.use('/api/admin', require('./routes/admin'));
 
 // Business verification routes
 app.use('/api/business', require('./routes/business'));
+
+// Shop and Seller profile routes
+app.use('/api', require('./routes/profiles'));
+
+// Individual seller verification routes
+app.use('/api/individual-verification', require('./routes/individualVerification'));
 
 // Error handling
 app.use((err, req, res, next) => {

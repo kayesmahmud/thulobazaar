@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
   const [filters, setFilters] = useState({
-    priceRange: [0, 5000000], // NPR 0 to 50 lakh
+    priceRange: [0, 0],
     condition: 'all',
     datePosted: 'any',
     customDateRange: {
@@ -45,7 +45,7 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
   useEffect(() => {
     isUpdatingFromParent.current = true;
     setFilters({
-      priceRange: [0, 5000000],
+      priceRange: [0, 0],
       condition: 'all',
       datePosted: 'any',
       customDateRange: {
@@ -132,7 +132,7 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
 
   const resetFilters = () => {
     setFilters({
-      priceRange: [0, 5000000],
+      priceRange: [0, 0],
       condition: 'all',
       datePosted: 'any',
       customDateRange: { from: '', to: '' },
@@ -182,75 +182,74 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
           color: '#374151',
           marginBottom: '12px'
         }}>
-          Price Range: NPR {formatPrice(filters.priceRange[0])} - NPR {formatPrice(filters.priceRange[1])}
+          Price Range
         </label>
 
-        {/* Min Price Slider */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{
-            display: 'block',
-            fontSize: '12px',
-            fontWeight: '600',
-            color: '#6b7280',
-            marginBottom: '8px'
-          }}>
-            Minimum Price: NPR {formatPrice(filters.priceRange[0])}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="5000000"
-            step="5000"
-            value={filters.priceRange[0]}
-            onChange={(e) => {
-              const newMin = parseInt(e.target.value);
-              const newMax = Math.max(newMin, filters.priceRange[1]);
-              handlePriceRangeChange([newMin, newMax]);
-            }}
-            style={{
-              width: '100%',
-              height: '6px',
-              borderRadius: '3px',
-              background: '#dc1e4a',
-              outline: 'none',
-              appearance: 'none',
-              cursor: 'pointer'
-            }}
-          />
-        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Min Price Input */}
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#6b7280',
+              marginBottom: '8px'
+            }}>
+              Min Price (NPR)
+            </label>
+            <input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={filters.priceRange[0]}
+              onChange={(e) => {
+                const newMin = parseInt(e.target.value) || 0;
+                const newMax = Math.max(newMin, filters.priceRange[1]);
+                handlePriceRangeChange([newMin, newMax]);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none'
+              }}
+            />
+          </div>
 
-        {/* Max Price Slider */}
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{
-            display: 'block',
-            fontSize: '12px',
-            fontWeight: '600',
-            color: '#6b7280',
-            marginBottom: '8px'
-          }}>
-            Maximum Price: NPR {formatPrice(filters.priceRange[1])}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="5000000"
-            step="5000"
-            value={filters.priceRange[1]}
-            onChange={(e) => {
-              const newMax = parseInt(e.target.value);
-              const newMin = Math.min(filters.priceRange[0], newMax);
-              handlePriceRangeChange([newMin, newMax]);
-            }}
-            style={{
-              width: '100%',
-              height: '6px',
-              borderRadius: '3px',
-              background: '#dc1e4a',
-              outline: 'none',
-              appearance: 'none',
-              cursor: 'pointer'
-            }}
-          />
+          {/* Max Price Input */}
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#6b7280',
+              marginBottom: '8px'
+            }}>
+              Max Price (NPR)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="1000000000"
+              placeholder="Max price"
+              value={filters.priceRange[1] === 0 ? '' : filters.priceRange[1]}
+              onChange={(e) => {
+                const newMax = parseInt(e.target.value) || 0;
+                const newMin = Math.min(filters.priceRange[0], newMax);
+                handlePriceRangeChange([newMin, newMax]);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none'
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -281,7 +280,7 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
                 textTransform: 'capitalize'
               }}
             >
-              {condition === 'all' ? 'All Conditions' : condition}
+              {condition === 'all' ? 'All Conditions' : condition.replace('-', ' ')}
             </button>
           ))}
         </div>
@@ -403,7 +402,7 @@ function AdvancedFilters({ onFiltersChange, initialFilters = {} }) {
         fontSize: '12px',
         color: '#6b7280'
       }}>
-        <strong>Active filters:</strong> Price: NPR {formatPrice(filters.priceRange[0])} - NPR {formatPrice(filters.priceRange[1])},
+        <strong>Active filters:</strong> Price: NPR {filters.priceRange[0].toLocaleString()} - NPR {filters.priceRange[1].toLocaleString()},
         Condition: {filters.condition},
         Posted: {showCustomDate ? 'Custom range' : filters.datePosted},
         Sort: {sortOptions.find(opt => opt.value === filters.sortBy && opt.order === filters.sortOrder)?.label}

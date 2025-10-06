@@ -42,7 +42,12 @@ class ApiService {
     if (searchParams.location) params.append('location', searchParams.location);
     if (searchParams.minPrice) params.append('minPrice', searchParams.minPrice);
     if (searchParams.maxPrice) params.append('maxPrice', searchParams.maxPrice);
+    if (searchParams.condition) params.append('condition', searchParams.condition);
+    if (searchParams.datePosted) params.append('datePosted', searchParams.datePosted);
+    if (searchParams.dateFrom) params.append('dateFrom', searchParams.dateFrom);
+    if (searchParams.dateTo) params.append('dateTo', searchParams.dateTo);
     if (searchParams.sortBy) params.append('sortBy', searchParams.sortBy);
+    if (searchParams.sortOrder) params.append('sortOrder', searchParams.sortOrder);
     if (searchParams.limit) params.append('limit', searchParams.limit);
     if (searchParams.offset) params.append('offset', searchParams.offset);
 
@@ -847,6 +852,32 @@ class ApiService {
     return data;
   }
 
+  // Individual Seller Verification methods
+  async getIndividualVerificationStatus() {
+    const token = localStorage.getItem('authToken');
+    if (!token) return null;
+
+    const response = await fetch(`${API_BASE_URL}/individual-verification/status`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    return data.success ? data.data : null;
+  }
+
+  async submitIndividualVerification(formData) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/individual-verification/submit`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData // FormData with files
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to submit verification');
+    return data;
+  }
+
   async getBusinessRequests(filters = {}) {
     const token = localStorage.getItem('editorToken');
     if (!token) throw new Error('No authentication token found');
@@ -892,6 +923,50 @@ class ApiService {
     const data = await response.json();
     if (!data.success) throw new Error(data.message || 'Failed to reject request');
     return data
+  }
+
+  // Editor: Individual Verification Management
+  async getIndividualRequests(filters = {}) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_BASE_URL}/admin/individual-verifications${params ? `?${params}` : ''}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to fetch individual verification requests');
+    return data;
+  }
+
+  async approveIndividualRequest(requestId) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/individual-verifications/${requestId}/approve`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to approve request');
+    return data;
+  }
+
+  async rejectIndividualRequest(requestId, reason) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/admin/individual-verifications/${requestId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ reason })
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'Failed to reject request');
+    return data;
   }
 }
 

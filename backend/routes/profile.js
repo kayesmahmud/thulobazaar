@@ -85,7 +85,8 @@ router.get('/', async (req, res) => {
 
     const result = await pool.query(
       `SELECT u.id, u.full_name as name, u.email, u.bio, u.avatar, u.cover_photo, u.phone,
-              u.location_id, l.name as location_name, u.role, u.created_at
+              u.location_id, l.name as location_name, u.role, u.created_at,
+              u.shop_slug, u.seller_slug, u.business_verification_status, u.individual_verified
        FROM users u
        LEFT JOIN locations l ON u.location_id = l.id
        WHERE u.id = $1`,
@@ -130,6 +131,32 @@ router.put('/', async (req, res) => {
       return res.status(400).json({ error: 'Invalid phone number format' });
     }
 
+    const userId = req.user?.userId || req.user?.id;
+
+    // Check if user is trying to change name while verified
+    if (name !== undefined) {
+      const userCheck = await pool.query(
+        'SELECT individual_verified, business_verification_status FROM users WHERE id = $1',
+        [userId]
+      );
+
+      const user = userCheck.rows[0];
+
+      // Prevent name change if user has individual verification badge
+      if (user.individual_verified) {
+        return res.status(403).json({
+          error: 'Cannot change name while individually verified. Contact support to revoke verification first.'
+        });
+      }
+
+      // Prevent name change if user has business verification badge
+      if (user.business_verification_status === 'approved') {
+        return res.status(403).json({
+          error: 'Cannot change name while business account is verified. Contact support to revoke verification first.'
+        });
+      }
+    }
+
     // Build dynamic UPDATE query
     const updates = [];
     const values = [];
@@ -159,7 +186,6 @@ router.put('/', async (req, res) => {
     }
 
     updates.push(`updated_at = NOW()`);
-    const userId = req.user?.userId || req.user?.id;
     values.push(userId);
 
     console.log('📝 Updating for userId:', userId);

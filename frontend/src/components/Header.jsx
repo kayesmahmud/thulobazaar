@@ -12,7 +12,6 @@ function Header() {
   const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login' });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [profileData, setProfileData] = useState(null);
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const mobileMenuButtonRef = useRef(null);
@@ -56,21 +55,6 @@ function Header() {
     }
   };
 
-  // Fetch profile data when authenticated (skip for admin/editor)
-  useEffect(() => {
-    if (isAuthenticated && user && user.role !== 'super_admin' && user.role !== 'editor') {
-      fetchProfile();
-    }
-  }, [isAuthenticated, user]);
-
-  const fetchProfile = async () => {
-    try {
-      const data = await ApiService.getProfile();
-      setProfileData(data);
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    }
-  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -166,10 +150,10 @@ function Header() {
                       padding: 0
                     }}
                   >
-                    {profileData?.avatar ? (
+                    {user?.avatar ? (
                       <img
-                        src={`http://localhost:5000/uploads/avatars/${profileData.avatar}`}
-                        alt={profileData.name}
+                        src={`http://localhost:5000/uploads/avatars/${user.avatar}`}
+                        alt={user.fullName}
                         style={{
                           width: '100%',
                           height: '100%',
@@ -221,7 +205,7 @@ function Header() {
 
                       {/* Menu Items */}
                       {/* Hide profile and dashboard for editors */}
-                      {user?.role !== 'editor' && (
+                      {user?.role !== 'editor' && user?.role !== 'super_admin' && (
                         <>
                           <button
                             onClick={() => {
@@ -267,6 +251,39 @@ function Header() {
                             📊 My Dashboard
                           </button>
                         </>
+                      )}
+
+                      {/* View My Shop - For all authenticated users */}
+                      {user && (user?.shop_slug || user?.seller_slug) && (
+                        <button
+                          onClick={() => {
+                            // Navigate to shop if business verified, seller page otherwise
+                            if (user?.business_verification_status === 'approved' && user?.shop_slug) {
+                              handleNavigation(`/shop/${user.shop_slug}`);
+                            } else if (user?.seller_slug) {
+                              handleNavigation(`/seller/${user.seller_slug}`);
+                            }
+                            setProfileDropdownOpen(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: 'none',
+                            backgroundColor: 'white',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: user?.business_verification_status === 'approved' ? '#ca8a04' : (user?.individual_verified ? '#3b82f6' : '#334155'),
+                            fontWeight: '500',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = user?.business_verification_status === 'approved' ? '#fef9c3' : (user?.individual_verified ? '#dbeafe' : '#f1f5f9');
+                          }}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                        >
+                          🏪 View My Shop
+                        </button>
                       )}
 
                       {/* Editor Dashboard Link - Only for editors and super admins */}

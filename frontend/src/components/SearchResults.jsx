@@ -62,7 +62,7 @@ function SearchResults() {
   const advancedFilters = {
     priceRange: [
       searchFilters.minPrice ? parseInt(searchFilters.minPrice) : 0,
-      searchFilters.maxPrice ? parseInt(searchFilters.maxPrice) : 5000000
+      searchFilters.maxPrice ? parseInt(searchFilters.maxPrice) : 0
     ],
     condition: searchFilters.condition,
     datePosted: searchFilters.datePosted,
@@ -188,7 +188,7 @@ function SearchResults() {
     if (filters.category && filters.category !== 'all') urlParams.append('category', filters.category);
     if (filters.location !== 'all') urlParams.append('location', filters.location);
     if (filters.minPrice && filters.minPrice !== '0' && filters.minPrice !== '') urlParams.append('minPrice', filters.minPrice);
-    if (filters.maxPrice && filters.maxPrice !== '5000000' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
+    if (filters.maxPrice && filters.maxPrice !== '0' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
     if (filters.condition !== 'all') urlParams.append('condition', filters.condition);
     if (filters.datePosted !== 'any') {
       urlParams.append('datePosted', filters.datePosted);
