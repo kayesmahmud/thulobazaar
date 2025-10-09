@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AdCard from './AdCard';
-import SimpleHeader from './SimpleHeader';
+import Header from './Header';
 import RecentlyViewed from './RecentlyViewed';
 import AdvancedFilters from './AdvancedFilters';
 import SearchFiltersPanel from './search/SearchFiltersPanel';
@@ -18,7 +18,6 @@ function SearchResults() {
   const navigate = useNavigate();
   const location = useLocation();
   const { category: categoryParam } = useParams();
-  console.log('SearchResults Render - categoryParam:', categoryParam);
 
   const [ads, setAds] = useState([]);
   const [totalAds, setTotalAds] = useState(0);
@@ -44,7 +43,6 @@ function SearchResults() {
     // Query param category: ?category=Fashion
     categoryFromURL = urlParams.get('category');
   }
-  console.log('SearchResults Render - categoryFromURL (after getCategoryFromSlug):', categoryFromURL);
 
   const searchFilters = {
       search: urlParams.get('search') || '',
@@ -61,8 +59,6 @@ function SearchResults() {
       page: parseInt(urlParams.get('page')) || 1
   };
 
-  console.log('SearchResults Render - searchFilters (initial):', searchFilters);
-
   const advancedFilters = {
     priceRange: [
       searchFilters.minPrice ? parseInt(searchFilters.minPrice) : 0,
@@ -78,10 +74,56 @@ function SearchResults() {
     sortOrder: searchFilters.sortOrder
   };
 
-  // Track if we're currently updating to prevent loops
+  // OPTIMIZED: Create O(1) lookup maps for locations and categories
+  // This replaces O(n) nested loops with instant lookups
+  const { locationMap, categoryMap } = useMemo(() => {
+    const locMap = new Map();
+    const catMap = new Map();
 
+    // Build location map: name -> id (includes provinces, districts, municipalities)
+    locations.forEach(province => {
+      locMap.set(province.name, province.id);
 
-  console.log('Component Render - searchFilters:', searchFilters);
+      if (province.districts) {
+        province.districts.forEach(district => {
+          locMap.set(district.name, district.id);
+
+          if (district.municipalities) {
+            district.municipalities.forEach(municipality => {
+              locMap.set(municipality.name, municipality.id);
+            });
+          }
+        });
+      }
+    });
+
+    // Build category map: name -> id (includes main categories and subcategories)
+    categories.forEach(category => {
+      catMap.set(category.name, category.id);
+
+      if (category.subcategories) {
+        category.subcategories.forEach(subcat => {
+          catMap.set(subcat.name, subcat.id);
+        });
+      }
+    });
+
+    return { locationMap: locMap, categoryMap: catMap };
+  }, [locations, categories]);
+
+  // O(1) location lookup - instant instead of nested loops
+  const selectedLocationId = useMemo(() => {
+    if (searchFilters.location === 'all') return '';
+    const id = locationMap.get(searchFilters.location);
+    return id ? id.toString() : '';
+  }, [searchFilters.location, locationMap]);
+
+  // O(1) category lookup - instant instead of nested loops
+  const selectedCategoryId = useMemo(() => {
+    if (searchFilters.category === 'all') return '';
+    const id = categoryMap.get(searchFilters.category);
+    return id ? id.toString() : '';
+  }, [searchFilters.category, categoryMap]);
 
   // Load categories and locations
   useEffect(() => {
@@ -90,33 +132,10 @@ function SearchResults() {
         const categoriesData = await ApiService.getCategories(true); // Fetch with subcategories
         setCategories(categoriesData);
 
-        // Fetch hierarchical locations: provinces with their districts and municipalities
-        const provincesData = await ApiService.getLocations(''); // Get provinces (parent_id IS NULL)
-
-        // For each province, fetch districts
-        const provincesWithDistricts = await Promise.all(
-          provincesData.map(async (province) => {
-            const districtsData = await ApiService.getLocations(province.id);
-
-            // For each district, fetch municipalities
-            const districtsWithMunicipalities = await Promise.all(
-              districtsData.map(async (district) => {
-                const municipalitiesData = await ApiService.getLocations(district.id);
-                return {
-                  ...district,
-                  municipalities: municipalitiesData
-                };
-              })
-            );
-
-            return {
-              ...province,
-              districts: districtsWithMunicipalities
-            };
-          })
-        );
-
-        setLocations(provincesWithDistricts);
+        // OPTIMIZED: Fetch complete location hierarchy in a single API call
+        // This replaces 85 separate API calls (1 for provinces + 7 for districts + 77 for municipalities)
+        const locationHierarchy = await ApiService.getLocationHierarchy();
+        setLocations(locationHierarchy);
       } catch (err) {
         console.error('❌ Error fetching static data:', err);
       }
@@ -130,8 +149,6 @@ function SearchResults() {
     const performSearchWithNewFilters = async () => {
       try {
         setSearchLoading(true);
-
-        console.log('🔍 Searching with filters:', searchFilters);
 
         // Build search params
         const searchParams = {};
@@ -196,9 +213,7 @@ function SearchResults() {
         searchParams.limit = limit;
         searchParams.offset = offset;
 
-        console.log('📤 API request params:', searchParams);
         const response = await ApiService.getAds(searchParams);
-        console.log('✅ Search results:', response);
 
         setAds(response.data);
         setTotalAds(response.pagination?.total || 0);
@@ -215,7 +230,6 @@ function SearchResults() {
   }, [location.pathname, location.search]); // Watch both path and query params
 
   const handleInputChange = (field, value) => {
-    console.log('handleInputChange - field:', field, 'value:', value);
     // Only update if value actually changed
     if (searchFilters[field] == value) {
       return;
@@ -276,10 +290,7 @@ function SearchResults() {
 
     // Only navigate if URL is actually different
     if (newUrl !== currentUrl) {
-      console.log('🔄 Navigating from', currentUrl, 'to', newUrl);
       navigate(newUrl, { replace: true });
-    } else {
-      console.log('⏭️ URL unchanged, skipping navigation');
     }
   };
 
@@ -365,7 +376,7 @@ function SearchResults() {
       </Helmet>
 
       {/* Header */}
-      <SimpleHeader showUserWelcome={true} />
+      <Header />
 
 
       {/* Search Bar Section */}
@@ -392,7 +403,7 @@ function SearchResults() {
                 >
                   <div className="search-icon">
                     <svg width="17" height="17" viewBox="0 0 17 17">
-                      <path d="M7.615 15.23a7.615 7.615 0 1 1 6.1-3.054l2.966 2.967a1.088 1.088 0 0 1-1.539 1.538l-2.966-2.966a7.582 7.582 0 0 1-4.56 1.516zm5.44-7.615a5.44 5.44 0 1 1-10.88 0 5.44 5.44 0 0 1 10.88 0z" fillRule="evenodd"></path>
+                      <path d="M7.615 15.23a7.615 7.615 0 1 1 6.1-3.054l2.966 2.967a1.088 1.088 0 0 1-1.539 1.538l-2.966-2.966a7.582 7.582 0 0 1-4.56 1.516zm5.44-7.615a5.44 5.44 0 1 1-10.88 0 5.44 5.44 0 0 1 10.88 0z" fill="white" fillRule="evenodd"></path>
                     </svg>
                   </div>
                 </button>
@@ -472,55 +483,8 @@ function SearchResults() {
             <SearchFiltersPanel
               categories={categories}
               locations={locations}
-              selectedCategory={
-                searchFilters.category === 'all'
-                  ? ''
-                  : (() => {
-                      // First check main categories
-                      const mainCategory = categories.find(c => c.name === searchFilters.category);
-                      if (mainCategory) return mainCategory.id.toString();
-
-                      // Then check subcategories
-                      for (const cat of categories) {
-                        if (cat.subcategories && cat.subcategories.length > 0) {
-                          const subcat = cat.subcategories.find(s => s.name === searchFilters.category);
-                          if (subcat) return subcat.id.toString();
-                        }
-                      }
-                      return '';
-                    })()
-              }
-              selectedLocation={
-                searchFilters.location === 'all'
-                  ? ''
-                  : (() => {
-                      // Search in provinces
-                      let found = locations.find(l => l.name === searchFilters.location);
-                      if (found) return found.id.toString();
-
-                      // Search in districts
-                      for (const province of locations) {
-                        if (province.districts) {
-                          found = province.districts.find(d => d.name === searchFilters.location);
-                          if (found) return found.id.toString();
-                        }
-                      }
-
-                      // Search in municipalities
-                      for (const province of locations) {
-                        if (province.districts) {
-                          for (const district of province.districts) {
-                            if (district.municipalities) {
-                              found = district.municipalities.find(m => m.name === searchFilters.location);
-                              if (found) return found.id.toString();
-                            }
-                          }
-                        }
-                      }
-
-                      return '';
-                    })()
-              }
+              selectedCategory={selectedCategoryId}
+              selectedLocation={selectedLocationId}
               priceRange={{
                 min: searchFilters.minPrice || '',
                 max: searchFilters.maxPrice || ''

@@ -2,8 +2,12 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
+  user: process.env.DB_USER || 'elw',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'thulobazaar',
+  password: process.env.DB_PASSWORD || '',
+  port: process.env.DB_PORT || 5432,
+  max: 20,
   idleTimeoutMillis: 30000,
 });
 

@@ -1,0 +1,90 @@
+/* Promotion Badge Styles */
+
+.promotion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 2px solid var(--badge-border);
+  background: var(--badge-bg);
+  color: var(--badge-color);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.promotion-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Sizes */
+.promotion-badge.small {
+  padding: 4px 8px;
+  font-size: 11px;
+  gap: 4px;
+}
+
+.promotion-badge.small .badge-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.promotion-badge.medium {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.promotion-badge.medium .badge-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.promotion-badge.large {
+  padding: 8px 16px;
+  font-size: 15px;
+  gap: 8px;
+}
+
+.promotion-badge.large .badge-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon Only */
+.promotion-badge.icon-only {
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.promotion-badge.icon-only .badge-icon {
+  margin: 0;
+}
+
+/* Badge Icon */
+.badge-icon {
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+/* Badge Label */
+.badge-label {
+  font-size: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.promotion-badge.featured {
+  animation: pulse 2s ease-in-out infinite;
+}

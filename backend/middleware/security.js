@@ -1,6 +1,6 @@
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
+// const xss = require('xss-clean'); // Replaced by custom sanitizeRequest function below
 const hpp = require('hpp');
 const config = require('../config/env');
 
@@ -63,9 +63,10 @@ const sanitizeData = () => {
 /**
  * Prevent XSS attacks
  * Cleans user input from malicious HTML/JS code
+ * Note: Using custom sanitizeRequest function instead of xss-clean package
  */
 const preventXSS = () => {
-  return xss();
+  return sanitizeRequest; // Use custom sanitization function
 };
 
 /**

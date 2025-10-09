@@ -20,6 +20,12 @@ function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [selectedAdStatus, setSelectedAdStatus] = useState('all');
 
+  // Promotion pricing state
+  const [pricing, setPricing] = useState([]);
+  const [editingPriceId, setEditingPriceId] = useState(null);
+  const [editingPrice, setEditingPrice] = useState('');
+  const [editingDiscount, setEditingDiscount] = useState('');
+
   // Check admin authentication on mount
   useEffect(() => {
     const editorToken = localStorage.getItem('editorToken');
@@ -70,6 +76,68 @@ function AdminPanel() {
     } finally {
       setDataLoading(false);
     }
+  };
+
+  const loadPricingData = async () => {
+    try {
+      const pricingData = await ApiService.getAllPromotionPricing();
+      setPricing(pricingData);
+    } catch (err) {
+      console.error('❌ Error loading pricing data:', err);
+      setError('Failed to load pricing data.');
+    }
+  };
+
+  const handlePriceEdit = (priceId, currentPrice, currentDiscount) => {
+    setEditingPriceId(priceId);
+    setEditingPrice(currentPrice.toString());
+    setEditingDiscount(currentDiscount.toString());
+  };
+
+  const handlePriceSave = async (priceId) => {
+    try {
+      const newPrice = parseFloat(editingPrice);
+      const newDiscount = parseFloat(editingDiscount);
+
+      if (isNaN(newPrice) || newPrice < 0) {
+        setError('Please enter a valid price');
+        return;
+      }
+
+      if (isNaN(newDiscount) || newDiscount < 0 || newDiscount > 100) {
+        setError('Please enter a valid discount percentage (0-100)');
+        return;
+      }
+
+      await ApiService.updatePromotionPrice(priceId, newPrice, newDiscount);
+
+      // Refresh pricing data
+      await loadPricingData();
+
+      setEditingPriceId(null);
+      setEditingPrice('');
+      setEditingDiscount('');
+      setError('');
+    } catch (err) {
+      console.error('❌ Error updating price:', err);
+      setError('Failed to update price');
+    }
+  };
+
+  const handlePriceCancel = () => {
+    setEditingPriceId(null);
+    setEditingPrice('');
+    setEditingDiscount('');
+  };
+
+  const getPromotionTypeLabel = (type) => {
+    const labels = {
+      'featured': '🌟 Featured',
+      'urgent': '🔥 Urgent',
+      'bump_up': '📈 Bump Up',
+      'sticky': '📈 Sticky'
+    };
+    return labels[type] || type;
   };
 
   const handleAdStatusChange = async (adId, status, reason = '') => {
@@ -678,23 +746,243 @@ function AdminPanel() {
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div>
-            <h2 style={{ margin: '0 0 24px 0', color: '#1e293b' }}>Settings</h2>
+            <h2 style={{ margin: '0 0 24px 0', color: '#1e293b' }}>Promotion Pricing Management</h2>
+
             <div style={{
               backgroundColor: 'white',
-              padding: '24px',
               borderRadius: '12px',
-              border: '1px solid #e2e8f0'
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden'
             }}>
-              <p style={{ color: '#64748b' }}>
-                Settings panel coming soon. This will include:
-              </p>
-              <ul style={{ color: '#64748b' }}>
-                <li>Category management</li>
-                <li>Location management</li>
-                <li>Site configuration</li>
-                <li>Email templates</li>
-                <li>Featured ad pricing</li>
-              </ul>
+              {/* Load pricing button */}
+              {pricing.length === 0 && (
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                  <button
+                    onClick={loadPricingData}
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '6px',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Load Pricing Data
+                  </button>
+                </div>
+              )}
+
+              {/* Pricing table */}
+              {pricing.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{
+                    width: '100%',
+                    borderCollapse: 'collapse'
+                  }}>
+                    <thead>
+                      <tr style={{
+                        backgroundColor: '#f8fafc',
+                        borderBottom: '2px solid #e2e8f0'
+                      }}>
+                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Promotion Type
+                        </th>
+                        <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Duration
+                        </th>
+                        <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Account Type
+                        </th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Price (रू)
+                        </th>
+                        <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Discount %
+                        </th>
+                        <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Status
+                        </th>
+                        <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pricing.map((price) => (
+                        <tr key={price.id} style={{
+                          borderBottom: '1px solid #f3f4f6',
+                          backgroundColor: editingPriceId === price.id ? '#fef3c7' : 'transparent'
+                        }}>
+                          <td style={{ padding: '16px', color: '#1e293b' }}>
+                            {getPromotionTypeLabel(price.promotion_type)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {price.duration_days} days
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <span style={{
+                              backgroundColor: price.account_type === 'business' ? '#dbeafe' : '#fef3c7',
+                              color: price.account_type === 'business' ? '#1e40af' : '#92400e',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              textTransform: 'capitalize'
+                            }}>
+                              {price.account_type}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'right' }}>
+                            {editingPriceId === price.id ? (
+                              <input
+                                type="number"
+                                value={editingPrice}
+                                onChange={(e) => setEditingPrice(e.target.value)}
+                                style={{
+                                  width: '100px',
+                                  padding: '6px 8px',
+                                  border: '2px solid #3b82f6',
+                                  borderRadius: '4px',
+                                  fontSize: '14px',
+                                  textAlign: 'right'
+                                }}
+                                autoFocus
+                                placeholder="Price"
+                              />
+                            ) : (
+                              <span style={{ fontWeight: '600', color: '#dc1e4a' }}>
+                                रू {parseFloat(price.price).toLocaleString('en-NP')}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            {editingPriceId === price.id ? (
+                              <input
+                                type="number"
+                                value={editingDiscount}
+                                onChange={(e) => setEditingDiscount(e.target.value)}
+                                min="0"
+                                max="100"
+                                style={{
+                                  width: '60px',
+                                  padding: '6px 8px',
+                                  border: '2px solid #3b82f6',
+                                  borderRadius: '4px',
+                                  fontSize: '14px',
+                                  textAlign: 'center'
+                                }}
+                                placeholder="%"
+                              />
+                            ) : (
+                              <span style={{ color: '#64748b' }}>
+                                {price.discount_percentage || 0}%
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <span style={{
+                              backgroundColor: price.is_active ? '#dcfce7' : '#fee2e2',
+                              color: price.is_active ? '#166534' : '#991b1b',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              {price.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            {editingPriceId === price.id ? (
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button
+                                  onClick={() => handlePriceSave(price.id)}
+                                  style={{
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                  }}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={handlePriceCancel}
+                                  style={{
+                                    backgroundColor: '#6b7280',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handlePriceEdit(price.id, price.price, price.discount_percentage || 0)}
+                                style={{
+                                  backgroundColor: '#3b82f6',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Refresh button */}
+              {pricing.length > 0 && (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderTop: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ color: '#64748b', fontSize: '14px' }}>
+                    Total: {pricing.length} pricing entries
+                  </span>
+                  <button
+                    onClick={loadPricingData}
+                    style={{
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      border: '1px solid #d1d5db',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    🔄 Refresh Data
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

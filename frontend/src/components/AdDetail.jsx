@@ -16,6 +16,8 @@ import ImageGallery from './ad-detail/ImageGallery';
 import SellerCard from './ad-detail/SellerCard';
 import ContactModal from './ad-detail/ContactModal';
 import ReportModal from './ad-detail/ReportModal';
+import PromoteAdModal from './PromoteAdModal';
+import PromotionBadge from './PromotionBadge';
 
 function AdDetail() {
   const { id, slug } = useParams();
@@ -48,6 +50,7 @@ function AdDetail() {
     reason: '',
     details: ''
   });
+  const [promoteModal, setPromoteModal] = useState(false);
 
   useEffect(() => {
     const fetchAd = async () => {
@@ -173,6 +176,36 @@ function AdDetail() {
     } catch (error) {
       console.error('Error reporting ad:', error);
       alert(error.message || 'Failed to submit report. Please try again.');
+    }
+  };
+
+  const handlePromote = async (promotionData) => {
+    try {
+      const response = await ApiService.initiatePayment(promotionData);
+
+      if (response.success) {
+        // In real implementation, redirect to payment URL
+        // For mock payment, show success and redirect to success endpoint
+        const { transactionId, amount } = response;
+
+        // Simulate payment completion (for testing)
+        const confirmPayment = window.confirm(
+          `Mock Payment:\nAmount: रू ${amount}\nTransaction ID: ${transactionId}\n\nClick OK to complete payment (Success) or Cancel to fail payment.`
+        );
+
+        if (confirmPayment) {
+          // Complete payment via success endpoint
+          window.location.href = `http://localhost:5000/api/mock-payment/success?txnId=${transactionId}&amount=${amount}`;
+        } else {
+          // Fail payment
+          window.location.href = `http://localhost:5000/api/mock-payment/failure?txnId=${transactionId}&reason=User+cancelled`;
+        }
+
+        setPromoteModal(false);
+      }
+    } catch (error) {
+      console.error('Promotion error:', error);
+      alert('Failed to initiate promotion. Please try again.');
     }
   };
 
@@ -316,7 +349,8 @@ function AdDetail() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: spacing.xl,
-                marginBottom: spacing.lg
+                marginBottom: spacing.lg,
+                flexWrap: 'wrap'
               }}>
                 <div style={{
                   fontSize: typography.fontSize['4xl'],
@@ -325,11 +359,10 @@ function AdDetail() {
                 }}>
                   {formatPrice(ad.price)}
                 </div>
-                {ad.is_featured && (
-                  <span style={styles.badge.featured}>
-                    FEATURED
-                  </span>
-                )}
+                {/* Show promotion badges */}
+                {ad.is_featured && <PromotionBadge type="featured" />}
+                {ad.is_urgent && <PromotionBadge type="urgent" />}
+                {ad.is_sticky && <PromotionBadge type="bump_up" />}
               </div>
 
               <div style={{
@@ -373,10 +406,24 @@ function AdDetail() {
                   gridTemplateColumns: '1fr 1fr',
                   gap: spacing.lg
                 }}>
-                  <div>
-                    <strong style={{ color: colors.text.secondary }}>Category:</strong>
-                    <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.category_name}</p>
-                  </div>
+                  {/* Show parent category if it exists (subcategory scenario) */}
+                  {ad.parent_category_name ? (
+                    <>
+                      <div>
+                        <strong style={{ color: colors.text.secondary }}>Category:</strong>
+                        <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.parent_category_name}</p>
+                      </div>
+                      <div>
+                        <strong style={{ color: colors.text.secondary }}>Sub-category:</strong>
+                        <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.category_name}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <strong style={{ color: colors.text.secondary }}>Category:</strong>
+                      <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.category_name}</p>
+                    </div>
+                  )}
                   <div>
                     <strong style={{ color: colors.text.secondary }}>Condition:</strong>
                     <p style={{
@@ -411,21 +458,65 @@ function AdDetail() {
               formatPhoneDisplay={formatPhoneDisplay}
             />
 
-            {/* Report Ad */}
-            <div style={{
-              ...styles.card.default,
-              marginTop: spacing.xl
-            }}>
-              <button
-                onClick={handleReportAd}
-                style={{
-                  ...styles.button.ghost,
-                  width: '100%'
-                }}
-              >
-                🚩 Report this ad
-              </button>
-            </div>
+            {/* Boost Your Ad - ONLY FOR AD OWNER */}
+            {isAuthenticated && user && user.id === ad.user_id && (
+              <div style={{
+                ...styles.card.default,
+                marginTop: spacing.xl,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none'
+              }}>
+                <h3 style={{
+                  margin: '0 0 12px 0',
+                  fontSize: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🚀 Boost Your Ad
+                </h3>
+                <p style={{
+                  fontSize: '14px',
+                  margin: '0 0 16px 0',
+                  opacity: 0.9
+                }}>
+                  Get more visibility with Featured, Urgent, or Sticky promotions!
+                </p>
+                <button
+                  onClick={() => navigate(`/${language}/promote/${ad.id}`, { state: { ad } })}
+                  style={{
+                    ...styles.button.primary,
+                    width: '100%',
+                    background: 'white',
+                    color: '#667eea',
+                    fontWeight: 600,
+                    padding: '12px 24px',
+                    fontSize: '16px'
+                  }}
+                >
+                  Promote Now
+                </button>
+              </div>
+            )}
+
+            {/* Report Ad - ONLY FOR NON-OWNERS */}
+            {(!isAuthenticated || !user || user.id !== ad.user_id) && (
+              <div style={{
+                ...styles.card.default,
+                marginTop: spacing.xl
+              }}>
+                <button
+                  onClick={handleReportAd}
+                  style={{
+                    ...styles.button.ghost,
+                    width: '100%'
+                  }}
+                >
+                  🚩 Report this ad
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -457,6 +548,14 @@ function AdDetail() {
         onAuthSuccess={() => {
           setAuthModal({ isOpen: false, mode: 'login' });
         }}
+      />
+
+      {/* Promote Ad Modal */}
+      <PromoteAdModal
+        isOpen={promoteModal}
+        onClose={() => setPromoteModal(false)}
+        ad={ad}
+        onPromote={handlePromote}
       />
     </div>
   );

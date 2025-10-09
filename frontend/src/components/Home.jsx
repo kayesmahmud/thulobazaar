@@ -10,7 +10,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { generateBikroyStyleURL, getCategorySlug } from '../utils/seoUtils';
 
 function Home() {
-  console.log('Home component rendering...');
   const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -26,15 +25,11 @@ function Home() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log('🔄 Fetching data from API...');
 
         const [adsResponse, categoriesData] = await Promise.all([
           ApiService.getAds(),
           ApiService.getCategories()
         ]);
-
-        console.log('✅ Ads received:', adsResponse);
-        console.log('✅ Categories received:', categoriesData);
 
         setAds(adsResponse.data);
         setCategories(categoriesData);
@@ -186,7 +181,7 @@ function Home() {
                 >
                   <div className="search-icon">
                     <svg width="17" height="17" viewBox="0 0 17 17">
-                      <path d="M7.615 15.23a7.615 7.615 0 1 1 6.1-3.054l2.966 2.967a1.088 1.088 0 0 1-1.539 1.538l-2.966-2.966a7.582 7.582 0 0 1-4.56 1.516zm5.44-7.615a5.44 5.44 0 1 1-10.88 0 5.44 5.44 0 0 1 10.88 0z" fillRule="evenodd"></path>
+                      <path d="M7.615 15.23a7.615 7.615 0 1 1 6.1-3.054l2.966 2.967a1.088 1.088 0 0 1-1.539 1.538l-2.966-2.966a7.582 7.582 0 0 1-4.56 1.516zm5.44-7.615a5.44 5.44 0 1 1-10.88 0 5.44 5.44 0 0 1 10.88 0z" fill="white" fillRule="evenodd"></path>
                     </svg>
                   </div>
                 </button>

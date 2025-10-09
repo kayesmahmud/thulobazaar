@@ -6,8 +6,11 @@ const { apiLimiter } = require('../middleware/security');
 const { catchAsync } = require('../middleware/errorHandler');
 
 // Public routes
+router.get('/hierarchy', apiLimiter, catchAsync(LocationController.getHierarchy));
+router.get('/search', apiLimiter, catchAsync(LocationController.searchAreas));
 router.get('/', apiLimiter, catchAsync(LocationController.getAll));
 router.get('/:id', apiLimiter, catchAsync(LocationController.getOne));
+router.get('/:id/wards', apiLimiter, catchAsync(LocationController.getWards));
 
 // Admin routes
 router.post('/'  /* authenticateToken, requireAdmin */, catchAsync(LocationController.create));

@@ -22,6 +22,9 @@ const EditorDashboard = lazy(() => import('./components/EditorDashboard'));
 const Profile = lazy(() => import('./components/Profile'));
 const ShopProfile = lazy(() => import('./components/ShopProfile'));
 const SellerProfile = lazy(() => import('./components/SellerProfile'));
+const PromotionSelectionPage = lazy(() => import('./pages/PromotionSelectionPage'));
+const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 
 function App() {
   return (
@@ -57,6 +60,11 @@ function App() {
 
               {/* SEO-friendly ad URLs */}
               <Route path="ad/:slug" element={<AdDetail />} />
+
+              {/* Ad Promotion Routes */}
+              <Route path="promote/:adId" element={<PromotionSelectionPage />} />
+              <Route path="payment/:adId" element={<PaymentPage />} />
+              <Route path="payment-success" element={<PaymentSuccessPage />} />
 
               {/* Shop and Seller Profile pages */}
               <Route path="shop/:shopSlug" element={<ShopProfile />} />

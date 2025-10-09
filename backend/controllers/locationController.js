@@ -122,6 +122,73 @@ class LocationController {
       message: 'Location deleted successfully'
     });
   }
+
+  /**
+   * Get complete location hierarchy (provinces > districts > municipalities)
+   * OPTIMIZED: Returns all locations in a single call instead of 85 separate calls
+   */
+  static async getHierarchy(req, res) {
+    const hierarchy = await Location.getHierarchy();
+
+    const stats = {
+      provinces: hierarchy.length,
+      districts: hierarchy.reduce((sum, p) => sum + p.districts.length, 0),
+      municipalities: hierarchy.reduce((sum, p) =>
+        sum + p.districts.reduce((districtSum, d) =>
+          districtSum + d.municipalities.length, 0
+        ), 0
+      )
+    };
+
+    res.json({
+      success: true,
+      data: hierarchy,
+      stats
+    });
+  }
+
+  /**
+   * Search areas/places with autocomplete
+   */
+  static async searchAreas(req, res) {
+    const { q, limit = 10 } = req.query;
+
+    // Return empty if query is too short
+    if (!q || q.trim().length < 2) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    const searchTerm = q.trim();
+    const results = await Location.searchAreas(searchTerm, parseInt(limit));
+
+    console.log(`🔍 Location search for "${searchTerm}": Found ${results.length} results`);
+
+    res.json({
+      success: true,
+      data: results
+    });
+  }
+
+  /**
+   * Get wards for a municipality
+   */
+  static async getWards(req, res) {
+    const { id } = req.params;
+
+    const result = await Location.getWards(parseInt(id));
+
+    if (!result) {
+      throw new NotFoundError('Municipality not found');
+    }
+
+    res.json({
+      success: true,
+      data: result
+    });
+  }
 }
 
 module.exports = LocationController;

@@ -621,12 +621,15 @@ app.get('/api/ads/:id', async (req, res) => {
         a.id, a.title, a.description, a.price, a.condition, a.view_count,
         a.seller_name, a.seller_phone, a.created_at, a.is_featured, a.user_id,
         a.category_id, a.location_id,
-        c.name as category_name, c.icon as category_icon,
+        a.is_urgent, a.urgent_until, a.is_sticky, a.sticky_until,
+        c.name as category_name, c.icon as category_icon, c.parent_id as category_parent_id,
+        parent_c.name as parent_category_name, parent_c.id as parent_category_id,
         l.name as location_name,
         u.business_verification_status, u.business_name, u.avatar as seller_avatar,
         u.account_type, u.shop_slug, u.seller_slug, u.individual_verified
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
+      LEFT JOIN categories parent_c ON c.parent_id = parent_c.id
       LEFT JOIN locations l ON a.location_id = l.id
       LEFT JOIN users u ON a.user_id = u.id
       WHERE a.id = $1 AND a.status = 'approved'
@@ -756,7 +759,10 @@ app.get('/api/locations', async (req, res) => {
   }
 });
 
-// Location search/autocomplete API for mobile
+// OLD Location search endpoint - Replaced by /api/locations/search route in locationRoutes.js
+// This searched locations table only - new endpoint searches areas table with full hierarchy
+// Commented out to use new areas-based search
+/*
 app.get('/api/locations/search', async (req, res) => {
   try {
     const { q, lat, lng, limit = 10 } = req.query;
@@ -825,6 +831,7 @@ app.get('/api/locations/search', async (req, res) => {
     });
   }
 });
+*/
 
 // Reverse geocoding - get location info from coordinates
 app.get('/api/locations/reverse', async (req, res) => {
@@ -1869,6 +1876,9 @@ app.post('/api/reply-message', rateLimiters.messaging, authenticateToken, async 
 // Search routes (Typesense integration)
 app.use('/api/search', require('./routes/search'));
 
+// Location routes (areas search, hierarchy)
+app.use('/api/locations', require('./routes/locationRoutes'));
+
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
@@ -1886,6 +1896,15 @@ app.use('/api', require('./routes/profiles'));
 
 // Individual seller verification routes
 app.use('/api/individual-verification', require('./routes/individualVerification'));
+
+// Mock Payment routes (FOR TESTING ONLY - Remove in production)
+app.use('/api/mock-payment', require('./routes/mockPayment'));
+console.log('🎭 MOCK PAYMENT: Routes registered at /api/mock-payment');
+console.log('⚠️  WARNING: This is for testing only. Replace with real payment gateway in production.');
+
+// Promotion Pricing routes
+app.use('/api/promotion-pricing', require('./routes/promotionPricing'));
+console.log('💰 Promotion pricing routes registered at /api/promotion-pricing');
 
 // Error handling
 app.use((err, req, res, next) => {

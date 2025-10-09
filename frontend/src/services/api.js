@@ -3,7 +3,6 @@ const API_BASE_URL = 'http://localhost:5000/api';
 class ApiService {
   async get(endpoint) {
     try {
-      console.log(`🔄 Fetching: ${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`);
 
       if (!response.ok) {
@@ -11,7 +10,6 @@ class ApiService {
       }
 
       const data = await response.json();
-      console.log(`✅ Response for ${endpoint}:`, data);
 
       if (!data.success) {
         // Create enhanced error with structured information
@@ -55,7 +53,6 @@ class ApiService {
     const endpoint = queryString ? `/ads?${queryString}` : '/ads';
 
     try {
-      console.log(`🔄 Fetching: ${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`);
 
       if (!response.ok) {
@@ -63,7 +60,6 @@ class ApiService {
       }
 
       const data = await response.json();
-      console.log(`✅ Response for ${endpoint}:`, data);
 
       if (!data.success) {
         // Create enhanced error with structured information
@@ -104,10 +100,43 @@ class ApiService {
     return this.get('/locations');
   }
 
+  // Get complete location hierarchy (provinces > districts > municipalities)
+  // OPTIMIZED: Returns all locations in a single API call instead of 85 separate calls
+  async getLocationHierarchy() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/locations/hierarchy`);
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch location hierarchy');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Location hierarchy error:', error);
+      throw error;
+    }
+  }
+
+  // Search locations/areas with autocomplete
+  async searchLocations(query, limit = 10) {
+    if (!query || query.length < 2) {
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/locations/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+      const data = await response.json();
+      return data.success ? data.data : [];
+    } catch (error) {
+      console.error('❌ Location search error:', error);
+      return [];
+    }
+  }
+
   // Authentication methods
   async login(email, password) {
     try {
-      console.log(`🔄 Logging in user: ${email}`);
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -117,7 +146,6 @@ class ApiService {
       });
 
       const data = await response.json();
-      console.log(`✅ Login response:`, data);
 
       if (!data.success) {
         throw new Error(data.message || 'Login failed');
@@ -971,6 +999,173 @@ class ApiService {
     const data = await response.json();
     if (!data.success) throw new Error(data.message || 'Failed to reject request');
     return data;
+  }
+
+  // Promotion Pricing methods
+  async getPromotionPricing() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/promotion-pricing`);
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch promotion pricing');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Get promotion pricing error:', error);
+      throw error;
+    }
+  }
+
+  async calculatePromotionPrice(promotionType, durationDays, adId) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No authentication token found');
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/promotion-pricing/calculate?promotionType=${promotionType}&durationDays=${durationDays}${adId ? `&adId=${adId}` : ''}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to calculate price');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Calculate promotion price error:', error);
+      throw error;
+    }
+  }
+
+  // Ad Promotion Payment methods
+  async initiatePayment(promotionData) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No authentication token found');
+
+    try {
+      console.log(`🔄 Initiating payment for ad promotion:`, promotionData);
+      const response = await fetch(`${API_BASE_URL}/mock-payment/initiate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(promotionData)
+      });
+
+      const data = await response.json();
+      console.log(`✅ Initiate payment response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to initiate payment');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Initiate payment error:`, error);
+      throw error;
+    }
+  }
+
+  async verifyPayment(transactionId) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No authentication token found');
+
+    try {
+      console.log(`🔄 Verifying payment:`, transactionId);
+      const response = await fetch(`${API_BASE_URL}/mock-payment/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ transactionId })
+      });
+
+      const data = await response.json();
+      console.log(`✅ Verify payment response:`, data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to verify payment');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`❌ Verify payment error:`, error);
+      throw error;
+    }
+  }
+
+  async getPaymentStatus(transactionId) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No authentication token found');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/mock-payment/status/${transactionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      return data.success ? data.data : null;
+    } catch (error) {
+      console.error(`❌ Get payment status error:`, error);
+      throw error;
+    }
+  }
+
+  // Admin: Promotion Pricing Management
+  async getAllPromotionPricing() {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/promotion-pricing/admin/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch promotion pricing');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Get all promotion pricing error:', error);
+      throw error;
+    }
+  }
+
+  async updatePromotionPrice(pricingId, newPrice, newDiscount) {
+    const token = localStorage.getItem('editorToken');
+    if (!token) throw new Error('No authentication token found');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/promotion-pricing/${pricingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          price: newPrice,
+          discount_percentage: newDiscount
+        })
+      });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to update pricing');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Update promotion price error:', error);
+      throw error;
+    }
   }
 }
 

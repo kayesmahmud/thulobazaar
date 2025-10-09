@@ -7,6 +7,7 @@ import ApiService from '../services/api';
 import ImageUpload from './ImageUpload';
 import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
+import LocationSearchInput from './LocationSearchInput';
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
@@ -29,6 +30,10 @@ function PostAd() {
   const [districtId, setDistrictId] = useState('');
   const [municipalities, setMunicipalities] = useState([]);
 
+  // Area search state
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [areaSearchValue, setAreaSearchValue] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -36,7 +41,7 @@ function PostAd() {
     condition: '',
     categoryId: '',
     locationId: '',
-    sellerName: user?.fullName || '',
+    sellerName: user?.name || '',
     sellerPhone: user?.phone || ''
   });
 
@@ -71,7 +76,7 @@ function PostAd() {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        sellerName: user.fullName || '',
+        sellerName: user.name || '',
         sellerPhone: user.phone || ''
       }));
     }
@@ -155,6 +160,37 @@ function PostAd() {
     if (error) setError(null);
   };
 
+  // Area search handlers
+  const handleAreaSelect = async (area) => {
+    setSelectedArea(area);
+    setAreaSearchValue(area.display_text);
+
+    // Auto-populate the cascading dropdowns
+    setProvinceId(area.province_id.toString());
+    setFormData(prev => ({ ...prev, locationId: area.municipality_id.toString() }));
+
+    // Load districts for the province
+    try {
+      const districtsData = await ApiService.getLocations(area.province_id);
+      setDistricts(districtsData);
+      setDistrictId(area.district_id.toString());
+
+      // Load municipalities for the district
+      const municipalitiesData = await ApiService.getLocations(area.district_id);
+      setMunicipalities(municipalitiesData);
+    } catch (err) {
+      console.error('Error loading location data:', err);
+    }
+
+    if (error) setError(null);
+  };
+
+  const handleAreaClear = () => {
+    setSelectedArea(null);
+    setAreaSearchValue('');
+    // Don't clear the cascading dropdowns - let user decide
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -180,14 +216,8 @@ function PostAd() {
       if (!formData.categoryId) {
         throw new Error('Category is required');
       }
-      if (!provinceId) {
-        throw new Error('Please select a province');
-      }
-      if (!districtId) {
-        throw new Error('Please select a district');
-      }
       if (!formData.locationId) {
-        throw new Error('Please select a municipality');
+        throw new Error('Please select a location (search for area or select municipality)');
       }
       if (!formData.sellerName.trim()) {
         throw new Error('Seller name is required');
@@ -516,6 +546,51 @@ function PostAd() {
                 Location
               </h3>
 
+              {/* Area Search Input */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Search Area/Place (Optional) *
+                </label>
+                <LocationSearchInput
+                  value={areaSearchValue}
+                  onSelect={handleAreaSelect}
+                  onClear={handleAreaClear}
+                  placeholder="Type to search (e.g., Thamel, Baluwatar, Naxal...)"
+                />
+                {selectedArea && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    color: '#166534'
+                  }}>
+                    ✓ Selected: <strong>{selectedArea.area_name}</strong>, Ward {selectedArea.ward_number}, {selectedArea.municipality_name}
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '20px 0',
+                color: '#9ca3af',
+                fontSize: '14px'
+              }}>
+                <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
+                <span style={{ padding: '0 12px' }}>OR browse by location</span>
+                <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
+              </div>
+
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr 1fr',
@@ -530,19 +605,21 @@ function PostAd() {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Province *
+                    Province
                   </label>
                   <select
-                    required
                     value={provinceId}
                     onChange={(e) => handleProvinceChange(e.target.value)}
+                    disabled={!!selectedArea}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
                       border: '2px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      outline: 'none'
+                      outline: 'none',
+                      backgroundColor: selectedArea ? '#f9fafb' : 'white',
+                      cursor: selectedArea ? 'not-allowed' : 'pointer'
                     }}
                   >
                     <option value="">Select Province</option>
@@ -564,19 +641,21 @@ function PostAd() {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      District *
+                      District
                     </label>
                     <select
-                      required
                       value={districtId}
                       onChange={(e) => handleDistrictChange(e.target.value)}
+                      disabled={!!selectedArea}
                       style={{
                         width: '100%',
                         padding: '12px 16px',
                         border: '2px solid #e5e7eb',
                         borderRadius: '8px',
                         fontSize: '16px',
-                        outline: 'none'
+                        outline: 'none',
+                        backgroundColor: selectedArea ? '#f9fafb' : 'white',
+                        cursor: selectedArea ? 'not-allowed' : 'pointer'
                       }}
                     >
                       <option value="">Select District</option>
@@ -599,19 +678,21 @@ function PostAd() {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Municipality *
+                      Municipality
                     </label>
                     <select
-                      required
                       value={formData.locationId}
                       onChange={(e) => handleMunicipalityChange(e.target.value)}
+                      disabled={!!selectedArea}
                       style={{
                         width: '100%',
                         padding: '12px 16px',
                         border: '2px solid #e5e7eb',
                         borderRadius: '8px',
                         fontSize: '16px',
-                        outline: 'none'
+                        outline: 'none',
+                        backgroundColor: selectedArea ? '#f9fafb' : 'white',
+                        cursor: selectedArea ? 'not-allowed' : 'pointer'
                       }}
                     >
                       <option value="">Select Municipality</option>
@@ -651,23 +732,29 @@ function PostAd() {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Your Name *
+                    Your Name * 🔒
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.sellerName}
-                    onChange={(e) => handleInputChange('sellerName', e.target.value)}
+                    readOnly
                     style={{
                       width: '100%',
                       padding: '12px 16px',
                       border: '2px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      outline: 'none'
+                      outline: 'none',
+                      backgroundColor: '#f9fafb',
+                      cursor: 'not-allowed',
+                      color: '#6b7280'
                     }}
                     placeholder="Your full name"
                   />
+                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Name is locked from your profile. Update in profile settings if needed.
+                  </small>
                 </div>
 
                 {/* Seller Phone */}
@@ -679,7 +766,7 @@ function PostAd() {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Phone Number *
+                    Phone Number * ✏️
                   </label>
                   <input
                     type="tel"
@@ -696,6 +783,9 @@ function PostAd() {
                     }}
                     placeholder="+977-9800000000"
                   />
+                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Phone from your profile. You can edit it if needed.
+                  </small>
                 </div>
               </div>
             </div>

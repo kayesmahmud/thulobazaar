@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { styles, colors, spacing, typography } from '../../styles/theme';
+import LocationSearchInput from '../LocationSearchInput';
 
 function SearchFiltersPanel({
   categories,
@@ -29,6 +30,10 @@ function SearchFiltersPanel({
   const [expandedProvince, setExpandedProvince] = useState(null);
   const [expandedDistrict, setExpandedDistrict] = useState(null);
 
+  // Area search state
+  const [areaSearchValue, setAreaSearchValue] = useState('');
+  const [selectedArea, setSelectedArea] = useState(null);
+
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -47,6 +52,19 @@ function SearchFiltersPanel({
 
   const toggleDistrict = (districtId) => {
     setExpandedDistrict(prev => prev === districtId ? null : districtId);
+  };
+
+  // Area search handlers
+  const handleAreaSelect = (area) => {
+    setSelectedArea(area);
+    setAreaSearchValue(area.display_text);
+    // Set the municipality as the selected location
+    onLocationChange(area.municipality_id.toString());
+  };
+
+  const handleAreaClear = () => {
+    setSelectedArea(null);
+    setAreaSearchValue('');
   };
 
   const FilterSection = ({ title, section, children, count }) => (
@@ -349,6 +367,51 @@ function SearchFiltersPanel({
       {/* Location Filter */}
       <FilterSection title="Location" section="location" count={locationCount}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+          {/* Area Search Input */}
+          <div style={{ marginBottom: spacing.sm }}>
+            <label style={{
+              display: 'block',
+              marginBottom: spacing.xs,
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary
+            }}>
+              🔍 Search Area/Place
+            </label>
+            <LocationSearchInput
+              value={areaSearchValue}
+              onSelect={handleAreaSelect}
+              onClear={handleAreaClear}
+              placeholder="e.g., Thamel, Baluwatar..."
+            />
+            {selectedArea && (
+              <div style={{
+                marginTop: spacing.xs,
+                padding: spacing.xs,
+                backgroundColor: colors.primaryLight,
+                border: `1px solid ${colors.primary}`,
+                borderRadius: '6px',
+                fontSize: typography.fontSize.xs,
+                color: colors.primary
+              }}>
+                ✓ {selectedArea.area_name}, Ward {selectedArea.ward_number}
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            margin: `${spacing.sm} 0`,
+            color: colors.text.secondary,
+            fontSize: typography.fontSize.xs
+          }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
+            <span style={{ padding: `0 ${spacing.xs}` }}>OR</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
+          </div>
+
           <label
             style={{
               display: 'flex',
