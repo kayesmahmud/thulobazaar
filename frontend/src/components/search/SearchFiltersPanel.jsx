@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { styles, colors, spacing, typography } from '../../styles/theme';
 import ActiveLocationFilters from './ActiveLocationFilters';
 import LocationHierarchyBrowser from './LocationHierarchyBrowser';
@@ -36,6 +36,30 @@ function SearchFiltersPanel({
 
   // New: Selected areas for area-based filtering
   const [selectedAreas, setSelectedAreas] = useState([]);
+
+  // Local price state with debouncing to prevent input focus loss
+  const [localPriceMin, setLocalPriceMin] = useState('');
+  const [localPriceMax, setLocalPriceMax] = useState('');
+  const priceDebounceTimeout = useRef(null);
+  const isTyping = useRef(false); // Track if user is actively typing
+
+  // Sync local price with props ONLY when not typing
+  // This prevents focus loss when URL updates after debounced callback
+  useEffect(() => {
+    if (!isTyping.current) {
+      setLocalPriceMin(priceRange.min);
+      setLocalPriceMax(priceRange.max);
+    }
+  }, [priceRange.min, priceRange.max]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (priceDebounceTimeout.current) {
+        clearTimeout(priceDebounceTimeout.current);
+      }
+    };
+  }, []);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -151,6 +175,34 @@ function SearchFiltersPanel({
       handleClearAllAreas();
     }
     onClearFilters();
+  };
+
+  // Debounced price change handler
+  const handlePriceChange = (field, value) => {
+    // Mark as typing to prevent prop sync from interfering
+    isTyping.current = true;
+
+    // Update local state immediately (no callback, no re-render from parent)
+    if (field === 'min') {
+      setLocalPriceMin(value);
+    } else {
+      setLocalPriceMax(value);
+    }
+
+    // Clear previous timeout
+    if (priceDebounceTimeout.current) {
+      clearTimeout(priceDebounceTimeout.current);
+    }
+
+    // Call parent callback after 5000ms (5 seconds) of no typing
+    priceDebounceTimeout.current = setTimeout(() => {
+      onPriceRangeChange({
+        min: field === 'min' ? value : localPriceMin,
+        max: field === 'max' ? value : localPriceMax
+      });
+      // Allow prop sync again after callback fires
+      isTyping.current = false;
+    }, 5000);
   };
 
   return (
@@ -686,8 +738,8 @@ function SearchFiltersPanel({
           <input
             type="number"
             placeholder="Min"
-            value={priceRange.min}
-            onChange={(e) => onPriceRangeChange({ ...priceRange, min: e.target.value })}
+            value={localPriceMin}
+            onChange={(e) => handlePriceChange('min', e.target.value)}
             style={{
               ...styles.input.default,
               flex: 1,
@@ -698,8 +750,8 @@ function SearchFiltersPanel({
           <input
             type="number"
             placeholder="Max"
-            value={priceRange.max}
-            onChange={(e) => onPriceRangeChange({ ...priceRange, max: e.target.value })}
+            value={localPriceMax}
+            onChange={(e) => handlePriceChange('max', e.target.value)}
             style={{
               ...styles.input.default,
               flex: 1,

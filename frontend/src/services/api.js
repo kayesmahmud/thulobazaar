@@ -35,25 +35,26 @@ class ApiService {
   async getAds(searchParams = {}) {
     const params = new URLSearchParams();
 
+    // SUPPORTED PARAMETERS (backend validates these)
     if (searchParams.search) params.append('search', searchParams.search);
     if (searchParams.category) params.append('category', searchParams.category);
     if (searchParams.parentCategoryId) params.append('parentCategoryId', searchParams.parentCategoryId);
-    // Use location_name for hierarchical filtering with recursive CTE
+
+    // Location filtering - use location_name for hierarchical filtering with recursive CTE
     if (searchParams.location_name) params.append('location_name', searchParams.location_name);
     else if (searchParams.location) params.append('location', searchParams.location);
-    if (searchParams.area_ids) params.append('area_ids', searchParams.area_ids);
-    if (searchParams.province_id) params.append('province_id', searchParams.province_id);
-    if (searchParams.district_id) params.append('district_id', searchParams.district_id);
-    if (searchParams.municipality_id) params.append('municipality_id', searchParams.municipality_id);
-    if (searchParams.ward) params.append('ward', searchParams.ward);
+
+    // Price filters
     if (searchParams.minPrice) params.append('minPrice', searchParams.minPrice);
     if (searchParams.maxPrice) params.append('maxPrice', searchParams.maxPrice);
+
+    // Condition filter
     if (searchParams.condition) params.append('condition', searchParams.condition);
-    if (searchParams.datePosted) params.append('datePosted', searchParams.datePosted);
-    if (searchParams.dateFrom) params.append('dateFrom', searchParams.dateFrom);
-    if (searchParams.dateTo) params.append('dateTo', searchParams.dateTo);
+
+    // Sorting
     if (searchParams.sortBy) params.append('sortBy', searchParams.sortBy);
-    if (searchParams.sortOrder) params.append('sortOrder', searchParams.sortOrder);
+
+    // Pagination
     if (searchParams.limit) params.append('limit', searchParams.limit);
     if (searchParams.offset) params.append('offset', searchParams.offset);
 

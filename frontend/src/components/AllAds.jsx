@@ -27,16 +27,11 @@ function AllAds() {
   const [totalAds, setTotalAds] = useState(0);
   const adsPerPage = 20;
 
-  // Advanced filter state - matching SearchResults
+  // Advanced filter state - cleaned up to match SearchResults
   const [filters, setFilters] = useState({
     category: 'all',
     subcategory: '',
     location: 'all',
-    area_ids: '',
-    province_id: '',
-    district_id: '',
-    municipality_id: '',
-    ward: '',
     minPrice: '',
     maxPrice: '',
     condition: 'all',
@@ -139,56 +134,7 @@ function AllAds() {
         }
 
         // Location filtering - use location_name for hierarchical filtering with recursive CTE
-        // Convert location IDs to names for backend compatibility
-        if (filters.area_ids && filters.area_ids !== 'all') {
-          // Area IDs - backend doesn't support this parameter
-          // Keep for now but may need to convert to location_name
-          searchParams.area_ids = filters.area_ids;
-        } else if (filters.province_id) {
-          // Find province name from ID and use location_name
-          const province = locations.find(l => l.id === parseInt(filters.province_id));
-          if (province) {
-            searchParams.location_name = province.name;
-            console.log('🗺️ [AllAds] Province selected, using location_name:', province.name);
-          }
-        } else if (filters.district_id) {
-          // Find district name from ID and use location_name
-          let districtName = null;
-          for (const province of locations) {
-            if (province.districts) {
-              const district = province.districts.find(d => d.id === parseInt(filters.district_id));
-              if (district) {
-                districtName = district.name;
-                break;
-              }
-            }
-          }
-          if (districtName) {
-            searchParams.location_name = districtName;
-            console.log('🗺️ [AllAds] District selected, using location_name:', districtName);
-          }
-        } else if (filters.municipality_id) {
-          // Find municipality name from ID and use location_name
-          let municipalityName = null;
-          for (const province of locations) {
-            if (province.districts) {
-              for (const district of province.districts) {
-                if (district.municipalities) {
-                  const municipality = district.municipalities.find(m => m.id === parseInt(filters.municipality_id));
-                  if (municipality) {
-                    municipalityName = municipality.name;
-                    break;
-                  }
-                }
-              }
-              if (municipalityName) break;
-            }
-          }
-          if (municipalityName) {
-            searchParams.location_name = municipalityName;
-            console.log('🗺️ [AllAds] Municipality selected, using location_name:', municipalityName);
-          }
-        } else if (filters.location !== 'all') {
+        if (filters.location !== 'all') {
           // Use location_name for hierarchical filtering (includes all child locations)
           searchParams.location_name = filters.location;
           console.log('🗺️ [AllAds] Using location_name for hierarchical filtering:', filters.location);
@@ -230,24 +176,22 @@ function AllAds() {
   const handleLocationSelect = (selection) => {
     console.log('✨ [AllAds] Location selected:', selection);
 
-    // Clear all location filters first and use location name
-    const newFilters = {
-      ...filters,
-      location: 'all',
-      area_ids: '',
-      province_id: '',
-      district_id: '',
-      municipality_id: '',
-      ward: ''
-    };
-
-    // Use location name instead of IDs for cleaner approach
-    if (selection && selection.name) {
-      newFilters.location = selection.name;
-      console.log('🗺️ [AllAds] Location selected:', selection.name, `(type: ${selection.type})`);
+    if (!selection) {
+      // Clear location filter
+      setFilters(prev => ({
+        ...prev,
+        location: 'all'
+      }));
+      setCurrentPage(1);
+      return;
     }
 
-    setFilters(newFilters);
+    // Use location name for hierarchical filtering
+    setFilters(prev => ({
+      ...prev,
+      location: selection.name
+    }));
+    console.log('🗺️ [AllAds] Set location to:', selection.name);
     setCurrentPage(1);
   };
 
@@ -313,11 +257,6 @@ function AllAds() {
       category: 'all',
       subcategory: '',
       location: 'all',
-      area_ids: '',
-      province_id: '',
-      district_id: '',
-      municipality_id: '',
-      ward: '',
       minPrice: '',
       maxPrice: '',
       condition: 'all',
@@ -327,8 +266,7 @@ function AllAds() {
   };
 
   const hasActiveFilters = filters.category !== 'all' || filters.subcategory ||
-    filters.area_ids || filters.province_id || filters.district_id ||
-    filters.municipality_id || filters.ward ||
+    filters.location !== 'all' ||
     filters.minPrice || filters.maxPrice ||
     filters.condition !== 'all' || filters.sortBy !== 'newest';
 

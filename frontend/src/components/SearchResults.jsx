@@ -8,6 +8,7 @@ import Header from './Header';
 import RecentlyViewed from './RecentlyViewed';
 import AdvancedFilters from './AdvancedFilters';
 import SearchFiltersPanel from './search/SearchFiltersPanel';
+import LocationHierarchyBrowser from './search/LocationHierarchyBrowser';
 import Pagination from './Pagination';
 import ApiService from '../services/api';
 import { getCategoryFromSlug, getCategorySlug, reverseCategoryMappings } from '../utils/seoUtils';
@@ -32,6 +33,12 @@ function SearchResults() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
 
+  // Local state for mobile price inputs only (desktop uses SearchFiltersPanel's internal state)
+  const [localMinPrice, setLocalMinPrice] = useState('');
+  const [localMaxPrice, setLocalMaxPrice] = useState('');
+  const priceDebounceTimeout = useRef(null);
+  const isTypingPrice = useRef(false); // Track if user is actively typing price
+
   // Get category from URL path (/en/fashion) or query params (?category=Fashion)
   const urlParams = new URLSearchParams(location.search);
   let categoryFromURL = 'all';
@@ -49,21 +56,30 @@ function SearchResults() {
       category: urlParams.get('category') || categoryFromURL,
       subcategory: urlParams.get('subcategory') || '',
       location: urlParams.get('location') || 'all',
-      area_ids: urlParams.get('area_ids') || '',
-      province_id: urlParams.get('province_id') || '',
-      district_id: urlParams.get('district_id') || '',
-      municipality_id: urlParams.get('municipality_id') || '',
-      ward: urlParams.get('ward') || '',
       minPrice: urlParams.get('minPrice') || '',
       maxPrice: urlParams.get('maxPrice') || '',
       condition: urlParams.get('condition') || 'all',
-      datePosted: urlParams.get('datePosted') || 'any',
-      dateFrom: urlParams.get('dateFrom') || '',
-      dateTo: urlParams.get('dateTo') || '',
       sortBy: urlParams.get('sortBy') || 'newest',
-      sortOrder: urlParams.get('sortOrder') || 'desc',
       page: parseInt(urlParams.get('page')) || 1
   };
+
+  // Sync local price state with URL params ONLY when not typing
+  // This prevents focus loss when URL updates after debounced callback
+  useEffect(() => {
+    if (!isTypingPrice.current) {
+      setLocalMinPrice(searchFilters.minPrice);
+      setLocalMaxPrice(searchFilters.maxPrice);
+    }
+  }, [searchFilters.minPrice, searchFilters.maxPrice]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (priceDebounceTimeout.current) {
+        clearTimeout(priceDebounceTimeout.current);
+      }
+    };
+  }, []);
 
   const advancedFilters = {
     priceRange: [
@@ -71,13 +87,7 @@ function SearchResults() {
       searchFilters.maxPrice ? parseInt(searchFilters.maxPrice) : 0
     ],
     condition: searchFilters.condition,
-    datePosted: searchFilters.datePosted,
-    customDateRange: {
-      from: searchFilters.dateFrom,
-      to: searchFilters.dateTo
-    },
-    sortBy: searchFilters.sortBy,
-    sortOrder: searchFilters.sortOrder
+    sortBy: searchFilters.sortBy
   };
 
   // OPTIMIZED: Create O(1) lookup maps for locations and categories
@@ -178,57 +188,7 @@ function SearchResults() {
           }
         }
         // Location filtering - use location_name for hierarchical filtering with recursive CTE
-        // NOTE: area_ids, province_id, district_id, municipality_id are passed through SearchFiltersPanel
-        // but we need to convert them to location names for the backend
-        if (searchFilters.area_ids && searchFilters.area_ids !== 'all') {
-          // Area IDs are comma-separated, just use the first one's name
-          // The LocationHierarchyBrowser should handle this better by passing location name
-          searchParams.area_ids = searchFilters.area_ids;
-        } else if (searchFilters.province_id) {
-          // Find province name from ID and use location_name
-          const province = locations.find(l => l.id === parseInt(searchFilters.province_id));
-          if (province) {
-            searchParams.location_name = province.name;
-            console.log('🗺️ [SearchResults] Province selected, using location_name:', province.name);
-          }
-        } else if (searchFilters.district_id) {
-          // Find district name from ID and use location_name
-          let districtName = null;
-          for (const province of locations) {
-            if (province.districts) {
-              const district = province.districts.find(d => d.id === parseInt(searchFilters.district_id));
-              if (district) {
-                districtName = district.name;
-                break;
-              }
-            }
-          }
-          if (districtName) {
-            searchParams.location_name = districtName;
-            console.log('🗺️ [SearchResults] District selected, using location_name:', districtName);
-          }
-        } else if (searchFilters.municipality_id) {
-          // Find municipality name from ID and use location_name
-          let municipalityName = null;
-          for (const province of locations) {
-            if (province.districts) {
-              for (const district of province.districts) {
-                if (district.municipalities) {
-                  const municipality = district.municipalities.find(m => m.id === parseInt(searchFilters.municipality_id));
-                  if (municipality) {
-                    municipalityName = municipality.name;
-                    break;
-                  }
-                }
-              }
-              if (municipalityName) break;
-            }
-          }
-          if (municipalityName) {
-            searchParams.location_name = municipalityName;
-            console.log('🗺️ [SearchResults] Municipality selected, using location_name:', municipalityName);
-          }
-        } else if (searchFilters.location !== 'all') {
+        if (searchFilters.location !== 'all') {
           // Use location_name for hierarchical filtering (includes all child locations)
           searchParams.location_name = searchFilters.location;
           console.log('🗺️ [SearchResults] Using location_name for hierarchical filtering:', searchFilters.location);
@@ -236,15 +196,7 @@ function SearchResults() {
         if (searchFilters.minPrice) searchParams.minPrice = searchFilters.minPrice;
         if (searchFilters.maxPrice) searchParams.maxPrice = searchFilters.maxPrice;
         if (searchFilters.condition !== 'all') searchParams.condition = searchFilters.condition;
-        if (searchFilters.datePosted !== 'any') {
-          searchParams.datePosted = searchFilters.datePosted;
-          if (searchFilters.datePosted === 'custom') {
-            if (searchFilters.dateFrom) searchParams.dateFrom = searchFilters.dateFrom;
-            if (searchFilters.dateTo) searchParams.dateTo = searchFilters.dateTo;
-          }
-        }
         if (searchFilters.sortBy && searchFilters.sortBy !== 'newest') searchParams.sortBy = searchFilters.sortBy;
-        if (searchFilters.sortOrder && searchFilters.sortOrder !== 'desc') searchParams.sortOrder = searchFilters.sortOrder;
 
         // Add pagination
         const limit = 20;
@@ -282,6 +234,37 @@ function SearchResults() {
     updateURL(newFilters);
   };
 
+  // Debounced price change handler
+  const handlePriceChange = (field, value) => {
+    // Mark as typing to prevent prop sync from interfering
+    isTypingPrice.current = true;
+
+    // Update local state immediately (no URL update, no re-render)
+    if (field === 'minPrice') {
+      setLocalMinPrice(value);
+    } else {
+      setLocalMaxPrice(value);
+    }
+
+    // Clear previous timeout
+    if (priceDebounceTimeout.current) {
+      clearTimeout(priceDebounceTimeout.current);
+    }
+
+    // Set new timeout - update URL after 5000ms (5 seconds) of no typing
+    priceDebounceTimeout.current = setTimeout(() => {
+      const newFilters = {
+        ...searchFilters,
+        minPrice: field === 'minPrice' ? value : localMinPrice,
+        maxPrice: field === 'maxPrice' ? value : localMaxPrice,
+        page: 1
+      };
+      updateURL(newFilters);
+      // Allow prop sync again after callback fires
+      isTypingPrice.current = false;
+    }, 5000);
+  };
+
   const handleAdvancedFiltersChange = (filters) => {
     // Convert advanced filters to search filters format
     const newFilters = {
@@ -289,11 +272,7 @@ function SearchResults() {
       minPrice: filters.priceRange[0].toString(),
       maxPrice: filters.priceRange[1].toString(),
       condition: filters.condition,
-      datePosted: filters.datePosted,
-      dateFrom: filters.customDateRange.from,
-      dateTo: filters.customDateRange.to,
-      sortBy: filters.sortBy,
-      sortOrder: filters.sortOrder
+      sortBy: filters.sortBy
     };
 
     updateURL(newFilters);
@@ -307,23 +286,10 @@ function SearchResults() {
     if (filters.category && filters.category !== 'all') urlParams.append('category', filters.category);
     if (filters.subcategory) urlParams.append('subcategory', filters.subcategory);
     if (filters.location !== 'all') urlParams.append('location', filters.location);
-    if (filters.area_ids) urlParams.append('area_ids', filters.area_ids);
-    if (filters.province_id) urlParams.append('province_id', filters.province_id);
-    if (filters.district_id) urlParams.append('district_id', filters.district_id);
-    if (filters.municipality_id) urlParams.append('municipality_id', filters.municipality_id);
-    if (filters.ward) urlParams.append('ward', filters.ward);
     if (filters.minPrice && filters.minPrice !== '0' && filters.minPrice !== '') urlParams.append('minPrice', filters.minPrice);
     if (filters.maxPrice && filters.maxPrice !== '0' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
     if (filters.condition !== 'all') urlParams.append('condition', filters.condition);
-    if (filters.datePosted !== 'any') {
-      urlParams.append('datePosted', filters.datePosted);
-      if (filters.datePosted === 'custom') {
-        if (filters.dateFrom) urlParams.append('dateFrom', filters.dateFrom);
-        if (filters.dateTo) urlParams.append('dateTo', filters.dateTo);
-      }
-    }
     if (filters.sortBy && filters.sortBy !== 'newest') urlParams.append('sortBy', filters.sortBy);
-    if (filters.sortOrder && filters.sortOrder !== 'desc') urlParams.append('sortOrder', filters.sortOrder);
 
     const newQueryString = urlParams.toString();
 
@@ -353,8 +319,7 @@ function SearchResults() {
   const hasActiveFilters = searchFilters.search || searchFilters.category !== 'all' ||
     searchFilters.subcategory || searchFilters.location !== 'all' ||
     searchFilters.minPrice || searchFilters.maxPrice ||
-    searchFilters.condition !== 'all' || searchFilters.datePosted !== 'any' ||
-    searchFilters.sortBy !== 'date' || searchFilters.sortOrder !== 'desc';
+    searchFilters.condition !== 'all' || searchFilters.sortBy !== 'newest';
 
   if (loading || authLoading) {
     return (
@@ -554,19 +519,14 @@ function SearchResults() {
               onLocationSelect={(selection) => {
                 console.log('✨ [SearchResults] Location selected:', selection);
 
-                // Clear all location filters first
+                // Update location filter
                 const newFilters = {
                   ...searchFilters,
                   location: 'all',
-                  area_ids: '',
-                  province_id: '',
-                  district_id: '',
-                  municipality_id: '',
-                  ward: '',
                   page: 1
                 };
 
-                // Use location name instead of IDs for cleaner URLs
+                // Use location name for hierarchical filtering
                 if (selection && selection.name) {
                   newFilters.location = selection.name;
                   console.log('🗺️  [SearchResults] Location selected:', selection.name, `(type: ${selection.type})`);
@@ -670,10 +630,13 @@ function SearchResults() {
                 handleInputChange('location', locationName);
               }}
               onPriceRangeChange={(range) => {
+                // SearchFiltersPanel already handles debouncing internally
+                // Just update URL directly when callback is called
                 const newFilters = {
                   ...searchFilters,
                   minPrice: range.min || '',
-                  maxPrice: range.max || ''
+                  maxPrice: range.max || '',
+                  page: 1
                 };
                 updateURL(newFilters);
               }}
@@ -798,75 +761,161 @@ function SearchResults() {
       </section>
 
       {/* Mobile Filter Modals */}
-      {/* Location Modal */}
+      {/* Location Modal - Hierarchical Browser */}
       {showLocationModal && (
         <div className="mobile-modal-overlay" onClick={() => setShowLocationModal(false)}>
-          <div className="mobile-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="mobile-modal mobile-location-modal" onClick={(e) => e.stopPropagation()} style={{
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <div className="mobile-modal-header">
               <h3>Select Location</h3>
               <button onClick={() => setShowLocationModal(false)}>×</button>
             </div>
-            <div className="mobile-modal-content">
+            <div className="mobile-modal-content" style={{
+              overflowY: 'auto',
+              flex: 1
+            }}>
+              {/* Clear All Button */}
               <button
                 className={`mobile-modal-option ${searchFilters.location === 'all' ? 'selected' : ''}`}
                 onClick={() => {
                   handleInputChange('location', 'all');
                   setShowLocationModal(false);
                 }}
+                style={{
+                  marginBottom: '12px',
+                  fontWeight: '600'
+                }}
               >
                 All of Nepal
                 {searchFilters.location === 'all' && <span className="checkmark">✓</span>}
               </button>
-              {locations.map((location) => (
-                <button
-                  key={location.id}
-                  className={`mobile-modal-option ${searchFilters.location == location.name ? 'selected' : ''}`}
-                  onClick={() => {
-                    handleInputChange('location', location.name);
-                    setShowLocationModal(false);
-                  }}
-                >
-                  {location.name}
-                  {searchFilters.location == location.name && <span className="checkmark">✓</span>}
-                </button>
-              ))}
+
+              {/* Hierarchical Location Browser */}
+              <LocationHierarchyBrowser
+                onLocationSelect={(selection) => {
+                  console.log('✨ [Mobile Location] Location selected:', selection);
+
+                  // Update location filter
+                  const newFilters = {
+                    ...searchFilters,
+                    location: 'all',
+                    page: 1
+                  };
+
+                  // Use location name for hierarchical filtering
+                  if (selection && selection.name) {
+                    newFilters.location = selection.name;
+                    console.log('🗺️  [Mobile Location] Location selected:', selection.name, `(type: ${selection.type})`);
+                  }
+
+                  console.log('✨ [Mobile Location] Updating URL with filters:', newFilters);
+                  updateURL(newFilters);
+
+                  // Close modal after selection
+                  setShowLocationModal(false);
+                }}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Category Modal */}
+      {/* Category Modal - Desktop Style */}
       {showCategoryModal && (
         <div className="mobile-modal-overlay" onClick={() => setShowCategoryModal(false)}>
-          <div className="mobile-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="mobile-modal mobile-category-modal" onClick={(e) => e.stopPropagation()} style={{
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <div className="mobile-modal-header">
               <h3>Select Category</h3>
               <button onClick={() => setShowCategoryModal(false)}>×</button>
             </div>
-            <div className="mobile-modal-content">
-              <button
-                className={`mobile-modal-option ${searchFilters.category === 'all' ? 'selected' : ''}`}
-                onClick={() => {
-                  handleInputChange('category', 'all');
+            <div className="mobile-modal-content mobile-category-only" style={{
+              overflowY: 'auto',
+              flex: 1,
+              padding: '16px'
+            }}>
+              {/* Search Filters Panel - Categories Only */}
+              <div style={{
+                /* Hide all sections except Category */
+              }}>
+                <style>{`
+                  .mobile-category-only > div > div:first-child {
+                    display: none !important; /* Hide "Filters" header */
+                  }
+                  .mobile-category-only > div > div:not(:nth-child(2)) {
+                    display: none !important; /* Hide all sections except category */
+                  }
+                `}</style>
+                <SearchFiltersPanel
+                  categories={categories}
+                  locations={[]} // Don't pass locations
+                  selectedCategory={selectedCategoryId}
+                  selectedLocation=""
+                  priceRange={{ min: '', max: '' }}
+                  condition=""
+                  enableAreaFiltering={false}
+                  onCategoryChange={(categoryId) => {
+                  if (!categoryId) {
+                    // Clear both category and subcategory
+                    const newFilters = {
+                      ...searchFilters,
+                      category: 'all',
+                      subcategory: '',
+                      page: 1
+                    };
+                    updateURL(newFilters);
+                    setShowCategoryModal(false);
+                    return;
+                  }
+
+                  const id = parseInt(categoryId);
+                  let parentCategoryName = '';
+                  let subcategoryName = '';
+
+                  // First check if it's a main category
+                  const mainCategory = categories.find(c => c.id === id);
+                  if (mainCategory) {
+                    // Selected a main category
+                    parentCategoryName = mainCategory.name;
+                    subcategoryName = '';
+                  } else {
+                    // Search in subcategories
+                    for (const cat of categories) {
+                      if (cat.subcategories && cat.subcategories.length > 0) {
+                        const subcat = cat.subcategories.find(s => s.id === id);
+                        if (subcat) {
+                          // Selected a subcategory - track both parent and subcategory
+                          parentCategoryName = cat.name;
+                          subcategoryName = subcat.name;
+                          break;
+                        }
+                      }
+                    }
+                  }
+
+                  // Update filters with both category and subcategory
+                  const newFilters = {
+                    ...searchFilters,
+                    category: parentCategoryName || 'all',
+                    subcategory: subcategoryName,
+                    page: 1
+                  };
+                  updateURL(newFilters);
                   setShowCategoryModal(false);
                 }}
-              >
-                All Categories
-                {searchFilters.category === 'all' && <span className="checkmark">✓</span>}
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  className={`mobile-modal-option ${searchFilters.category == cat.name ? 'selected' : ''}`}
-                  onClick={() => {
-                    handleInputChange('category', cat.name);
-                    setShowCategoryModal(false);
-                  }}
-                >
-                  {cat.name}
-                  {searchFilters.category == cat.name && <span className="checkmark">✓</span>}
-                </button>
-              ))}
+                onLocationChange={() => {}}
+                onLocationSelect={() => {}}
+                onPriceRangeChange={() => {}}
+                onConditionChange={() => {}}
+                onClearFilters={() => {}}
+              />
+              </div>
             </div>
           </div>
         </div>
@@ -930,14 +979,14 @@ function SearchResults() {
                   <input
                     type="number"
                     placeholder="Min Price"
-                    value={searchFilters.minPrice}
-                    onChange={(e) => handleInputChange('minPrice', e.target.value)}
+                    value={localMinPrice}
+                    onChange={(e) => handlePriceChange('minPrice', e.target.value)}
                   />
                   <input
                     type="number"
                     placeholder="Max Price"
-                    value={searchFilters.maxPrice}
-                    onChange={(e) => handleInputChange('maxPrice', e.target.value)}
+                    value={localMaxPrice}
+                    onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
                   />
                 </div>
               </div>
