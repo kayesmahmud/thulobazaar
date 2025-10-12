@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import AdCard from './AdCard';
 import ApiService from '../services/api';
 import Header from './Header';
@@ -114,40 +113,39 @@ function Home() {
 
   return (
     <div>
-      <Helmet>
-        <title>Thulobazaar - Buy, Sell, and Rent Across Nepal</title>
-        <meta name="description" content="Nepal's leading classifieds marketplace. Buy and sell electronics, vehicles, real estate, and more. Post free ads and connect with buyers across Nepal." />
-        <meta name="keywords" content="Nepal classifieds, buy sell Nepal, online marketplace Nepal, free ads Nepal, Thulobazaar" />
-        <link rel="canonical" href={`${window.location.origin}/${language}`} />
+      {/* React 19 Native Metadata */}
+      <title>Thulobazaar - Buy, Sell, and Rent Across Nepal</title>
+      <meta name="description" content="Nepal's leading classifieds marketplace. Buy and sell electronics, vehicles, real estate, and more. Post free ads and connect with buyers across Nepal." />
+      <meta name="keywords" content="Nepal classifieds, buy sell Nepal, online marketplace Nepal, free ads Nepal, Thulobazaar" />
+      <link rel="canonical" href={`${window.location.origin}/${language}`} />
 
-        {/* Open Graph tags */}
-        <meta property="og:title" content="Thulobazaar - Buy, Sell, and Rent Across Nepal" />
-        <meta property="og:description" content="Nepal's leading classifieds marketplace. Buy and sell electronics, vehicles, real estate, and more." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${window.location.origin}/${language}`} />
-        <meta property="og:site_name" content="Thulobazaar" />
+      {/* Open Graph tags */}
+      <meta property="og:title" content="Thulobazaar - Buy, Sell, and Rent Across Nepal" />
+      <meta property="og:description" content="Nepal's leading classifieds marketplace. Buy and sell electronics, vehicles, real estate, and more." />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content={`${window.location.origin}/${language}`} />
+      <meta property="og:site_name" content="Thulobazaar" />
 
-        {/* Twitter Card tags */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Thulobazaar - Buy, Sell, and Rent Across Nepal" />
-        <meta name="twitter:description" content="Nepal's leading classifieds marketplace. Buy and sell electronics, vehicles, real estate, and more." />
+      {/* Twitter Card tags */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Thulobazaar - Buy, Sell, and Rent Across Nepal" />
+      <meta name="twitter:description" content="Nepal's leading classifieds marketplace. Buy and sell electronics, vehicles, real estate, and more." />
 
-        {/* Website schema */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "Thulobazaar",
-            "url": `${window.location.origin}`,
-            "description": "Nepal's leading classifieds marketplace",
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": `${window.location.origin}/${language}/search?search={search_term_string}`,
-              "query-input": "required name=search_term_string"
-            }
-          })}
-        </script>
-      </Helmet>
+      {/* Website schema */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Thulobazaar",
+          "url": `${window.location.origin}`,
+          "description": "Nepal's leading classifieds marketplace",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": `${window.location.origin}/${language}/search?search={search_term_string}`,
+            "query-input": "required name=search_term_string"
+          }
+        })}
+      </script>
 
       {/* Header */}
       <Header />

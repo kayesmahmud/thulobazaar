@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AdCard from './AdCard';
 import SimpleHeader from './SimpleHeader';
 import RecentlyViewed from './RecentlyViewed';
 import Breadcrumb from './Breadcrumb';
+import SearchFiltersPanel from './search/SearchFiltersPanel';
 import ApiService from '../services/api';
 
 function AllAds() {
   const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -17,84 +20,284 @@ function AllAds() {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalAds, setTotalAds] = useState(0);
-  const adsPerPage = 12;
+  const adsPerPage = 20;
 
-  // Sort and filter state
-  const [sortBy, setSortBy] = useState('newest');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
+  // Advanced filter state - matching SearchResults
+  const [filters, setFilters] = useState({
+    category: 'all',
+    subcategory: '',
+    location: 'all',
+    area_ids: '',
+    province_id: '',
+    district_id: '',
+    municipality_id: '',
+    ward: '',
+    minPrice: '',
+    maxPrice: '',
+    condition: 'all',
+    sortBy: 'newest'
+  });
 
   // Load static data (categories and locations)
   useEffect(() => {
     const fetchStaticData = async () => {
       try {
-        const [categoriesData, locationsData] = await Promise.all([
-          ApiService.getCategories(),
-          ApiService.getLocations()
-        ]);
-
+        // Fetch categories with subcategories
+        const categoriesData = await ApiService.getCategories(true);
         setCategories(categoriesData);
-        setLocations(locationsData);
+
+        // Fetch complete location hierarchy in a single API call
+        const locationHierarchy = await ApiService.getLocationHierarchy();
+        setLocations(locationHierarchy);
       } catch (err) {
-        console.error('Error fetching static data:', err);
+        console.error('❌ Error fetching static data:', err);
       }
     };
 
     fetchStaticData();
   }, []);
 
+  // Create O(1) lookup maps for locations and categories
+  const { locationMap, categoryMap } = useMemo(() => {
+    const locMap = new Map();
+    const catMap = new Map();
+
+    // Build location map: name -> id
+    locations.forEach(province => {
+      locMap.set(province.name, province.id);
+
+      if (province.districts) {
+        province.districts.forEach(district => {
+          locMap.set(district.name, district.id);
+
+          if (district.municipalities) {
+            district.municipalities.forEach(municipality => {
+              locMap.set(municipality.name, municipality.id);
+            });
+          }
+        });
+      }
+    });
+
+    // Build category map: name -> id
+    categories.forEach(category => {
+      catMap.set(category.name, category.id);
+
+      if (category.subcategories) {
+        category.subcategories.forEach(subcat => {
+          catMap.set(subcat.name, subcat.id);
+        });
+      }
+    });
+
+    return { locationMap: locMap, categoryMap: catMap };
+  }, [locations, categories]);
+
+  // O(1) category lookup
+  const selectedCategoryId = useMemo(() => {
+    if (filters.subcategory) {
+      const id = categoryMap.get(filters.subcategory);
+      return id ? id.toString() : '';
+    }
+    if (filters.category === 'all' || !filters.category) return '';
+    const id = categoryMap.get(filters.category);
+    return id ? id.toString() : '';
+  }, [filters.category, filters.subcategory, categoryMap]);
+
+  // O(1) location lookup
+  const selectedLocationId = useMemo(() => {
+    if (filters.location === 'all') return '';
+    const id = locationMap.get(filters.location);
+    return id ? id.toString() : '';
+  }, [filters.location, locationMap]);
+
   // Load ads based on filters and pagination
   useEffect(() => {
     const fetchAds = async () => {
       try {
-        setLoading(true);
-        const searchParams = {
-          sortBy,
-          limit: adsPerPage,
-          offset: (currentPage - 1) * adsPerPage
-        };
+        setSearchLoading(true);
 
-        if (selectedCategory !== 'all') {
-          searchParams.category = selectedCategory;
-        }
-        if (selectedLocation !== 'all') {
-          searchParams.location = selectedLocation;
+        // Build search params with all advanced filters
+        const searchParams = {};
+
+        // Category filter (subcategory takes precedence)
+        if (filters.subcategory) {
+          searchParams.category = filters.subcategory;
+        } else if (filters.category !== 'all') {
+          searchParams.category = filters.category;
         }
 
+        // Location filters (area filter takes precedence)
+        if (filters.area_ids) {
+          searchParams.area_ids = filters.area_ids;
+        } else if (filters.province_id) {
+          searchParams.province_id = filters.province_id;
+        } else if (filters.district_id) {
+          searchParams.district_id = filters.district_id;
+        } else if (filters.municipality_id) {
+          searchParams.municipality_id = filters.municipality_id;
+          if (filters.ward) searchParams.ward = filters.ward;
+        } else if (filters.location !== 'all') {
+          searchParams.location = filters.location;
+        }
+
+        // Price filters
+        if (filters.minPrice) searchParams.minPrice = filters.minPrice;
+        if (filters.maxPrice) searchParams.maxPrice = filters.maxPrice;
+
+        // Condition filter
+        if (filters.condition !== 'all') searchParams.condition = filters.condition;
+
+        // Sort
+        if (filters.sortBy && filters.sortBy !== 'newest') searchParams.sortBy = filters.sortBy;
+
+        // Pagination
+        searchParams.limit = adsPerPage;
+        searchParams.offset = (currentPage - 1) * adsPerPage;
+
+        console.log('🔍 [AllAds] Fetching ads with params:', searchParams);
         const response = await ApiService.getAds(searchParams);
         setAds(response.data);
         setTotalAds(response.pagination.total);
 
       } catch (err) {
-        console.error('Error fetching ads:', err);
+        console.error('❌ Error fetching ads:', err);
         setError('Failed to load ads. Please try again.');
       } finally {
+        setSearchLoading(false);
         setLoading(false);
       }
     };
 
     fetchAds();
-  }, [currentPage, sortBy, selectedCategory, selectedLocation]);
+  }, [currentPage, filters]);
 
 
-  const handleSortChange = (newSort) => {
-    setSortBy(newSort);
-    setCurrentPage(1); // Reset to first page
+  // Handler for location selection from LocationHierarchyBrowser
+  const handleLocationSelect = (selection) => {
+    console.log('✨ [AllAds] Location selected:', selection);
+
+    // Clear all location filters first
+    const newFilters = {
+      ...filters,
+      area_ids: '',
+      province_id: '',
+      district_id: '',
+      municipality_id: '',
+      ward: ''
+    };
+
+    // Set the appropriate filter based on selection type
+    if (selection) {
+      switch (selection.type) {
+        case 'province':
+          newFilters.province_id = selection.id;
+          break;
+        case 'district':
+          newFilters.district_id = selection.id;
+          break;
+        case 'municipality':
+          newFilters.municipality_id = selection.id;
+          break;
+        case 'ward':
+          newFilters.municipality_id = selection.municipality_id;
+          newFilters.ward = selection.ward_number;
+          break;
+        case 'area':
+          newFilters.area_ids = String(selection.id);
+          break;
+      }
+    }
+
+    setFilters(newFilters);
+    setCurrentPage(1);
   };
 
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category);
-    setCurrentPage(1); // Reset to first page
+  // Handler for category change
+  const handleCategoryChange = (categoryId) => {
+    if (!categoryId) {
+      // Clear both category and subcategory
+      setFilters({ ...filters, category: 'all', subcategory: '' });
+      setCurrentPage(1);
+      return;
+    }
+
+    const id = parseInt(categoryId);
+    let parentCategoryName = '';
+    let subcategoryName = '';
+
+    // Check if it's a main category
+    const mainCategory = categories.find(c => c.id === id);
+    if (mainCategory) {
+      parentCategoryName = mainCategory.name;
+      subcategoryName = '';
+    } else {
+      // Search in subcategories
+      for (const cat of categories) {
+        if (cat.subcategories && cat.subcategories.length > 0) {
+          const subcat = cat.subcategories.find(s => s.id === id);
+          if (subcat) {
+            parentCategoryName = cat.name;
+            subcategoryName = subcat.name;
+            break;
+          }
+        }
+      }
+    }
+
+    setFilters({
+      ...filters,
+      category: parentCategoryName || 'all',
+      subcategory: subcategoryName
+    });
+    setCurrentPage(1);
   };
 
-  const handleLocationChange = (location) => {
-    setSelectedLocation(location);
-    setCurrentPage(1); // Reset to first page
+  // Handler for price range change
+  const handlePriceRangeChange = (range) => {
+    setFilters({
+      ...filters,
+      minPrice: range.min || '',
+      maxPrice: range.max || ''
+    });
+    setCurrentPage(1);
   };
+
+  // Handler for condition change
+  const handleConditionChange = (value) => {
+    setFilters({ ...filters, condition: value || 'all' });
+    setCurrentPage(1);
+  };
+
+  // Handler for clear all filters
+  const clearAllFilters = () => {
+    setFilters({
+      category: 'all',
+      subcategory: '',
+      location: 'all',
+      area_ids: '',
+      province_id: '',
+      district_id: '',
+      municipality_id: '',
+      ward: '',
+      minPrice: '',
+      maxPrice: '',
+      condition: 'all',
+      sortBy: 'newest'
+    });
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = filters.category !== 'all' || filters.subcategory ||
+    filters.area_ids || filters.province_id || filters.district_id ||
+    filters.municipality_id || filters.ward ||
+    filters.minPrice || filters.maxPrice ||
+    filters.condition !== 'all' || filters.sortBy !== 'newest';
 
   const totalPages = Math.ceil(totalAds / adsPerPage);
 
@@ -173,189 +376,85 @@ function AllAds() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
         <div className="main-content-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '40px' }}>
 
-          {/* Left Sidebar - Filters */}
-          <div className="sidebar">
-            {/* Sort Options */}
-            <div className="filter-section" style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#1e293b',
-                marginBottom: '16px'
-              }}>
-                Sort by
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {[
-                  { value: 'newest', label: 'Newest first' },
-                  { value: 'oldest', label: 'Oldest first' },
-                  { value: 'price-low', label: 'Price: Low to High' },
-                  { value: 'price-high', label: 'Price: High to Low' }
-                ].map((option) => (
-                  <label key={option.value} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}>
-                    <input
-                      type="radio"
-                      name="sort"
-                      value={option.value}
-                      checked={sortBy === option.value}
-                      onChange={(e) => handleSortChange(e.target.value)}
-                      style={{ marginRight: '8px' }}
-                    />
-                    {option.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Category Filter */}
-            <div className="filter-section" style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#1e293b',
-                marginBottom: '16px'
-              }}>
-                Category
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="all"
-                    checked={selectedCategory === 'all'}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  All Categories
-                </label>
-                {categories.map((category) => (
-                  <label key={category.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}>
-                    <input
-                      type="radio"
-                      name="category"
-                      value={category.name}
-                      checked={selectedCategory === category.name}
-                      onChange={(e) => handleCategoryChange(e.target.value)}
-                      style={{ marginRight: '8px' }}
-                    />
-                    {category.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Location Filter */}
-            <div className="filter-section" style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '20px'
-            }}>
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#1e293b',
-                marginBottom: '16px'
-              }}>
-                Location
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}>
-                  <input
-                    type="radio"
-                    name="location"
-                    value="all"
-                    checked={selectedLocation === 'all'}
-                    onChange={(e) => handleLocationChange(e.target.value)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  All of Nepal
-                </label>
-                {locations.map((location) => (
-                  <label key={location.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}>
-                    <input
-                      type="radio"
-                      name="location"
-                      value={location.name}
-                      checked={selectedLocation === location.name}
-                      onChange={(e) => handleLocationChange(e.target.value)}
-                      style={{ marginRight: '8px' }}
-                    />
-                    {location.name}
-                  </label>
-                ))}
-              </div>
-            </div>
+          {/* Left Sidebar - Modern Filters */}
+          <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Search Filters Panel */}
+            <SearchFiltersPanel
+              categories={categories}
+              locations={locations}
+              selectedCategory={selectedCategoryId}
+              selectedLocation={selectedLocationId}
+              priceRange={{
+                min: filters.minPrice || '',
+                max: filters.maxPrice || ''
+              }}
+              condition={filters.condition === 'all' ? '' : filters.condition}
+              enableAreaFiltering={true}
+              onLocationSelect={handleLocationSelect}
+              onCategoryChange={handleCategoryChange}
+              onPriceRangeChange={handlePriceRangeChange}
+              onConditionChange={handleConditionChange}
+              onClearFilters={clearAllFilters}
+            />
 
             {/* Recently Viewed */}
-            <RecentlyViewed maxItems={4} />
+            <RecentlyViewed maxItems={3} />
           </div>
 
           {/* Right Content - Ads Grid */}
           <div className="content-area">
             {/* Results Header */}
-            <div className="results-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '24px',
-              paddingBottom: '16px',
-              borderBottom: '1px solid #e2e8f0'
-            }}>
-              <div>
-                <h2 style={{
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  color: '#1e293b',
-                  margin: '0 0 4px 0'
-                }}>
-                  All Ads
-                </h2>
-                <p style={{
-                  color: '#64748b',
+            <div className="results-header" style={{ marginBottom: '24px' }}>
+              <h2 style={{
+                margin: '0 0 8px 0',
+                color: '#1e293b',
+                fontSize: '24px',
+                fontWeight: 'bold'
+              }}>
+                All Ads ({totalAds} ads found)
+                {searchLoading && <span style={{ color: '#64748b', fontSize: '16px' }}> ⏳</span>}
+              </h2>
+              <div style={{
+                height: '2px',
+                backgroundColor: '#dc1e4a',
+                width: '60px',
+                marginBottom: '16px'
+              }}></div>
+              {hasActiveFilters && (
+                <div style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '6px',
                   fontSize: '14px',
-                  margin: 0
+                  color: '#0369a1',
+                  border: '1px solid #bae6fd',
+                  marginBottom: '16px'
                 }}>
-                  Showing {((currentPage - 1) * adsPerPage) + 1}-{Math.min(currentPage * adsPerPage, totalAds)} of {totalAds} ads
-                </p>
+                  Showing filtered results
+                  <button
+                    onClick={clearAllFilters}
+                    style={{
+                      marginLeft: '12px',
+                      padding: '4px 8px',
+                      backgroundColor: '#dc1e4a',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+              <div style={{
+                padding: '16px 0',
+                color: '#64748b',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Showing {totalAds > 0 ? ((currentPage - 1) * adsPerPage) + 1 : 0}-{Math.min(currentPage * adsPerPage, totalAds)} of {totalAds} results
               </div>
             </div>
 
@@ -365,11 +464,11 @@ function AllAds() {
                 <div className="ads-grid" style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                  gap: '24px',
+                  gap: '20px',
                   marginBottom: '40px'
                 }}>
                   {ads.map((ad) => (
-                    <AdCard key={ad.id} ad={ad} />
+                    <AdCard key={ad.id} ad={ad} language={language} />
                   ))}
                 </div>
 
@@ -455,15 +554,36 @@ function AllAds() {
               </>
             ) : (
               <div style={{
+                gridColumn: '1 / -1',
                 textAlign: 'center',
                 padding: '60px 20px',
                 color: '#64748b'
               }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-                <h3 style={{ margin: '0 0 8px 0', color: '#1e293b' }}>No ads found</h3>
-                <p style={{ margin: 0 }}>
-                  Try adjusting your filters to see more results.
+                <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔍</div>
+                <h3 style={{ margin: '0 0 12px 0', color: '#1e293b', fontSize: '20px' }}>No ads found</h3>
+                <p style={{ margin: '0 0 20px 0', fontSize: '16px' }}>
+                  {hasActiveFilters
+                    ? 'Try adjusting your search filters or clear them to see all ads.'
+                    : 'No ads available at the moment.'
+                  }
                 </p>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearAllFilters}
+                    style={{
+                      padding: '12px 20px',
+                      backgroundColor: '#dc1e4a',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    🗑️ Clear All Filters
+                  </button>
+                )}
               </div>
             )}
           </div>

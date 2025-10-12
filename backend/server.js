@@ -271,13 +271,22 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Get all ads with search and filtering
+// DISABLED: Inline route handler - Using routes/ads.js with AdController instead
+// This inline handler doesn't support parentCategoryId filtering for hierarchical categories
+// The proper handler is in routes/ads.js which uses AdController.getAll()
+/*
 app.get('/api/ads', async (req, res) => {
   try {
     const {
       search,
       category,
       location,
+      area,
+      area_ids,
+      province_id,
+      district_id,
+      municipality_id,
+      ward,
       minPrice,
       maxPrice,
       condition,
@@ -293,7 +302,7 @@ app.get('/api/ads', async (req, res) => {
       radius = 25
     } = req.query;
 
-    console.log('🔍 API Call to /ads with params:', { search, category, location, minPrice, maxPrice, condition, datePosted, dateFrom, dateTo, sortBy, sortOrder, limit, offset });
+    console.log('🔍 API Call to /ads with params:', { search, category, location, area, area_ids, minPrice, maxPrice, condition, datePosted, dateFrom, dateTo, sortBy, sortOrder, limit, offset });
 
     let queryConditions = ['a.status = $1'];
     let queryParams = ['approved'];
@@ -325,13 +334,76 @@ app.get('/api/ads', async (req, res) => {
       paramCount++;
       // Check if location is a number (ID) or string (name/slug)
       if (!isNaN(parseInt(location))) {
-        queryConditions.push(`a.location_id = $${paramCount}`);
-        queryParams.push(parseInt(location));
+        // Use recursive CTE to find the location and all its descendants (4-level hierarchy)
+        const locationId = parseInt(location);
+        queryConditions.push(`a.location_id IN (
+          WITH RECURSIVE location_tree AS (
+            -- Base case: the selected location
+            SELECT id FROM locations WHERE id = $${paramCount}
+            UNION
+            -- Recursive case: all children at any depth
+            SELECT l.id FROM locations l
+            INNER JOIN location_tree lt ON l.parent_id = lt.id
+          )
+          SELECT id FROM location_tree
+        )`);
+        queryParams.push(locationId);
       } else {
         // Filter by location name or slug
         queryConditions.push(`(l.name ILIKE $${paramCount} OR l.slug ILIKE $${paramCount})`);
         queryParams.push(location);
       }
+    }
+
+    // Add hierarchical area filtering
+    // Priority: area_ids > ward > municipality_id > district_id > province_id
+    if (area_ids) {
+      // Specific area IDs
+      const areaIdArray = area_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      if (areaIdArray.length > 0) {
+        paramCount++;
+        queryConditions.push(`a.area_id = ANY($${paramCount})`);
+        queryParams.push(areaIdArray);
+        console.log(`🗺️  Filtering by ${areaIdArray.length} area(s): ${areaIdArray.join(', ')}`);
+      }
+    } else if (ward && municipality_id) {
+      // Ward level: all areas in this ward of this municipality
+      paramCount++;
+      queryConditions.push(`a.area_id IN (
+        SELECT id FROM areas WHERE municipality_id = $${paramCount} AND ward_number = $${paramCount + 1}
+      )`);
+      queryParams.push(parseInt(municipality_id), parseInt(ward));
+      console.log(`🗺️  Filtering by Ward ${ward} in municipality ${municipality_id}`);
+      paramCount++;
+    } else if (municipality_id) {
+      // Municipality level: all areas in this municipality
+      paramCount++;
+      queryConditions.push(`a.area_id IN (
+        SELECT id FROM areas WHERE municipality_id = $${paramCount}
+      )`);
+      queryParams.push(parseInt(municipality_id));
+      console.log(`🗺️  Filtering by municipality ${municipality_id}`);
+    } else if (district_id) {
+      // District level: all areas in all municipalities in this district
+      paramCount++;
+      queryConditions.push(`a.area_id IN (
+        SELECT ar.id FROM areas ar
+        JOIN locations m ON ar.municipality_id = m.id
+        WHERE m.parent_id = $${paramCount}
+      )`);
+      queryParams.push(parseInt(district_id));
+      console.log(`🗺️  Filtering by district ${district_id}`);
+    } else if (province_id) {
+      // Province level: all areas in all municipalities in all districts in this province
+      paramCount++;
+      queryConditions.push(`a.area_id IN (
+        SELECT ar.id FROM areas ar
+        JOIN locations m ON ar.municipality_id = m.id
+        JOIN locations d ON m.parent_id = d.id
+        WHERE d.parent_id = $${paramCount}
+      )`);
+      queryParams.push(parseInt(province_id));
+      console.log(`🗺️  Filtering by province ${province_id}`);
     }
 
     // Add price range filters
@@ -510,6 +582,10 @@ app.get('/api/ads', async (req, res) => {
     });
   }
 });
+*/
+
+// Use the proper routes/ads.js with AdController for /api/ads endpoint
+app.use('/api/ads', require('./routes/ads'));
 
 // Get nearby ads endpoint
 app.get('/api/ads/nearby', async (req, res) => {
@@ -616,6 +692,8 @@ app.get('/api/ads/nearby', async (req, res) => {
 app.get('/api/ads/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const { generateSeoSlug } = require('./utils/slugUtils');
+
     const query = `
       SELECT
         a.id, a.title, a.description, a.price, a.condition, a.view_count,
@@ -624,13 +702,27 @@ app.get('/api/ads/:id', async (req, res) => {
         a.is_urgent, a.urgent_until, a.is_sticky, a.sticky_until,
         c.name as category_name, c.icon as category_icon, c.parent_id as category_parent_id,
         parent_c.name as parent_category_name, parent_c.id as parent_category_id,
-        l.name as location_name,
+        -- Location hierarchy (4 levels: Area -> Ward -> Municipality -> District -> Province)
+        area.name as area_name,
+        ward.name as ward_name,
+        m.name as municipality_name,
+        m.id as municipality_id,
+        d.name as district_name,
+        d.id as district_id,
+        p.name as province_name,
+        p.id as province_id,
+        -- User info
         u.business_verification_status, u.business_name, u.avatar as seller_avatar,
         u.account_type, u.shop_slug, u.seller_slug, u.individual_verified
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN categories parent_c ON c.parent_id = parent_c.id
-      LEFT JOIN locations l ON a.location_id = l.id
+      -- Join location hierarchy (area -> ward -> municipality -> district -> province)
+      LEFT JOIN locations area ON a.location_id = area.id
+      LEFT JOIN locations ward ON area.parent_id = ward.id
+      LEFT JOIN locations m ON ward.parent_id = m.id
+      LEFT JOIN locations d ON m.parent_id = d.id
+      LEFT JOIN locations p ON d.parent_id = p.id
       LEFT JOIN users u ON a.user_id = u.id
       WHERE a.id = $1 AND a.status = 'approved'
     `;
@@ -651,9 +743,20 @@ app.get('/api/ads/:id', async (req, res) => {
     const imagesQuery = 'SELECT filename, original_name, is_primary FROM ad_images WHERE ad_id = $1 ORDER BY is_primary DESC, created_at ASC';
     const imagesResult = await pool.query(imagesQuery, [id]);
 
+    const adRow = result.rows[0];
+
+    // Generate SEO-friendly slug with location
+    const seoSlug = generateSeoSlug(
+      adRow.id,
+      adRow.title,
+      adRow.area_name,
+      adRow.district_name
+    );
+
     const adData = {
-      ...result.rows[0],
-      images: imagesResult.rows
+      ...adRow,
+      images: imagesResult.rows,
+      seo_slug: seoSlug
     };
 
     console.log(`✅ Found ad: ${adData.title} with ${imagesResult.rows.length} images`);
@@ -722,6 +825,9 @@ app.get('/api/categories', async (req, res) => {
 });
 
 // Get locations (supports hierarchical filtering with parent_id)
+// DEPRECATED: This route has been moved to routes/locationRoutes.js
+// Commented out to avoid conflicts with the new location routes
+/*
 app.get('/api/locations', async (req, res) => {
   try {
     const { parent_id } = req.query;
@@ -758,6 +864,7 @@ app.get('/api/locations', async (req, res) => {
     });
   }
 });
+*/
 
 // OLD Location search endpoint - Replaced by /api/locations/search route in locationRoutes.js
 // This searched locations table only - new endpoint searches areas table with full hierarchy
@@ -1009,16 +1116,17 @@ app.get('/api/locations/suggestions', async (req, res) => {
 // Create new ad (protected route)
 app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('images', 5), validateFileType, async (req, res) => {
   try {
-    const { title, description, price, condition, categoryId, locationId, sellerName, sellerPhone } = req.body;
+    const { title, description, price, condition, categoryId, areaId, sellerName, sellerPhone } = req.body;
     const userId = req.user.userId;
 
     // Validate required fields
-    if (!title || !description || !price || !condition || !categoryId || !locationId || !sellerName || !sellerPhone) {
+    if (!title || !description || !price || !condition || !categoryId || !areaId || !sellerName || !sellerPhone) {
       return res.status(400).json({
         success: false,
         message: 'All fields are required'
       });
     }
+
 
     // Content filtering for ads
     console.log('🔍 Validating ad content for inappropriate language and spam...');
@@ -1069,7 +1177,7 @@ app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('imag
       description,
       price,
       categoryId,
-      locationId
+      areaId
     }, userId, {
       titleSimilarityThreshold: 0.85,    // 85% similar titles
       descriptionSimilarityThreshold: 0.75, // 75% similar descriptions
@@ -1105,10 +1213,10 @@ app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('imag
 
     // Insert ad
     const result = await pool.query(
-      `INSERT INTO ads (title, description, price, condition, category_id, location_id, seller_name, seller_phone, user_id, status)
+      `INSERT INTO ads (title, description, price, condition, category_id, area_id, seller_name, seller_phone, user_id, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id, title, price, created_at`,
-      [title, description, price, condition, categoryId, locationId, sellerName, sellerPhone, userId, 'approved']
+      [title, description, price, condition, categoryId, areaId, sellerName, sellerPhone, userId, 'approved']
     );
 
     const ad = result.rows[0];
@@ -1137,6 +1245,28 @@ app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('imag
 
     console.log(`✅ Ad created: ${ad.title} by user ${userId}`);
 
+    // Fetch area information to generate SEO slug
+    const { generateSeoSlug } = require('./utils/slugUtils');
+    const areaQuery = `
+      SELECT
+        ar.name as area_name,
+        d.name as district_name
+      FROM areas ar
+      LEFT JOIN locations m ON ar.municipality_id = m.id
+      LEFT JOIN locations d ON m.parent_id = d.id
+      WHERE ar.id = $1
+    `;
+    const areaResult = await pool.query(areaQuery, [areaId]);
+    const areaData = areaResult.rows[0] || {};
+
+    // Generate SEO-friendly slug with location
+    const seoSlug = generateSeoSlug(
+      ad.id,
+      ad.title,
+      areaData.area_name,
+      areaData.district_name
+    );
+
     // Prepare response with potential duplicate warning
     const response = {
       success: true,
@@ -1146,7 +1276,8 @@ app.post('/api/ads', rateLimiters.posting, authenticateToken, upload.array('imag
         title: ad.title,
         price: ad.price,
         createdAt: ad.created_at,
-        imageCount: req.files ? req.files.length : 0
+        imageCount: req.files ? req.files.length : 0,
+        seo_slug: seoSlug
       }
     };
 
@@ -1879,6 +2010,9 @@ app.use('/api/search', require('./routes/search'));
 // Location routes (areas search, hierarchy)
 app.use('/api/locations', require('./routes/locationRoutes'));
 
+// Areas routes (ward-level areas with search)
+app.use('/api/areas', require('./routes/areas'));
+
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
@@ -1908,8 +2042,16 @@ console.log('💰 Promotion pricing routes registered at /api/promotion-pricing'
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('❌ Global Error Handler:');
+  console.error('Path:', req.path);
+  console.error('Method:', req.method);
+  console.error('Error Message:', err.message);
+  console.error('Stack:', err.stack);
+  res.status(500).json({
+    error: 'Something went wrong!',
+    message: err.message,
+    path: req.path
+  });
 });
 
 app.listen(PORT, () => {

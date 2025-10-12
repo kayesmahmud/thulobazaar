@@ -22,7 +22,8 @@ function ShopProfile() {
   const [contactData, setContactData] = useState({
     business_phone: '',
     phone: '',
-    business_website: ''
+    business_website: '',
+    google_maps_link: ''
   });
   const [contactSaving, setContactSaving] = useState(false);
 
@@ -67,7 +68,8 @@ function ShopProfile() {
         setContactData({
           business_phone: response.data.data.shop.business_phone || '',
           phone: response.data.data.shop.phone || '',
-          business_website: response.data.data.shop.business_website || ''
+          business_website: response.data.data.shop.business_website || '',
+          google_maps_link: response.data.data.shop.google_maps_link || ''
         });
         console.log('Shop owner ID:', response.data.data.shop.id);
         console.log('Current user ID:', currentUserId);
@@ -127,7 +129,8 @@ function ShopProfile() {
             ...prev.shop,
             business_phone: contactData.business_phone,
             phone: contactData.phone,
-            business_website: contactData.business_website
+            business_website: contactData.business_website,
+            google_maps_link: contactData.google_maps_link
           }
         }));
         setIsEditingContact(false);
@@ -891,13 +894,13 @@ function ShopProfile() {
                       color: colors.text.secondary,
                       marginBottom: spacing.xs
                     }}>
-                      Business Phone
+                      WhatsApp Number
                     </label>
                     <input
                       type="tel"
                       value={contactData.business_phone}
                       onChange={(e) => setContactData({ ...contactData, business_phone: e.target.value })}
-                      placeholder="01-1234567"
+                      placeholder="977-98XXXXXXXX"
                       style={{
                         width: '100%',
                         padding: spacing.md,
@@ -959,6 +962,38 @@ function ShopProfile() {
                     />
                   </div>
 
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: typography.fontSize.sm,
+                      color: colors.text.secondary,
+                      marginBottom: spacing.xs
+                    }}>
+                      Google Maps Link
+                    </label>
+                    <input
+                      type="url"
+                      value={contactData.google_maps_link}
+                      onChange={(e) => setContactData({ ...contactData, google_maps_link: e.target.value })}
+                      placeholder="https://maps.google.com/?q=..."
+                      style={{
+                        width: '100%',
+                        padding: spacing.md,
+                        borderRadius: borderRadius.md,
+                        border: `1px solid ${colors.border}`,
+                        fontSize: typography.fontSize.base,
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                    <div style={{
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.secondary,
+                      marginTop: spacing.xs
+                    }}>
+                      📍 Get your link from Google Maps → Share → Copy link
+                    </div>
+                  </div>
+
                   <div style={{
                     display: 'flex',
                     gap: spacing.sm
@@ -980,7 +1015,8 @@ function ShopProfile() {
                         setContactData({
                           business_phone: shop.business_phone || '',
                           phone: shop.phone || '',
-                          business_website: shop.business_website || ''
+                          business_website: shop.business_website || '',
+                          google_maps_link: shop.google_maps_link || ''
                         });
                       }}
                       disabled={contactSaving}
@@ -1001,9 +1037,9 @@ function ShopProfile() {
                 }}>
                   {shop.business_phone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                      <span style={{ fontSize: '24px' }}>📞</span>
+                      <span style={{ fontSize: '24px' }}>💬</span>
                       <div>
-                        <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Phone</div>
+                        <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>WhatsApp</div>
                         <div style={{ fontWeight: typography.fontWeight.semibold }}>{shop.business_phone}</div>
                       </div>
                     </div>
@@ -1029,6 +1065,22 @@ function ShopProfile() {
                           style={{ color: colors.primary, textDecoration: 'none', fontWeight: typography.fontWeight.semibold }}
                         >
                           {shop.business_website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {shop.google_maps_link && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                      <span style={{ fontSize: '24px' }}>📍</span>
+                      <div>
+                        <div style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>Location</div>
+                        <a
+                          href={shop.google_maps_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: colors.primary, textDecoration: 'none', fontWeight: typography.fontWeight.semibold }}
+                        >
+                          View on Google Maps
                         </a>
                       </div>
                     </div>

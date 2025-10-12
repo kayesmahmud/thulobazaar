@@ -83,7 +83,7 @@ function Dashboard() {
         setIndividualVerificationStatus(individualVerificationData);
       }
 
-      console.log('✅ User data loaded:', { ads, receivedMessages, verificationStatusData, individualVerificationData, processedVerificationStatus });
+      console.log('✅ User data loaded:', { adsResponse, receivedMessages, verificationStatusData, individualVerificationData, processedVerificationStatus });
       console.log('Dashboard - verificationStatus after fetch:', processedVerificationStatus);
     } catch (err) {
       console.error('❌ Error loading user data:', err);

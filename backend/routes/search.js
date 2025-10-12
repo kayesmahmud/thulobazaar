@@ -2,11 +2,8 @@ const express = require('express');
 const router = express.Router();
 const searchService = require('../services/searchService');
 
-// Import database configuration from server.js approach
-const { Pool } = require('pg');
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
+// Use the main database pool
+const pool = require('../config/db');
 
 // Search ads
 router.get('/', async (req, res) => {
@@ -14,6 +11,7 @@ router.get('/', async (req, res) => {
     const {
       q: query,
       category,
+      parentCategoryId,
       location,
       minPrice,
       maxPrice,
@@ -27,7 +25,8 @@ router.get('/', async (req, res) => {
     const results = await searchService.search({
       query,
       category,
-      location,
+      parentCategoryId: parentCategoryId ? parseInt(parentCategoryId) : undefined,
+      location: location && !isNaN(location) ? parseInt(location) : location,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       condition,

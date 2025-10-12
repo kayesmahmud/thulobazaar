@@ -582,7 +582,7 @@ function SellerProfile() {
                     height: '150px',
                     borderRadius: borderRadius.full,
                     objectFit: 'cover',
-                    border: '5px solid #2a77f2',
+                    border: `5px solid ${seller.business_verification_status === 'approved' ? '#FFD700' : seller.individual_verified ? '#2a77f2' : '#cbd5e1'}`,
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                   }}
                 />
@@ -598,7 +598,7 @@ function SellerProfile() {
                   justifyContent: 'center',
                   fontSize: '48px',
                   fontWeight: typography.fontWeight.bold,
-                  border: '5px solid #2a77f2',
+                  border: `5px solid ${seller.business_verification_status === 'approved' ? '#FFD700' : seller.individual_verified ? '#2a77f2' : '#cbd5e1'}`,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                 }}>
                   {seller.full_name.charAt(0).toUpperCase()}
@@ -741,7 +741,7 @@ function SellerProfile() {
                 fontSize: typography.fontSize.lg,
                 margin: `0 0 ${spacing.md} 0`
               }}>
-                Individual Seller
+                {seller.business_verification_status === 'approved' ? 'Verified Business Account' : seller.individual_verified ? 'Verified Individual Seller' : 'Individual Seller'}
               </p>
 
               {/* Stats */}

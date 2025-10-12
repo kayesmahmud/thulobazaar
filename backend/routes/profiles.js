@@ -31,6 +31,10 @@ router.get('/shop/:slug', async (req, res) => {
         u.business_address,
         u.business_verification_status,
         u.business_verified_at,
+        u.latitude,
+        u.longitude,
+        u.formatted_address,
+        u.google_maps_link,
         u.created_at,
         l.name as location_name,
         l.slug as location_slug
@@ -396,7 +400,7 @@ router.put('/shop/:slug/about', authenticateToken, async (req, res) => {
 router.put('/shop/:slug/contact', authenticateToken, async (req, res) => {
   try {
     const { slug } = req.params;
-    const { business_phone, phone, business_website } = req.body;
+    const { business_phone, phone, business_website, google_maps_link } = req.body;
 
     console.log('📞 Update contact request:', { slug, user: req.user });
 
@@ -429,8 +433,8 @@ router.put('/shop/:slug/contact', authenticateToken, async (req, res) => {
 
     // Update contact information
     await pool.query(
-      'UPDATE users SET business_phone = $1, phone = $2, business_website = $3 WHERE shop_slug = $4 AND id = $5',
-      [business_phone, phone, business_website, slug, userId]
+      'UPDATE users SET business_phone = $1, phone = $2, business_website = $3, google_maps_link = $4 WHERE shop_slug = $5 AND id = $6',
+      [business_phone, phone, business_website, google_maps_link, slug, userId]
     );
 
     console.log('✅ Contact information updated successfully');
@@ -445,6 +449,84 @@ router.put('/shop/:slug/contact', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while updating contact information'
+    });
+  }
+});
+
+// =====================================================
+// UPDATE SHOP LOCATION (Latitude, Longitude, Address)
+// Route: PUT /api/shop/:slug/location
+// =====================================================
+router.put('/shop/:slug/location', authenticateToken, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { latitude, longitude, formatted_address } = req.body;
+
+    console.log('📍 Update location request:', { slug, latitude, longitude, user: req.user });
+
+    const userId = req.user.userId || req.user.id;
+
+    // Validate inputs
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude are required'
+      });
+    }
+
+    // Validate coordinate ranges
+    if (latitude < -90 || latitude > 90) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude must be between -90 and 90'
+      });
+    }
+
+    if (longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        message: 'Longitude must be between -180 and 180'
+      });
+    }
+
+    // Check if user owns this shop
+    const ownerCheck = await pool.query(
+      'SELECT id FROM users WHERE shop_slug = $1 AND id = $2 AND account_type = $3',
+      [slug, userId, 'business']
+    );
+
+    console.log('📍 Owner check result:', ownerCheck.rows.length);
+
+    if (ownerCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to edit this shop'
+      });
+    }
+
+    // Update location information
+    await pool.query(
+      'UPDATE users SET latitude = $1, longitude = $2, formatted_address = $3 WHERE shop_slug = $4 AND id = $5',
+      [latitude, longitude, formatted_address, slug, userId]
+    );
+
+    console.log('✅ Location updated successfully');
+
+    res.json({
+      success: true,
+      message: 'Location updated successfully',
+      data: {
+        latitude,
+        longitude,
+        formatted_address
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating shop location:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating location'
     });
   }
 });

@@ -33,20 +33,27 @@ export const generateAdUrl = (ad) => {
 
 /**
  * Generate browse URL for category/location combinations
- * @param {string} locationSlug - Location slug
+ * Supports hierarchical URLs: /ads/[location]/[category]/[subcategory]
+ * @param {string} locationSlug - Location slug (any level: area, municipality, district, province)
  * @param {string} categorySlug - Category slug (optional)
+ * @param {string} subcategorySlug - Subcategory slug (optional)
  * @returns {string} - Browse URL path
  */
-export const generateBrowseUrl = (locationSlug, categorySlug = null) => {
+export const generateBrowseUrl = (locationSlug, categorySlug = null, subcategorySlug = null) => {
   if (!locationSlug) return '/ads';
 
+  // Build URL progressively
+  let url = `/ads/${locationSlug}`;
+
   if (categorySlug) {
-    // Pattern: /ads/[location]/[category]
-    return `/ads/${locationSlug}/${categorySlug}`;
+    url += `/${categorySlug}`;
+
+    if (subcategorySlug) {
+      url += `/${subcategorySlug}`;
+    }
   }
 
-  // Pattern: /ads/[location]
-  return `/ads/${locationSlug}`;
+  return url;
 };
 
 /**
@@ -63,49 +70,62 @@ export const generateCategoryUrl = (categorySlug) => {
 
 /**
  * Parse SEO-friendly ad URL to extract ID
- * @param {string} urlPath - URL path like "/ad/wooden-bed-4x5-feet-kathmandu-21"
+ * @param {string} urlPath - URL path like "/ad/iphone-15-pro-thamel-kathmandu--48"
  * @returns {number|null} - Extracted ad ID or null if not found
  */
 export const extractAdIdFromUrl = (urlPath) => {
   if (!urlPath) return null;
 
-  // Extract ID from end of URL (after last hyphen)
-  const matches = urlPath.match(/-(\d+)$/);
-  return matches ? parseInt(matches[1], 10) : null;
+  // Extract ID from end of URL (after double dash --)
+  // Format: title-area-district--id
+  const matches = urlPath.match(/--(\d+)$/);
+
+  // Fallback to single dash for backward compatibility
+  if (!matches) {
+    const fallbackMatches = urlPath.match(/-(\d+)$/);
+    return fallbackMatches ? parseInt(fallbackMatches[1], 10) : null;
+  }
+
+  return parseInt(matches[1], 10);
 };
 
 /**
- * Parse browse URL to extract location and category slugs
- * @param {string} urlPath - URL path like "/ads/kathmandu/electronics"
- * @returns {Object} - {locationSlug, categorySlug}
+ * Parse hierarchical browse URL to extract location, category, and subcategory slugs
+ * Supports: /ads/[location]/[category]/[subcategory]
+ * @param {string} urlPath - URL path like "/ads/thamel/mobile/mobile-phones"
+ * @returns {Object} - {locationSlug, categorySlug, subcategorySlug}
  */
 export const parseBrowseUrl = (urlPath) => {
-  if (!urlPath) return { locationSlug: null, categorySlug: null };
+  if (!urlPath) return { locationSlug: null, categorySlug: null, subcategorySlug: null };
 
   const parts = urlPath.split('/').filter(part => part);
 
   if (parts[0] !== 'ads') {
-    return { locationSlug: null, categorySlug: null };
+    return { locationSlug: null, categorySlug: null, subcategorySlug: null };
   }
 
-  if (parts.length === 2) {
-    // /ads/[location] or /ads/category
-    if (parts[1] === 'category') {
-      return { locationSlug: null, categorySlug: null };
-    }
-    return { locationSlug: parts[1], categorySlug: null };
+  const result = {
+    locationSlug: null,
+    categorySlug: null,
+    subcategorySlug: null
+  };
+
+  // /ads/[location]
+  if (parts.length >= 2) {
+    result.locationSlug = parts[1];
   }
 
-  if (parts.length === 3) {
-    if (parts[1] === 'category') {
-      // /ads/category/[category]
-      return { locationSlug: null, categorySlug: parts[2] };
-    }
-    // /ads/[location]/[category]
-    return { locationSlug: parts[1], categorySlug: parts[2] };
+  // /ads/[location]/[category]
+  if (parts.length >= 3) {
+    result.categorySlug = parts[2];
   }
 
-  return { locationSlug: null, categorySlug: null };
+  // /ads/[location]/[category]/[subcategory]
+  if (parts.length >= 4) {
+    result.subcategorySlug = parts[3];
+  }
+
+  return result;
 };
 
 /**

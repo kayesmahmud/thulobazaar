@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AdCard from './AdCard';
@@ -46,8 +46,14 @@ function SearchResults() {
 
   const searchFilters = {
       search: urlParams.get('search') || '',
-      category: categoryFromURL,
+      category: urlParams.get('category') || categoryFromURL,
+      subcategory: urlParams.get('subcategory') || '',
       location: urlParams.get('location') || 'all',
+      area_ids: urlParams.get('area_ids') || '',
+      province_id: urlParams.get('province_id') || '',
+      district_id: urlParams.get('district_id') || '',
+      municipality_id: urlParams.get('municipality_id') || '',
+      ward: urlParams.get('ward') || '',
       minPrice: urlParams.get('minPrice') || '',
       maxPrice: urlParams.get('maxPrice') || '',
       condition: urlParams.get('condition') || 'all',
@@ -119,11 +125,16 @@ function SearchResults() {
   }, [searchFilters.location, locationMap]);
 
   // O(1) category lookup - instant instead of nested loops
+  // If subcategory is selected, use that; otherwise use category
   const selectedCategoryId = useMemo(() => {
-    if (searchFilters.category === 'all') return '';
+    if (searchFilters.subcategory) {
+      const id = categoryMap.get(searchFilters.subcategory);
+      return id ? id.toString() : '';
+    }
+    if (searchFilters.category === 'all' || !searchFilters.category) return '';
     const id = categoryMap.get(searchFilters.category);
     return id ? id.toString() : '';
-  }, [searchFilters.category, categoryMap]);
+  }, [searchFilters.category, searchFilters.subcategory, categoryMap]);
 
   // Load categories and locations
   useEffect(() => {
@@ -153,7 +164,12 @@ function SearchResults() {
         // Build search params
         const searchParams = {};
         if (searchFilters.search.trim()) searchParams.search = searchFilters.search.trim();
-        if (searchFilters.category !== 'all') searchParams.category = searchFilters.category;
+        // If subcategory is selected, use that for filtering; otherwise use category
+        if (searchFilters.subcategory) {
+          searchParams.category = searchFilters.subcategory;
+        } else if (searchFilters.category !== 'all') {
+          searchParams.category = searchFilters.category;
+        }
         if (searchFilters.location !== 'all') {
           // Convert location name back to ID for API call
           // Search in provinces, districts, and municipalities
@@ -194,6 +210,11 @@ function SearchResults() {
             searchParams.location = 'all';
           }
         }
+        if (searchFilters.area_ids) searchParams.area_ids = searchFilters.area_ids;
+        if (searchFilters.province_id) searchParams.province_id = searchFilters.province_id;
+        if (searchFilters.district_id) searchParams.district_id = searchFilters.district_id;
+        if (searchFilters.municipality_id) searchParams.municipality_id = searchFilters.municipality_id;
+        if (searchFilters.ward) searchParams.ward = searchFilters.ward;
         if (searchFilters.minPrice) searchParams.minPrice = searchFilters.minPrice;
         if (searchFilters.maxPrice) searchParams.maxPrice = searchFilters.maxPrice;
         if (searchFilters.condition !== 'all') searchParams.condition = searchFilters.condition;
@@ -266,7 +287,13 @@ function SearchResults() {
 
     if (filters.search.trim()) urlParams.append('search', filters.search.trim());
     if (filters.category && filters.category !== 'all') urlParams.append('category', filters.category);
+    if (filters.subcategory) urlParams.append('subcategory', filters.subcategory);
     if (filters.location !== 'all') urlParams.append('location', filters.location);
+    if (filters.area_ids) urlParams.append('area_ids', filters.area_ids);
+    if (filters.province_id) urlParams.append('province_id', filters.province_id);
+    if (filters.district_id) urlParams.append('district_id', filters.district_id);
+    if (filters.municipality_id) urlParams.append('municipality_id', filters.municipality_id);
+    if (filters.ward) urlParams.append('ward', filters.ward);
     if (filters.minPrice && filters.minPrice !== '0' && filters.minPrice !== '') urlParams.append('minPrice', filters.minPrice);
     if (filters.maxPrice && filters.maxPrice !== '0' && filters.maxPrice !== '') urlParams.append('maxPrice', filters.maxPrice);
     if (filters.condition !== 'all') urlParams.append('condition', filters.condition);
@@ -306,10 +333,10 @@ function SearchResults() {
   };
 
   const hasActiveFilters = searchFilters.search || searchFilters.category !== 'all' ||
-    searchFilters.location !== 'all' || searchFilters.minPrice ||
-    searchFilters.maxPrice || searchFilters.condition !== 'all' ||
-    searchFilters.datePosted !== 'any' || searchFilters.sortBy !== 'date' ||
-    searchFilters.sortOrder !== 'desc';
+    searchFilters.subcategory || searchFilters.location !== 'all' ||
+    searchFilters.minPrice || searchFilters.maxPrice ||
+    searchFilters.condition !== 'all' || searchFilters.datePosted !== 'any' ||
+    searchFilters.sortBy !== 'date' || searchFilters.sortOrder !== 'desc';
 
   if (loading || authLoading) {
     return (
@@ -349,23 +376,38 @@ function SearchResults() {
   const generatePageTitle = () => {
     const parts = [];
     if (searchFilters.search) parts.push(searchFilters.search);
-    if (searchFilters.category && searchFilters.category !== 'all') parts.push(searchFilters.category);
+
+    // Show subcategory if exists, otherwise show category
+    if (searchFilters.subcategory) {
+      parts.push(searchFilters.subcategory);
+    } else if (searchFilters.category && searchFilters.category !== 'all') {
+      parts.push(searchFilters.category);
+    }
+
     if (searchFilters.location && searchFilters.location !== 'all') parts.push(`in ${searchFilters.location}`);
     return parts.length > 0 ? `${parts.join(' ')} - Thulobazaar` : 'Search Results - Thulobazaar';
   };
 
   const generateMetaDescription = () => {
-    const category = searchFilters.category !== 'all' ? searchFilters.category : 'items';
+    let categoryText = 'items';
+
+    // Show full category path for subcategories (e.g., "Mobile > Mobile Phones")
+    if (searchFilters.subcategory) {
+      categoryText = `${searchFilters.category} > ${searchFilters.subcategory}`;
+    } else if (searchFilters.category !== 'all') {
+      categoryText = searchFilters.category;
+    }
+
     const location = searchFilters.location !== 'all' ? ` in ${searchFilters.location}` : ' across Nepal';
-    return `Find ${category}${location}. Browse ${ads.length} ads on Thulobazaar, Nepal's leading classifieds marketplace.`;
+    return `Find ${categoryText}${location}. Browse ${ads.length} ads on Thulobazaar, Nepal's leading classifieds marketplace.`;
   };
 
   return (
     <div>
-      <Helmet>
-        <title>{generatePageTitle()}</title>
+      {/* React 19 Native Metadata */}
+      <title>{generatePageTitle()}</title>
         <meta name="description" content={generateMetaDescription()} />
-        <meta name="keywords" content={`${searchFilters.category}, ${searchFilters.location}, Nepal classifieds, ${searchFilters.search}`} />
+        <meta name="keywords" content={`${searchFilters.category}${searchFilters.subcategory ? `, ${searchFilters.subcategory}` : ''}, ${searchFilters.location}, Nepal classifieds, ${searchFilters.search}`} />
         <link rel="canonical" href={`${window.location.origin}${location.pathname}${location.search}`} />
 
         {/* Open Graph tags */}
@@ -373,7 +415,7 @@ function SearchResults() {
         <meta property="og:description" content={generateMetaDescription()} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${window.location.origin}${location.pathname}${location.search}`} />
-      </Helmet>
+      
 
       {/* Header */}
       <Header />
@@ -490,34 +532,97 @@ function SearchResults() {
                 max: searchFilters.maxPrice || ''
               }}
               condition={searchFilters.condition === 'all' ? '' : searchFilters.condition}
+              enableAreaFiltering={true}
+              onLocationSelect={(selection) => {
+                console.log('✨ [SearchResults] Location selected:', selection);
+
+                // Clear all location filters first
+                const newFilters = {
+                  ...searchFilters,
+                  area_ids: '',
+                  province_id: '',
+                  district_id: '',
+                  municipality_id: '',
+                  ward: '',
+                  page: 1
+                };
+
+                // Set the appropriate filter based on selection type
+                if (selection) {
+                  switch (selection.type) {
+                    case 'province':
+                      newFilters.province_id = selection.id;
+                      console.log('🗺️  [SearchResults] Province filter:', selection.id);
+                      break;
+                    case 'district':
+                      newFilters.district_id = selection.id;
+                      console.log('🗺️  [SearchResults] District filter:', selection.id);
+                      break;
+                    case 'municipality':
+                      newFilters.municipality_id = selection.id;
+                      console.log('🗺️  [SearchResults] Municipality filter:', selection.id);
+                      break;
+                    case 'ward':
+                      newFilters.municipality_id = selection.municipality_id;
+                      newFilters.ward = selection.ward_number;
+                      console.log('🗺️  [SearchResults] Ward filter:', selection.ward_number, 'in municipality', selection.municipality_id);
+                      break;
+                    case 'area':
+                      newFilters.area_ids = String(selection.id);
+                      console.log('🗺️  [SearchResults] Area filter:', selection.id);
+                      break;
+                  }
+                }
+
+                console.log('✨ [SearchResults] Updating URL with filters:', newFilters);
+                updateURL(newFilters);
+              }}
               onCategoryChange={(categoryId) => {
                 if (!categoryId) {
-                  handleInputChange('category', 'all');
+                  // Clear both category and subcategory
+                  const newFilters = {
+                    ...searchFilters,
+                    category: 'all',
+                    subcategory: '',
+                    page: 1
+                  };
+                  updateURL(newFilters);
                   return;
                 }
 
-                // Search in both main categories and subcategories
-                let categoryName = 'all';
                 const id = parseInt(categoryId);
+                let parentCategoryName = '';
+                let subcategoryName = '';
 
-                // First check main categories
+                // First check if it's a main category
                 const mainCategory = categories.find(c => c.id === id);
                 if (mainCategory) {
-                  categoryName = mainCategory.name;
+                  // Selected a main category
+                  parentCategoryName = mainCategory.name;
+                  subcategoryName = '';
                 } else {
                   // Search in subcategories
                   for (const cat of categories) {
                     if (cat.subcategories && cat.subcategories.length > 0) {
                       const subcat = cat.subcategories.find(s => s.id === id);
                       if (subcat) {
-                        categoryName = subcat.name;
+                        // Selected a subcategory - track both parent and subcategory
+                        parentCategoryName = cat.name;
+                        subcategoryName = subcat.name;
                         break;
                       }
                     }
                   }
                 }
 
-                handleInputChange('category', categoryName);
+                // Update filters with both category and subcategory
+                const newFilters = {
+                  ...searchFilters,
+                  category: parentCategoryName || 'all',
+                  subcategory: subcategoryName,
+                  page: 1
+                };
+                updateURL(newFilters);
               }}
               onLocationChange={(locationId) => {
                 if (!locationId) {

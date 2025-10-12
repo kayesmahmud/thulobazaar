@@ -84,7 +84,7 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
               )}
             </div>
             <div style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              {ad.business_verification_status === 'approved' ? 'Verified Business Account' : ad.individual_verified ? 'Verified Seller' : 'Seller'}
+              {ad.business_verification_status === 'approved' ? 'Verified Business Account' : ad.individual_verified ? 'Verified Individual Seller' : 'Seller'}
             </div>
             <div style={{
               color: colors.primary,

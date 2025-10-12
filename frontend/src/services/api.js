@@ -37,7 +37,15 @@ class ApiService {
 
     if (searchParams.search) params.append('search', searchParams.search);
     if (searchParams.category) params.append('category', searchParams.category);
-    if (searchParams.location) params.append('location', searchParams.location);
+    if (searchParams.parentCategoryId) params.append('parentCategoryId', searchParams.parentCategoryId);
+    // Support both location (ID) and location_name (string) - backend handles both
+    if (searchParams.location_name) params.append('location', searchParams.location_name);
+    else if (searchParams.location) params.append('location', searchParams.location);
+    if (searchParams.area_ids) params.append('area_ids', searchParams.area_ids);
+    if (searchParams.province_id) params.append('province_id', searchParams.province_id);
+    if (searchParams.district_id) params.append('district_id', searchParams.district_id);
+    if (searchParams.municipality_id) params.append('municipality_id', searchParams.municipality_id);
+    if (searchParams.ward) params.append('ward', searchParams.ward);
     if (searchParams.minPrice) params.append('minPrice', searchParams.minPrice);
     if (searchParams.maxPrice) params.append('maxPrice', searchParams.maxPrice);
     if (searchParams.condition) params.append('condition', searchParams.condition);
@@ -378,9 +386,11 @@ class ApiService {
       // Create FormData for file upload
       const formData = new FormData();
 
-      // Add text data
+      // Add text data (skip null/undefined values)
       Object.keys(adData).forEach(key => {
-        formData.append(key, adData[key]);
+        if (adData[key] !== null && adData[key] !== undefined) {
+          formData.append(key, adData[key]);
+        }
       });
 
       // Add images

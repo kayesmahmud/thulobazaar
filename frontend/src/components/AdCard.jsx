@@ -22,12 +22,13 @@ function AdCard({ ad }) {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const adUrl = generateAdUrl(ad);
+      // Use seo_slug if available, otherwise generate URL
+      const adUrl = ad.seo_slug ? `/ad/${ad.seo_slug}` : generateAdUrl(ad);
       navigate(`/${language}${adUrl}`);
     } catch (error) {
       console.error('Navigation error:', error);
       // Fallback to direct window navigation if React Router fails
-      const adUrl = generateAdUrl(ad);
+      const adUrl = ad.seo_slug ? `/ad/${ad.seo_slug}` : generateAdUrl(ad);
       window.location.href = `/${language}${adUrl}`;
     }
   };

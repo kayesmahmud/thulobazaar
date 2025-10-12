@@ -3,16 +3,50 @@ const { NotFoundError } = require('../middleware/errorHandler');
 
 class LocationController {
   /**
-   * Get all locations
+   * Get all locations (with optional parent_id filter for hierarchical selection)
    */
   static async getAll(req, res) {
-    const locations = await Location.findAllWithCount();
+    const { parent_id } = req.query;
 
-    console.log(`✅ Found ${locations.length} locations`);
+    let locations;
+
+    if (parent_id !== undefined) {
+      // Fetch children of specific parent (or provinces if parent_id is null/empty)
+      if (parent_id === '' || parent_id === 'null') {
+        // Get top-level locations (provinces)
+        const query = `
+          SELECT l.*, COUNT(a.id) as ad_count
+          FROM locations l
+          LEFT JOIN ads a ON l.id = a.location_id AND a.status = 'approved'
+          WHERE l.parent_id IS NULL
+          GROUP BY l.id
+          ORDER BY l.name ASC
+        `;
+        const result = await require('../config/database').query(query);
+        locations = result.rows;
+      } else {
+        // Get children of specific parent
+        const query = `
+          SELECT l.*, COUNT(a.id) as ad_count
+          FROM locations l
+          LEFT JOIN ads a ON l.id = a.location_id AND a.status = 'approved'
+          WHERE l.parent_id = $1
+          GROUP BY l.id
+          ORDER BY l.name ASC
+        `;
+        const result = await require('../config/database').query(query, [parseInt(parent_id)]);
+        locations = result.rows;
+      }
+      console.log(`✅ Found ${locations.length} locations (parent_id: ${parent_id || 'NULL'})`);
+    } else {
+      // Fetch all locations (backward compatibility)
+      locations = await Location.findAllWithCount();
+      console.log(`✅ Found ${locations.length} locations`);
+    }
 
     res.json({
       success: true,
-      locations
+      data: locations
     });
   }
 
@@ -35,7 +69,7 @@ class LocationController {
 
     res.json({
       success: true,
-      location
+      data: location
     });
   }
 
@@ -62,7 +96,7 @@ class LocationController {
     res.status(201).json({
       success: true,
       message: 'Location created successfully',
-      location
+      data: location
     });
   }
 
@@ -98,7 +132,7 @@ class LocationController {
     res.json({
       success: true,
       message: 'Location updated successfully',
-      location
+      data: location
     });
   }
 
@@ -164,7 +198,32 @@ class LocationController {
     const searchTerm = q.trim();
     const results = await Location.searchAreas(searchTerm, parseInt(limit));
 
-    console.log(`🔍 Location search for "${searchTerm}": Found ${results.length} results`);
+    console.log(`🔍 Area search for "${searchTerm}": Found ${results.length} results`);
+
+    res.json({
+      success: true,
+      data: results
+    });
+  }
+
+  /**
+   * Search ALL location levels (provinces, districts, municipalities, wards, areas)
+   */
+  static async searchAllLocations(req, res) {
+    const { q, limit = 15 } = req.query;
+
+    // Return empty if query is too short
+    if (!q || q.trim().length < 2) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    const searchTerm = q.trim();
+    const results = await Location.searchAllLocations(searchTerm, parseInt(limit));
+
+    console.log(`🔍 All-location search for "${searchTerm}": Found ${results.length} results`);
 
     res.json({
       success: true,

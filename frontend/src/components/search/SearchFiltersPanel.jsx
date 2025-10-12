@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { styles, colors, spacing, typography } from '../../styles/theme';
-import LocationSearchInput from '../LocationSearchInput';
+import ActiveLocationFilters from './ActiveLocationFilters';
+import LocationHierarchyBrowser from './LocationHierarchyBrowser';
 
 function SearchFiltersPanel({
   categories,
@@ -13,12 +14,15 @@ function SearchFiltersPanel({
   onLocationChange,
   onPriceRangeChange,
   onConditionChange,
-  onClearFilters
+  onClearFilters,
+  // New props for area-based filtering
+  onLocationSelect = null, // Optional callback for hierarchical location selection
+  enableAreaFiltering = false // Feature flag to enable new area filtering
 }) {
   // Track which sections are expanded
   const [expandedSections, setExpandedSections] = useState({
     category: true,
-    location: true,
+    location: !enableAreaFiltering, // Collapse old location if new area filtering enabled
     price: true,
     condition: true
   });
@@ -26,13 +30,12 @@ function SearchFiltersPanel({
   // Track which category is expanded (for subcategories)
   const [expandedCategory, setExpandedCategory] = useState(null);
 
-  // Track which province and district are expanded (for locations)
+  // Track which province and district are expanded (for old locations)
   const [expandedProvince, setExpandedProvince] = useState(null);
   const [expandedDistrict, setExpandedDistrict] = useState(null);
 
-  // Area search state
-  const [areaSearchValue, setAreaSearchValue] = useState('');
-  const [selectedArea, setSelectedArea] = useState(null);
+  // New: Selected areas for area-based filtering
+  const [selectedAreas, setSelectedAreas] = useState([]);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -54,17 +57,33 @@ function SearchFiltersPanel({
     setExpandedDistrict(prev => prev === districtId ? null : districtId);
   };
 
-  // Area search handlers
+  // Area filtering handlers
   const handleAreaSelect = (area) => {
-    setSelectedArea(area);
-    setAreaSearchValue(area.display_text);
-    // Set the municipality as the selected location
-    onLocationChange(area.municipality_id.toString());
+    console.log('🎯 [SearchFiltersPanel] Area selected:', area);
+    const newAreas = [...selectedAreas, area];
+    setSelectedAreas(newAreas);
+    console.log('🎯 [SearchFiltersPanel] New areas array:', newAreas);
+    if (onAreasChange) {
+      console.log('🎯 [SearchFiltersPanel] Calling onAreasChange with', newAreas.length, 'areas');
+      onAreasChange(newAreas);
+    } else {
+      console.warn('⚠️ [SearchFiltersPanel] onAreasChange callback is missing!');
+    }
   };
 
-  const handleAreaClear = () => {
-    setSelectedArea(null);
-    setAreaSearchValue('');
+  const handleAreaRemove = (areaId) => {
+    const newAreas = selectedAreas.filter(area => area.id !== areaId);
+    setSelectedAreas(newAreas);
+    if (onAreasChange) {
+      onAreasChange(newAreas);
+    }
+  };
+
+  const handleClearAllAreas = () => {
+    setSelectedAreas([]);
+    if (onAreasChange) {
+      onAreasChange([]);
+    }
   };
 
   const FilterSection = ({ title, section, children, count }) => (
@@ -122,10 +141,17 @@ function SearchFiltersPanel({
 
   // Count active filters
   const categoryCount = selectedCategory ? 1 : 0;
-  const locationCount = selectedLocation ? 1 : 0;
+  const locationCount = enableAreaFiltering ? selectedAreas.length : (selectedLocation ? 1 : 0);
   const priceCount = (priceRange.min || priceRange.max) ? 1 : 0;
   const conditionCount = condition ? 1 : 0;
   const totalActiveFilters = categoryCount + locationCount + priceCount + conditionCount;
+
+  const handleClearAll = () => {
+    if (enableAreaFiltering) {
+      handleClearAllAreas();
+    }
+    onClearFilters();
+  };
 
   return (
     <div style={{
@@ -165,7 +191,7 @@ function SearchFiltersPanel({
         </h3>
         {totalActiveFilters > 0 && (
           <button
-            onClick={onClearFilters}
+            onClick={handleClearAll}
             style={{
               ...styles.link.default,
               fontSize: typography.fontSize.sm,
@@ -364,328 +390,295 @@ function SearchFiltersPanel({
         </div>
       </FilterSection>
 
-      {/* Location Filter */}
-      <FilterSection title="Location" section="location" count={locationCount}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
-          {/* Area Search Input */}
-          <div style={{ marginBottom: spacing.sm }}>
-            <label style={{
-              display: 'block',
-              marginBottom: spacing.xs,
-              fontSize: typography.fontSize.sm,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary
-            }}>
-              🔍 Search Area/Place
-            </label>
-            <LocationSearchInput
-              value={areaSearchValue}
-              onSelect={handleAreaSelect}
-              onClear={handleAreaClear}
-              placeholder="e.g., Thamel, Baluwatar..."
-            />
-            {selectedArea && (
-              <div style={{
-                marginTop: spacing.xs,
-                padding: spacing.xs,
-                backgroundColor: colors.primaryLight,
-                border: `1px solid ${colors.primary}`,
+      {/* NEW: Area-based Location Filtering */}
+      {enableAreaFiltering && (
+        <>
+          {/* Location Hierarchy Browser */}
+          <LocationHierarchyBrowser
+            onLocationSelect={onLocationSelect}
+          />
+        </>
+      )}
+
+      {/* OLD: Traditional Location Filter (shown when enableAreaFiltering is false) */}
+      {!enableAreaFiltering && (
+        <FilterSection title="Location" section="location" count={locationCount}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                cursor: 'pointer',
+                padding: spacing.sm,
                 borderRadius: '6px',
-                fontSize: typography.fontSize.xs,
-                color: colors.primary
+                backgroundColor: !selectedLocation ? colors.primaryLight : 'transparent',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (selectedLocation) {
+                  e.currentTarget.style.backgroundColor = colors.background.secondary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedLocation) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              <input
+                type="radio"
+                name="location"
+                value=""
+                checked={!selectedLocation}
+                onChange={(e) => onLocationChange(e.target.value)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span style={{
+                fontSize: typography.fontSize.sm,
+                color: !selectedLocation ? colors.primary : colors.text.primary,
+                fontWeight: !selectedLocation ? typography.fontWeight.semibold : typography.fontWeight.normal
               }}>
-                ✓ {selectedArea.area_name}, Ward {selectedArea.ward_number}
-              </div>
-            )}
-          </div>
+                📍 All Locations
+              </span>
+            </label>
 
-          {/* Divider */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            margin: `${spacing.sm} 0`,
-            color: colors.text.secondary,
-            fontSize: typography.fontSize.xs
-          }}>
-            <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
-            <span style={{ padding: `0 ${spacing.xs}` }}>OR</span>
-            <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
-          </div>
+            {/* Provinces with Districts and Municipalities */}
+            {locations.map(province => {
+              const hasDistricts = province.districts && province.districts.length > 0;
+              const isProvinceExpanded = expandedProvince === province.id;
+              const isProvinceSelected = selectedLocation === String(province.id);
 
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.sm,
-              cursor: 'pointer',
-              padding: spacing.sm,
-              borderRadius: '6px',
-              backgroundColor: !selectedLocation ? colors.primaryLight : 'transparent',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (selectedLocation) {
-                e.currentTarget.style.backgroundColor = colors.background.secondary;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (selectedLocation) {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }
-            }}
-          >
-            <input
-              type="radio"
-              name="location"
-              value=""
-              checked={!selectedLocation}
-              onChange={(e) => onLocationChange(e.target.value)}
-              style={{ cursor: 'pointer' }}
-            />
-            <span style={{
-              fontSize: typography.fontSize.sm,
-              color: !selectedLocation ? colors.primary : colors.text.primary,
-              fontWeight: !selectedLocation ? typography.fontWeight.semibold : typography.fontWeight.normal
-            }}>
-              📍 All Locations
-            </span>
-          </label>
-
-          {/* Provinces with Districts and Municipalities */}
-          {locations.map(province => {
-            const hasDistricts = province.districts && province.districts.length > 0;
-            const isProvinceExpanded = expandedProvince === province.id;
-            const isProvinceSelected = selectedLocation === String(province.id);
-
-            return (
-              <div key={province.id} style={{ display: 'flex', flexDirection: 'column' }}>
-                {/* Province */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    padding: spacing.sm,
-                    borderRadius: '6px',
-                    backgroundColor: isProvinceSelected ? colors.primaryLight : 'transparent',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isProvinceSelected) {
-                      e.currentTarget.style.backgroundColor = colors.background.secondary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isProvinceSelected) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  {hasDistricts && (
-                    <button
-                      onClick={() => toggleProvince(province.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: colors.text.secondary,
-                        fontSize: '12px',
-                        transition: 'transform 0.2s'
-                      }}
-                    >
-                      <span style={{
-                        transform: isProvinceExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s'
-                      }}>
-                        ▶
-                      </span>
-                    </button>
-                  )}
-                  {!hasDistricts && <span style={{ width: '18px' }}></span>}
-                  <label
+              return (
+                <div key={province.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* Province */}
+                  <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: spacing.sm,
-                      cursor: 'pointer',
-                      flex: 1
+                      gap: spacing.xs,
+                      padding: spacing.sm,
+                      borderRadius: '6px',
+                      backgroundColor: isProvinceSelected ? colors.primaryLight : 'transparent',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isProvinceSelected) {
+                        e.currentTarget.style.backgroundColor = colors.background.secondary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isProvinceSelected) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
                     }}
                   >
-                    <input
-                      type="radio"
-                      name="location"
-                      value={province.id}
-                      checked={isProvinceSelected}
-                      onChange={(e) => onLocationChange(e.target.value)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span style={{
-                      fontSize: typography.fontSize.sm,
-                      color: isProvinceSelected ? colors.primary : colors.text.primary,
-                      fontWeight: isProvinceSelected ? typography.fontWeight.semibold : typography.fontWeight.normal
+                    {hasDistricts && (
+                      <button
+                        onClick={() => toggleProvince(province.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: colors.text.secondary,
+                          fontSize: '12px',
+                          transition: 'transform 0.2s'
+                        }}
+                      >
+                        <span style={{
+                          transform: isProvinceExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }}>
+                          ▶
+                        </span>
+                      </button>
+                    )}
+                    {!hasDistricts && <span style={{ width: '18px' }}></span>}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.sm,
+                        cursor: 'pointer',
+                        flex: 1
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="location"
+                        value={province.id}
+                        checked={isProvinceSelected}
+                        onChange={(e) => onLocationChange(e.target.value)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span style={{
+                        fontSize: typography.fontSize.sm,
+                        color: isProvinceSelected ? colors.primary : colors.text.primary,
+                        fontWeight: isProvinceSelected ? typography.fontWeight.semibold : typography.fontWeight.normal
+                      }}>
+                        📍 {province.name}
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Districts */}
+                  {hasDistricts && (
+                    <div style={{
+                      maxHeight: isProvinceExpanded ? '500px' : '0',
+                      overflow: 'hidden',
+                      transition: 'max-height 0.3s ease-in-out',
+                      paddingLeft: '32px'
                     }}>
-                      📍 {province.name}
-                    </span>
-                  </label>
-                </div>
+                      {province.districts.map(district => {
+                        const hasMunicipalities = district.municipalities && district.municipalities.length > 0;
+                        const isDistrictExpanded = expandedDistrict === district.id;
+                        const isDistrictSelected = selectedLocation === String(district.id);
 
-                {/* Districts */}
-                {hasDistricts && (
-                  <div style={{
-                    maxHeight: isProvinceExpanded ? '500px' : '0',
-                    overflow: 'hidden',
-                    transition: 'max-height 0.3s ease-in-out',
-                    paddingLeft: '32px'
-                  }}>
-                    {province.districts.map(district => {
-                      const hasMunicipalities = district.municipalities && district.municipalities.length > 0;
-                      const isDistrictExpanded = expandedDistrict === district.id;
-                      const isDistrictSelected = selectedLocation === String(district.id);
-
-                      return (
-                        <div key={district.id} style={{ marginTop: spacing.xs }}>
-                          {/* District */}
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: spacing.xs,
-                              padding: `${spacing.xs} ${spacing.sm}`,
-                              borderRadius: '6px',
-                              backgroundColor: isDistrictSelected ? colors.primaryLight : 'transparent',
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!isDistrictSelected) {
-                                e.currentTarget.style.backgroundColor = colors.background.secondary;
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isDistrictSelected) {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }
-                            }}
-                          >
-                            {hasMunicipalities && (
-                              <button
-                                onClick={() => toggleDistrict(district.id)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  padding: '2px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  color: colors.text.secondary,
-                                  fontSize: '12px',
-                                  transition: 'transform 0.2s'
-                                }}
-                              >
-                                <span style={{
-                                  transform: isDistrictExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                                  transition: 'transform 0.2s'
-                                }}>
-                                  ▶
-                                </span>
-                              </button>
-                            )}
-                            {!hasMunicipalities && <span style={{ width: '18px' }}></span>}
-                            <label
+                        return (
+                          <div key={district.id} style={{ marginTop: spacing.xs }}>
+                            {/* District */}
+                            <div
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: spacing.sm,
-                                cursor: 'pointer',
-                                flex: 1
+                                gap: spacing.xs,
+                                padding: `${spacing.xs} ${spacing.sm}`,
+                                borderRadius: '6px',
+                                backgroundColor: isDistrictSelected ? colors.primaryLight : 'transparent',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isDistrictSelected) {
+                                  e.currentTarget.style.backgroundColor = colors.background.secondary;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isDistrictSelected) {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }
                               }}
                             >
-                              <input
-                                type="radio"
-                                name="location"
-                                value={district.id}
-                                checked={isDistrictSelected}
-                                onChange={(e) => onLocationChange(e.target.value)}
-                                style={{ cursor: 'pointer' }}
-                              />
-                              <span style={{
-                                fontSize: typography.fontSize.sm,
-                                color: isDistrictSelected ? colors.primary : colors.text.primary,
-                                fontWeight: isDistrictSelected ? typography.fontWeight.semibold : typography.fontWeight.normal
-                              }}>
-                                {district.name}
-                              </span>
-                            </label>
-                          </div>
-
-                          {/* Municipalities */}
-                          {hasMunicipalities && (
-                            <div style={{
-                              maxHeight: isDistrictExpanded ? '500px' : '0',
-                              overflow: 'hidden',
-                              transition: 'max-height 0.3s ease-in-out',
-                              paddingLeft: '32px'
-                            }}>
-                              {district.municipalities.map(municipality => {
-                                const isMunicipalitySelected = selectedLocation === String(municipality.id);
-
-                                return (
-                                  <label
-                                    key={municipality.id}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: spacing.sm,
-                                      cursor: 'pointer',
-                                      padding: `${spacing.xs} ${spacing.sm}`,
-                                      borderRadius: '6px',
-                                      backgroundColor: isMunicipalitySelected ? colors.primaryLight : 'transparent',
-                                      transition: 'all 0.2s',
-                                      marginTop: spacing.xs
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (!isMunicipalitySelected) {
-                                        e.currentTarget.style.backgroundColor = colors.background.secondary;
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (!isMunicipalitySelected) {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                      }
-                                    }}
-                                  >
-                                    <input
-                                      type="radio"
-                                      name="location"
-                                      value={municipality.id}
-                                      checked={isMunicipalitySelected}
-                                      onChange={(e) => onLocationChange(e.target.value)}
-                                      style={{ cursor: 'pointer' }}
-                                    />
-                                    <span style={{
-                                      fontSize: typography.fontSize.sm,
-                                      color: isMunicipalitySelected ? colors.primary : colors.text.primary,
-                                      fontWeight: isMunicipalitySelected ? typography.fontWeight.semibold : typography.fontWeight.normal
-                                    }}>
-                                      {municipality.name}
-                                    </span>
-                                  </label>
-                                );
-                              })}
+                              {hasMunicipalities && (
+                                <button
+                                  onClick={() => toggleDistrict(district.id)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: colors.text.secondary,
+                                    fontSize: '12px',
+                                    transition: 'transform 0.2s'
+                                  }}
+                                >
+                                  <span style={{
+                                    transform: isDistrictExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s'
+                                  }}>
+                                    ▶
+                                  </span>
+                                </button>
+                              )}
+                              {!hasMunicipalities && <span style={{ width: '18px' }}></span>}
+                              <label
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: spacing.sm,
+                                  cursor: 'pointer',
+                                  flex: 1
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="location"
+                                  value={district.id}
+                                  checked={isDistrictSelected}
+                                  onChange={(e) => onLocationChange(e.target.value)}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                <span style={{
+                                  fontSize: typography.fontSize.sm,
+                                  color: isDistrictSelected ? colors.primary : colors.text.primary,
+                                  fontWeight: isDistrictSelected ? typography.fontWeight.semibold : typography.fontWeight.normal
+                                }}>
+                                  {district.name}
+                                </span>
+                              </label>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </FilterSection>
+
+                            {/* Municipalities */}
+                            {hasMunicipalities && (
+                              <div style={{
+                                maxHeight: isDistrictExpanded ? '500px' : '0',
+                                overflow: 'hidden',
+                                transition: 'max-height 0.3s ease-in-out',
+                                paddingLeft: '32px'
+                              }}>
+                                {district.municipalities.map(municipality => {
+                                  const isMunicipalitySelected = selectedLocation === String(municipality.id);
+
+                                  return (
+                                    <label
+                                      key={municipality.id}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: spacing.sm,
+                                        cursor: 'pointer',
+                                        padding: `${spacing.xs} ${spacing.sm}`,
+                                        borderRadius: '6px',
+                                        backgroundColor: isMunicipalitySelected ? colors.primaryLight : 'transparent',
+                                        transition: 'all 0.2s',
+                                        marginTop: spacing.xs
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        if (!isMunicipalitySelected) {
+                                          e.currentTarget.style.backgroundColor = colors.background.secondary;
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (!isMunicipalitySelected) {
+                                          e.currentTarget.style.backgroundColor = 'transparent';
+                                        }
+                                      }}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name="location"
+                                        value={municipality.id}
+                                        checked={isMunicipalitySelected}
+                                        onChange={(e) => onLocationChange(e.target.value)}
+                                        style={{ cursor: 'pointer' }}
+                                      />
+                                      <span style={{
+                                        fontSize: typography.fontSize.sm,
+                                        color: isMunicipalitySelected ? colors.primary : colors.text.primary,
+                                        fontWeight: isMunicipalitySelected ? typography.fontWeight.semibold : typography.fontWeight.normal
+                                      }}>
+                                        {municipality.name}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* Price Range */}
       <FilterSection title="Price Range" section="price" count={priceCount}>

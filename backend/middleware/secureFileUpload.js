@@ -1,7 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-// const { fileTypeFromBuffer } = require('file-type'); // Disabled for development
+// NOTE: file-type v21+ is ESM-only. To use in production, enable this line:
+// const { fileTypeFromBuffer } = await import('file-type'); // ESM import for file-type v21+
 const { FILE_LIMITS } = require('../config/constants');
 
 // Allowed image MIME types (based on magic numbers)

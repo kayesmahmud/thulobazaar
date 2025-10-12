@@ -13,15 +13,27 @@ function Browse() {
   const navigate = useNavigate();
   const { language } = useLanguage();
 
-  // Handle Bikroy-style URL patterns
+  // Handle hierarchical URL patterns including subcategories
   const getPageParams = () => {
-    const { locationSlug, categorySlug } = params;
+    const { locationSlug, categorySlug, subcategorySlug } = params;
     const pathname = window.location.pathname;
 
-    console.log('🔍 Raw params:', { locationSlug, categorySlug });
+    console.log('🔍 Raw params:', { locationSlug, categorySlug, subcategorySlug });
     console.log('🔍 Pathname:', pathname);
 
-    // Parse using Bikroy-style URL parser
+    // Pattern: /ads/location/category/subcategory - 3 segments
+    if (locationSlug && categorySlug && subcategorySlug) {
+      console.log('🔍 Detected location + category + subcategory pattern');
+      return {
+        locationSlug,
+        categorySlug,
+        subcategorySlug,
+        categoryName: getCategoryFromSlug(categorySlug),
+        subcategoryName: getCategoryFromSlug(subcategorySlug)
+      };
+    }
+
+    // Parse using Bikroy-style URL parser for backward compatibility
     const parsed = parseBikroyStyleURL(pathname);
 
     if (parsed.isValid) {
@@ -31,7 +43,9 @@ function Browse() {
       return {
         locationSlug: parsed.location,
         categorySlug: parsed.category,
-        categoryName: categoryName
+        subcategorySlug: null,
+        categoryName: categoryName,
+        subcategoryName: null
       };
     }
 
@@ -39,33 +53,36 @@ function Browse() {
     // Pattern: /en/ads/category/vehicles - handled by route /ads/category/:categorySlug
     if (pathname.includes('/ads/category/') && categorySlug && !locationSlug) {
       console.log('🔍 Detected category-only pattern (legacy)');
-      return { locationSlug: null, categorySlug: categorySlug, categoryName: getCategoryFromSlug(categorySlug) };
+      return { locationSlug: null, categorySlug: categorySlug, subcategorySlug: null, categoryName: getCategoryFromSlug(categorySlug), subcategoryName: null };
     }
 
     // Pattern: /ads/kathmandu/electronics - handled by route /ads/:locationSlug/:categorySlug
     if (locationSlug && categorySlug) {
       console.log('🔍 Detected location + category pattern');
-      return { locationSlug: locationSlug, categorySlug: categorySlug, categoryName: getCategoryFromSlug(categorySlug) };
+      return { locationSlug: locationSlug, categorySlug: categorySlug, subcategorySlug: null, categoryName: getCategoryFromSlug(categorySlug), subcategoryName: null };
     }
 
     // Pattern: /ads/electronics - handled by route /ads/:locationSlug (could be location or category)
     if (locationSlug && !categorySlug) {
       console.log('🔍 Detected single parameter pattern');
-      return { locationSlug: locationSlug, categorySlug: null, categoryName: null };
+      return { locationSlug: locationSlug, categorySlug: null, subcategorySlug: null, categoryName: null, subcategoryName: null };
     }
 
     // Pattern: /ads - handled by route /ads
     console.log('🔍 Detected base pattern');
-    return { locationSlug: null, categorySlug: null, categoryName: null };
+    return { locationSlug: null, categorySlug: null, subcategorySlug: null, categoryName: null, subcategoryName: null };
   };
 
-  const { locationSlug, categorySlug, categoryName } = getPageParams();
+  const { locationSlug, categorySlug, subcategorySlug, categoryName, subcategoryName } = getPageParams();
 
   const [ads, setAds] = useState([]);
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [currentCategory, setCurrentCategory] = useState(null);
+  const [currentSubcategory, setCurrentSubcategory] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentArea, setCurrentArea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [totalAds, setTotalAds] = useState(0);
@@ -76,55 +93,104 @@ function Browse() {
 
   useEffect(() => {
     loadData();
-  }, [locationSlug, categorySlug, searchParams]);
+  }, [locationSlug, categorySlug, subcategorySlug, searchParams]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Load categories and locations first
+      // Load categories and locations
       const [categoriesData, locationsData] = await Promise.all([
-        ApiService.getCategories(),
+        ApiService.getCategories(true), // true = include subcategories
         ApiService.getLocations()
       ]);
 
       setCategories(categoriesData);
       setLocations(locationsData);
 
-      // Determine actual category and location based on URL params
+      // Determine actual category, subcategory, and location based on URL params
       let actualCategory = null;
+      let actualSubcategory = null;
       let actualLocation = null;
 
-      if (categoryName) {
-        console.log('🔍 Looking for category with name:', categoryName);
+      // Handle subcategory if present
+      if (subcategoryName || subcategorySlug) {
+        console.log('🔍 Looking for subcategory with name/slug:', subcategoryName, subcategorySlug);
+        // Search for subcategory within categories
+        for (const cat of categoriesData) {
+          if (cat.subcategories) {
+            const subcat = cat.subcategories.find(sub => {
+              // Try matching by name (exact or case-insensitive)
+              if (subcategoryName && (sub.name === subcategoryName || sub.name.toLowerCase() === subcategoryName.toLowerCase())) {
+                return true;
+              }
+              // Try matching by slug
+              if (subcategorySlug && sub.slug === subcategorySlug) {
+                return true;
+              }
+              // Try generating slug from name and comparing
+              const generatedSlug = sub.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+              if (subcategorySlug && generatedSlug === subcategorySlug) {
+                return true;
+              }
+              return false;
+            });
+            if (subcat) {
+              actualSubcategory = subcat;
+              actualCategory = cat; // Also set parent category
+              console.log('🔍 Found subcategory:', actualSubcategory, 'in category:', actualCategory);
+              break;
+            }
+          }
+        }
+      }
+
+      // Handle category (only if no subcategory was found)
+      if ((categoryName || categorySlug) && !actualSubcategory) {
+        console.log('🔍 Looking for category with name/slug:', categoryName, categorySlug);
         console.log('🔍 Available categories:', categoriesData.map(cat => ({ id: cat.id, name: cat.name, slug: cat.slug })));
-        // First try exact name match
-        actualCategory = categoriesData.find(cat => cat.name === categoryName);
 
-        // If no exact match, try case-insensitive match
-        if (!actualCategory) {
-          actualCategory = categoriesData.find(cat =>
-            cat.name.toLowerCase() === categoryName.toLowerCase()
-          );
-        }
-
-        // If still no match and we have a slug, try by slug
-        if (!actualCategory && categorySlug) {
-          actualCategory = categoriesData.find(cat => cat.slug === categorySlug);
-        }
+        actualCategory = categoriesData.find(cat => {
+          // Try matching by name (exact or case-insensitive)
+          if (categoryName && (cat.name === categoryName || cat.name.toLowerCase() === categoryName.toLowerCase())) {
+            return true;
+          }
+          // Try matching by slug
+          if (categorySlug && cat.slug === categorySlug) {
+            return true;
+          }
+          // Try generating slug from name and comparing
+          const generatedSlug = cat.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+          if (categorySlug && generatedSlug === categorySlug) {
+            return true;
+          }
+          return false;
+        });
 
         console.log('🔍 Found category:', actualCategory);
       }
 
       if (locationSlug) {
-        // First check if locationSlug is actually a location
-        actualLocation = locationsData.find(loc => loc.slug === locationSlug);
+        console.log('🔍 Looking for location with slug:', locationSlug);
+        // Search for location - try by slug or by generating slug from name
+        actualLocation = locationsData.find(loc => {
+          if (loc.slug === locationSlug) return true;
+          // Generate slug from location name and compare
+          const generatedSlug = loc.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+          return generatedSlug === locationSlug;
+        });
 
         // If not found as location and no categorySlug, check if it's a category
         if (!actualLocation && !categorySlug) {
-          actualCategory = categoriesData.find(cat => cat.slug === locationSlug);
+          actualCategory = categoriesData.find(cat => {
+            if (cat.slug === locationSlug) return true;
+            const generatedSlug = cat.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+            return generatedSlug === locationSlug;
+          });
         }
+
+        console.log('🔍 Found location:', actualLocation);
       }
 
       console.log('🔍 Browse Debug - DETAILED:', {
@@ -140,6 +206,7 @@ function Browse() {
       });
 
       setCurrentCategory(actualCategory);
+      setCurrentSubcategory(actualSubcategory);
       setCurrentLocation(actualLocation);
 
       // Prepare search parameters
@@ -148,9 +215,19 @@ function Browse() {
         offset: (currentPage - 1) * ITEMS_PER_PAGE
       };
 
-      if (actualCategory) {
-        searchOptions.category = actualCategory.name;
-        console.log('📡 API will use category NAME:', actualCategory.name);
+      // Use subcategory for filtering if available, otherwise use parent category ID to include all subcategories
+      if (actualSubcategory) {
+        // Searching for specific subcategory only
+        searchOptions.category = actualSubcategory.name;
+        console.log('📡 API will use SUBCATEGORY NAME:', actualSubcategory.name);
+      } else if (actualCategory) {
+        // Searching for parent category - include ALL subcategories
+        searchOptions.parentCategoryId = actualCategory.id;
+        console.log('📡 API will use PARENT CATEGORY ID (includes all subcategories):', actualCategory.id);
+      } else if (subcategoryName) {
+        // Fallback: use subcategory name directly if subcategory object not found
+        searchOptions.category = subcategoryName;
+        console.log('📡 API will use SUBCATEGORY NAME (fallback):', subcategoryName);
       } else if (categoryName) {
         // Fallback: use category name directly if category object not found
         searchOptions.category = categoryName;
@@ -159,8 +236,18 @@ function Browse() {
         console.log('📡 API will use NO CATEGORY');
       }
 
+      // Handle location - if we found a location object, use its ID
+      // Otherwise, pass the location slug as a name for the backend to search
       if (actualLocation) {
         searchOptions.location = actualLocation.id;
+      } else if (locationSlug) {
+        // Convert slug back to a name format (capitalize, replace hyphens)
+        const locationName = locationSlug
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        searchOptions.location_name = locationName;
+        console.log('📡 API will search for location name:', locationName);
       }
 
       // Add other search params (price range, sorting, etc.)
@@ -278,13 +365,18 @@ function Browse() {
             color: '#1e293b',
             margin: '0 0 8px 0'
           }}>
-            {currentCategory && currentLocation
-              ? `${currentCategory.name} in ${currentLocation.name}`
-              : currentCategory
-                ? currentCategory.name
-                : currentLocation
-                  ? `All Ads in ${currentLocation.name}`
-                  : 'All Ads'
+            {/* Show subcategory if exists, otherwise show category */}
+            {currentSubcategory && currentLocation
+              ? `${currentSubcategory.name} in ${currentLocation.name}`
+              : currentSubcategory
+                ? currentSubcategory.name
+                : currentCategory && currentLocation
+                  ? `${currentCategory.name} in ${currentLocation.name}`
+                  : currentCategory
+                    ? currentCategory.name
+                    : currentLocation
+                      ? `All Ads in ${currentLocation.name}`
+                      : 'All Ads'
             }
           </h1>
           <p style={{ color: '#64748b', margin: 0 }}>

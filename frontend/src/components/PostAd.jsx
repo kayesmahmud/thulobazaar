@@ -7,7 +7,7 @@ import ApiService from '../services/api';
 import ImageUpload from './ImageUpload';
 import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
-import LocationSearchInput from './LocationSearchInput';
+import LocationSelector from './post-ad/LocationSelector';
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
@@ -17,22 +17,14 @@ function PostAd() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
 
   // Category cascading state
   const [mainCategoryId, setMainCategoryId] = useState('');
   const [subcategories, setSubcategories] = useState([]);
 
-  // Location cascading state
-  const [provinceId, setProvinceId] = useState('');
-  const [districts, setDistricts] = useState([]);
-  const [districtId, setDistrictId] = useState('');
-  const [municipalities, setMunicipalities] = useState([]);
-
-  // Area search state
-  const [selectedArea, setSelectedArea] = useState(null);
-  const [areaSearchValue, setAreaSearchValue] = useState('');
+  // Area selection state (replaces location cascading)
+  const [selectedAreaData, setSelectedAreaData] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -40,7 +32,7 @@ function PostAd() {
     price: '',
     condition: '',
     categoryId: '',
-    locationId: '',
+    areaId: '', // Changed from locationId to areaId
     sellerName: user?.name || '',
     sellerPhone: user?.phone || ''
   });
@@ -52,16 +44,11 @@ function PostAd() {
       return;
     }
 
-    // Load categories and locations
+    // Load categories only (locations loaded by LocationSelector)
     const loadData = async () => {
       try {
-        // Load categories with subcategories and provinces (parent_id IS NULL)
-        const [categoriesData, provincesData] = await Promise.all([
-          ApiService.getCategories(true), // true to include subcategories
-          ApiService.getLocations('') // empty string for parent_id NULL
-        ]);
-        setCategories(categoriesData);
-        setLocations(provincesData);
+        const categoriesData = await ApiService.getCategories(true); // true to include subcategories
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       } catch (err) {
         console.error('Error loading form data:', err);
         setError(new Error('Failed to load form data. Please refresh the page.'));
@@ -69,7 +56,7 @@ function PostAd() {
     };
 
     loadData();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, language]);
 
   useEffect(() => {
     // Update seller info when user data changes
@@ -116,79 +103,19 @@ function PostAd() {
     if (error) setError(null);
   };
 
-  // Location cascade handlers
-  const handleProvinceChange = async (provinceId) => {
-    setProvinceId(provinceId);
-    setDistrictId('');
-    setDistricts([]);
-    setMunicipalities([]);
-    setFormData(prev => ({ ...prev, locationId: '' }));
+  // Area selection handler
+  const handleAreaSelect = (areaData) => {
+    console.log('📍 Area selected in PostAd:', areaData);
 
-    if (provinceId) {
-      try {
-        const districtsData = await ApiService.getLocations(provinceId);
-        setDistricts(districtsData);
-      } catch (err) {
-        console.error('Error loading districts:', err);
-        setError(new Error('Failed to load districts. Please try again.'));
-      }
+    if (areaData) {
+      setSelectedAreaData(areaData);
+      setFormData(prev => ({ ...prev, areaId: areaData.areaId }));
+    } else {
+      setSelectedAreaData(null);
+      setFormData(prev => ({ ...prev, areaId: '' }));
     }
 
     if (error) setError(null);
-  };
-
-  const handleDistrictChange = async (districtId) => {
-    setDistrictId(districtId);
-    setMunicipalities([]);
-    setFormData(prev => ({ ...prev, locationId: '' }));
-
-    if (districtId) {
-      try {
-        const municipalitiesData = await ApiService.getLocations(districtId);
-        setMunicipalities(municipalitiesData);
-      } catch (err) {
-        console.error('Error loading municipalities:', err);
-        setError(new Error('Failed to load municipalities. Please try again.'));
-      }
-    }
-
-    if (error) setError(null);
-  };
-
-  const handleMunicipalityChange = (municipalityId) => {
-    setFormData(prev => ({ ...prev, locationId: municipalityId }));
-    if (error) setError(null);
-  };
-
-  // Area search handlers
-  const handleAreaSelect = async (area) => {
-    setSelectedArea(area);
-    setAreaSearchValue(area.display_text);
-
-    // Auto-populate the cascading dropdowns
-    setProvinceId(area.province_id.toString());
-    setFormData(prev => ({ ...prev, locationId: area.municipality_id.toString() }));
-
-    // Load districts for the province
-    try {
-      const districtsData = await ApiService.getLocations(area.province_id);
-      setDistricts(districtsData);
-      setDistrictId(area.district_id.toString());
-
-      // Load municipalities for the district
-      const municipalitiesData = await ApiService.getLocations(area.district_id);
-      setMunicipalities(municipalitiesData);
-    } catch (err) {
-      console.error('Error loading location data:', err);
-    }
-
-    if (error) setError(null);
-  };
-
-  const handleAreaClear = () => {
-    setSelectedArea(null);
-    setAreaSearchValue('');
-    // Don't clear the cascading dropdowns - let user decide
   };
 
   const handleSubmit = async (e) => {
@@ -216,8 +143,8 @@ function PostAd() {
       if (!formData.categoryId) {
         throw new Error('Category is required');
       }
-      if (!formData.locationId) {
-        throw new Error('Please select a location (search for area or select municipality)');
+      if (!formData.areaId) {
+        throw new Error('Please select an area/place for your ad');
       }
       if (!formData.sellerName.trim()) {
         throw new Error('Seller name is required');
@@ -232,7 +159,7 @@ function PostAd() {
         price: parseFloat(formData.price),
         condition: formData.condition,
         categoryId: parseInt(formData.categoryId),
-        locationId: parseInt(formData.locationId),
+        areaId: parseInt(formData.areaId), // Changed from locationId to areaId
         sellerName: formData.sellerName.trim(),
         sellerPhone: formData.sellerPhone.trim()
       };
@@ -241,15 +168,20 @@ function PostAd() {
       console.log('✅ Ad created successfully:', result);
 
       // Show success toast notification
-      toast.success('Your ad has been posted successfully and is pending approval!', {
+      toast.success('Your ad has been posted successfully!', {
         title: 'Success!',
         duration: 3000
       });
 
-      // Redirect to home page after 2 seconds
+      // Redirect to ad detail page using SEO slug if available, otherwise use ID
       setTimeout(() => {
-        navigate(`/${language}`);
-      }, 2000);
+        if (result.seo_slug) {
+          navigate(`/${language}/ad/${result.seo_slug}`);
+        } else {
+          // Fallback to ID-based URL if slug is not available
+          navigate(`/${language}/ad/${result.id}`);
+        }
+      }, 1500);
 
     } catch (err) {
       console.error('❌ Error creating ad:', err);
@@ -535,176 +467,12 @@ function PostAd() {
               </div>
             </div>
 
-            {/* Location Selection (Cascading) */}
+            {/* Location Selection with Search + Hierarchical Browser */}
             <div style={{ marginBottom: '24px' }}>
-              <h3 style={{
-                margin: '0 0 16px 0',
-                color: '#1e293b',
-                fontSize: '18px',
-                fontWeight: '600'
-              }}>
-                Location
-              </h3>
-
-              {/* Area Search Input */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Search Area/Place (Optional) *
-                </label>
-                <LocationSearchInput
-                  value={areaSearchValue}
-                  onSelect={handleAreaSelect}
-                  onClear={handleAreaClear}
-                  placeholder="Type to search (e.g., Thamel, Baluwatar, Naxal...)"
-                />
-                {selectedArea && (
-                  <div style={{
-                    marginTop: '8px',
-                    padding: '8px 12px',
-                    backgroundColor: '#f0fdf4',
-                    border: '1px solid #86efac',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    color: '#166534'
-                  }}>
-                    ✓ Selected: <strong>{selectedArea.area_name}</strong>, Ward {selectedArea.ward_number}, {selectedArea.municipality_name}
-                  </div>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: '20px 0',
-                color: '#9ca3af',
-                fontSize: '14px'
-              }}>
-                <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
-                <span style={{ padding: '0 12px' }}>OR browse by location</span>
-                <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                gap: '20px'
-              }}>
-                {/* Province */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Province
-                  </label>
-                  <select
-                    value={provinceId}
-                    onChange={(e) => handleProvinceChange(e.target.value)}
-                    disabled={!!selectedArea}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none',
-                      backgroundColor: selectedArea ? '#f9fafb' : 'white',
-                      cursor: selectedArea ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    <option value="">Select Province</option>
-                    {locations.map((province) => (
-                      <option key={province.id} value={province.id}>
-                        {province.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* District (conditional) */}
-                {provinceId && (
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      District
-                    </label>
-                    <select
-                      value={districtId}
-                      onChange={(e) => handleDistrictChange(e.target.value)}
-                      disabled={!!selectedArea}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none',
-                        backgroundColor: selectedArea ? '#f9fafb' : 'white',
-                        cursor: selectedArea ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <option value="">Select District</option>
-                      {districts.map((district) => (
-                        <option key={district.id} value={district.id}>
-                          {district.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Municipality (conditional) */}
-                {districtId && (
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Municipality
-                    </label>
-                    <select
-                      value={formData.locationId}
-                      onChange={(e) => handleMunicipalityChange(e.target.value)}
-                      disabled={!!selectedArea}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none',
-                        backgroundColor: selectedArea ? '#f9fafb' : 'white',
-                        cursor: selectedArea ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <option value="">Select Municipality</option>
-                      {municipalities.map((municipality) => (
-                        <option key={municipality.id} value={municipality.id}>
-                          {municipality.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+              <LocationSelector
+                onAreaSelect={handleAreaSelect}
+                selectedAreaId={formData.areaId}
+              />
             </div>
 
             {/* Seller Information */}

@@ -11,6 +11,7 @@ class AdController {
     const {
       search,
       category,
+      parentCategoryId,
       location,
       minPrice,
       maxPrice,
@@ -24,8 +25,9 @@ class AdController {
       offset = PAGINATION.DEFAULT_OFFSET
     } = req.query;
 
+    console.log('🔍🔍🔍 FULL REQ.QUERY:', JSON.stringify(req.query));
     console.log('🔍 API Call to /ads with params:', {
-      search, category, location, minPrice, maxPrice,
+      search, category, parentCategoryId, location, minPrice, maxPrice,
       condition, datePosted, dateFrom, dateTo,
       sortBy, sortOrder, limit, offset
     });
@@ -33,6 +35,7 @@ class AdController {
     const { ads, total } = await Ad.findAll({
       search,
       category,
+      parentCategoryId: parentCategoryId ? parseInt(parentCategoryId) : undefined,
       location,
       minPrice,
       maxPrice,

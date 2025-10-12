@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+
 import ApiService from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,7 +9,7 @@ import AuthModal from './AuthModal';
 import SimpleHeader from './SimpleHeader';
 import Breadcrumb from './Breadcrumb';
 import { recentlyViewedUtils } from '../utils/recentlyViewed';
-import { extractAdIdFromUrl } from '../utils/urlUtils';
+import { extractAdIdFromUrl, generateBrowseUrl, generateSlug } from '../utils/urlUtils';
 
 // Import new components
 import ImageGallery from './ad-detail/ImageGallery';
@@ -65,11 +65,17 @@ function AdDetail() {
         setAd(adData);
 
         if (adData) {
+          // Build location string for recently viewed
+          const locationParts = [];
+          if (adData.area_name) locationParts.push(adData.area_name);
+          if (adData.district_name) locationParts.push(adData.district_name);
+          const locationString = locationParts.join(', ') || 'Location not specified';
+
           recentlyViewedUtils.addToRecentlyViewed({
             id: adData.id,
             title: adData.title,
             price: adData.price,
-            location_name: adData.location_name,
+            location_name: locationString,
             category_name: adData.category_name,
             primary_image: adData.primary_image,
             created_at: adData.created_at
@@ -104,6 +110,26 @@ function AdDetail() {
     if (diffDays === 2) return 'Yesterday';
     if (diffDays <= 7) return `${diffDays} days ago`;
     return date.toLocaleDateString();
+  };
+
+  const formatLocation = (detailed = false) => {
+    // Build location hierarchy from area to province
+    const parts = [];
+
+    if (ad.area_name) parts.push(ad.area_name);
+    if (ad.ward_number) parts.push(`Ward ${ad.ward_number}`);
+
+    if (detailed) {
+      // Detailed version includes municipality, district, and province
+      if (ad.municipality_name) parts.push(ad.municipality_name);
+      if (ad.district_name) parts.push(ad.district_name);
+      if (ad.province_name) parts.push(ad.province_name);
+      return parts.join(' • '); // Using bullet separator for hierarchy
+    } else {
+      // Short version: Area, Ward, District
+      if (ad.district_name) parts.push(ad.district_name);
+      return parts.join(', ');
+    }
   };
 
   const handlePhoneReveal = () => {
@@ -268,17 +294,17 @@ function AdDetail() {
   // Generate SEO-friendly description
   const metaDescription = ad.description
     ? ad.description.substring(0, 160)
-    : `${ad.title} - ${ad.price} NPR in ${ad.location_name}. ${ad.category_name}`;
+    : `${ad.title} - ${ad.price} NPR in ${formatLocation()}. ${ad.category_name}`;
 
   // Canonical URL
   const canonicalUrl = `${window.location.origin}/${language}/ad/${slug || ad.id}`;
 
   return (
     <div>
-      <Helmet>
-        <title>{ad.title} - Thulobazaar</title>
+      {/* React 19 Native Metadata */}
+      <title>{ad.title} - Thulobazaar</title>
         <meta name="description" content={metaDescription} />
-        <meta name="keywords" content={`${ad.category_name}, ${ad.location_name}, Nepal classifieds, buy ${ad.title}`} />
+        <meta name="keywords" content={`${ad.category_name}, ${formatLocation()}, Nepal classifieds, buy ${ad.title}`} />
         <link rel="canonical" href={canonicalUrl} />
 
         {/* Open Graph tags for social media */}
@@ -316,16 +342,56 @@ function AdDetail() {
             }
           })}
         </script>
-      </Helmet>
+      
 
       <SimpleHeader showUserWelcome={true} />
 
       <Breadcrumb
-        items={[
-          { label: 'Home', path: '/' },
-          { label: ad.category_name, path: `/search?category=${encodeURIComponent(ad.category_name)}` },
-          { label: ad.title, current: true }
-        ]}
+        items={(() => {
+          // Determine best location slug (prioritize: area > municipality > district > province > 'nepal')
+          const locationSlug = ad.area_name
+            ? generateSlug(ad.area_name)
+            : ad.municipality_name
+            ? generateSlug(ad.municipality_name)
+            : ad.district_name
+            ? generateSlug(ad.district_name)
+            : ad.province_name
+            ? generateSlug(ad.province_name)
+            : 'nepal';
+
+          const categorySlug = ad.parent_category_name
+            ? generateSlug(ad.parent_category_name)
+            : generateSlug(ad.category_name);
+
+          const subcategorySlug = ad.parent_category_name
+            ? generateSlug(ad.category_name)
+            : null;
+
+          // Build breadcrumb items
+          const items = [{ label: 'Home', path: '/' }];
+
+          if (ad.parent_category_name) {
+            // Has subcategory - show parent category first
+            items.push({
+              label: ad.parent_category_name,
+              path: `/${language}${generateBrowseUrl(locationSlug, categorySlug)}`
+            });
+            items.push({
+              label: ad.category_name,
+              path: `/${language}${generateBrowseUrl(locationSlug, categorySlug, subcategorySlug)}`
+            });
+          } else {
+            // No subcategory - just show category
+            items.push({
+              label: ad.category_name,
+              path: `/${language}${generateBrowseUrl(locationSlug, categorySlug)}`
+            });
+          }
+
+          items.push({ label: ad.title, current: true });
+
+          return items;
+        })()}
       />
 
       {/* Ad Detail Content */}
@@ -372,7 +438,7 @@ function AdDetail() {
                 fontSize: typography.fontSize.sm,
                 color: colors.text.secondary
               }}>
-                <span>📍 {ad.location_name}</span>
+                <span>📍 {formatLocation()}</span>
                 <span>👁️ {ad.view_count} views</span>
                 <span>🕒 {formatDate(ad.created_at)}</span>
               </div>
@@ -436,7 +502,7 @@ function AdDetail() {
                   </div>
                   <div>
                     <strong style={{ color: colors.text.secondary }}>Location:</strong>
-                    <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.location_name}</p>
+                    <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{formatLocation(true)}</p>
                   </div>
                   <div>
                     <strong style={{ color: colors.text.secondary }}>Posted:</strong>

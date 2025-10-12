@@ -46,6 +46,7 @@ class Ad {
     const {
       search,
       category,
+      parentCategoryId,
       location,
       minPrice,
       maxPrice,
@@ -108,8 +109,25 @@ class Ad {
       paramCount++;
     }
 
-    // Category filter
-    if (category) {
+    // Parent Category filter (includes all subcategories)
+    if (parentCategoryId) {
+      // Get all subcategory IDs for this parent category
+      const subcatsResult = await pool.query(
+        'SELECT id FROM categories WHERE parent_id = $1',
+        [parentCategoryId]
+      );
+      const subcategoryIds = subcatsResult.rows.map(row => row.id);
+
+      // Include parent category AND all subcategories
+      const categoryIds = [parentCategoryId, ...subcategoryIds];
+      console.log(`🔍 Parent category ${parentCategoryId} includes subcategories:`, subcategoryIds);
+      console.log(`🔍 Final category filter array:`, categoryIds);
+      query += ` AND a.category_id = ANY($${paramCount}::int[])`;  // Cast to int array
+      params.push(categoryIds);
+      paramCount++;
+    }
+    // Single Category filter
+    else if (category) {
       query += ` AND c.name = $${paramCount}`;
       params.push(category);
       paramCount++;
@@ -185,17 +203,33 @@ class Ad {
     query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     params.push(limit, offset);
 
+    // DEBUG: Log the complete query and parameters
+    const fs = require('fs');
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      query: query,
+      params: params,
+      paramCount: params.length
+    };
+    fs.appendFileSync('/tmp/sql-debug.log', JSON.stringify(debugInfo, null, 2) + '\n---\n');
+    console.log('🔍🔍🔍 EXECUTING SQL QUERY 🔍🔍🔍');
+    console.log('Query string:', query);
+    console.log('Params array:', JSON.stringify(params));
+
     const result = await pool.query(query, params);
+    console.log('🔍 Query returned', result.rows.length, 'rows');
 
-    // Get total count
-    let countQuery = 'SELECT COUNT(*) FROM ads a WHERE 1=1';
-    const countParams = params.slice(0, -2); // Remove limit and offset
-
-    if (status) countQuery += ' AND a.status = $1';
-    if (userId) countQuery += ` AND a.user_id = $${userId ? 2 : 1}`;
-    if (search) countQuery += ` AND (a.title ILIKE $${paramCount - 2} OR a.description ILIKE $${paramCount - 2})`;
-
-    const countResult = await pool.query(countQuery, countParams);
+    // Get total count - use same params minus limit and offset
+    const countParams = params.slice(0, -2);
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM ads a
+       LEFT JOIN categories c ON a.category_id = c.id
+       WHERE 1=1 ${query.split('WHERE 1=1')[1].split('GROUP BY')[0]}`.replace(/\$\d+/g, (match) => {
+        const num = parseInt(match.substring(1));
+        return num <= countParams.length ? match : '';
+      }).trim(),
+      countParams
+    );
 
     return {
       ads: result.rows,

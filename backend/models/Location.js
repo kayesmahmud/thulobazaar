@@ -143,6 +143,128 @@ class Location {
   }
 
   /**
+   * Search ALL location levels (provinces, districts, municipalities, wards, areas)
+   * Returns unified results with type and hierarchy information for filtering
+   */
+  static async searchAllLocations(searchTerm, limit = 15) {
+    const query = `
+      -- Search Provinces
+      SELECT
+        'province' as type,
+        p.id,
+        p.name,
+        NULL::integer as parent_id,
+        NULL::integer as municipality_id,
+        NULL::integer as ward_number,
+        NULL::integer as district_id,
+        p.id as province_id,
+        CASE
+          WHEN LOWER(p.name) = LOWER($1) THEN 1
+          WHEN LOWER(p.name) LIKE LOWER($1) || '%' THEN 2
+          ELSE 3
+        END as rank_priority
+      FROM locations p
+      WHERE p.type = 'province' AND p.name ILIKE $2
+
+      UNION ALL
+
+      -- Search Districts
+      SELECT
+        'district' as type,
+        d.id,
+        d.name,
+        d.parent_id,
+        NULL::integer as municipality_id,
+        NULL::integer as ward_number,
+        d.id as district_id,
+        p.id as province_id,
+        CASE
+          WHEN LOWER(d.name) = LOWER($1) THEN 1
+          WHEN LOWER(d.name) LIKE LOWER($1) || '%' THEN 2
+          ELSE 3
+        END as rank_priority
+      FROM locations d
+      JOIN locations p ON d.parent_id = p.id
+      WHERE d.type = 'district' AND d.name ILIKE $2
+
+      UNION ALL
+
+      -- Search Municipalities
+      SELECT
+        'municipality' as type,
+        m.id,
+        m.name,
+        m.parent_id,
+        m.id as municipality_id,
+        NULL::integer as ward_number,
+        d.id as district_id,
+        p.id as province_id,
+        CASE
+          WHEN LOWER(m.name) = LOWER($1) THEN 1
+          WHEN LOWER(m.name) LIKE LOWER($1) || '%' THEN 2
+          ELSE 3
+        END as rank_priority
+      FROM locations m
+      JOIN locations d ON m.parent_id = d.id
+      JOIN locations p ON d.parent_id = p.id
+      WHERE m.type = 'municipality' AND m.name ILIKE $2
+
+      UNION ALL
+
+      -- Search Wards (from locations table)
+      SELECT DISTINCT
+        'ward' as type,
+        w.id,
+        w.name,
+        w.parent_id,
+        w.parent_id as municipality_id,
+        CAST(REPLACE(w.name, 'Ward ', '') AS INTEGER) as ward_number,
+        d.id as district_id,
+        p.id as province_id,
+        CASE
+          WHEN LOWER(w.name) = LOWER($1) THEN 1
+          WHEN LOWER(w.name) LIKE LOWER($1) || '%' THEN 2
+          ELSE 3
+        END as rank_priority
+      FROM locations w
+      JOIN locations m ON w.parent_id = m.id
+      JOIN locations d ON m.parent_id = d.id
+      JOIN locations p ON d.parent_id = p.id
+      WHERE w.type = 'ward' AND w.name ILIKE $2
+
+      UNION ALL
+
+      -- Search Areas (from locations table)
+      SELECT
+        'area' as type,
+        a.id,
+        a.name,
+        a.parent_id,
+        m.id as municipality_id,
+        CAST(REPLACE(w.name, 'Ward ', '') AS INTEGER) as ward_number,
+        d.id as district_id,
+        p.id as province_id,
+        CASE
+          WHEN LOWER(a.name) = LOWER($1) THEN 1
+          WHEN LOWER(a.name) LIKE LOWER($1) || '%' THEN 2
+          ELSE 3
+        END as rank_priority
+      FROM locations a
+      JOIN locations w ON a.parent_id = w.id AND w.type = 'ward'
+      JOIN locations m ON w.parent_id = m.id
+      JOIN locations d ON m.parent_id = d.id
+      JOIN locations p ON d.parent_id = p.id
+      WHERE a.type = 'area' AND a.name ILIKE $2
+
+      ORDER BY rank_priority ASC, name ASC
+      LIMIT $3
+    `;
+
+    const result = await pool.query(query, [searchTerm, `%${searchTerm}%`, limit]);
+    return result.rows;
+  }
+
+  /**
    * Get wards for a municipality
    */
   static async getWards(municipalityId) {

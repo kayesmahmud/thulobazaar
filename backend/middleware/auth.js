@@ -12,13 +12,13 @@ const authenticateToken = (req, res, next) => {
   console.log('🔐 [Middleware/Auth] Token present:', !!token);
 
   if (!token) {
-    throw new AuthenticationError('Access token required');
+    return next(new AuthenticationError('Access token required'));
   }
 
   jwt.verify(token, config.JWT_SECRET, (err, user) => {
     if (err) {
       console.log('❌ [Middleware/Auth] Token verification failed:', err.message);
-      throw new AuthenticationError('Invalid or expired token');
+      return next(new AuthenticationError('Invalid or expired token'));
     }
 
     console.log('✅ [Middleware/Auth] Token decoded successfully - user:', user);
@@ -32,7 +32,7 @@ const authenticateToken = (req, res, next) => {
  */
 const requireAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
-    throw new AuthenticationError('Admin access required');
+    return next(new AuthenticationError('Admin access required'));
   }
   next();
 };
@@ -61,7 +61,7 @@ const optionalAuth = (req, res, next) => {
  */
 const requireRegularUser = (req, res, next) => {
   if (req.user.role === 'editor' || req.user.role === 'super_admin') {
-    throw new AuthenticationError('This feature is not available for editors and admins');
+    return next(new AuthenticationError('This feature is not available for editors and admins'));
   }
   next();
 };

@@ -59,8 +59,40 @@ async function generateSlugForExistingAd(adId, title) {
   return generateSlug(title, adId);
 }
 
+/**
+ * Generate SEO-friendly slug with location for ad detail pages
+ * Format: title-area-district--id
+ * Example: iphone-15-pro-thamel-kathmandu--48
+ *
+ * @param {number} adId - The ad ID
+ * @param {string} title - The ad title
+ * @param {string|null} areaName - Area name (e.g., "Thamel")
+ * @param {string|null} districtName - District name (e.g., "Kathmandu")
+ * @returns {string} - SEO-friendly slug with location and ID
+ */
+function generateSeoSlug(adId, title, areaName = null, districtName = null) {
+  const parts = [title];
+
+  // Add area if available
+  if (areaName) {
+    parts.push(areaName);
+  }
+
+  // Add district if available (and different from area)
+  if (districtName && districtName !== areaName) {
+    parts.push(districtName);
+  }
+
+  // Slugify the combined parts
+  const slugPart = slugify(parts.join(' '));
+
+  // Return slug with ID at the end: title-area-district--id
+  return `${slugPart}--${adId}`;
+}
+
 module.exports = {
   slugify,
   generateSlug,
-  generateSlugForExistingAd
+  generateSlugForExistingAd,
+  generateSeoSlug
 };

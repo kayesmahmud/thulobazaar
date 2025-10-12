@@ -140,6 +140,7 @@ class SearchService {
       const {
         query = '',
         category,
+        parentCategoryId,
         location,
         minPrice,
         maxPrice,
@@ -153,8 +154,9 @@ class SearchService {
       const searchParameters = {
         q: query || '*',
         query_by: 'title,description,category_name,location_name',
-        filter_by: this.buildFilterQuery({
+        filter_by: await this.buildFilterQuery({
           category,
+          parentCategoryId,
           location,
           minPrice,
           maxPrice,
@@ -188,10 +190,37 @@ class SearchService {
     }
   }
 
-  buildFilterQuery({ category, location, minPrice, maxPrice, condition, featured }) {
+  async buildFilterQuery({ category, parentCategoryId, location, minPrice, maxPrice, condition, featured }) {
     const filters = ['is_active:=true'];
 
-    if (category) {
+    // Handle parent category (includes all subcategories)
+    if (parentCategoryId) {
+      try {
+        const pool = require('../config/database');
+        // Get all subcategory IDs for this parent category
+        const result = await pool.query(
+          'SELECT id FROM categories WHERE parent_id = $1',
+          [parentCategoryId]
+        );
+
+        const subcategoryIds = result.rows.map(row => row.id);
+
+        // Build filter: parent_id OR any subcategory_id
+        if (subcategoryIds.length > 0) {
+          // Include parent category AND all subcategories
+          const categoryIds = [parentCategoryId, ...subcategoryIds];
+          filters.push(`category_id:[${categoryIds.join(',')}]`);
+        } else {
+          // No subcategories, just filter by parent category
+          filters.push(`category_id:=${parentCategoryId}`);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching subcategories:', error);
+        // Fallback to just parent category
+        filters.push(`category_id:=${parentCategoryId}`);
+      }
+    } else if (category) {
+      // Handle single category (exact match)
       if (typeof category === 'number') {
         filters.push(`category_id:=${category}`);
       } else {
