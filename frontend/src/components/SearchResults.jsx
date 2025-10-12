@@ -164,57 +164,75 @@ function SearchResults() {
         // Build search params
         const searchParams = {};
         if (searchFilters.search.trim()) searchParams.search = searchFilters.search.trim();
-        // If subcategory is selected, use that for filtering; otherwise use category
+
+        // Category filtering: use parentCategoryId for parent categories to include all subcategories
         if (searchFilters.subcategory) {
+          // Subcategory selected - filter by specific subcategory only
           searchParams.category = searchFilters.subcategory;
         } else if (searchFilters.category !== 'all') {
-          searchParams.category = searchFilters.category;
+          // Parent category selected - use parentCategoryId to include all subcategories
+          const parentCategory = categories.find(c => c.name === searchFilters.category);
+          if (parentCategory) {
+            searchParams.parentCategoryId = parentCategory.id;
+            console.log(`🏷️ [SearchResults] Using parentCategoryId: ${parentCategory.id} for category: ${searchFilters.category}`);
+          }
         }
-        if (searchFilters.location !== 'all') {
-          // Convert location name back to ID for API call
-          // Search in provinces, districts, and municipalities
-          let selectedLocation = null;
-
-          // Search in provinces
-          selectedLocation = locations.find(loc => loc.name === searchFilters.location);
-
-          // If not found, search in districts
-          if (!selectedLocation) {
-            for (const province of locations) {
-              if (province.districts) {
-                selectedLocation = province.districts.find(d => d.name === searchFilters.location);
-                if (selectedLocation) break;
+        // Location filtering - use location_name for hierarchical filtering with recursive CTE
+        // NOTE: area_ids, province_id, district_id, municipality_id are passed through SearchFiltersPanel
+        // but we need to convert them to location names for the backend
+        if (searchFilters.area_ids && searchFilters.area_ids !== 'all') {
+          // Area IDs are comma-separated, just use the first one's name
+          // The LocationHierarchyBrowser should handle this better by passing location name
+          searchParams.area_ids = searchFilters.area_ids;
+        } else if (searchFilters.province_id) {
+          // Find province name from ID and use location_name
+          const province = locations.find(l => l.id === parseInt(searchFilters.province_id));
+          if (province) {
+            searchParams.location_name = province.name;
+            console.log('🗺️ [SearchResults] Province selected, using location_name:', province.name);
+          }
+        } else if (searchFilters.district_id) {
+          // Find district name from ID and use location_name
+          let districtName = null;
+          for (const province of locations) {
+            if (province.districts) {
+              const district = province.districts.find(d => d.id === parseInt(searchFilters.district_id));
+              if (district) {
+                districtName = district.name;
+                break;
               }
             }
           }
-
-          // If not found, search in municipalities
-          if (!selectedLocation) {
-            for (const province of locations) {
-              if (province.districts) {
-                for (const district of province.districts) {
-                  if (district.municipalities) {
-                    selectedLocation = district.municipalities.find(m => m.name === searchFilters.location);
-                    if (selectedLocation) break;
+          if (districtName) {
+            searchParams.location_name = districtName;
+            console.log('🗺️ [SearchResults] District selected, using location_name:', districtName);
+          }
+        } else if (searchFilters.municipality_id) {
+          // Find municipality name from ID and use location_name
+          let municipalityName = null;
+          for (const province of locations) {
+            if (province.districts) {
+              for (const district of province.districts) {
+                if (district.municipalities) {
+                  const municipality = district.municipalities.find(m => m.id === parseInt(searchFilters.municipality_id));
+                  if (municipality) {
+                    municipalityName = municipality.name;
+                    break;
                   }
                 }
-                if (selectedLocation) break;
               }
+              if (municipalityName) break;
             }
           }
-
-          if (selectedLocation) {
-            searchParams.location = selectedLocation.id;
-          } else {
-            // If location name not found, treat as 'all' or handle error
-            searchParams.location = 'all';
+          if (municipalityName) {
+            searchParams.location_name = municipalityName;
+            console.log('🗺️ [SearchResults] Municipality selected, using location_name:', municipalityName);
           }
+        } else if (searchFilters.location !== 'all') {
+          // Use location_name for hierarchical filtering (includes all child locations)
+          searchParams.location_name = searchFilters.location;
+          console.log('🗺️ [SearchResults] Using location_name for hierarchical filtering:', searchFilters.location);
         }
-        if (searchFilters.area_ids) searchParams.area_ids = searchFilters.area_ids;
-        if (searchFilters.province_id) searchParams.province_id = searchFilters.province_id;
-        if (searchFilters.district_id) searchParams.district_id = searchFilters.district_id;
-        if (searchFilters.municipality_id) searchParams.municipality_id = searchFilters.municipality_id;
-        if (searchFilters.ward) searchParams.ward = searchFilters.ward;
         if (searchFilters.minPrice) searchParams.minPrice = searchFilters.minPrice;
         if (searchFilters.maxPrice) searchParams.maxPrice = searchFilters.maxPrice;
         if (searchFilters.condition !== 'all') searchParams.condition = searchFilters.condition;
@@ -539,6 +557,7 @@ function SearchResults() {
                 // Clear all location filters first
                 const newFilters = {
                   ...searchFilters,
+                  location: 'all',
                   area_ids: '',
                   province_id: '',
                   district_id: '',
@@ -547,31 +566,10 @@ function SearchResults() {
                   page: 1
                 };
 
-                // Set the appropriate filter based on selection type
-                if (selection) {
-                  switch (selection.type) {
-                    case 'province':
-                      newFilters.province_id = selection.id;
-                      console.log('🗺️  [SearchResults] Province filter:', selection.id);
-                      break;
-                    case 'district':
-                      newFilters.district_id = selection.id;
-                      console.log('🗺️  [SearchResults] District filter:', selection.id);
-                      break;
-                    case 'municipality':
-                      newFilters.municipality_id = selection.id;
-                      console.log('🗺️  [SearchResults] Municipality filter:', selection.id);
-                      break;
-                    case 'ward':
-                      newFilters.municipality_id = selection.municipality_id;
-                      newFilters.ward = selection.ward_number;
-                      console.log('🗺️  [SearchResults] Ward filter:', selection.ward_number, 'in municipality', selection.municipality_id);
-                      break;
-                    case 'area':
-                      newFilters.area_ids = String(selection.id);
-                      console.log('🗺️  [SearchResults] Area filter:', selection.id);
-                      break;
-                  }
+                // Use location name instead of IDs for cleaner URLs
+                if (selection && selection.name) {
+                  newFilters.location = selection.name;
+                  console.log('🗺️  [SearchResults] Location selected:', selection.name, `(type: ${selection.type})`);
                 }
 
                 console.log('✨ [SearchResults] Updating URL with filters:', newFilters);

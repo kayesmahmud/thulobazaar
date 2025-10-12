@@ -299,15 +299,16 @@ function LocationHierarchyBrowser({ onLocationSelect }) {
             alignItems: 'center',
             gap: spacing.xs
           }}>
-            🗺️ Browse by Location
-          </span>
-          <span style={{
-            fontSize: '14px',
-            color: colors.text.secondary,
-            transition: 'transform 0.2s',
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
-          }}>
-            ▼
+            <span style={{
+              fontSize: '12px',
+              color: colors.text.secondary,
+              transition: 'transform 0.2s',
+              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              display: 'inline-block'
+            }}>
+              ▶
+            </span>
+            📍 Browse by Location
           </span>
         </button>
 
@@ -508,7 +509,7 @@ function LocationHierarchyBrowser({ onLocationSelect }) {
                     fontWeight: typography.fontWeight.semibold,
                     color: isProvinceSelected ? colors.primary : colors.text.primary
                   }}>
-                    📍 {province.name}
+                    {province.name}
                   </span>
                   <span style={{
                     fontSize: typography.fontSize.xs,

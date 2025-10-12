@@ -38,8 +38,8 @@ class ApiService {
     if (searchParams.search) params.append('search', searchParams.search);
     if (searchParams.category) params.append('category', searchParams.category);
     if (searchParams.parentCategoryId) params.append('parentCategoryId', searchParams.parentCategoryId);
-    // Support both location (ID) and location_name (string) - backend handles both
-    if (searchParams.location_name) params.append('location', searchParams.location_name);
+    // Use location_name for hierarchical filtering with recursive CTE
+    if (searchParams.location_name) params.append('location_name', searchParams.location_name);
     else if (searchParams.location) params.append('location', searchParams.location);
     if (searchParams.area_ids) params.append('area_ids', searchParams.area_ids);
     if (searchParams.province_id) params.append('province_id', searchParams.province_id);
@@ -138,6 +138,22 @@ class ApiService {
       return data.success ? data.data : [];
     } catch (error) {
       console.error('❌ Location search error:', error);
+      return [];
+    }
+  }
+
+  // Search ALL location levels (provinces, districts, municipalities, wards, areas)
+  async searchAllLocations(query, limit = 15) {
+    if (!query || query.length < 2) {
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/locations/search-all?q=${encodeURIComponent(query)}&limit=${limit}`);
+      const data = await response.json();
+      return data.success ? data.data : [];
+    } catch (error) {
+      console.error('❌ Location search-all error:', error);
       return [];
     }
   }

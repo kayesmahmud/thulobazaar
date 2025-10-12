@@ -181,7 +181,29 @@ function Browse() {
           return generatedSlug === locationSlug;
         });
 
-        // If not found as location and no categorySlug, check if it's a category
+        // If not found in provinces/districts/municipalities, search all location levels (including areas)
+        if (!actualLocation) {
+          console.log('🔍 Not found in hierarchy, searching all locations (including areas)');
+          // Convert slug to search query (e.g., "dilli-bazaar" -> "Dilli Bazaar")
+          const searchQuery = locationSlug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+          const searchResults = await ApiService.searchAllLocations(searchQuery, 5);
+          console.log('🔍 Search results for areas:', searchResults);
+
+          if (searchResults.length > 0) {
+            // Find exact match or close match
+            actualLocation = searchResults.find(loc => {
+              const locSlug = loc.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+              return locSlug === locationSlug;
+            }) || searchResults[0]; // Use first result if no exact match
+            console.log('🔍 Found location in search-all:', actualLocation);
+          }
+        }
+
+        // If still not found as location and no categorySlug, check if it's a category
         if (!actualLocation && !categorySlug) {
           actualCategory = categoriesData.find(cat => {
             if (cat.slug === locationSlug) return true;
@@ -236,10 +258,11 @@ function Browse() {
         console.log('📡 API will use NO CATEGORY');
       }
 
-      // Handle location - if we found a location object, use its ID
-      // Otherwise, pass the location slug as a name for the backend to search
+      // Handle location - use location_name for hierarchical filtering (includes all child locations)
+      // Using location_name instead of location ID enables the backend recursive CTE query
       if (actualLocation) {
-        searchOptions.location = actualLocation.id;
+        searchOptions.location_name = actualLocation.name;
+        console.log('📡 API will search for location_name (hierarchical):', actualLocation.name);
       } else if (locationSlug) {
         // Convert slug back to a name format (capitalize, replace hyphens)
         const locationName = locationSlug
@@ -247,7 +270,7 @@ function Browse() {
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
         searchOptions.location_name = locationName;
-        console.log('📡 API will search for location name:', locationName);
+        console.log('📡 API will search for location_name:', locationName);
       }
 
       // Add other search params (price range, sorting, etc.)

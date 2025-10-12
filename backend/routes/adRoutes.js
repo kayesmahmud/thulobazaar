@@ -14,6 +14,7 @@ router.get('/', apiLimiter, catchAsync(AdController.getAll));
 router.get('/my/ads', authenticateToken, catchAsync(AdController.getMyAds));
 
 // Public routes (keep this after /my/ads to avoid conflict)
+router.get('/location/:locationSlug', apiLimiter, catchAsync(AdController.getAdsByLocation));
 router.get('/:id', apiLimiter, catchAsync(AdController.getOne));
 router.post('/', postingLimiter, authenticateToken, upload.array('images', 5), validateFileType, validate(createAdSchema), catchAsync(AdController.create));
 router.put('/:id', authenticateToken, upload.array('images', 5), validateFileType, validate(updateAdSchema), catchAsync(AdController.update));
