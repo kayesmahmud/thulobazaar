@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAdFiltering } from '../hooks/useAdFiltering';
 import AdCard from './AdCard';
 import SimpleHeader from './SimpleHeader';
 import RecentlyViewed from './RecentlyViewed';
@@ -57,59 +58,14 @@ function AllAds() {
     fetchStaticData();
   }, []);
 
-  // Create O(1) lookup maps for locations and categories
-  const { locationMap, categoryMap } = useMemo(() => {
-    const locMap = new Map();
-    const catMap = new Map();
+  // Use custom hook for O(1) location/category lookups and search params building
+  const { locationMap, categoryMap, getLocationId, getCategoryId, buildSearchParams } = useAdFiltering(categories, locations);
 
-    // Build location map: name -> id
-    locations.forEach(province => {
-      locMap.set(province.name, province.id);
+  // O(1) category lookup - instant instead of nested loops
+  const selectedCategoryId = getCategoryId(filters.category, filters.subcategory);
 
-      if (province.districts) {
-        province.districts.forEach(district => {
-          locMap.set(district.name, district.id);
-
-          if (district.municipalities) {
-            district.municipalities.forEach(municipality => {
-              locMap.set(municipality.name, municipality.id);
-            });
-          }
-        });
-      }
-    });
-
-    // Build category map: name -> id
-    categories.forEach(category => {
-      catMap.set(category.name, category.id);
-
-      if (category.subcategories) {
-        category.subcategories.forEach(subcat => {
-          catMap.set(subcat.name, subcat.id);
-        });
-      }
-    });
-
-    return { locationMap: locMap, categoryMap: catMap };
-  }, [locations, categories]);
-
-  // O(1) category lookup
-  const selectedCategoryId = useMemo(() => {
-    if (filters.subcategory) {
-      const id = categoryMap.get(filters.subcategory);
-      return id ? id.toString() : '';
-    }
-    if (filters.category === 'all' || !filters.category) return '';
-    const id = categoryMap.get(filters.category);
-    return id ? id.toString() : '';
-  }, [filters.category, filters.subcategory, categoryMap]);
-
-  // O(1) location lookup
-  const selectedLocationId = useMemo(() => {
-    if (filters.location === 'all') return '';
-    const id = locationMap.get(filters.location);
-    return id ? id.toString() : '';
-  }, [filters.location, locationMap]);
+  // O(1) location lookup - instant instead of nested loops
+  const selectedLocationId = getLocationId(filters.location);
 
   // Load ads based on filters and pagination
   useEffect(() => {
@@ -117,38 +73,8 @@ function AllAds() {
       try {
         setSearchLoading(true);
 
-        // Build search params with all advanced filters
-        const searchParams = {};
-
-        // Category filtering: use parentCategoryId for parent categories to include all subcategories
-        if (filters.subcategory) {
-          // Subcategory selected - filter by specific subcategory only
-          searchParams.category = filters.subcategory;
-        } else if (filters.category !== 'all') {
-          // Parent category selected - use parentCategoryId to include all subcategories
-          const parentCategory = categories.find(c => c.name === filters.category);
-          if (parentCategory) {
-            searchParams.parentCategoryId = parentCategory.id;
-            console.log(`🏷️ [AllAds] Using parentCategoryId: ${parentCategory.id} for category: ${filters.category}`);
-          }
-        }
-
-        // Location filtering - use location_name for hierarchical filtering with recursive CTE
-        if (filters.location !== 'all') {
-          // Use location_name for hierarchical filtering (includes all child locations)
-          searchParams.location_name = filters.location;
-          console.log('🗺️ [AllAds] Using location_name for hierarchical filtering:', filters.location);
-        }
-
-        // Price filters
-        if (filters.minPrice) searchParams.minPrice = filters.minPrice;
-        if (filters.maxPrice) searchParams.maxPrice = filters.maxPrice;
-
-        // Condition filter
-        if (filters.condition !== 'all') searchParams.condition = filters.condition;
-
-        // Sort
-        if (filters.sortBy && filters.sortBy !== 'newest') searchParams.sortBy = filters.sortBy;
+        // Build search params using custom hook
+        const searchParams = buildSearchParams(filters);
 
         // Pagination
         searchParams.limit = adsPerPage;
@@ -169,7 +95,7 @@ function AllAds() {
     };
 
     fetchAds();
-  }, [currentPage, filters]);
+  }, [currentPage, filters, buildSearchParams]);
 
 
   // Handler for location selection from LocationHierarchyBrowser

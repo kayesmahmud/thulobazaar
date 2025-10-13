@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAdFiltering } from '../hooks/useAdFiltering';
 import AdCard from './AdCard';
 import Header from './Header';
 import RecentlyViewed from './RecentlyViewed';
@@ -90,61 +91,14 @@ function SearchResults() {
     sortBy: searchFilters.sortBy
   };
 
-  // OPTIMIZED: Create O(1) lookup maps for locations and categories
-  // This replaces O(n) nested loops with instant lookups
-  const { locationMap, categoryMap } = useMemo(() => {
-    const locMap = new Map();
-    const catMap = new Map();
-
-    // Build location map: name -> id (includes provinces, districts, municipalities)
-    locations.forEach(province => {
-      locMap.set(province.name, province.id);
-
-      if (province.districts) {
-        province.districts.forEach(district => {
-          locMap.set(district.name, district.id);
-
-          if (district.municipalities) {
-            district.municipalities.forEach(municipality => {
-              locMap.set(municipality.name, municipality.id);
-            });
-          }
-        });
-      }
-    });
-
-    // Build category map: name -> id (includes main categories and subcategories)
-    categories.forEach(category => {
-      catMap.set(category.name, category.id);
-
-      if (category.subcategories) {
-        category.subcategories.forEach(subcat => {
-          catMap.set(subcat.name, subcat.id);
-        });
-      }
-    });
-
-    return { locationMap: locMap, categoryMap: catMap };
-  }, [locations, categories]);
+  // Use custom hook for O(1) location/category lookups and search params building
+  const { locationMap, categoryMap, getLocationId, getCategoryId, buildSearchParams } = useAdFiltering(categories, locations);
 
   // O(1) location lookup - instant instead of nested loops
-  const selectedLocationId = useMemo(() => {
-    if (searchFilters.location === 'all') return '';
-    const id = locationMap.get(searchFilters.location);
-    return id ? id.toString() : '';
-  }, [searchFilters.location, locationMap]);
+  const selectedLocationId = getLocationId(searchFilters.location);
 
   // O(1) category lookup - instant instead of nested loops
-  // If subcategory is selected, use that; otherwise use category
-  const selectedCategoryId = useMemo(() => {
-    if (searchFilters.subcategory) {
-      const id = categoryMap.get(searchFilters.subcategory);
-      return id ? id.toString() : '';
-    }
-    if (searchFilters.category === 'all' || !searchFilters.category) return '';
-    const id = categoryMap.get(searchFilters.category);
-    return id ? id.toString() : '';
-  }, [searchFilters.category, searchFilters.subcategory, categoryMap]);
+  const selectedCategoryId = getCategoryId(searchFilters.category, searchFilters.subcategory);
 
   // Load categories and locations
   useEffect(() => {
@@ -171,32 +125,8 @@ function SearchResults() {
       try {
         setSearchLoading(true);
 
-        // Build search params
-        const searchParams = {};
-        if (searchFilters.search.trim()) searchParams.search = searchFilters.search.trim();
-
-        // Category filtering: use parentCategoryId for parent categories to include all subcategories
-        if (searchFilters.subcategory) {
-          // Subcategory selected - filter by specific subcategory only
-          searchParams.category = searchFilters.subcategory;
-        } else if (searchFilters.category !== 'all') {
-          // Parent category selected - use parentCategoryId to include all subcategories
-          const parentCategory = categories.find(c => c.name === searchFilters.category);
-          if (parentCategory) {
-            searchParams.parentCategoryId = parentCategory.id;
-            console.log(`🏷️ [SearchResults] Using parentCategoryId: ${parentCategory.id} for category: ${searchFilters.category}`);
-          }
-        }
-        // Location filtering - use location_name for hierarchical filtering with recursive CTE
-        if (searchFilters.location !== 'all') {
-          // Use location_name for hierarchical filtering (includes all child locations)
-          searchParams.location_name = searchFilters.location;
-          console.log('🗺️ [SearchResults] Using location_name for hierarchical filtering:', searchFilters.location);
-        }
-        if (searchFilters.minPrice) searchParams.minPrice = searchFilters.minPrice;
-        if (searchFilters.maxPrice) searchParams.maxPrice = searchFilters.maxPrice;
-        if (searchFilters.condition !== 'all') searchParams.condition = searchFilters.condition;
-        if (searchFilters.sortBy && searchFilters.sortBy !== 'newest') searchParams.sortBy = searchFilters.sortBy;
+        // Build search params using custom hook
+        const searchParams = buildSearchParams(searchFilters);
 
         // Add pagination
         const limit = 20;
@@ -204,6 +134,7 @@ function SearchResults() {
         searchParams.limit = limit;
         searchParams.offset = offset;
 
+        console.log('🔍 [SearchResults] Fetching ads with params:', searchParams);
         const response = await ApiService.getAds(searchParams);
 
         setAds(response.data);
@@ -218,7 +149,7 @@ function SearchResults() {
     };
 
     performSearchWithNewFilters();
-  }, [location.pathname, location.search]); // Watch both path and query params
+  }, [location.pathname, location.search, buildSearchParams]); // Watch both path and query params
 
   const handleInputChange = (field, value) => {
     // Only update if value actually changed
