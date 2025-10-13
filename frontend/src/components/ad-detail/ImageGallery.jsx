@@ -1,12 +1,24 @@
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { borderRadius, spacing } from '../../styles/theme';
 
 function ImageGallery({ images, title }) {
-  const handleThumbnailClick = (filename) => {
-    const mainImg = document.querySelector('.main-ad-image');
-    if (mainImg) {
-      mainImg.src = `http://localhost:5000/uploads/ads/${filename}`;
-    }
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const handlePrevious = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? images.length - 1 : prev - 1
+    );
+  };
+
+  const handleNext = () => {
+    setCurrentImageIndex((prev) =>
+      prev === images.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const handleThumbnailClick = (index) => {
+    setCurrentImageIndex(index);
   };
 
   if (!images || images.length === 0) {
@@ -33,8 +45,9 @@ function ImageGallery({ images, title }) {
 
   return (
     <div>
-      {/* Main Image */}
+      {/* Main Image with Navigation Arrows */}
       <div style={{
+        position: 'relative',
         width: '100%',
         height: '400px',
         marginBottom: spacing.md,
@@ -43,7 +56,7 @@ function ImageGallery({ images, title }) {
       }}>
         <img
           className="main-ad-image"
-          src={`http://localhost:5000/uploads/ads/${images[0].filename}`}
+          src={`http://localhost:5000/uploads/ads/${images[currentImageIndex].filename}`}
           alt={title}
           style={{
             width: '100%',
@@ -51,6 +64,97 @@ function ImageGallery({ images, title }) {
             objectFit: 'cover'
           }}
         />
+
+        {/* Navigation Arrows - Only show if more than one image */}
+        {images.length > 1 && (
+          <>
+            {/* Previous Arrow */}
+            <button
+              onClick={handlePrevious}
+              style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '48px',
+                height: '48px',
+                fontSize: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              }}
+              aria-label="Previous image"
+            >
+              ‹
+            </button>
+
+            {/* Next Arrow */}
+            <button
+              onClick={handleNext}
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '48px',
+                height: '48px',
+                fontSize: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              }}
+              aria-label="Next image"
+            >
+              ›
+            </button>
+
+            {/* Image Counter */}
+            <div style={{
+              position: 'absolute',
+              bottom: '16px',
+              right: '16px',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: '500',
+              zIndex: 10
+            }}>
+              {currentImageIndex + 1} / {images.length}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Thumbnail Gallery - Show ALL images */}
@@ -70,17 +174,22 @@ function ImageGallery({ images, title }) {
                 borderRadius: borderRadius.md,
                 overflow: 'hidden',
                 cursor: 'pointer',
-                border: '2px solid #e5e7eb',
-                transition: 'transform 0.2s, border-color 0.2s'
+                border: currentImageIndex === index ? '3px solid #dc1e4a' : '2px solid #e5e7eb',
+                transition: 'transform 0.2s, border-color 0.2s',
+                opacity: currentImageIndex === index ? 1 : 0.7
               }}
-              onClick={() => handleThumbnailClick(image.filename)}
+              onClick={() => handleThumbnailClick(index)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.borderColor = '#dc1e4a';
+                if (currentImageIndex !== index) {
+                  e.currentTarget.style.opacity = '1';
+                }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.borderColor = '#e5e7eb';
+                if (currentImageIndex !== index) {
+                  e.currentTarget.style.opacity = '0.7';
+                }
               }}
             >
               <img

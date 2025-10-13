@@ -1,4 +1,4 @@
-const pool = require('../config/database');
+const pool = global.pool;
 const bcrypt = require('bcrypt');
 
 class Admin {

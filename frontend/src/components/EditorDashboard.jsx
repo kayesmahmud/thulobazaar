@@ -46,7 +46,7 @@ function EditorDashboard() {
     const editorData = localStorage.getItem('editorData');
 
     if (!editorToken || !editorData) {
-      navigate('/admin');
+      navigate(`/${language}/editor`);
       return;
     }
 
@@ -54,7 +54,7 @@ function EditorDashboard() {
       const userData = JSON.parse(editorData);
       if (userData.role !== 'editor' && userData.role !== 'super_admin') {
         alert('Access denied. Editor privileges required.');
-        navigate('/admin');
+        navigate(`/${language}/editor`);
         return;
       }
       setUser(userData);
@@ -62,7 +62,7 @@ function EditorDashboard() {
       setLoading(false);
     } catch (err) {
       console.error('Error parsing editor data:', err);
-      navigate('/admin');
+      navigate(`/${language}/editor`);
     }
   }, [navigate, language]);
 
@@ -371,7 +371,7 @@ function EditorDashboard() {
                 // Editor logout - clear editor tokens only
                 localStorage.removeItem('editorToken');
                 localStorage.removeItem('editorData');
-                navigate('/admin');
+                navigate(`/${language}/editor`);
               }}
               style={{
                 marginLeft: '15px',

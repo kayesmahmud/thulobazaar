@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { styles, colors, spacing, typography, borderRadius } from '../styles/theme';
 import AuthModal from './AuthModal';
-import SimpleHeader from './SimpleHeader';
+import UserHeader from './UserHeader';
 import Breadcrumb from './Breadcrumb';
 import { recentlyViewedUtils } from '../utils/recentlyViewed';
 import { extractAdIdFromUrl, generateBrowseUrl, generateSlug } from '../utils/urlUtils';
@@ -19,6 +19,10 @@ import ReportModal from './ad-detail/ReportModal';
 import PromoteAdModal from './PromoteAdModal';
 import PromotionBadge from './PromotionBadge';
 import ElectronicsSpecs from './ad-details/specs/ElectronicsSpecs';
+import VehiclesSpecs from './ad-details/specs/VehiclesSpecs';
+import PropertySpecs from './ad-details/specs/PropertySpecs';
+import FashionSpecs from './ad-details/specs/FashionSpecs';
+import './ad-details/specs/TemplateSpecs.css';
 
 function AdDetail() {
   const { id, slug } = useParams();
@@ -52,6 +56,8 @@ function AdDetail() {
     details: ''
   });
   const [promoteModal, setPromoteModal] = useState(false);
+  const [relatedAds, setRelatedAds] = useState([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
 
   useEffect(() => {
     const fetchAd = async () => {
@@ -92,6 +98,33 @@ function AdDetail() {
 
     fetchAd();
   }, [adId]);
+
+  // Fetch related ads
+  useEffect(() => {
+    const fetchRelatedAds = async () => {
+      if (!ad) return;
+
+      try {
+        setLoadingRelated(true);
+        // Fetch ads from same category and location
+        const params = new URLSearchParams({
+          category: ad.category_id,
+          location: ad.location_id,
+          limit: 4,
+          exclude: ad.id
+        });
+        const response = await fetch(`http://localhost:5000/api/ads?${params}`);
+        const data = await response.json();
+        setRelatedAds(data.ads || []);
+      } catch (err) {
+        console.error('Error fetching related ads:', err);
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+
+    fetchRelatedAds();
+  }, [ad]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-NP', {
@@ -206,6 +239,49 @@ function AdDetail() {
     }
   };
 
+  const handleShare = (platform) => {
+    const url = window.location.href;
+    const title = ad.title;
+    const text = `${ad.title} - ${formatPrice(ad.price)}`;
+
+    const shareUrls = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`,
+      copy: url
+    };
+
+    if (platform === 'copy') {
+      navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    } else {
+      window.open(shareUrls[platform], '_blank', 'width=600,height=400');
+    }
+  };
+
+  const handleRelatedAdClick = (relatedAd) => {
+    const slugify = (text) => {
+      return text.toString().toLowerCase().trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+    };
+
+    const parts = [relatedAd.title];
+    if (relatedAd.area_name) parts.push(relatedAd.area_name);
+    if (relatedAd.district_name && relatedAd.district_name !== relatedAd.area_name) {
+      parts.push(relatedAd.district_name);
+    }
+
+    const slugPart = slugify(parts.join(' '));
+    const seoSlug = `${slugPart}--${relatedAd.id}`;
+
+    navigate(`/${language}/ad/${seoSlug}`);
+    window.scrollTo(0, 0);
+  };
+
   const handlePromote = async (promotionData) => {
     try {
       const response = await ApiService.initiatePayment(promotionData);
@@ -302,6 +378,29 @@ function AdDetail() {
 
   return (
     <div>
+      {/* Responsive Styles */}
+      <style>{`
+        @media (min-width: 768px) {
+          .ad-main-content {
+            grid-column: span 7 !important;
+          }
+          .ad-sidebar {
+            grid-column: span 5 !important;
+          }
+          .mobile-only {
+            display: none !important;
+          }
+        }
+        @media (max-width: 767px) {
+          .ad-main-content, .ad-sidebar {
+            grid-column: span 12 !important;
+          }
+          .details-simple-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
       {/* React 19 Native Metadata */}
       <title>{ad.title} - Thulobazaar</title>
         <meta name="description" content={metaDescription} />
@@ -345,7 +444,7 @@ function AdDetail() {
         </script>
       
 
-      <SimpleHeader showUserWelcome={true} />
+      <UserHeader />
 
       <Breadcrumb
         items={(() => {
@@ -397,32 +496,53 @@ function AdDetail() {
 
       {/* Ad Detail Content */}
       <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: `${spacing['3xl']} ${spacing.xl}`
+        backgroundColor: '#f8fafc',
+        minHeight: '100vh',
+        paddingBottom: '80px'
       }}>
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: spacing['3xl']
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '24px 16px'
         }}>
-          {/* Main Content */}
-          <div>
-            {/* Ad Title and Price */}
-            <div style={{ marginBottom: spacing['2xl'] }}>
-              <h1 style={styles.heading.h1}>{ad.title}</h1>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(12, 1fr)',
+            gap: '24px'
+          }}>
+            {/* Main Content - 60% width on desktop (7 columns) */}
+            <div className="ad-main-content" style={{
+              gridColumn: 'span 12'
+            }}>
+            {/* Ad Title and Info Card */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h1 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1e293b',
+                marginBottom: '16px',
+                lineHeight: '1.3'
+              }}>
+                {ad.title}
+              </h1>
 
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: spacing.xl,
-                marginBottom: spacing.lg,
+                gap: '16px',
+                marginBottom: '16px',
                 flexWrap: 'wrap'
               }}>
                 <div style={{
-                  fontSize: typography.fontSize['4xl'],
-                  fontWeight: typography.fontWeight.bold,
-                  color: colors.primary
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  color: '#dc1e4a'
                 }}>
                   {formatPrice(ad.price)}
                 </div>
@@ -435,94 +555,249 @@ function AdDetail() {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: spacing.xl,
-                fontSize: typography.fontSize.sm,
-                color: colors.text.secondary
+                gap: '20px',
+                fontSize: '14px',
+                color: '#64748b',
+                marginBottom: '16px',
+                flexWrap: 'wrap'
               }}>
-                <span>📍 {formatLocation()}</span>
-                <span>👁️ {ad.view_count} views</span>
-                <span>🕒 {formatDate(ad.created_at)}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📍 {formatLocation()}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  👁️ {ad.view_count} views
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🕒 {formatDate(ad.created_at)}
+                </span>
+              </div>
+
+              {/* Social Share Buttons */}
+              <div style={{
+                borderTop: '1px solid #e2e8f0',
+                paddingTop: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <span style={{
+                  fontSize: '14px',
+                  color: '#64748b',
+                  fontWeight: '500'
+                }}>
+                  Share:
+                </span>
+                <button
+                  onClick={() => handleShare('facebook')}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#1877f2',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  Facebook
+                </button>
+                <button
+                  onClick={() => handleShare('whatsapp')}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#25d366',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  WhatsApp
+                </button>
+                <button
+                  onClick={() => handleShare('twitter')}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#1da1f2',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  Twitter
+                </button>
+                <button
+                  onClick={() => handleShare('copy')}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#334155',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  📋 Copy Link
+                </button>
               </div>
             </div>
 
             {/* Image Gallery */}
-            <div style={{ marginBottom: spacing['2xl'] }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
               <ImageGallery images={ad.images} title={ad.title} />
             </div>
 
             {/* Description */}
-            <div style={{ marginBottom: spacing['2xl'] }}>
-              <h2 style={styles.heading.h2}>Description</h2>
-              <div style={styles.card.flat}>
-                <p style={{
-                  lineHeight: typography.lineHeight.relaxed,
-                  color: colors.text.primary,
-                  fontSize: typography.fontSize.base
-                }}>
-                  {ad.description || 'No description provided.'}
-                </p>
-              </div>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1e293b',
+                marginBottom: '16px'
+              }}>
+                Description
+              </h2>
+              <p style={{
+                lineHeight: '1.7',
+                color: '#334155',
+                fontSize: '15px',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {ad.description || 'No description provided.'}
+              </p>
             </div>
 
             {/* Template-Specific Specifications */}
-            {ad.custom_fields && Object.keys(ad.custom_fields).length > 0 && (
-              <div style={{ marginBottom: spacing['2xl'] }}>
-                <ElectronicsSpecs customFields={ad.custom_fields} />
-              </div>
-            )}
+            {ad.custom_fields && Object.keys(ad.custom_fields).length > 0 && (() => {
+              // Determine parent category ID (use category_parent_id if exists, otherwise category_id)
+              const parentCategoryId = ad.category_parent_id || ad.category_id;
+
+              // Render appropriate specs component based on category
+              let SpecsComponent = null;
+
+              if (parentCategoryId === 3) {
+                // Vehicles category
+                SpecsComponent = VehiclesSpecs;
+              } else if (parentCategoryId === 1 || parentCategoryId === 2) {
+                // Mobiles or Electronics categories
+                SpecsComponent = ElectronicsSpecs;
+              } else if (parentCategoryId === 5) {
+                // Property category
+                SpecsComponent = PropertySpecs;
+              } else if (parentCategoryId === 7 || parentCategoryId === 8) {
+                // Fashion categories (Men's Fashion & Women's Fashion)
+                SpecsComponent = FashionSpecs;
+              }
+
+              // If no matching component, return null
+              if (!SpecsComponent) return null;
+
+              return (
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  marginBottom: '20px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  <SpecsComponent customFields={ad.custom_fields} />
+                </div>
+              );
+            })()}
 
             {/* Ad Details */}
-            <div>
-              <h2 style={styles.heading.h2}>Details</h2>
-              <div style={styles.card.flat}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: spacing.lg
-                }}>
-                  {/* Show parent category if it exists (subcategory scenario) */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <div className="template-specs">
+                <div className="specs-header">
+                  <h3>✅ Ad Details</h3>
+                </div>
+                <div className="specs-grid">
+                  {/* Category */}
                   {ad.parent_category_name ? (
                     <>
-                      <div>
-                        <strong style={{ color: colors.text.secondary }}>Category:</strong>
-                        <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.parent_category_name}</p>
+                      <div className="spec-item">
+                        <div className="spec-label">Category</div>
+                        <div className="spec-value">{ad.parent_category_name}</div>
                       </div>
-                      <div>
-                        <strong style={{ color: colors.text.secondary }}>Sub-category:</strong>
-                        <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.category_name}</p>
+                      <div className="spec-item">
+                        <div className="spec-label">Sub-category</div>
+                        <div className="spec-value">{ad.category_name}</div>
                       </div>
                     </>
                   ) : (
-                    <div>
-                      <strong style={{ color: colors.text.secondary }}>Category:</strong>
-                      <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{ad.category_name}</p>
+                    <div className="spec-item">
+                      <div className="spec-label">Category</div>
+                      <div className="spec-value">{ad.category_name}</div>
                     </div>
                   )}
-                  <div>
-                    <strong style={{ color: colors.text.secondary }}>Condition:</strong>
-                    <p style={{
-                      color: colors.text.primary,
-                      marginTop: spacing.xs,
-                      textTransform: 'capitalize'
-                    }}>
-                      {ad.condition}
-                    </p>
-                  </div>
-                  <div>
-                    <strong style={{ color: colors.text.secondary }}>Location:</strong>
-                    <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{formatLocation(true)}</p>
-                  </div>
-                  <div>
-                    <strong style={{ color: colors.text.secondary }}>Posted:</strong>
-                    <p style={{ color: colors.text.primary, marginTop: spacing.xs }}>{formatDate(ad.created_at)}</p>
+
+                  {/* Condition - Hide for Property (5) and Fashion (7, 8) categories */}
+                  {!((ad.category_parent_id === 5) || (ad.category_id === 5 && !ad.category_parent_id) ||
+                      (ad.category_parent_id === 7) || (ad.category_id === 7 && !ad.category_parent_id) ||
+                      (ad.category_parent_id === 8) || (ad.category_id === 8 && !ad.category_parent_id)) && (
+                    <div className="spec-item">
+                      <div className="spec-label">Condition</div>
+                      <div className="spec-value" style={{ textTransform: 'capitalize' }}>
+                        {ad.condition === 'new' ? 'Brand New' : ad.condition === 'used' ? 'Used' : ad.condition}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location */}
+                  <div className="spec-item" style={{ gridColumn: '1 / -1' }}>
+                    <div className="spec-label">Location</div>
+                    <div className="spec-value">
+                      {formatLocation(true).replace(/•/g, '•')}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div>
+          {/* Sidebar - 40% width on desktop (5 columns) */}
+          <div className="ad-sidebar" style={{
+            gridColumn: 'span 12'
+          }}>
             {/* Seller Card */}
             <SellerCard
               ad={ad}
@@ -535,15 +810,17 @@ function AdDetail() {
             {/* Boost Your Ad - ONLY FOR AD OWNER */}
             {isAuthenticated && user && user.id === ad.user_id && (
               <div style={{
-                ...styles.card.default,
-                marginTop: spacing.xl,
+                marginTop: '20px',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
-                border: 'none'
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}>
                 <h3 style={{
                   margin: '0 0 12px 0',
                   fontSize: '18px',
+                  fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
@@ -560,13 +837,15 @@ function AdDetail() {
                 <button
                   onClick={() => navigate(`/${language}/promote/${ad.id}`, { state: { ad } })}
                   style={{
-                    ...styles.button.primary,
                     width: '100%',
                     background: 'white',
                     color: '#667eea',
-                    fontWeight: 600,
+                    fontWeight: '600',
                     padding: '12px 24px',
-                    fontSize: '16px'
+                    fontSize: '16px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
                   }}
                 >
                   Promote Now
@@ -577,14 +856,24 @@ function AdDetail() {
             {/* Report Ad - ONLY FOR NON-OWNERS */}
             {(!isAuthenticated || !user || user.id !== ad.user_id) && (
               <div style={{
-                ...styles.card.default,
-                marginTop: spacing.xl
+                marginTop: '20px',
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: '16px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}>
                 <button
                   onClick={handleReportAd}
                   style={{
-                    ...styles.button.ghost,
-                    width: '100%'
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: 'transparent',
+                    color: '#dc2626',
+                    border: '1px solid #dc2626',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
                   }}
                 >
                   🚩 Report this ad
@@ -593,6 +882,177 @@ function AdDetail() {
             )}
           </div>
         </div>
+
+        {/* Related Ads Section */}
+        {relatedAds && relatedAds.length > 0 && (
+          <div style={{ marginTop: '40px' }}>
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              color: '#1e293b',
+              marginBottom: '20px'
+            }}>
+              Related Ads
+            </h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '20px'
+            }}>
+              {relatedAds.map((relatedAd) => (
+                <div
+                  key={relatedAd.id}
+                  onClick={() => handleRelatedAdClick(relatedAd)}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                  }}
+                >
+                  {/* Image */}
+                  <div style={{
+                    width: '100%',
+                    height: '200px',
+                    backgroundColor: '#f1f5f9',
+                    position: 'relative'
+                  }}>
+                    {relatedAd.primary_image ? (
+                      <img
+                        src={`http://localhost:5000/uploads/ads/${relatedAd.primary_image}`}
+                        alt={relatedAd.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        fontSize: '48px'
+                      }}>
+                        📷
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div style={{ padding: '16px' }}>
+                    <h3 style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#1e293b',
+                      marginBottom: '8px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical'
+                    }}>
+                      {relatedAd.title}
+                    </h3>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: '#dc1e4a',
+                      marginBottom: '8px'
+                    }}>
+                      {formatPrice(relatedAd.price)}
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      📍 {relatedAd.area_name || relatedAd.district_name || 'Location'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Sticky CTA Bar */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        borderTop: '1px solid #e2e8f0',
+        padding: '12px 16px',
+        display: 'flex',
+        gap: '12px',
+        zIndex: 1000,
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
+      }}
+        className="mobile-only"
+      >
+        <button
+          onClick={() => {
+            if (!phoneRevealed) {
+              handlePhoneReveal();
+            } else {
+              window.location.href = `tel:${ad.seller_phone}`;
+            }
+          }}
+          style={{
+            flex: 1,
+            padding: '14px',
+            backgroundColor: '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          📞 {phoneRevealed ? 'Call Now' : 'Show Phone'}
+        </button>
+        <button
+          onClick={handleEmailSeller}
+          style={{
+            flex: 1,
+            padding: '14px',
+            backgroundColor: '#dc1e4a',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          ✉️ Chat
+        </button>
+      </div>
       </div>
 
       {/* Contact Modal */}

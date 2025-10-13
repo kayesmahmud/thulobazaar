@@ -8,10 +8,12 @@ class Ad {
   static async findById(id) {
     const result = await pool.query(
       `SELECT a.*, c.name as category_name, c.slug as category_slug,
+              c.parent_id as parent_category_id, pc.name as parent_category_name,
               l.name as location_name, l.slug as location_slug,
               u.full_name as user_name, u.email as user_email
        FROM ads a
        LEFT JOIN categories c ON a.category_id = c.id
+       LEFT JOIN categories pc ON c.parent_id = pc.id
        LEFT JOIN locations l ON a.location_id = l.id
        LEFT JOIN users u ON a.user_id = u.id
        WHERE a.id = $1`,
@@ -26,10 +28,12 @@ class Ad {
   static async findBySlug(slug) {
     const result = await pool.query(
       `SELECT a.*, c.name as category_name, c.slug as category_slug,
+              c.parent_id as parent_category_id, pc.name as parent_category_name,
               l.name as location_name, l.slug as location_slug,
               u.full_name as user_name, u.email as user_email
        FROM ads a
        LEFT JOIN categories c ON a.category_id = c.id
+       LEFT JOIN categories pc ON c.parent_id = pc.id
        LEFT JOIN locations l ON a.location_id = l.id
        LEFT JOIN users u ON a.user_id = u.id
        WHERE a.slug = $1`,

@@ -282,32 +282,6 @@ export const FORM_TEMPLATES = {
     icon: '🏢🏠',
     fields: [
       {
-        name: 'propertyType',
-        label: 'Property Type',
-        type: 'select',
-        required: true,
-        options: [
-          'Apartment',
-          'House',
-          'Land',
-          'Room',
-          'Commercial Space',
-          'Office Space',
-          'Shop',
-          'Warehouse',
-          'Farm'
-        ],
-        appliesTo: 'all'
-      },
-      {
-        name: 'propertyFor',
-        label: 'Property For',
-        type: 'select',
-        required: true,
-        options: ['Sale', 'Rent'],
-        appliesTo: 'all'
-      },
-      {
         name: 'totalArea',
         label: 'Total Area',
         type: 'number',
@@ -536,14 +510,12 @@ export const FORM_TEMPLATES = {
     icon: '👔👗',
     fields: [
       {
-        name: 'gender',
-        label: 'Gender',
+        name: 'condition',
+        label: 'Condition',
         type: 'select',
         required: true,
-        options: ['Men', 'Women', 'Unisex', 'Boys', 'Girls'],
-        appliesTo: 'all',
-        // Note: This will be auto-locked based on parent category (Men's/Women's Fashion)
-        autoLock: true
+        options: ['Brand New', 'Used'],
+        appliesTo: 'all'
       },
       {
         name: 'size',
@@ -551,7 +523,15 @@ export const FORM_TEMPLATES = {
         type: 'select',
         required: true,
         options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'],
-        appliesTo: 'all'
+        appliesTo: [
+          'Shirts & T-Shirts',
+          'Pants',
+          'Traditional Clothing',
+          'Jacket & Coat',
+          'Traditional Wear',
+          'Western Wear',
+          'Winter Wear'
+        ]
       },
       {
         name: 'color',
@@ -635,25 +615,14 @@ export const FORM_TEMPLATES = {
       {
         name: 'shoeSize',
         label: 'Shoe Size',
-        type: 'select',
+        type: 'number',
         required: true,
-        options: ['6', '7', '8', '9', '10', '11', '12', '13'],
+        min: 32,
+        max: 45,
+        placeholder: 'e.g., 38, 40, 42',
         appliesTo: ['Footwear']
       },
       // Accessories/Watches
-      {
-        name: 'accessoryType',
-        label: 'Accessory Type',
-        type: 'select',
-        required: true,
-        options: ['Watch', 'Bag', 'Wallet', 'Belt', 'Sunglasses', 'Jewelry', 'Scarf', 'Hat'],
-        appliesTo: [
-          'Watches',
-          'Bags & Accessories',
-          'Optical & Sunglasses',
-          'Jewellery & Watches'
-        ]
-      },
       {
         name: 'watchType',
         label: 'Watch Type',

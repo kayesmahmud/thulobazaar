@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 
-function AdminLogin() {
+function EditorLogin() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const [formData, setFormData] = useState({
@@ -50,15 +50,15 @@ function AdminLogin() {
 
       // Force reload to update AuthContext with new user data
       // Redirect based on role
-      if (data.user.role === 'super_admin') {
-        window.location.href = '/admin/dashboard';
-      } else if (data.user.role === 'editor') {
-        throw new Error('Access Denied: Editors should log in through the editor panel.');
+      if (data.user.role === 'editor') {
+        window.location.href = `/${language}/editor/dashboard`;
+      } else if (data.user.role === 'super_admin') {
+        throw new Error('Access Denied: Super admins should log in through the admin panel.');
       } else {
         throw new Error('Invalid role');
       }
     } catch (err) {
-      console.error('❌ Admin login error:', err);
+      console.error('❌ Editor login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -103,14 +103,14 @@ function AdminLogin() {
             fontSize: '28px',
             fontWeight: 'bold'
           }}>
-            Admin Login
+            Editor Login
           </h1>
           <p style={{
             margin: 0,
             color: '#64748b',
             fontSize: '16px'
           }}>
-            Sign in to Thulobazaar Admin Panel
+            Sign in to Thulobazaar Editor Panel
           </p>
         </div>
 
@@ -139,7 +139,7 @@ function AdminLogin() {
               fontWeight: '600',
               color: '#374151'
             }}>
-              Admin Email
+              Editor Email
             </label>
             <input
               type="email"
@@ -156,7 +156,7 @@ function AdminLogin() {
                 transition: 'border-color 0.2s',
                 boxSizing: 'border-box'
               }}
-              placeholder="Enter admin email"
+              placeholder="Enter editor email"
               onFocus={(e) => e.target.style.borderColor = '#dc1e4a'}
               onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
             />
@@ -219,7 +219,7 @@ function AdminLogin() {
         {/* Back to site link */}
         <div style={{ textAlign: 'center' }}>
           <button
-            onClick={() => navigate(`/${language}`)}
+            onClick={() => navigate('/en')}
             style={{
               background: 'none',
               border: 'none',
@@ -247,11 +247,11 @@ function AdminLogin() {
             color: '#64748b',
             marginBottom: '8px'
           }}>
-            Demo Admin Credentials:
+            Demo Editor Credentials:
           </div>
           <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#374151' }}>
-            Email: admin@thulobazaar.com<br />
-            Password: admin123
+            Email: editor@thulobazaar.com<br />
+            Password: editor123
           </div>
         </div>
       </div>
@@ -259,4 +259,4 @@ function AdminLogin() {
   );
 }
 
-export default AdminLogin;
+export default EditorLogin;

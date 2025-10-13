@@ -21,8 +21,18 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
   };
 
   return (
-    <div style={styles.card.default}>
-      <h3 style={styles.heading.h3}>Contact Seller</h3>
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      padding: '24px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    }}>
+      <h3 style={{
+        fontSize: '20px',
+        fontWeight: '600',
+        color: '#1e293b',
+        marginBottom: '20px'
+      }}>Contact Seller</h3>
 
       {/* Seller Info */}
       <div style={{ marginBottom: spacing.xl }}>
@@ -98,20 +108,30 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
       </div>
 
       {/* Contact Buttons */}
-      <div style={{ marginBottom: spacing.xl }}>
+      <div style={{ marginBottom: '20px' }}>
         {/* Phone Number Button */}
         <button
           onClick={onPhoneReveal}
           style={{
-            ...styles.button.primary,
             width: '100%',
-            marginBottom: spacing.md,
-            backgroundColor: phoneRevealed ? colors.success : colors.primary
+            padding: '14px',
+            marginBottom: '12px',
+            backgroundColor: phoneRevealed ? '#10b981' : '#dc1e4a',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px'
           }}
         >
-          📞 {phoneRevealed ? ad.seller_phone : formatPhoneDisplay(ad.seller_phone)}
+          <span>📞 {phoneRevealed ? ad.seller_phone : formatPhoneDisplay(ad.seller_phone)}</span>
           {!phoneRevealed && (
-            <span style={{ fontSize: typography.fontSize.xs, display: 'block', marginTop: spacing.xs }}>
+            <span style={{ fontSize: '12px', fontWeight: '400', opacity: 0.9 }}>
               Click to reveal full number
             </span>
           )}
@@ -122,9 +142,16 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
           <button
             onClick={handleWhatsAppClick}
             style={{
-              ...styles.button.whatsapp,
               width: '100%',
-              marginBottom: spacing.md
+              padding: '14px',
+              marginBottom: '12px',
+              backgroundColor: '#25d366',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
             }}
           >
             💬 WhatsApp
@@ -135,9 +162,16 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
         <button
           onClick={onEmailSeller}
           style={{
-            ...styles.button.secondary,
             width: '100%',
-            marginBottom: spacing.md
+            padding: '14px',
+            marginBottom: '12px',
+            backgroundColor: 'transparent',
+            color: '#334155',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer'
           }}
         >
           📧 Email Seller
@@ -145,11 +179,28 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
       </div>
 
       {/* Safety Tips */}
-      <div style={styles.alert.info}>
-        <div style={{ fontWeight: typography.fontWeight.bold, marginBottom: spacing.sm }}>
+      <div style={{
+        backgroundColor: '#eff6ff',
+        borderLeft: '4px solid #3b82f6',
+        padding: '16px',
+        borderRadius: '8px',
+        marginBottom: '12px'
+      }}>
+        <div style={{
+          fontWeight: '600',
+          marginBottom: '8px',
+          color: '#1e40af',
+          fontSize: '15px'
+        }}>
           🛡️ Safety Tips
         </div>
-        <ul style={{ margin: 0, paddingLeft: spacing.lg }}>
+        <ul style={{
+          margin: 0,
+          paddingLeft: '20px',
+          fontSize: '14px',
+          color: '#1e40af',
+          lineHeight: '1.6'
+        }}>
           <li>Meet in public places</li>
           <li>Don't pay in advance</li>
           <li>Inspect item before buying</li>
@@ -158,13 +209,13 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
       </div>
 
       <div style={{
-        fontSize: typography.fontSize.xs,
-        color: colors.text.secondary,
+        fontSize: '13px',
+        color: '#64748b',
         textAlign: 'center',
-        padding: spacing.md,
-        backgroundColor: colors.background.secondary,
-        borderRadius: borderRadius.md,
-        marginTop: spacing.md
+        padding: '12px',
+        backgroundColor: '#fef3c7',
+        borderRadius: '8px',
+        border: '1px solid #fbbf24'
       }}>
         ⚠️ Stay safe! Meet in public places and verify items before payment.
       </div>

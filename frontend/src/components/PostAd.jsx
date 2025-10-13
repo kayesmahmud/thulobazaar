@@ -10,6 +10,9 @@ import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
 import LocationSelector from './post-ad/LocationSelector';
 import ElectronicsForm from './post-ad/templates/ElectronicsForm';
+import VehiclesForm from './post-ad/templates/VehiclesForm';
+import PropertyForm from './post-ad/templates/PropertyForm';
+import FashionForm from './post-ad/templates/FashionForm';
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
@@ -487,6 +490,42 @@ function PostAd() {
             {templateType === 'electronics' && fields && fields.length > 0 && (
               <div style={{ marginBottom: '24px' }}>
                 <ElectronicsForm
+                  fields={fields}
+                  values={customFields}
+                  onChange={handleCustomFieldChange}
+                  errors={customFieldsErrors}
+                  subcategoryName={selectedSubcategory?.name || ''}
+                />
+              </div>
+            )}
+
+            {templateType === 'vehicles' && fields && fields.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <VehiclesForm
+                  fields={fields}
+                  values={customFields}
+                  onChange={handleCustomFieldChange}
+                  errors={customFieldsErrors}
+                  subcategoryName={selectedSubcategory?.name || ''}
+                />
+              </div>
+            )}
+
+            {templateType === 'property' && fields && fields.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <PropertyForm
+                  fields={fields}
+                  values={customFields}
+                  onChange={handleCustomFieldChange}
+                  errors={customFieldsErrors}
+                  subcategoryName={selectedSubcategory?.name || ''}
+                />
+              </div>
+            )}
+
+            {templateType === 'fashion' && fields && fields.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <FashionForm
                   fields={fields}
                   values={customFields}
                   onChange={handleCustomFieldChange}

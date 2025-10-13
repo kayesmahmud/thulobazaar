@@ -24,6 +24,7 @@ const EditAd = lazy(() => import('./components/EditAd'));
 const Browse = lazy(() => import('./components/Browse'));
 const NearbyAds = lazy(() => import('./components/NearbyAds'));
 const AdminLogin = lazy(() => import('./components/AdminLogin'));
+const EditorLogin = lazy(() => import('./components/EditorLogin'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const EditorDashboard = lazy(() => import('./components/EditorDashboard'));
 const Profile = lazy(() => import('./components/Profile'));
@@ -54,7 +55,9 @@ function App() {
               <Route path="all-ads" element={<AllAds />} />
               <Route path="post-ad" element={<PostAd />} />
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="editor" element={<EditorDashboard />} />
+              <Route path="editor" element={<EditorLogin />} />
+              <Route path="editor/dashboard" element={<EditorDashboard />} />
+              <Route path="admin" element={<AdminLogin />} />
               <Route path="edit-ad/:id" element={<EditAd />} />
               <Route path="profile" element={<Profile />} />
 
@@ -83,7 +86,6 @@ function App() {
             </Route>
 
             {/* Admin routes (no language prefix) */}
-            <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminPanel />} />
 
             {/* Fallback routes without language prefix - redirect to /en */}
