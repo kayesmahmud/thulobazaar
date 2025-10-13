@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from './common/Toast';
+import { useFormTemplate } from '../hooks/useFormTemplate';
 import ApiService from '../services/api';
 import ImageUpload from './ImageUpload';
 import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
 import LocationSelector from './post-ad/LocationSelector';
+import ElectronicsForm from './post-ad/templates/ElectronicsForm';
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
@@ -22,20 +24,31 @@ function PostAd() {
   // Category cascading state
   const [mainCategoryId, setMainCategoryId] = useState('');
   const [subcategories, setSubcategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
   // Area selection state (replaces location cascading)
   const [selectedAreaData, setSelectedAreaData] = useState(null);
+
+  // Template-specific custom fields
+  const [customFields, setCustomFields] = useState({});
+  const [customFieldsErrors, setCustomFieldsErrors] = useState({});
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
-    condition: '',
     categoryId: '',
     areaId: '', // Changed from locationId to areaId
     sellerName: user?.name || '',
     sellerPhone: user?.phone || ''
   });
+
+  // Use template hook to get applicable fields
+  const { templateType, fields, validateFields, getInitialValues } = useFormTemplate(
+    selectedCategory,
+    selectedSubcategory
+  );
 
   useEffect(() => {
     // Redirect if not authenticated
@@ -78,20 +91,33 @@ function PostAd() {
     if (error) setError(null);
   };
 
+  // Initialize custom fields when template changes
+  useEffect(() => {
+    if (templateType && getInitialValues) {
+      const initialValues = getInitialValues();
+      setCustomFields(initialValues);
+      setCustomFieldsErrors({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateType]);
+
   // Category cascade handlers
   const handleMainCategoryChange = (categoryId) => {
     setMainCategoryId(categoryId);
 
     // Find the selected category and its subcategories
-    const selectedCategory = categories.find(cat => cat.id === parseInt(categoryId));
+    const category = categories.find(cat => cat.id === parseInt(categoryId));
+    setSelectedCategory(category);
 
-    if (selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
-      setSubcategories(selectedCategory.subcategories);
+    if (category && category.subcategories && category.subcategories.length > 0) {
+      setSubcategories(category.subcategories);
+      setSelectedSubcategory(null);
       // Clear subcategory selection and formData.categoryId
       setFormData(prev => ({ ...prev, categoryId: '' }));
     } else {
       // No subcategories, use main category as final selection
       setSubcategories([]);
+      setSelectedSubcategory(null);
       setFormData(prev => ({ ...prev, categoryId: categoryId }));
     }
 
@@ -99,8 +125,26 @@ function PostAd() {
   };
 
   const handleSubcategoryChange = (subcategoryId) => {
+    const subcategory = subcategories.find(sub => sub.id === parseInt(subcategoryId));
+    setSelectedSubcategory(subcategory);
     setFormData(prev => ({ ...prev, categoryId: subcategoryId }));
     if (error) setError(null);
+  };
+
+  // Custom fields handler
+  const handleCustomFieldChange = (fieldName, value) => {
+    setCustomFields(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+    // Clear error for this field
+    if (customFieldsErrors[fieldName]) {
+      setCustomFieldsErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
   };
 
   // Area selection handler
@@ -153,15 +197,25 @@ function PostAd() {
         throw new Error('Seller phone is required');
       }
 
+      // Validate template-specific custom fields
+      if (validateFields && fields && fields.length > 0) {
+        const validation = validateFields(customFields);
+        if (!validation.isValid) {
+          setCustomFieldsErrors(validation.errors);
+          throw new Error('Please fill in all required fields');
+        }
+      }
+
       const adData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
-        condition: formData.condition,
+        // condition is now in customFields for template-based forms
         categoryId: parseInt(formData.categoryId),
         areaId: parseInt(formData.areaId), // Changed from locationId to areaId
         sellerName: formData.sellerName.trim(),
-        sellerPhone: formData.sellerPhone.trim()
+        sellerPhone: formData.sellerPhone.trim(),
+        customFields: customFields // Include template-specific fields
       };
 
       const result = await ApiService.createAd(adData, selectedImages);
@@ -305,72 +359,34 @@ function PostAd() {
               </small>
             </div>
 
-            {/* Price and Condition Row */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '20px',
-              marginBottom: '24px'
-            }}>
-              {/* Price */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
+            {/* Price */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                Price (NPR) *
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => handleInputChange('price', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
                   fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Price (NPR) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                  placeholder="e.g., 150000"
-                />
-              </div>
-
-              {/* Condition */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Condition *
-                </label>
-                <select
-                  required
-                  value={formData.condition}
-                  onChange={(e) => handleInputChange('condition', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="">Select Condition</option>
-                  <option value="new">Brand New</option>
-                  <option value="used">Used</option>
-                </select>
-              </div>
+                  outline: 'none'
+                }}
+                placeholder="e.g., 150000"
+              />
             </div>
 
             {/* Image Upload */}
@@ -466,6 +482,19 @@ function PostAd() {
                 )}
               </div>
             </div>
+
+            {/* Template-Specific Fields (e.g., Electronics, Vehicles, etc.) */}
+            {templateType === 'electronics' && fields && fields.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <ElectronicsForm
+                  fields={fields}
+                  values={customFields}
+                  onChange={handleCustomFieldChange}
+                  errors={customFieldsErrors}
+                  subcategoryName={selectedSubcategory?.name || ''}
+                />
+              </div>
+            )}
 
             {/* Location Selection with Search + Hierarchical Browser */}
             <div style={{ marginBottom: '24px' }}>

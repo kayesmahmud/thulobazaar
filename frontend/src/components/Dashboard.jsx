@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
 import ErrorMessage from './ErrorMessage';
-import SimpleHeader from './SimpleHeader';
+import UserHeader from './UserHeader';
 import BusinessVerificationForm from './BusinessVerificationForm';
 import IndividualVerificationForm from './IndividualVerificationForm';
 import { generateAdUrl } from '../utils/urlUtils';
@@ -166,7 +166,7 @@ function Dashboard() {
   return (
     <div>
       {/* Header */}
-      <SimpleHeader showUserWelcome={true} />
+      <UserHeader />
 
       {/* Dashboard Content */}
       <div className="dashboard-container" style={{
@@ -277,9 +277,9 @@ function Dashboard() {
                   {verificationStatus.status === 'rejected' && `Reason: ${verificationStatus.rejection_reason || 'Please contact support for more information'}`}
                 </p>
               </div>
-              {verificationStatus.status === 'approved' && user?.shop_slug && (
+              {verificationStatus.status === 'approved' && user?.shopSlug && (
                 <button
-                  onClick={() => navigate(`/${language}/shop/${user.shop_slug}`)}
+                  onClick={() => navigate(`/${language}/shop/${user.shopSlug}`)}
                   style={{
                     padding: '12px 24px',
                     backgroundColor: '#10b981',
@@ -321,7 +321,7 @@ function Dashboard() {
         {user && (
           <>
             {/* Show approved banner if verified */}
-            {individualVerificationStatus && individualVerificationStatus.verified && user?.seller_slug && (
+            {individualVerificationStatus && individualVerificationStatus.verified && user?.sellerSlug && (
               <div style={{
                 backgroundColor: '#d1fae5',
                 border: '2px solid #10b981',
@@ -351,7 +351,7 @@ function Dashboard() {
                     </p>
                   </div>
                   <button
-                    onClick={() => navigate(`/${language}/seller/${user.seller_slug}`)}
+                    onClick={() => navigate(`/${language}/seller/${user.sellerSlug}`)}
                     style={{
                       padding: '12px 24px',
                       backgroundColor: '#3B82F6',

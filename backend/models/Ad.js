@@ -251,18 +251,19 @@ class Ad {
       sellerName,
       sellerPhone,
       userId,
-      slug
+      slug,
+      customFields
     } = adData;
 
     const result = await pool.query(
       `INSERT INTO ads (
         title, slug, description, price, condition,
         category_id, location_id, seller_name, seller_phone,
-        user_id, status, view_count, is_featured
+        user_id, status, view_count, is_featured, custom_fields
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, false)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, false, $12)
       RETURNING *`,
-      [title, slug, description, price, condition, categoryId, locationId, sellerName, sellerPhone, userId, AD_STATUS.PENDING]
+      [title, slug, description, price, condition, categoryId, locationId, sellerName, sellerPhone, userId, AD_STATUS.PENDING, JSON.stringify(customFields || {})]
     );
 
     return result.rows[0];
@@ -281,7 +282,8 @@ class Ad {
       locationId,
       sellerName,
       sellerPhone,
-      slug
+      slug,
+      customFields
     } = adData;
 
     const result = await pool.query(
@@ -295,10 +297,11 @@ class Ad {
            location_id = COALESCE($7, location_id),
            seller_name = COALESCE($8, seller_name),
            seller_phone = COALESCE($9, seller_phone),
+           custom_fields = COALESCE($10, custom_fields),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $10
+       WHERE id = $11
        RETURNING *`,
-      [title, slug, description, price, condition, categoryId, locationId, sellerName, sellerPhone, id]
+      [title, slug, description, price, condition, categoryId, locationId, sellerName, sellerPhone, customFields ? JSON.stringify(customFields) : null, id]
     );
 
     return result.rows[0];

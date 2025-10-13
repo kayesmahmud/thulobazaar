@@ -406,7 +406,9 @@ class ApiService {
       // Add text data (skip null/undefined values)
       Object.keys(adData).forEach(key => {
         if (adData[key] !== null && adData[key] !== undefined) {
-          formData.append(key, adData[key]);
+          // Stringify objects (like customFields) before appending
+          const value = typeof adData[key] === 'object' ? JSON.stringify(adData[key]) : adData[key];
+          formData.append(key, value);
         }
       });
 

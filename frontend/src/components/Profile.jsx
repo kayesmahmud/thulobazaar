@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
-import Header from './Header';
+import UserHeader from './UserHeader';
 
 function Profile() {
   console.log('Profile component rendering...');
@@ -137,7 +137,7 @@ function Profile() {
 
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      <Header />
+      <UserHeader />
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '30px 20px' }}>
         {/* Success Message */}

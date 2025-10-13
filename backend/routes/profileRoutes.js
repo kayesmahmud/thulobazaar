@@ -75,15 +75,37 @@ router.get('/shop/:shopSlug', catchAsync(async (req, res) => {
 
   const shop = shopResult.rows[0];
 
-  // Fetch active ads by this business
+  // Fetch active ads by this business with location hierarchy
   const adsResult = await pool.query(
-    `SELECT
-       a.id, a.title, a.price, a.location_name, a.category_name, a.primary_image, a.created_at,
+    `WITH ad_locations AS (
+       SELECT DISTINCT a.location_id
+       FROM ads a
+       WHERE a.user_id = $1 AND a.status = 'approved' AND a.deleted_at IS NULL
+     ),
+     location_hierarchy AS (
+       SELECT
+         id, name, type, parent_id, 0 as level, id as base_location_id
+       FROM locations
+       WHERE id IN (SELECT location_id FROM ad_locations)
+
+       UNION ALL
+
+       SELECT
+         l.id, l.name, l.type, l.parent_id, lh.level + 1, lh.base_location_id
+       FROM locations l
+       INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+     )
+     SELECT
+       a.id, a.title, a.price, a.category_name, a.primary_image, a.created_at,
        a.is_featured, a.condition, a.view_count,
+       l.name as location_name,
+       (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'area' LIMIT 1) as area_name,
+       (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'district' LIMIT 1) as district_name,
        u.full_name as seller_name, u.avatar as seller_avatar, u.account_type as seller_account_type,
        u.is_verified as seller_verified, u.business_verification_status as seller_business_verified
      FROM ads a
      JOIN users u ON a.user_id = u.id
+     LEFT JOIN locations l ON a.location_id = l.id
      WHERE a.user_id = $1 AND a.status = 'approved' AND a.deleted_at IS NULL
      ORDER BY a.created_at DESC`,
     [shop.id]

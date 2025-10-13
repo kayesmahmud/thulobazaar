@@ -53,28 +53,39 @@ function ImageGallery({ images, title }) {
         />
       </div>
 
-      {/* Thumbnail Gallery */}
+      {/* Thumbnail Gallery - Show ALL images */}
       {images.length > 1 && (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+          display: 'flex',
           gap: spacing.sm,
-          maxHeight: '120px'
+          flexWrap: 'wrap',
+          marginTop: spacing.md
         }}>
-          {images.slice(1).map((image, index) => (
+          {images.map((image, index) => (
             <div
               key={index}
               style={{
-                aspectRatio: '1/1',
+                width: '100px',
+                height: '100px',
                 borderRadius: borderRadius.md,
                 overflow: 'hidden',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                border: '2px solid #e5e7eb',
+                transition: 'transform 0.2s, border-color 0.2s'
               }}
               onClick={() => handleThumbnailClick(image.filename)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.borderColor = '#dc1e4a';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
             >
               <img
                 src={`http://localhost:5000/uploads/ads/${image.filename}`}
-                alt={`${title} ${index + 2}`}
+                alt={`${title} ${index + 1}`}
                 style={{
                   width: '100%',
                   height: '100%',

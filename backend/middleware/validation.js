@@ -322,12 +322,14 @@ const createAdSchema = Joi.object({
   title: Joi.string().min(3).max(200).required(),
   description: Joi.string().min(10).max(5000).required(),
   price: Joi.number().positive().required(),
-  condition: Joi.string().valid('new', 'used', 'refurbished').required(),
+  condition: Joi.string().valid('new', 'used', 'refurbished').optional(), // Made optional - now in customFields
   categoryId: Joi.number().integer().positive().required(),
-  locationId: Joi.number().integer().positive().required(),
+  locationId: Joi.number().integer().positive().optional(), // Keep for backward compatibility
+  areaId: Joi.number().integer().positive().optional(), // New field name
   sellerName: Joi.string().min(2).max(100).required(),
-  sellerPhone: Joi.string().pattern(/^[0-9+\-\s()]+$/).min(10).max(20).required()
-});
+  sellerPhone: Joi.string().pattern(/^[0-9+\-\s()]+$/).min(10).max(20).required(),
+  customFields: Joi.object().optional() // Accept template-specific custom fields
+}).or('locationId', 'areaId'); // At least one location field must be provided
 
 const updateAdSchema = Joi.object({
   title: Joi.string().min(3).max(200).optional(),

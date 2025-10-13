@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const { authenticateToken } = require('../middleware/auth');
+const { rateLimiters } = require('../utils/rateLimiter');
+const { validate, createAdSchema } = require('../middleware/validation');
+const { catchAsync } = require('../middleware/errorHandler');
+const { upload, validateFileType } = require('../middleware/secureFileUpload');
+const { generateSlug, generateSeoSlug } = require('../utils/slugUtils');
 
 // Get all ads with images
 router.get('/', async (req, res) => {
@@ -238,5 +244,129 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Middleware to parse stringified customFields from FormData
+const parseCustomFields = (req, res, next) => {
+  console.log('📦 Received req.body:', JSON.stringify(req.body, null, 2));
+  console.log('📦 Received files:', req.files?.length || 0);
+
+  if (req.body.customFields && typeof req.body.customFields === 'string') {
+    try {
+      req.body.customFields = JSON.parse(req.body.customFields);
+      console.log('✅ Parsed customFields:', req.body.customFields);
+    } catch (error) {
+      console.error('❌ Error parsing customFields:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid customFields format'
+      });
+    }
+  }
+  next();
+};
+
+// Create new ad (protected route)
+router.post('/', rateLimiters.posting, authenticateToken, upload.array('images', 5), validateFileType, parseCustomFields, validate(createAdSchema), catchAsync(async (req, res) => {
+  const {
+    title,
+    description,
+    price,
+    condition,
+    categoryId,
+    locationId,
+    areaId,
+    sellerName,
+    sellerPhone,
+    customFields
+  } = req.body;
+
+  const userId = req.user.userId;
+
+  // Use areaId if provided, otherwise fall back to locationId for backward compatibility
+  const finalLocationId = areaId || locationId;
+
+  // Generate unique slug from title
+  const slug = await generateSlug(title);
+
+  // Insert ad into database
+  const adQuery = `
+    INSERT INTO ads (title, description, price, condition, category_id, location_id, seller_name, seller_phone, user_id, slug, custom_fields, status)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'approved')
+    RETURNING id, title, price, created_at
+  `;
+
+  const adResult = await pool.query(adQuery, [
+    title,
+    description,
+    price,
+    condition || customFields?.condition,
+    categoryId,
+    finalLocationId,
+    sellerName,
+    sellerPhone,
+    userId,
+    slug,
+    JSON.stringify(customFields)
+  ]);
+
+  const ad = adResult.rows[0];
+
+  // Handle image uploads if any
+  if (req.files && req.files.length > 0) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      await pool.query(
+        `INSERT INTO ad_images (ad_id, filename, original_name, file_path, file_size, mime_type, is_primary)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          ad.id,
+          file.filename,
+          file.originalname,
+          file.path,
+          file.size,
+          file.mimetype,
+          i === 0 // First image is primary
+        ]
+      );
+    }
+  }
+
+  // Get location hierarchy for SEO slug
+  const locationQuery = `
+    WITH RECURSIVE location_hierarchy AS (
+      SELECT id, name, type, parent_id, 0 as level
+      FROM locations WHERE id = $1
+      UNION ALL
+      SELECT l.id, l.name, l.type, l.parent_id, lh.level + 1
+      FROM locations l
+      INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+    )
+    SELECT
+      (SELECT name FROM location_hierarchy WHERE type = 'area' LIMIT 1) as area_name,
+      (SELECT name FROM location_hierarchy WHERE type = 'district' LIMIT 1) as district_name
+  `;
+
+  const locationResult = await pool.query(locationQuery, [finalLocationId]);
+  const { area_name, district_name } = locationResult.rows[0] || {};
+
+  // Generate SEO-friendly slug: title-area-district--id
+  const seoSlug = generateSeoSlug(ad.id, ad.title, area_name, district_name);
+
+  console.log(`✅ Created ad: ${ad.title} with ${req.files?.length || 0} images, SEO slug: ${seoSlug}`);
+
+  res.status(201).json({
+    success: true,
+    message: 'Ad created successfully',
+    data: {
+      id: ad.id,
+      title: ad.title,
+      price: ad.price,
+      createdAt: ad.created_at,
+      slug,
+      seo_slug: seoSlug,
+      imageCount: req.files?.length || 0
+    }
+  });
+}));
 
 module.exports = router;

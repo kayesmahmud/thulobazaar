@@ -55,12 +55,27 @@ router.get('/shop/:slug', async (req, res) => {
 
     const shop = shopResult.rows[0];
 
-    // Get all active ads from this shop
+    // Get all active ads from this shop with location hierarchy
     const adsQuery = `
+      WITH RECURSIVE location_hierarchy AS (
+        SELECT
+          id, name, type, parent_id, 0 as level, id as base_location_id
+        FROM locations
+        WHERE id IN (
+          SELECT DISTINCT location_id FROM ads
+          WHERE user_id = $1 AND status = 'approved' AND location_id IS NOT NULL
+        )
+
+        UNION ALL
+
+        SELECT
+          l.id, l.name, l.type, l.parent_id, lh.level + 1, lh.base_location_id
+        FROM locations l
+        INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+      )
       SELECT
         a.id,
         a.title,
-        a.slug,
         a.price,
         a.condition,
         a.description,
@@ -71,9 +86,9 @@ router.get('/shop/:slug', async (req, res) => {
         a.is_sticky,
         a.is_urgent,
         c.name as category_name,
-        c.slug as category_slug,
         l.name as location_name,
-        l.slug as location_slug,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'area' LIMIT 1) as area_name,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'district' LIMIT 1) as district_name,
         img.filename as primary_image
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id
@@ -168,12 +183,27 @@ router.get('/seller/:slug', async (req, res) => {
 
     const seller = sellerResult.rows[0];
 
-    // Get all active ads from this seller
+    // Get all active ads from this seller with location hierarchy
     const adsQuery = `
+      WITH RECURSIVE location_hierarchy AS (
+        SELECT
+          id, name, type, parent_id, 0 as level, id as base_location_id
+        FROM locations
+        WHERE id IN (
+          SELECT DISTINCT location_id FROM ads
+          WHERE user_id = $1 AND status = 'approved' AND location_id IS NOT NULL
+        )
+
+        UNION ALL
+
+        SELECT
+          l.id, l.name, l.type, l.parent_id, lh.level + 1, lh.base_location_id
+        FROM locations l
+        INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+      )
       SELECT
         a.id,
         a.title,
-        a.slug,
         a.price,
         a.condition,
         a.description,
@@ -184,9 +214,9 @@ router.get('/seller/:slug', async (req, res) => {
         a.is_sticky,
         a.is_urgent,
         c.name as category_name,
-        c.slug as category_slug,
         l.name as location_name,
-        l.slug as location_slug,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'area' LIMIT 1) as area_name,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'district' LIMIT 1) as district_name,
         img.filename as primary_image
       FROM ads a
       LEFT JOIN categories c ON a.category_id = c.id

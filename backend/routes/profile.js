@@ -104,9 +104,28 @@ router.get('/', async (req, res) => {
     // Don't send password-related fields
     delete user.password;
 
+    // Transform to camelCase for frontend consistency
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      bio: user.bio,
+      avatar: user.avatar,
+      coverPhoto: user.cover_photo,
+      phone: user.phone,
+      locationId: user.location_id,
+      locationName: user.location_name,
+      role: user.role,
+      createdAt: user.created_at,
+      shopSlug: user.shop_slug,
+      sellerSlug: user.seller_slug,
+      businessVerificationStatus: user.business_verification_status,
+      individualVerified: user.individual_verified
+    };
+
     res.json({
       success: true,
-      data: user
+      data: userData
     });
   } catch (err) {
     console.error('❌ Error fetching profile:', err);

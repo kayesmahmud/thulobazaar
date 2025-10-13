@@ -112,9 +112,14 @@ class AdController {
       condition,
       categoryId,
       locationId,
+      areaId,
       sellerName,
-      sellerPhone
+      sellerPhone,
+      customFields
     } = req.body;
+
+    // Use areaId if provided, otherwise fall back to locationId for backward compatibility
+    const finalLocationId = areaId || locationId;
 
     // Generate unique slug from title
     const slug = await generateSlug(title);
@@ -124,13 +129,14 @@ class AdController {
       title,
       description,
       price,
-      condition,
+      condition: condition || customFields?.condition, // Use condition from customFields if not provided
       categoryId,
-      locationId,
+      locationId: finalLocationId,
       sellerName,
       sellerPhone,
       userId: req.user.userId,
-      slug
+      slug,
+      customFields
     });
 
     // Handle image uploads if any
@@ -170,7 +176,8 @@ class AdController {
       categoryId,
       locationId,
       sellerName,
-      sellerPhone
+      sellerPhone,
+      customFields
     } = req.body;
 
     // Check if ad exists
@@ -203,7 +210,8 @@ class AdController {
       locationId,
       sellerName,
       sellerPhone,
-      slug
+      slug,
+      customFields
     });
 
     // Get images

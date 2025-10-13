@@ -18,6 +18,7 @@ import ContactModal from './ad-detail/ContactModal';
 import ReportModal from './ad-detail/ReportModal';
 import PromoteAdModal from './PromoteAdModal';
 import PromotionBadge from './PromotionBadge';
+import ElectronicsSpecs from './ad-details/specs/ElectronicsSpecs';
 
 function AdDetail() {
   const { id, slug } = useParams();
@@ -462,6 +463,13 @@ function AdDetail() {
                 </p>
               </div>
             </div>
+
+            {/* Template-Specific Specifications */}
+            {ad.custom_fields && Object.keys(ad.custom_fields).length > 0 && (
+              <div style={{ marginBottom: spacing['2xl'] }}>
+                <ElectronicsSpecs customFields={ad.custom_fields} />
+              </div>
+            )}
 
             {/* Ad Details */}
             <div>

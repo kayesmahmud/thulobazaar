@@ -3,9 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
-import ApiService from '../services/api';
 
-function Header() {
+function UserHeader() {
   const { user, logout, isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -19,11 +18,6 @@ function Header() {
 
   const handlePostAdClick = () => {
     if (isAuthenticated) {
-      // Prevent editors and super_admins from posting ads
-      if (user?.role === 'editor' || user?.role === 'super_admin') {
-        alert('Editors and admins cannot post ads');
-        return;
-      }
       navigate(`/${language}/post-ad`);
     } else {
       setAuthModal({ isOpen: true, mode: 'login' });
@@ -33,7 +27,6 @@ function Header() {
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
-    // Return focus to the button that opened the menu
     if (mobileMenuButtonRef.current) {
       mobileMenuButtonRef.current.focus();
     }
@@ -55,7 +48,6 @@ function Header() {
     }
   };
 
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -71,7 +63,6 @@ function Header() {
   // Focus management for mobile menu
   useEffect(() => {
     if (mobileMenuOpen && mobileMenuRef.current) {
-      // Move focus into the mobile menu
       const firstFocusable = mobileMenuRef.current.querySelector('button');
       if (firstFocusable) {
         firstFocusable.focus();
@@ -204,60 +195,54 @@ function Header() {
                       </div>
 
                       {/* Menu Items */}
-                      {/* Hide profile and dashboard for editors */}
-                      {user?.role !== 'editor' && user?.role !== 'super_admin' && (
-                        <>
-                          <button
-                            onClick={() => {
-                              handleNavigation('/profile');
-                              setProfileDropdownOpen(false);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '12px 16px',
-                              border: 'none',
-                              backgroundColor: 'white',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#334155',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                          >
-                            👤 My Profile
-                          </button>
+                      <button
+                        onClick={() => {
+                          handleNavigation('/profile');
+                          setProfileDropdownOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: 'none',
+                          backgroundColor: 'white',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: '#334155',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                      >
+                        👤 My Profile
+                      </button>
 
-                          <button
-                            onClick={() => {
-                              handleNavigation('/dashboard');
-                              setProfileDropdownOpen(false);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '12px 16px',
-                              border: 'none',
-                              backgroundColor: 'white',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#334155',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                          >
-                            📊 My Dashboard
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => {
+                          handleNavigation('/dashboard');
+                          setProfileDropdownOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          border: 'none',
+                          backgroundColor: 'white',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: '#334155',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                      >
+                        📊 My Dashboard
+                      </button>
 
-                      {/* View My Shop - For all authenticated users */}
+                      {/* View My Shop - Show if user has shop_slug or seller_slug */}
                       {user && (user?.shopSlug || user?.sellerSlug) && (
                         <button
                           onClick={() => {
-                            // Navigate to shop if business verified, seller page otherwise
                             if (user?.businessVerificationStatus === 'approved' && user?.shopSlug) {
                               handleNavigation(`/shop/${user.shopSlug}`);
                             } else if (user?.sellerSlug) {
@@ -283,32 +268,6 @@ function Header() {
                           onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                         >
                           🏪 View My Shop
-                        </button>
-                      )}
-
-                      {/* Editor Dashboard Link - Only for editors and super admins */}
-                      {(user?.role === 'editor' || user?.role === 'super_admin') && (
-                        <button
-                          onClick={() => {
-                            handleNavigation('/editor');
-                            setProfileDropdownOpen(false);
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            border: 'none',
-                            backgroundColor: 'white',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            color: '#6b21a8',
-                            fontWeight: '600',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f3e8ff'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                        >
-                          🛡️ Editor Panel
                         </button>
                       )}
 
@@ -380,9 +339,9 @@ function Header() {
               </div>
 
               <div className="mobile-menu-content">
-                {/* Auth Section - Now First */}
+                {/* Auth Section */}
                 <div className="mobile-auth-section">
-                  {isAuthenticated && user?.role !== 'editor' && user?.role !== 'super_admin' ? (
+                  {isAuthenticated ? (
                     <div className="mobile-user-info">
                       <div className="mobile-welcome">
                         Welcome, {user?.fullName}!
@@ -418,7 +377,7 @@ function Header() {
                   )}
                 </div>
 
-                {/* Navigation Links - Now styled like signup buttons */}
+                {/* Navigation Links */}
                 <div className="mobile-nav-links">
                   <button
                     className="mobile-nav-btn"
@@ -433,7 +392,7 @@ function Header() {
                     📋 All Ads
                   </button>
 
-                  {isAuthenticated && user?.role !== 'editor' && (
+                  {isAuthenticated && (
                     <>
                       <button
                         className="mobile-nav-btn"
@@ -448,17 +407,6 @@ function Header() {
                         📊 Dashboard
                       </button>
                     </>
-                  )}
-
-                  {/* Editor Panel for editors */}
-                  {isAuthenticated && (user?.role === 'editor' || user?.role === 'super_admin') && (
-                    <button
-                      className="mobile-nav-btn"
-                      onClick={() => handleNavigation('/editor')}
-                      style={{ color: '#6b21a8', fontWeight: '600' }}
-                    >
-                      🛡️ Editor Panel
-                    </button>
                   )}
                 </div>
               </div>
@@ -492,4 +440,4 @@ function Header() {
   );
 }
 
-export default Header;
+export default UserHeader;

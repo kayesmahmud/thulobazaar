@@ -106,7 +106,16 @@ class AuthController {
       role: user.role,
       isActive: user.is_active,
       locationId: user.location_id,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      // Additional fields for Header dropdown and profile management
+      avatar: user.avatar,
+      coverPhoto: user.cover_photo,
+      accountType: user.account_type,
+      shopSlug: user.shop_slug,
+      sellerSlug: user.seller_slug,
+      businessName: user.business_name,
+      businessVerificationStatus: user.business_verification_status,
+      individualVerified: user.individual_verified
     };
 
     res.json({

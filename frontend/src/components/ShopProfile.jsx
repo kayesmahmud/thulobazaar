@@ -304,9 +304,30 @@ function ShopProfile() {
     }
   };
 
-  const handleAdClick = (adSlug) => {
+  const handleAdClick = (ad) => {
     const currentLang = window.location.pathname.split('/')[1] || 'en';
-    navigate(`/${currentLang}/ad/${adSlug}`);
+
+    // Generate SEO-friendly slug: title-area-district--id
+    const slugify = (text) => {
+      return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+    };
+
+    const parts = [ad.title];
+    if (ad.area_name) parts.push(ad.area_name);
+    if (ad.district_name && ad.district_name !== ad.area_name) parts.push(ad.district_name);
+
+    const slugPart = slugify(parts.join(' '));
+    const seoSlug = `${slugPart}--${ad.id}`;
+
+    navigate(`/${currentLang}/ad/${seoSlug}`);
   };
 
   if (loading) {
@@ -1168,7 +1189,7 @@ function ShopProfile() {
                 {ads.map(ad => (
                   <div
                     key={ad.id}
-                    onClick={() => handleAdClick(ad.slug)}
+                    onClick={() => handleAdClick(ad)}
                     style={{
                       ...styles.card.default,
                       cursor: 'pointer',
