@@ -30,6 +30,7 @@ import HomeLivingForm from './post-ad/templates/HomeLivingForm';
 import PetsForm from './post-ad/templates/PetsForm';
 import ServicesForm from './post-ad/templates/ServicesForm';
 import styles from './PostAd.module.css';
+import { formReducer, ACTION_TYPES } from '../reducers/formReducer';
 
 // Template component mapping
 const TEMPLATE_COMPONENTS = {
@@ -41,79 +42,6 @@ const TEMPLATE_COMPONENTS = {
   services: ServicesForm,
   general: HomeLivingForm // Used for Home & Living category
 };
-
-// Action types for reducer
-const ACTION_TYPES = {
-  SET_LOADING: 'SET_LOADING',
-  SET_ERROR: 'SET_ERROR',
-  SET_CATEGORIES: 'SET_CATEGORIES',
-  SET_SELECTED_IMAGES: 'SET_SELECTED_IMAGES',
-  SET_MAIN_CATEGORY: 'SET_MAIN_CATEGORY',
-  SET_SUBCATEGORIES: 'SET_SUBCATEGORIES',
-  SET_SELECTED_CATEGORY: 'SET_SELECTED_CATEGORY',
-  SET_SELECTED_SUBCATEGORY: 'SET_SELECTED_SUBCATEGORY',
-  SET_SELECTED_AREA_DATA: 'SET_SELECTED_AREA_DATA',
-  SET_CUSTOM_FIELDS: 'SET_CUSTOM_FIELDS',
-  SET_CUSTOM_FIELDS_ERRORS: 'SET_CUSTOM_FIELDS_ERRORS',
-  UPDATE_FORM_DATA: 'UPDATE_FORM_DATA',
-  SET_FORM_DATA: 'SET_FORM_DATA',
-  CLEAR_CUSTOM_FIELD_ERROR: 'CLEAR_CUSTOM_FIELD_ERROR'
-};
-
-// Reducer function for form state management
-function formReducer(state, action) {
-  switch (action.type) {
-    case ACTION_TYPES.SET_LOADING:
-      return { ...state, loading: action.payload };
-
-    case ACTION_TYPES.SET_ERROR:
-      return { ...state, error: action.payload };
-
-    case ACTION_TYPES.SET_CATEGORIES:
-      return { ...state, categories: action.payload };
-
-    case ACTION_TYPES.SET_SELECTED_IMAGES:
-      return { ...state, selectedImages: action.payload };
-
-    case ACTION_TYPES.SET_MAIN_CATEGORY:
-      return { ...state, mainCategoryId: action.payload };
-
-    case ACTION_TYPES.SET_SUBCATEGORIES:
-      return { ...state, subcategories: action.payload };
-
-    case ACTION_TYPES.SET_SELECTED_CATEGORY:
-      return { ...state, selectedCategory: action.payload };
-
-    case ACTION_TYPES.SET_SELECTED_SUBCATEGORY:
-      return { ...state, selectedSubcategory: action.payload };
-
-    case ACTION_TYPES.SET_SELECTED_AREA_DATA:
-      return { ...state, selectedAreaData: action.payload };
-
-    case ACTION_TYPES.SET_CUSTOM_FIELDS:
-      return { ...state, customFields: action.payload };
-
-    case ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS:
-      return { ...state, customFieldsErrors: action.payload };
-
-    case ACTION_TYPES.UPDATE_FORM_DATA:
-      return {
-        ...state,
-        formData: { ...state.formData, ...action.payload }
-      };
-
-    case ACTION_TYPES.SET_FORM_DATA:
-      return { ...state, formData: action.payload };
-
-    case ACTION_TYPES.CLEAR_CUSTOM_FIELD_ERROR:
-      const newErrors = { ...state.customFieldsErrors };
-      delete newErrors[action.payload];
-      return { ...state, customFieldsErrors: newErrors };
-
-    default:
-      return state;
-  }
-}
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
@@ -299,57 +227,58 @@ function PostAd() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch({ type: ACTION_TYPES.SET_LOADING, payload: true });
     dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null });
+    dispatch({ type: ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS, payload: {} });
+
+    const validationError = validateAll({
+      formData,
+      mainCategoryId,
+      subcategories,
+      validateFields,
+      fields,
+      customFields,
+      setCustomFieldsErrors: (errors) => {
+        dispatch({ type: ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS, payload: errors });
+      },
+    });
+
+    if (validationError) {
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: new Error(validationError) });
+      return;
+    }
+
+    dispatch({ type: ACTION_TYPES.SET_LOADING, payload: true });
 
     try {
-      // Run all validations using the validation hook
-      validateAll({
-        formData,
-        mainCategoryId,
-        subcategories,
-        validateFields,
-        fields,
-        customFields,
-        setCustomFieldsErrors: (errors) => {
-          dispatch({ type: ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS, payload: errors });
-        }
-      });
-
       const adData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
-        // condition is now in customFields for template-based forms
         categoryId: parseInt(formData.categoryId),
-        areaId: parseInt(formData.areaId), // Changed from locationId to areaId
+        areaId: parseInt(formData.areaId),
         sellerName: formData.sellerName.trim(),
         sellerPhone: formData.sellerPhone.trim(),
-        customFields: customFields // Include template-specific fields
+        customFields: customFields,
       };
 
       const result = await ApiService.createAd(adData, selectedImages);
       console.log('✅ Ad created successfully:', result);
 
-      // Show success toast notification
       toast.success(MESSAGES.SUCCESS_MESSAGE, {
         title: MESSAGES.SUCCESS_TITLE,
-        duration: TIMEOUTS.TOAST_DURATION
+        duration: TIMEOUTS.TOAST_DURATION,
       });
 
-      // Redirect to ad detail page using SEO slug if available, otherwise use ID
       setTimeout(() => {
         if (result.seo_slug) {
           navigate(`/${language}/ad/${result.seo_slug}`);
         } else {
-          // Fallback to ID-based URL if slug is not available
           navigate(`/${language}/ad/${result.id}`);
         }
       }, TIMEOUTS.REDIRECT_DELAY);
-
     } catch (err) {
       console.error('❌ Error creating ad:', err);
-      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: err }); // Store the full error object for structured display
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: err });
     } finally {
       dispatch({ type: ACTION_TYPES.SET_LOADING, payload: false });
     }
@@ -558,11 +487,12 @@ function PostAd() {
               <div className={styles.gridTwoColumns}>
                 {/* Seller Name */}
                 <div>
-                  <label className={styles.label}>
+                  <label className={styles.label} htmlFor="sellerName">
                     {LABELS.SELLER_NAME}
                   </label>
                   <input
                     type="text"
+                    id="sellerName"
                     required
                     value={formData.sellerName}
                     readOnly
@@ -580,11 +510,12 @@ function PostAd() {
 
                 {/* Seller Phone */}
                 <div>
-                  <label className={styles.label}>
+                  <label className={styles.label} htmlFor="sellerPhone">
                     {LABELS.SELLER_PHONE}
                   </label>
                   <input
                     type="tel"
+                    id="sellerPhone"
                     required
                     value={formData.sellerPhone}
                     onChange={(e) => handleInputChange('sellerPhone', e.target.value)}
@@ -610,6 +541,7 @@ function PostAd() {
                 aria-label={ARIA_LABELS.SUBMIT_BUTTON}
                 aria-busy={loading}
                 aria-live="polite"
+                data-testid="submit-button"
               >
                 {loading ? MESSAGES.POSTING : MESSAGES.POST_AD}
               </button>

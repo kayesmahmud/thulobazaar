@@ -7,50 +7,34 @@ export function usePostAdValidation() {
    * Validates basic form fields
    */
   const validateBasicFields = (formData, mainCategoryId, subcategories) => {
-    // Title validation
     if (!formData.title.trim()) {
-      throw new Error('Title is required');
+      return 'Title is required';
     }
-
-    // Description validation
     if (!formData.description.trim()) {
-      throw new Error('Description is required');
+      return 'Description is required';
     }
-
-    // Price validation
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      throw new Error('Valid price is required');
+      return 'Valid price is required';
     }
-
-    // Category validation
     if (!mainCategoryId) {
-      throw new Error('Please select a category');
+      return 'Please select a category';
     }
-
-    // Subcategory validation (if subcategories exist)
     if (subcategories.length > 0 && !formData.categoryId) {
-      throw new Error('Please select a subcategory');
+      return 'Please select a subcategory';
     }
-
-    // Final category ID validation
     if (!formData.categoryId) {
-      throw new Error('Category is required');
+      return 'Category is required';
     }
-
-    // Area/Location validation
     if (!formData.areaId) {
-      throw new Error('Please select an area/place for your ad');
+      return 'Please select an area/place for your ad';
     }
-
-    // Seller name validation
     if (!formData.sellerName.trim()) {
-      throw new Error('Seller name is required');
+      return 'Seller name is required';
     }
-
-    // Seller phone validation
     if (!formData.sellerPhone.trim()) {
-      throw new Error('Seller phone is required');
+      return 'Seller phone is required';
     }
+    return null;
   };
 
   /**
@@ -61,9 +45,10 @@ export function usePostAdValidation() {
       const validation = validateFields(customFields);
       if (!validation.isValid) {
         setCustomFieldsErrors(validation.errors);
-        throw new Error('Please fill in all required fields');
+        return 'Please fill in all required fields';
       }
     }
+    return null;
   };
 
   /**
@@ -78,16 +63,16 @@ export function usePostAdValidation() {
     customFields,
     setCustomFieldsErrors
   }) => {
-    // Validate basic fields
-    validateBasicFields(formData, mainCategoryId, subcategories);
+    const basicErrors = validateBasicFields(formData, mainCategoryId, subcategories);
+    if (basicErrors) return basicErrors;
 
-    // Validate template-specific custom fields
-    validateCustomFields(validateFields, fields, customFields, setCustomFieldsErrors);
+    const customErrors = validateCustomFields(validateFields, fields, customFields, setCustomFieldsErrors);
+    if (customErrors) return customErrors;
+
+    return null;
   };
 
   return {
-    validateBasicFields,
-    validateCustomFields,
     validateAll
   };
 }
