@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { styles, colors, spacing, typography, borderRadius } from '../../styles/theme';
+import { UPLOADS_BASE_URL } from '../../config/env.js';
 
 function DashboardAdCard({ ad, onEdit, onDelete }) {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ function DashboardAdCard({ ad, onEdit, onDelete }) {
       >
         {ad.primary_image ? (
           <img
-            src={`http://localhost:5000/uploads/ads/${ad.primary_image}`}
+            src={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`}
             alt={ad.title}
             style={{
               width: '100%',

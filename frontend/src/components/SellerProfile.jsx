@@ -5,8 +5,9 @@ import Cropper from 'react-easy-crop';
 import { styles, colors, spacing, borderRadius, typography } from '../styles/theme';
 import Header from './Header';
 import ApiService from '../services/api';
+import { API_BASE_URL, UPLOADS_BASE_URL } from '../config/env.js';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = API_BASE_URL;
 
 function SellerProfile() {
   const { sellerSlug } = useParams();
@@ -468,7 +469,7 @@ function SellerProfile() {
             height: '300px',
             position: 'relative',
             backgroundImage: seller.cover_photo || coverPreview
-              ? `url(${coverPreview || `http://localhost:5000/uploads/covers/${seller.cover_photo}`})`
+              ? `url(${coverPreview || `${UPLOADS_BASE_URL}/covers/${seller.cover_photo}`})`
               : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -575,7 +576,7 @@ function SellerProfile() {
               {seller.avatar || avatarPreview ? (
                 <img
                   className="seller-avatar-image"
-                  src={avatarPreview || `http://localhost:5000/uploads/avatars/${seller.avatar}`}
+                  src={avatarPreview || `${UPLOADS_BASE_URL}/avatars/${seller.avatar}`}
                   alt={seller.full_name}
                   style={{
                     width: '150px',
@@ -1176,7 +1177,7 @@ function SellerProfile() {
                     }}>
                       {ad.primary_image ? (
                         <img
-                          src={`http://localhost:5000/uploads/ads/${ad.primary_image}`}
+                          src={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`}
                           alt={ad.title}
                           style={{
                             width: '100%',

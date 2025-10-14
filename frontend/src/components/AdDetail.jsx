@@ -10,6 +10,7 @@ import UserHeader from './UserHeader';
 import Breadcrumb from './Breadcrumb';
 import { recentlyViewedUtils } from '../utils/recentlyViewed';
 import { extractAdIdFromUrl, generateBrowseUrl, generateSlug } from '../utils/urlUtils';
+import { API_BASE_URL, UPLOADS_BASE_URL } from '../config/env.js';
 
 // Import new components
 import ImageGallery from './ad-detail/ImageGallery';
@@ -116,7 +117,7 @@ function AdDetail() {
           limit: 4,
           exclude: ad.id
         });
-        const response = await fetch(`http://localhost:5000/api/ads?${params}`);
+        const response = await fetch(`${API_BASE_URL}/ads?${params}`);
         const data = await response.json();
         setRelatedAds(data.ads || []);
       } catch (err) {
@@ -301,10 +302,10 @@ function AdDetail() {
 
         if (confirmPayment) {
           // Complete payment via success endpoint
-          window.location.href = `http://localhost:5000/api/mock-payment/success?txnId=${transactionId}&amount=${amount}`;
+          window.location.href = `${API_BASE_URL}/mock-payment/success?txnId=${transactionId}&amount=${amount}`;
         } else {
           // Fail payment
-          window.location.href = `http://localhost:5000/api/mock-payment/failure?txnId=${transactionId}&reason=User+cancelled`;
+          window.location.href = `${API_BASE_URL}/mock-payment/failure?txnId=${transactionId}&reason=User+cancelled`;
         }
 
         setPromoteModal(false);
@@ -416,7 +417,7 @@ function AdDetail() {
         <meta property="og:type" content="product" />
         <meta property="og:url" content={canonicalUrl} />
         {ad.primary_image && (
-          <meta property="og:image" content={`http://localhost:5000/uploads/ads/${ad.primary_image}`} />
+          <meta property="og:image" content={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`} />
         )}
         <meta property="og:site_name" content="Thulobazaar" />
 
@@ -425,7 +426,7 @@ function AdDetail() {
         <meta name="twitter:title" content={`${ad.title} - Thulobazaar`} />
         <meta name="twitter:description" content={metaDescription} />
         {ad.primary_image && (
-          <meta name="twitter:image" content={`http://localhost:5000/uploads/ads/${ad.primary_image}`} />
+          <meta name="twitter:image" content={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`} />
         )}
 
         {/* Product schema for rich snippets */}
@@ -435,7 +436,7 @@ function AdDetail() {
             "@type": "Product",
             "name": ad.title,
             "description": metaDescription,
-            "image": ad.primary_image ? `http://localhost:5000/uploads/ads/${ad.primary_image}` : undefined,
+            "image": ad.primary_image ? `${UPLOADS_BASE_URL}/ads/${ad.primary_image}` : undefined,
             "offers": {
               "@type": "Offer",
               "price": ad.price,
@@ -941,7 +942,7 @@ function AdDetail() {
                   }}>
                     {relatedAd.primary_image ? (
                       <img
-                        src={`http://localhost:5000/uploads/ads/${relatedAd.primary_image}`}
+                        src={`${UPLOADS_BASE_URL}/ads/${relatedAd.primary_image}`}
                         alt={relatedAd.title}
                         style={{
                           width: '100%',

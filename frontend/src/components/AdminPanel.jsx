@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ApiService from '../services/api';
 import { generateAdUrl } from '../utils/urlUtils';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function AdminPanel() {
   const navigate = useNavigate();
@@ -507,7 +508,7 @@ function AdminPanel() {
                       }}>
                         {ad.primary_image ? (
                           <img
-                            src={`http://localhost:5000/uploads/ads/${ad.primary_image}`}
+                            src={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`}
                             alt={ad.title}
                             style={{
                               width: '100%',

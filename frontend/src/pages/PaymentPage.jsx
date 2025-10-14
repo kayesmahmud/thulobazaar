@@ -5,6 +5,7 @@ import ApiService from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SimpleHeader from '../components/SimpleHeader';
 import '../styles/PaymentPage.css';
+import { API_BASE_URL } from '../config/env.js';
 
 const PaymentPage = () => {
   const { adId } = useParams();
@@ -58,7 +59,7 @@ const PaymentPage = () => {
 
         if (confirmPayment) {
           // Complete payment
-          window.location.href = `http://localhost:5000/api/mock-payment/success?txnId=${transactionId}&amount=${amount}`;
+          window.location.href = `${API_BASE_URL}/mock-payment/success?txnId=${transactionId}&amount=${amount}`;
         } else {
           // Cancel payment
           setPaymentStatus('failed');

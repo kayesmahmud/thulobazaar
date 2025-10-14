@@ -1,4 +1,5 @@
 import { styles, colors, spacing, typography } from '../../styles/theme';
+import { UPLOADS_BASE_URL } from '../../config/env.js';
 
 function BusinessVerificationTable({
   requests,
@@ -118,7 +119,7 @@ function BusinessVerificationTable({
               <td style={tableCellStyle}>
                 {request.business_license_document ? (
                   <a
-                    href={`http://localhost:5000/uploads/business-licenses/${request.business_license_document}`}
+                    href={`${UPLOADS_BASE_URL}/business-licenses/${request.business_license_document}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{

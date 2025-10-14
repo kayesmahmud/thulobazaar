@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { styles, colors, spacing, typography, borderRadius } from '../../styles/theme';
+import { UPLOADS_BASE_URL } from '../../config/env.js';
 
 function SearchResultCard({ ad }) {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ function SearchResultCard({ ad }) {
       }}>
         {ad.primary_image ? (
           <img
-            src={`http://localhost:5000/uploads/ads/${ad.primary_image}`}
+            src={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`}
             alt={ad.title}
             style={{
               position: 'absolute',

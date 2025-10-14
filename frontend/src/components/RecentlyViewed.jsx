@@ -5,6 +5,7 @@ import LazyImage from './LazyImage';
 import { recentlyViewedUtils } from '../utils/recentlyViewed';
 import { generateAdUrl } from '../utils/urlUtils';
 import { useLanguage } from '../context/LanguageContext';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
@@ -143,7 +144,7 @@ function RecentlyViewed({ showTitle = true, maxItems = 5 }) {
             }}>
               {ad.primary_image ? (
                 <LazyImage
-                  src={`http://localhost:5000/uploads/ads/${ad.primary_image}`}
+                  src={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`}
                   alt={ad.title}
                   style={{
                     width: '100%',

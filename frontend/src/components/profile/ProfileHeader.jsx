@@ -1,15 +1,16 @@
 import PropTypes from 'prop-types';
 import { styles, colors, spacing, borderRadius } from '../../styles/theme';
+import { UPLOADS_BASE_URL } from '../../config/env.js';
 
 function ProfileHeader({ profile, onAvatarClick, onCoverClick, uploadingAvatar, uploadingCover }) {
   const getAvatarUrl = () => {
     if (!profile?.avatar) return null;
-    return `http://localhost:5000/uploads/avatars/${profile.avatar}`;
+    return `${UPLOADS_BASE_URL}/avatars/${profile.avatar}`;
   };
 
   const getCoverUrl = () => {
     if (!profile?.cover_photo) return null;
-    return `http://localhost:5000/uploads/covers/${profile.cover_photo}`;
+    return `${UPLOADS_BASE_URL}/covers/${profile.cover_photo}`;
   };
 
   return (

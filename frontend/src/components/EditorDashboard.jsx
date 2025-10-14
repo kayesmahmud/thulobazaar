@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import ApiService from '../services/api';
 import './EditorDashboard.css';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function EditorDashboard() {
   const { language } = useLanguage();
@@ -747,7 +748,7 @@ function EditorDashboard() {
                         <td>
                           {request.business_license_document && (
                             <a
-                              href={`http://localhost:5000/uploads/business-licenses/${request.business_license_document}`}
+                              href={`${UPLOADS_BASE_URL}/business-licenses/${request.business_license_document}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{color: '#3b82f6', textDecoration: 'underline'}}
@@ -814,7 +815,7 @@ function EditorDashboard() {
                           <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
                             {request.id_document_front && (
                               <a
-                                href={`http://localhost:5000/uploads/individual_verification/${request.id_document_front}`}
+                                href={`${UPLOADS_BASE_URL}/individual_verification/${request.id_document_front}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{color: '#3b82f6', textDecoration: 'underline', fontSize: '12px'}}
@@ -824,7 +825,7 @@ function EditorDashboard() {
                             )}
                             {request.id_document_back && (
                               <a
-                                href={`http://localhost:5000/uploads/individual_verification/${request.id_document_back}`}
+                                href={`${UPLOADS_BASE_URL}/individual_verification/${request.id_document_back}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{color: '#3b82f6', textDecoration: 'underline', fontSize: '12px'}}
@@ -834,7 +835,7 @@ function EditorDashboard() {
                             )}
                             {request.selfie_with_id && (
                               <a
-                                href={`http://localhost:5000/uploads/individual_verification/${request.selfie_with_id}`}
+                                href={`${UPLOADS_BASE_URL}/individual_verification/${request.selfie_with_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{color: '#3b82f6', textDecoration: 'underline', fontSize: '12px'}}

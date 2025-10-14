@@ -4,6 +4,7 @@ import LazyImage from './LazyImage';
 import { formatDateTime } from '../utils/dateUtils';
 import { useLanguage } from '../context/LanguageContext';
 import { generateAdUrl } from '../utils/urlUtils';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function AdCard({ ad }) {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ function AdCard({ ad }) {
 
         {ad.primary_image ? (
           <LazyImage
-            src={`http://localhost:5000/uploads/ads/${ad.primary_image}`}
+            src={`${UPLOADS_BASE_URL}/ads/${ad.primary_image}`}
             alt={ad.title}
             style={{
               width: '100%',

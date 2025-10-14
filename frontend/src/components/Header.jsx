@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
 import ApiService from '../services/api';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function Header() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -152,7 +153,7 @@ function Header() {
                   >
                     {user?.avatar ? (
                       <img
-                        src={`http://localhost:5000/uploads/avatars/${user.avatar}`}
+                        src={`${UPLOADS_BASE_URL}/avatars/${user.avatar}`}
                         alt={user.fullName}
                         style={{
                           width: '100%',

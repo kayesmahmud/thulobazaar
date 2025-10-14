@@ -2,6 +2,8 @@
  * SEO utility functions for meta tags and structured data
  */
 
+import { UPLOADS_BASE_URL } from '../config/env.js';
+
 /**
  * Update document title
  * @param {string} title - Page title
@@ -177,7 +179,7 @@ export const seoConfigs = {
     title: ad.title,
     description: ad.description?.substring(0, 160) || ad.title,
     keywords: `${ad.category_name}, ${ad.location_name}, buy, sell, nepal`,
-    image: ad.primary_image ? `http://localhost:5000/uploads/ads/${ad.primary_image}` : undefined,
+    image: ad.primary_image ? `${UPLOADS_BASE_URL}/ads/${ad.primary_image}` : undefined,
     url: window.location.href,
     type: 'product'
   }),

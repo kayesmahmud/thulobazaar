@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
 import ApiService from '../services/api';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function SimpleHeader({ showUserWelcome = false }) {
   const { user, logout, isAuthenticated } = useAuth();
@@ -140,7 +141,7 @@ function SimpleHeader({ showUserWelcome = false }) {
                   >
                     {profileData?.avatar ? (
                       <img
-                        src={`http://localhost:5000/uploads/avatars/${profileData.avatar}`}
+                        src={`${UPLOADS_BASE_URL}/avatars/${profileData.avatar}`}
                         alt={profileData.name}
                         style={{
                           width: '100%',

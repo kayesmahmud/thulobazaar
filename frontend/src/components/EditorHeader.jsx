@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function EditorHeader() {
   const { user, logout } = useAuth();
@@ -75,7 +76,7 @@ function EditorHeader() {
               >
                 {user?.avatar ? (
                   <img
-                    src={`http://localhost:5000/uploads/avatars/${user.avatar}`}
+                    src={`${UPLOADS_BASE_URL}/avatars/${user.avatar}`}
                     alt={user.fullName}
                     style={{
                       width: '100%',

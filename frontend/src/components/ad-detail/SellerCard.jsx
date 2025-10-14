@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { styles, colors, spacing, borderRadius, typography } from '../../styles/theme';
+import { UPLOADS_BASE_URL } from '../../config/env.js';
 
 function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPhoneDisplay }) {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
         >
           {ad.seller_avatar ? (
             <img
-              src={`http://localhost:5000/uploads/avatars/${ad.seller_avatar}`}
+              src={`${UPLOADS_BASE_URL}/avatars/${ad.seller_avatar}`}
               alt={ad.seller_name}
               style={styles.avatar.medium}
             />

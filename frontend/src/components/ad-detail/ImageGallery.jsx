@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { borderRadius, spacing } from '../../styles/theme';
+import { UPLOADS_BASE_URL } from '../../config/env.js';
 
 function ImageGallery({ images, title }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -56,7 +57,7 @@ function ImageGallery({ images, title }) {
       }}>
         <img
           className="main-ad-image"
-          src={`http://localhost:5000/uploads/ads/${images[currentImageIndex].filename}`}
+          src={`${UPLOADS_BASE_URL}/ads/${images[currentImageIndex].filename}`}
           alt={title}
           style={{
             width: '100%',
@@ -193,7 +194,7 @@ function ImageGallery({ images, title }) {
               }}
             >
               <img
-                src={`http://localhost:5000/uploads/ads/${image.filename}`}
+                src={`${UPLOADS_BASE_URL}/ads/${image.filename}`}
                 alt={`${title} ${index + 1}`}
                 style={{
                   width: '100%',

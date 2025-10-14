@@ -7,6 +7,7 @@ import { getUserLocation, nepaliCities } from '../utils/locationUtils';
 import { formatDateTime } from '../utils/dateUtils';
 import { generateAdUrl } from '../utils/urlUtils';
 import { useLanguage } from '../context/LanguageContext';
+import { API_BASE_URL } from '../config/env.js';
 
 function NearbyAds() {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ function NearbyAds() {
         searchParams.category = category;
       }
 
-      const response = await fetch(`http://localhost:5000/api/ads/nearby?${new URLSearchParams(searchParams)}`);
+      const response = await fetch(`${API_BASE_URL}/ads/nearby?${new URLSearchParams(searchParams)}`);
       const data = await response.json();
 
       if (data.success) {

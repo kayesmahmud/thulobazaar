@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthModal from './AuthModal';
+import { UPLOADS_BASE_URL } from '../config/env.js';
 
 function UserHeader() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -143,7 +144,7 @@ function UserHeader() {
                   >
                     {user?.avatar ? (
                       <img
-                        src={`http://localhost:5000/uploads/avatars/${user.avatar}`}
+                        src={`${UPLOADS_BASE_URL}/avatars/${user.avatar}`}
                         alt={user.fullName}
                         style={{
                           width: '100%',

@@ -18,8 +18,13 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error to console in development
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Log error using centralized logger
+    const logger = require('../../utils/logger').default;
+    logger.error('ErrorBoundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+      errorCount: this.state.errorCount + 1,
+      url: window.location.href
+    });
 
     // Update state with error details
     this.setState(prevState => ({
@@ -28,8 +33,17 @@ class ErrorBoundary extends Component {
       errorCount: prevState.errorCount + 1
     }));
 
-    // TODO: Send error to logging service (e.g., Sentry)
-    // logErrorToService(error, errorInfo);
+    // Send error to Sentry
+    try {
+      const { captureException } = require('../../utils/sentry');
+      captureException(error, {
+        componentStack: errorInfo.componentStack,
+        errorCount: this.state.errorCount + 1,
+        url: window.location.href
+      });
+    } catch (sentryError) {
+      console.error('Failed to send error to Sentry:', sentryError);
+    }
   }
 
   handleReset = () => {

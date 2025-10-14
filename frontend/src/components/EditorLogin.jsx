@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { API_BASE_URL } from '../config/env.js';
 
 function EditorLogin() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ function EditorLogin() {
 
     try {
       // Use dedicated admin/editor login endpoint
-      const response = await fetch('http://localhost:5000/api/admin/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
