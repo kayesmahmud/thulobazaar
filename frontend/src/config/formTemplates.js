@@ -740,14 +740,14 @@ export const FORM_TEMPLATES = {
         options: ['Children', 'Other Dogs', 'Cats', 'Strangers'],
         appliesTo: ['Pets']
       },
-      // For Pet Accessories/Food
+      // For Pet Accessories
       {
         name: 'productType',
         label: 'Product Type',
         type: 'select',
         required: true,
         options: ['Food', 'Toy', 'Cage', 'Leash', 'Collar', 'Grooming', 'Medicine', 'Bedding'],
-        appliesTo: ['Pet & Animal Accessories', 'Pet & Animal food']
+        appliesTo: ['Pet & Animal Accessories']
       },
       {
         name: 'suitableFor',
@@ -766,32 +766,6 @@ export const FORM_TEMPLATES = {
     fields: [
       // For Services
       {
-        name: 'serviceType',
-        label: 'Service Type',
-        type: 'select',
-        required: true,
-        options: [
-          'IT Services',
-          'Repair Services',
-          'Professional Services',
-          'Home Services',
-          'Beauty Services',
-          'Event Services',
-          'Tutoring',
-          'Travel Services'
-        ],
-        appliesTo: [
-          'Servicing & Repair',
-          'Media & Event Management Services',
-          'Tours & Travels',
-          'IT Services',
-          'Building maintenance',
-          'Professional Services',
-          'Fitness & Beauty Services',
-          'Domestic & Daycare Services'
-        ]
-      },
-      {
         name: 'experience',
         label: 'Experience',
         type: 'select',
@@ -801,7 +775,8 @@ export const FORM_TEMPLATES = {
           'Servicing & Repair',
           'IT Services',
           'Professional Services',
-          'Fitness & Beauty Services'
+          'Gym & Fitness',
+          'Beauty Services'
         ]
       },
       {
@@ -826,9 +801,24 @@ export const FORM_TEMPLATES = {
         appliesTo: [
           'Servicing & Repair',
           'IT Services',
-          'Professional Services',
-          'Fitness & Beauty Services'
+          'Professional Services'
         ]
+      },
+      {
+        name: 'physicalServiceLocation',
+        label: 'Service Location',
+        type: 'select',
+        required: false,
+        options: ['At Customer Location', 'At Provider Location'],
+        appliesTo: ['Gym & Fitness', 'Beauty Services']
+      },
+      {
+        name: 'massageLocation',
+        label: 'Service Location',
+        type: 'select',
+        required: true,
+        options: ['At Home', 'At Massage Parlour'],
+        appliesTo: ['Body Massage']
       },
       {
         name: 'languages',
@@ -840,63 +830,25 @@ export const FORM_TEMPLATES = {
       },
       // For Jobs
       {
-        name: 'jobType',
-        label: 'Job Type',
-        type: 'select',
-        required: true,
-        options: ['Full Time', 'Part Time', 'Contract', 'Internship', 'Freelance'],
-        appliesTo: [
-          'Accounting & Finance',
-          'Administrative & Office',
-          'Construction & Trades',
-          'Healthcare & Medical',
-          'IT & Technology',
-          'Retail & Sales',
-          'Transportation & Logistics',
-          'Other Jobs'
-        ]
-      },
-      {
-        name: 'jobCategory',
-        label: 'Job Category',
-        type: 'select',
-        required: true,
-        options: [
-          'IT',
-          'Finance',
-          'Healthcare',
-          'Sales',
-          'Construction',
-          'Transportation',
-          'Administrative',
-          'Other'
-        ],
-        appliesTo: [
-          'Accounting & Finance',
-          'Administrative & Office',
-          'Construction & Trades',
-          'Healthcare & Medical',
-          'IT & Technology',
-          'Retail & Sales',
-          'Transportation & Logistics',
-          'Other Jobs'
-        ]
-      },
-      {
         name: 'experienceRequired',
         label: 'Experience Required',
         type: 'select',
         required: false,
         options: ['Fresher', '0-1 years', '1-3 years', '3-5 years', '5-10 years', '10+ years'],
         appliesTo: [
-          'Accounting & Finance',
-          'Administrative & Office',
-          'Construction & Trades',
-          'Healthcare & Medical',
-          'IT & Technology',
-          'Retail & Sales',
-          'Transportation & Logistics',
-          'Other Jobs'
+          'Accountant', 'Beautician', 'Business Analyst', 'Chef', 'Collection & Recovery Agents',
+          'Construction Worker', 'Content Writer', 'Counsellor', 'Customer Service Executive',
+          'Customer Support Manager', 'Delivery Rider', 'Designer', 'Digital Marketing Executive',
+          'Digital Marketing Manager', 'Doctor', 'Driver', 'Electrician', 'Engineer', 'Event Planner',
+          'Fire Fighter', 'Flight Attendant', 'Florist', 'Gardener', 'Garments Worker',
+          'Government Jobs', 'Hospitality Executive', 'House Keeper', 'HR Executive', 'HR Manager',
+          'Interior Designer', 'Journalist', 'Lab Assistant', 'Maid', 'Management Trainee',
+          'Market Research Analyst', 'Marketing Executive', 'Marketing Manager', 'Mechanic',
+          'Medical Representative', 'Merchandiser', 'Nurse', 'Office Admin', 'Operator',
+          'Pharmacist', 'Photographer', 'Product Sourcing Executive', 'Production Executive',
+          'Public Relations Officer', 'Purchase Officer', 'Quality Checker', 'Quality Controller',
+          'Sales Executive', 'Sales Manager Field', 'Security Guard', 'SEO Specialist',
+          'Social Media Presenter', 'Software Engineer', 'Supervisor', 'Teacher', 'Videographer', 'Other'
         ]
       },
       {
@@ -913,14 +865,19 @@ export const FORM_TEMPLATES = {
           'Negotiable'
         ],
         appliesTo: [
-          'Accounting & Finance',
-          'Administrative & Office',
-          'Construction & Trades',
-          'Healthcare & Medical',
-          'IT & Technology',
-          'Retail & Sales',
-          'Transportation & Logistics',
-          'Other Jobs'
+          'Accountant', 'Beautician', 'Business Analyst', 'Chef', 'Collection & Recovery Agents',
+          'Construction Worker', 'Content Writer', 'Counsellor', 'Customer Service Executive',
+          'Customer Support Manager', 'Delivery Rider', 'Designer', 'Digital Marketing Executive',
+          'Digital Marketing Manager', 'Doctor', 'Driver', 'Electrician', 'Engineer', 'Event Planner',
+          'Fire Fighter', 'Flight Attendant', 'Florist', 'Gardener', 'Garments Worker',
+          'Government Jobs', 'Hospitality Executive', 'House Keeper', 'HR Executive', 'HR Manager',
+          'Interior Designer', 'Journalist', 'Lab Assistant', 'Maid', 'Management Trainee',
+          'Market Research Analyst', 'Marketing Executive', 'Marketing Manager', 'Mechanic',
+          'Medical Representative', 'Merchandiser', 'Nurse', 'Office Admin', 'Operator',
+          'Pharmacist', 'Photographer', 'Product Sourcing Executive', 'Production Executive',
+          'Public Relations Officer', 'Purchase Officer', 'Quality Checker', 'Quality Controller',
+          'Sales Executive', 'Sales Manager Field', 'Security Guard', 'SEO Specialist',
+          'Social Media Presenter', 'Software Engineer', 'Supervisor', 'Teacher', 'Videographer', 'Other'
         ]
       },
       {
@@ -930,14 +887,19 @@ export const FORM_TEMPLATES = {
         required: false,
         options: ['No Formal Education', 'SLC/SEE', '+2', "Bachelor's", "Master's", 'PhD'],
         appliesTo: [
-          'Accounting & Finance',
-          'Administrative & Office',
-          'Construction & Trades',
-          'Healthcare & Medical',
-          'IT & Technology',
-          'Retail & Sales',
-          'Transportation & Logistics',
-          'Other Jobs'
+          'Accountant', 'Beautician', 'Business Analyst', 'Chef', 'Collection & Recovery Agents',
+          'Construction Worker', 'Content Writer', 'Counsellor', 'Customer Service Executive',
+          'Customer Support Manager', 'Delivery Rider', 'Designer', 'Digital Marketing Executive',
+          'Digital Marketing Manager', 'Doctor', 'Driver', 'Electrician', 'Engineer', 'Event Planner',
+          'Fire Fighter', 'Flight Attendant', 'Florist', 'Gardener', 'Garments Worker',
+          'Government Jobs', 'Hospitality Executive', 'House Keeper', 'HR Executive', 'HR Manager',
+          'Interior Designer', 'Journalist', 'Lab Assistant', 'Maid', 'Management Trainee',
+          'Market Research Analyst', 'Marketing Executive', 'Marketing Manager', 'Mechanic',
+          'Medical Representative', 'Merchandiser', 'Nurse', 'Office Admin', 'Operator',
+          'Pharmacist', 'Photographer', 'Product Sourcing Executive', 'Production Executive',
+          'Public Relations Officer', 'Purchase Officer', 'Quality Checker', 'Quality Controller',
+          'Sales Executive', 'Sales Manager Field', 'Security Guard', 'SEO Specialist',
+          'Social Media Presenter', 'Software Engineer', 'Supervisor', 'Teacher', 'Videographer', 'Other'
         ]
       },
       {
@@ -947,14 +909,19 @@ export const FORM_TEMPLATES = {
         required: false,
         placeholder: 'Enter company name',
         appliesTo: [
-          'Accounting & Finance',
-          'Administrative & Office',
-          'Construction & Trades',
-          'Healthcare & Medical',
-          'IT & Technology',
-          'Retail & Sales',
-          'Transportation & Logistics',
-          'Other Jobs'
+          'Accountant', 'Beautician', 'Business Analyst', 'Chef', 'Collection & Recovery Agents',
+          'Construction Worker', 'Content Writer', 'Counsellor', 'Customer Service Executive',
+          'Customer Support Manager', 'Delivery Rider', 'Designer', 'Digital Marketing Executive',
+          'Digital Marketing Manager', 'Doctor', 'Driver', 'Electrician', 'Engineer', 'Event Planner',
+          'Fire Fighter', 'Flight Attendant', 'Florist', 'Gardener', 'Garments Worker',
+          'Government Jobs', 'Hospitality Executive', 'House Keeper', 'HR Executive', 'HR Manager',
+          'Interior Designer', 'Journalist', 'Lab Assistant', 'Maid', 'Management Trainee',
+          'Market Research Analyst', 'Marketing Executive', 'Marketing Manager', 'Mechanic',
+          'Medical Representative', 'Merchandiser', 'Nurse', 'Office Admin', 'Operator',
+          'Pharmacist', 'Photographer', 'Product Sourcing Executive', 'Production Executive',
+          'Public Relations Officer', 'Purchase Officer', 'Quality Checker', 'Quality Controller',
+          'Sales Executive', 'Sales Manager Field', 'Security Guard', 'SEO Specialist',
+          'Social Media Presenter', 'Software Engineer', 'Supervisor', 'Teacher', 'Videographer', 'Other'
         ]
       },
       // For Education (Tuition)
@@ -1077,13 +1044,13 @@ export const FORM_TEMPLATES = {
         placeholder: 'e.g., IKEA, Nike, Canon',
         appliesTo: 'all'
       },
-      // For Furniture
+      // For Furniture (Home & Living)
       {
         name: 'furnitureType',
         label: 'Furniture Type',
         type: 'select',
-        required: false,
-        options: ['Bed', 'Sofa', 'Table', 'Chair', 'Wardrobe', 'Shelf', 'Desk', 'Cabinet'],
+        required: true,
+        options: ['Bed', 'Sofa', 'Table', 'Chair', 'Wardrobe', 'Shelf', 'Desk', 'Cabinet', 'Dining Set', 'Other'],
         appliesTo: [
           'Bedroom Furniture',
           'Living Room Furniture',
@@ -1097,25 +1064,94 @@ export const FORM_TEMPLATES = {
         label: 'Material',
         type: 'select',
         required: false,
-        options: ['Wood', 'Metal', 'Plastic', 'Glass', 'Leather', 'Fabric'],
+        options: ['Wood', 'Metal', 'Plastic', 'Glass', 'Leather', 'Fabric', 'Mixed Materials'],
         appliesTo: [
           'Bedroom Furniture',
           'Living Room Furniture',
           'Office & Shop Furniture',
-          'Kitchen & Dining Furniture'
+          'Kitchen & Dining Furniture',
+          "Children's Furniture"
         ]
       },
       {
         name: 'color',
-        label: 'Color',
+        label: 'Color/Finish',
         type: 'text',
         required: false,
-        placeholder: 'e.g., Brown, White, Black',
+        placeholder: 'e.g., Brown, White, Black, Walnut',
         appliesTo: [
           'Bedroom Furniture',
           'Living Room Furniture',
           'Office & Shop Furniture',
-          'Kitchen & Dining Furniture'
+          'Kitchen & Dining Furniture',
+          "Children's Furniture"
+        ]
+      },
+      {
+        name: 'dimensions',
+        label: 'Dimensions (L × W × H)',
+        type: 'text',
+        required: false,
+        placeholder: 'e.g., 200cm × 100cm × 80cm',
+        appliesTo: [
+          'Bedroom Furniture',
+          'Living Room Furniture',
+          'Office & Shop Furniture',
+          'Kitchen & Dining Furniture',
+          "Children's Furniture"
+        ]
+      },
+      {
+        name: 'assemblyRequired',
+        label: 'Assembly Required',
+        type: 'select',
+        required: false,
+        options: ['Yes - Assembly Required', 'No - Ready to Use', 'Partial Assembly'],
+        appliesTo: [
+          'Bedroom Furniture',
+          'Living Room Furniture',
+          'Office & Shop Furniture',
+          'Kitchen & Dining Furniture',
+          "Children's Furniture"
+        ]
+      },
+      {
+        name: 'seatingCapacity',
+        label: 'Seating Capacity',
+        type: 'select',
+        required: false,
+        options: ['1 Person', '2-3 People', '4-6 People', '6-8 People', '8+ People'],
+        appliesTo: [
+          'Living Room Furniture',
+          'Kitchen & Dining Furniture',
+          'Office & Shop Furniture'
+        ]
+      },
+      {
+        name: 'storage',
+        label: 'Storage Available',
+        type: 'select',
+        required: false,
+        options: ['Yes', 'No'],
+        appliesTo: [
+          'Bedroom Furniture',
+          'Living Room Furniture',
+          'Office & Shop Furniture',
+          "Children's Furniture"
+        ]
+      },
+      {
+        name: 'style',
+        label: 'Style',
+        type: 'select',
+        required: false,
+        options: ['Modern', 'Traditional', 'Vintage', 'Minimalist', 'Contemporary', 'Rustic', 'Industrial'],
+        appliesTo: [
+          'Bedroom Furniture',
+          'Living Room Furniture',
+          'Office & Shop Furniture',
+          'Kitchen & Dining Furniture',
+          "Children's Furniture"
         ]
       },
       // For Sports/Musical Instruments

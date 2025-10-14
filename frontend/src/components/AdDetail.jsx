@@ -22,6 +22,9 @@ import ElectronicsSpecs from './ad-details/specs/ElectronicsSpecs';
 import VehiclesSpecs from './ad-details/specs/VehiclesSpecs';
 import PropertySpecs from './ad-details/specs/PropertySpecs';
 import FashionSpecs from './ad-details/specs/FashionSpecs';
+import HomeLivingSpecs from './ad-details/specs/HomeLivingSpecs';
+import PetsSpecs from './ad-details/specs/PetsSpecs';
+import ServicesSpecs from './ad-details/specs/ServicesSpecs';
 import './ad-details/specs/TemplateSpecs.css';
 
 function AdDetail() {
@@ -714,12 +717,21 @@ function AdDetail() {
               } else if (parentCategoryId === 1 || parentCategoryId === 2) {
                 // Mobiles or Electronics categories
                 SpecsComponent = ElectronicsSpecs;
+              } else if (parentCategoryId === 4) {
+                // Home & Living category
+                SpecsComponent = HomeLivingSpecs;
               } else if (parentCategoryId === 5) {
                 // Property category
                 SpecsComponent = PropertySpecs;
+              } else if (parentCategoryId === 6) {
+                // Pets & Animals category
+                SpecsComponent = PetsSpecs;
               } else if (parentCategoryId === 7 || parentCategoryId === 8) {
                 // Fashion categories (Men's Fashion & Women's Fashion)
                 SpecsComponent = FashionSpecs;
+              } else if (parentCategoryId === 9 || parentCategoryId === 13 || parentCategoryId === 14) {
+                // Services, Jobs, and Education categories
+                SpecsComponent = ServicesSpecs;
               }
 
               // If no matching component, return null

@@ -22,7 +22,7 @@ export function useFormTemplate(category, subcategory) {
 
   // Get applicable fields for the selected subcategory
   const applicableFields = useMemo(() => {
-    if (!template || !subcategory) return template?.fields || [];
+    if (!template || !subcategory) return [];
 
     return getApplicableFields(templateType, subcategory.name);
   }, [template, subcategory, templateType]);

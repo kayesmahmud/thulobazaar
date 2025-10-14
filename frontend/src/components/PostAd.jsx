@@ -1,10 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from './common/Toast';
 import { useFormTemplate } from '../hooks/useFormTemplate';
+import { usePostAdValidation } from '../hooks/usePostAdValidation';
 import ApiService from '../services/api';
+import {
+  CHAR_LIMITS,
+  IMAGE_LIMITS,
+  TIMEOUTS,
+  PLACEHOLDERS,
+  MESSAGES,
+  LABELS,
+  SECTIONS,
+  PRICE_CONSTRAINTS,
+  ARIA_IDS,
+  ARIA_LABELS
+} from '../constants/postAdConstants';
 import ImageUpload from './ImageUpload';
 import ErrorMessage from './ErrorMessage';
 import SimpleHeader from './SimpleHeader';
@@ -13,45 +26,152 @@ import ElectronicsForm from './post-ad/templates/ElectronicsForm';
 import VehiclesForm from './post-ad/templates/VehiclesForm';
 import PropertyForm from './post-ad/templates/PropertyForm';
 import FashionForm from './post-ad/templates/FashionForm';
+import HomeLivingForm from './post-ad/templates/HomeLivingForm';
+import PetsForm from './post-ad/templates/PetsForm';
+import ServicesForm from './post-ad/templates/ServicesForm';
+import styles from './PostAd.module.css';
+
+// Template component mapping
+const TEMPLATE_COMPONENTS = {
+  electronics: ElectronicsForm,
+  vehicles: VehiclesForm,
+  property: PropertyForm,
+  fashion: FashionForm,
+  pets: PetsForm,
+  services: ServicesForm,
+  general: HomeLivingForm // Used for Home & Living category
+};
+
+// Action types for reducer
+const ACTION_TYPES = {
+  SET_LOADING: 'SET_LOADING',
+  SET_ERROR: 'SET_ERROR',
+  SET_CATEGORIES: 'SET_CATEGORIES',
+  SET_SELECTED_IMAGES: 'SET_SELECTED_IMAGES',
+  SET_MAIN_CATEGORY: 'SET_MAIN_CATEGORY',
+  SET_SUBCATEGORIES: 'SET_SUBCATEGORIES',
+  SET_SELECTED_CATEGORY: 'SET_SELECTED_CATEGORY',
+  SET_SELECTED_SUBCATEGORY: 'SET_SELECTED_SUBCATEGORY',
+  SET_SELECTED_AREA_DATA: 'SET_SELECTED_AREA_DATA',
+  SET_CUSTOM_FIELDS: 'SET_CUSTOM_FIELDS',
+  SET_CUSTOM_FIELDS_ERRORS: 'SET_CUSTOM_FIELDS_ERRORS',
+  UPDATE_FORM_DATA: 'UPDATE_FORM_DATA',
+  SET_FORM_DATA: 'SET_FORM_DATA',
+  CLEAR_CUSTOM_FIELD_ERROR: 'CLEAR_CUSTOM_FIELD_ERROR'
+};
+
+// Reducer function for form state management
+function formReducer(state, action) {
+  switch (action.type) {
+    case ACTION_TYPES.SET_LOADING:
+      return { ...state, loading: action.payload };
+
+    case ACTION_TYPES.SET_ERROR:
+      return { ...state, error: action.payload };
+
+    case ACTION_TYPES.SET_CATEGORIES:
+      return { ...state, categories: action.payload };
+
+    case ACTION_TYPES.SET_SELECTED_IMAGES:
+      return { ...state, selectedImages: action.payload };
+
+    case ACTION_TYPES.SET_MAIN_CATEGORY:
+      return { ...state, mainCategoryId: action.payload };
+
+    case ACTION_TYPES.SET_SUBCATEGORIES:
+      return { ...state, subcategories: action.payload };
+
+    case ACTION_TYPES.SET_SELECTED_CATEGORY:
+      return { ...state, selectedCategory: action.payload };
+
+    case ACTION_TYPES.SET_SELECTED_SUBCATEGORY:
+      return { ...state, selectedSubcategory: action.payload };
+
+    case ACTION_TYPES.SET_SELECTED_AREA_DATA:
+      return { ...state, selectedAreaData: action.payload };
+
+    case ACTION_TYPES.SET_CUSTOM_FIELDS:
+      return { ...state, customFields: action.payload };
+
+    case ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS:
+      return { ...state, customFieldsErrors: action.payload };
+
+    case ACTION_TYPES.UPDATE_FORM_DATA:
+      return {
+        ...state,
+        formData: { ...state.formData, ...action.payload }
+      };
+
+    case ACTION_TYPES.SET_FORM_DATA:
+      return { ...state, formData: action.payload };
+
+    case ACTION_TYPES.CLEAR_CUSTOM_FIELD_ERROR:
+      const newErrors = { ...state.customFieldsErrors };
+      delete newErrors[action.payload];
+      return { ...state, customFieldsErrors: newErrors };
+
+    default:
+      return state;
+  }
+}
 
 function PostAd() {
   const { user, isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const toast = useToast();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [selectedImages, setSelectedImages] = useState([]);
 
-  // Category cascading state
-  const [mainCategoryId, setMainCategoryId] = useState('');
-  const [subcategories, setSubcategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  // Initial state for useReducer
+  const initialState = {
+    loading: false,
+    error: null,
+    categories: [],
+    selectedImages: [],
+    mainCategoryId: '',
+    subcategories: [],
+    selectedCategory: null,
+    selectedSubcategory: null,
+    selectedAreaData: null,
+    customFields: {},
+    customFieldsErrors: {},
+    formData: {
+      title: '',
+      description: '',
+      price: '',
+      categoryId: '',
+      areaId: '',
+      sellerName: user?.name || '',
+      sellerPhone: user?.phone || ''
+    }
+  };
 
-  // Area selection state (replaces location cascading)
-  const [selectedAreaData, setSelectedAreaData] = useState(null);
+  // Replace all useState with single useReducer
+  const [state, dispatch] = useReducer(formReducer, initialState);
 
-  // Template-specific custom fields
-  const [customFields, setCustomFields] = useState({});
-  const [customFieldsErrors, setCustomFieldsErrors] = useState({});
-
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    categoryId: '',
-    areaId: '', // Changed from locationId to areaId
-    sellerName: user?.name || '',
-    sellerPhone: user?.phone || ''
-  });
+  // Destructure state for easier access
+  const {
+    loading,
+    error,
+    categories,
+    selectedImages,
+    mainCategoryId,
+    subcategories,
+    selectedCategory,
+    selectedSubcategory,
+    selectedAreaData,
+    customFields,
+    customFieldsErrors,
+    formData
+  } = state;
 
   // Use template hook to get applicable fields
   const { templateType, fields, validateFields, getInitialValues } = useFormTemplate(
     selectedCategory,
     selectedSubcategory
   );
+
+  // Use validation hook for form validation
+  const { validateAll } = usePostAdValidation();
 
   useEffect(() => {
     // Redirect if not authenticated
@@ -64,10 +184,16 @@ function PostAd() {
     const loadData = async () => {
       try {
         const categoriesData = await ApiService.getCategories(true); // true to include subcategories
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        dispatch({
+          type: ACTION_TYPES.SET_CATEGORIES,
+          payload: Array.isArray(categoriesData) ? categoriesData : []
+        });
       } catch (err) {
         console.error('Error loading form data:', err);
-        setError(new Error('Failed to load form data. Please refresh the page.'));
+        dispatch({
+          type: ACTION_TYPES.SET_ERROR,
+          payload: new Error('Failed to load form data. Please refresh the page.')
+        });
       }
     };
 
@@ -77,137 +203,118 @@ function PostAd() {
   useEffect(() => {
     // Update seller info when user data changes
     if (user) {
-      setFormData(prev => ({
-        ...prev,
-        sellerName: user.name || '',
-        sellerPhone: user.phone || ''
-      }));
+      dispatch({
+        type: ACTION_TYPES.UPDATE_FORM_DATA,
+        payload: {
+          sellerName: user.name || '',
+          sellerPhone: user.phone || ''
+        }
+      });
     }
   }, [user]);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleInputChange = useCallback((field, value) => {
+    dispatch({
+      type: ACTION_TYPES.UPDATE_FORM_DATA,
+      payload: { [field]: value }
+    });
     // Clear error when user starts typing
-    if (error) setError(null);
-  };
+    if (error) {
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null });
+    }
+  }, [error]);
 
   // Initialize custom fields when template changes
   useEffect(() => {
     if (templateType && getInitialValues) {
       const initialValues = getInitialValues();
-      setCustomFields(initialValues);
-      setCustomFieldsErrors({});
+      dispatch({ type: ACTION_TYPES.SET_CUSTOM_FIELDS, payload: initialValues });
+      dispatch({ type: ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS, payload: {} });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateType]);
 
   // Category cascade handlers
-  const handleMainCategoryChange = (categoryId) => {
-    setMainCategoryId(categoryId);
+  const handleMainCategoryChange = useCallback((categoryId) => {
+    dispatch({ type: ACTION_TYPES.SET_MAIN_CATEGORY, payload: categoryId });
 
     // Find the selected category and its subcategories
     const category = categories.find(cat => cat.id === parseInt(categoryId));
-    setSelectedCategory(category);
+    dispatch({ type: ACTION_TYPES.SET_SELECTED_CATEGORY, payload: category });
 
     if (category && category.subcategories && category.subcategories.length > 0) {
-      setSubcategories(category.subcategories);
-      setSelectedSubcategory(null);
+      dispatch({ type: ACTION_TYPES.SET_SUBCATEGORIES, payload: category.subcategories });
+      dispatch({ type: ACTION_TYPES.SET_SELECTED_SUBCATEGORY, payload: null });
       // Clear subcategory selection and formData.categoryId
-      setFormData(prev => ({ ...prev, categoryId: '' }));
+      dispatch({ type: ACTION_TYPES.UPDATE_FORM_DATA, payload: { categoryId: '' } });
     } else {
       // No subcategories, use main category as final selection
-      setSubcategories([]);
-      setSelectedSubcategory(null);
-      setFormData(prev => ({ ...prev, categoryId: categoryId }));
+      dispatch({ type: ACTION_TYPES.SET_SUBCATEGORIES, payload: [] });
+      dispatch({ type: ACTION_TYPES.SET_SELECTED_SUBCATEGORY, payload: null });
+      dispatch({ type: ACTION_TYPES.UPDATE_FORM_DATA, payload: { categoryId: categoryId } });
     }
 
-    if (error) setError(null);
-  };
+    if (error) {
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null });
+    }
+  }, [categories, error]);
 
-  const handleSubcategoryChange = (subcategoryId) => {
+  const handleSubcategoryChange = useCallback((subcategoryId) => {
     const subcategory = subcategories.find(sub => sub.id === parseInt(subcategoryId));
-    setSelectedSubcategory(subcategory);
-    setFormData(prev => ({ ...prev, categoryId: subcategoryId }));
-    if (error) setError(null);
-  };
+    dispatch({ type: ACTION_TYPES.SET_SELECTED_SUBCATEGORY, payload: subcategory });
+    dispatch({ type: ACTION_TYPES.UPDATE_FORM_DATA, payload: { categoryId: subcategoryId } });
+    if (error) {
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null });
+    }
+  }, [subcategories, error]);
 
   // Custom fields handler
-  const handleCustomFieldChange = (fieldName, value) => {
-    setCustomFields(prev => ({
-      ...prev,
-      [fieldName]: value
-    }));
+  const handleCustomFieldChange = useCallback((fieldName, value) => {
+    dispatch({
+      type: ACTION_TYPES.SET_CUSTOM_FIELDS,
+      payload: { ...customFields, [fieldName]: value }
+    });
     // Clear error for this field
     if (customFieldsErrors[fieldName]) {
-      setCustomFieldsErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      });
+      dispatch({ type: ACTION_TYPES.CLEAR_CUSTOM_FIELD_ERROR, payload: fieldName });
     }
-  };
+  }, [customFields, customFieldsErrors]);
 
   // Area selection handler
-  const handleAreaSelect = (areaData) => {
+  const handleAreaSelect = useCallback((areaData) => {
     console.log('📍 Area selected in PostAd:', areaData);
 
     if (areaData) {
-      setSelectedAreaData(areaData);
-      setFormData(prev => ({ ...prev, areaId: areaData.areaId }));
+      dispatch({ type: ACTION_TYPES.SET_SELECTED_AREA_DATA, payload: areaData });
+      dispatch({ type: ACTION_TYPES.UPDATE_FORM_DATA, payload: { areaId: areaData.areaId } });
     } else {
-      setSelectedAreaData(null);
-      setFormData(prev => ({ ...prev, areaId: '' }));
+      dispatch({ type: ACTION_TYPES.SET_SELECTED_AREA_DATA, payload: null });
+      dispatch({ type: ACTION_TYPES.UPDATE_FORM_DATA, payload: { areaId: '' } });
     }
 
-    if (error) setError(null);
-  };
+    if (error) {
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null });
+    }
+  }, [error]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    dispatch({ type: ACTION_TYPES.SET_LOADING, payload: true });
+    dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null });
 
     try {
-      // Validate required fields
-      if (!formData.title.trim()) {
-        throw new Error('Title is required');
-      }
-      if (!formData.description.trim()) {
-        throw new Error('Description is required');
-      }
-      if (!formData.price || parseFloat(formData.price) <= 0) {
-        throw new Error('Valid price is required');
-      }
-      if (!mainCategoryId) {
-        throw new Error('Please select a category');
-      }
-      if (subcategories.length > 0 && !formData.categoryId) {
-        throw new Error('Please select a subcategory');
-      }
-      if (!formData.categoryId) {
-        throw new Error('Category is required');
-      }
-      if (!formData.areaId) {
-        throw new Error('Please select an area/place for your ad');
-      }
-      if (!formData.sellerName.trim()) {
-        throw new Error('Seller name is required');
-      }
-      if (!formData.sellerPhone.trim()) {
-        throw new Error('Seller phone is required');
-      }
-
-      // Validate template-specific custom fields
-      if (validateFields && fields && fields.length > 0) {
-        const validation = validateFields(customFields);
-        if (!validation.isValid) {
-          setCustomFieldsErrors(validation.errors);
-          throw new Error('Please fill in all required fields');
+      // Run all validations using the validation hook
+      validateAll({
+        formData,
+        mainCategoryId,
+        subcategories,
+        validateFields,
+        fields,
+        customFields,
+        setCustomFieldsErrors: (errors) => {
+          dispatch({ type: ACTION_TYPES.SET_CUSTOM_FIELDS_ERRORS, payload: errors });
         }
-      }
+      });
 
       const adData = {
         title: formData.title.trim(),
@@ -225,9 +332,9 @@ function PostAd() {
       console.log('✅ Ad created successfully:', result);
 
       // Show success toast notification
-      toast.success('Your ad has been posted successfully!', {
-        title: 'Success!',
-        duration: 3000
+      toast.success(MESSAGES.SUCCESS_MESSAGE, {
+        title: MESSAGES.SUCCESS_TITLE,
+        duration: TIMEOUTS.TOAST_DURATION
       });
 
       // Redirect to ad detail page using SEO slug if available, otherwise use ID
@@ -238,15 +345,40 @@ function PostAd() {
           // Fallback to ID-based URL if slug is not available
           navigate(`/${language}/ad/${result.id}`);
         }
-      }, 1500);
+      }, TIMEOUTS.REDIRECT_DELAY);
 
     } catch (err) {
       console.error('❌ Error creating ad:', err);
-      setError(err); // Store the full error object for structured display
+      dispatch({ type: ACTION_TYPES.SET_ERROR, payload: err }); // Store the full error object for structured display
     } finally {
-      setLoading(false);
+      dispatch({ type: ACTION_TYPES.SET_LOADING, payload: false });
     }
   };
+
+  // Memoize template component rendering for better performance
+  const renderedTemplate = useMemo(() => {
+    // Get the appropriate template component
+    const TemplateComponent = TEMPLATE_COMPONENTS[templateType];
+
+    // Special case: HomeLivingForm only for category ID 4
+    const shouldRender = templateType === 'general'
+      ? selectedCategory?.id === 4 && fields && fields.length > 0
+      : TemplateComponent && fields && fields.length > 0;
+
+    if (!shouldRender) return null;
+
+    return (
+      <div className={styles.templateSection}>
+        <TemplateComponent
+          fields={fields}
+          values={customFields}
+          onChange={handleCustomFieldChange}
+          errors={customFieldsErrors}
+          subcategoryName={selectedSubcategory?.name || ''}
+        />
+      </div>
+    );
+  }, [templateType, selectedCategory, fields, customFields, customFieldsErrors, selectedSubcategory, handleCustomFieldChange]);
 
   if (!isAuthenticated) {
     return null; // Will redirect in useEffect
@@ -258,189 +390,120 @@ function PostAd() {
       <SimpleHeader showUserWelcome={true} />
 
       {/* Post Ad Form */}
-      <div className="form-container" style={{
-        maxWidth: '800px',
-        margin: '40px auto',
-        padding: '0 20px'
-      }}>
-        <div className="form-card" style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '40px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
+      <div className={styles.formContainer}>
+        <div className={styles.formCard}>
           {/* Header */}
-          <div className="form-header" style={{ marginBottom: '32px', textAlign: 'center' }}>
-            <h1 style={{
-              margin: '0 0 8px 0',
-              color: '#1e293b',
-              fontSize: '28px',
-              fontWeight: 'bold'
-            }}>
-              Post Your Ad
+          <div className={styles.formHeader}>
+            <h1 id={ARIA_IDS.FORM_TITLE} className={styles.formTitle}>
+              {SECTIONS.POST_AD}
             </h1>
-            <p style={{
-              margin: 0,
-              color: '#64748b',
-              fontSize: '16px'
-            }}>
-              Fill in the details below to post your ad
+            <p className={styles.formSubtitle}>
+              {SECTIONS.POST_AD_SUBTITLE}
             </p>
           </div>
 
           {/* Error message */}
           <ErrorMessage
             error={error}
-            onClose={() => setError(null)}
+            onClose={() => dispatch({ type: ACTION_TYPES.SET_ERROR, payload: null })}
           />
 
           {/* Form */}
-          <form onSubmit={handleSubmit}>
+          <form
+            onSubmit={handleSubmit}
+            aria-labelledby={ARIA_IDS.FORM_TITLE}
+          >
             {/* Title */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                Ad Title *
+            <div className={styles.formField}>
+              <label className={styles.label}>
+                {LABELS.TITLE}
               </label>
               <input
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
-                placeholder="e.g., iPhone 14 Pro Max 256GB"
-                maxLength="100"
+                className={styles.input}
+                placeholder={PLACEHOLDERS.TITLE}
+                maxLength={CHAR_LIMITS.TITLE}
+                aria-label={ARIA_LABELS.TITLE_INPUT}
+                aria-required="true"
+                aria-describedby={ARIA_IDS.TITLE_COUNTER}
               />
-              <small style={{ color: '#6b7280', fontSize: '14px' }}>
-                {formData.title.length}/100 characters
+              <small id={ARIA_IDS.TITLE_COUNTER} className={styles.characterCounter}>
+                {formData.title.length}/{CHAR_LIMITS.TITLE} characters
               </small>
             </div>
 
             {/* Description */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                Description *
+            <div className={styles.formField}>
+              <label className={styles.label}>
+                {LABELS.DESCRIPTION}
               </label>
               <textarea
                 required
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  minHeight: '120px',
-                  resize: 'vertical'
-                }}
-                placeholder="Describe your item in detail..."
-                maxLength="1000"
+                className={styles.textarea}
+                placeholder={PLACEHOLDERS.DESCRIPTION}
+                maxLength={CHAR_LIMITS.DESCRIPTION}
+                aria-label={ARIA_LABELS.DESCRIPTION_INPUT}
+                aria-required="true"
+                aria-describedby={ARIA_IDS.DESCRIPTION_COUNTER}
               />
-              <small style={{ color: '#6b7280', fontSize: '14px' }}>
-                {formData.description.length}/1000 characters
+              <small id={ARIA_IDS.DESCRIPTION_COUNTER} className={styles.characterCounter}>
+                {formData.description.length}/{CHAR_LIMITS.DESCRIPTION} characters
               </small>
             </div>
 
             {/* Price */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                Price (NPR) *
+            <div className={styles.formField}>
+              <label className={styles.label}>
+                {LABELS.PRICE}
               </label>
               <input
                 type="number"
                 required
-                min="1"
-                step="0.01"
+                min={PRICE_CONSTRAINTS.MIN}
+                step={PRICE_CONSTRAINTS.STEP}
                 value={formData.price}
                 onChange={(e) => handleInputChange('price', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="e.g., 150000"
+                className={styles.input}
+                placeholder={PLACEHOLDERS.PRICE}
+                aria-label={ARIA_LABELS.PRICE_INPUT}
+                aria-required="true"
               />
             </div>
 
             {/* Image Upload */}
-            <div style={{ marginBottom: '24px' }}>
+            <div className={styles.formField}>
               <ImageUpload
-                onImagesChange={setSelectedImages}
-                maxImages={5}
+                onImagesChange={(images) => dispatch({ type: ACTION_TYPES.SET_SELECTED_IMAGES, payload: images })}
+                maxImages={IMAGE_LIMITS.MAX_IMAGES}
               />
             </div>
 
             {/* Category Selection (Cascading) */}
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{
-                margin: '0 0 16px 0',
-                color: '#1e293b',
-                fontSize: '18px',
-                fontWeight: '600'
-              }}>
-                Category
+            <div className={styles.categorySection}>
+              <h3 id={ARIA_IDS.CATEGORY_SECTION} className={styles.sectionHeader}>
+                {SECTIONS.CATEGORY}
               </h3>
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: subcategories.length > 0 ? '1fr 1fr' : '1fr',
-                gap: '20px'
-              }}>
+              <div className={subcategories.length > 0 ? styles.gridTwoColumns : styles.gridOneColumn}>
                 {/* Main Category */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Main Category *
+                  <label className={styles.label}>
+                    {LABELS.MAIN_CATEGORY}
                   </label>
                   <select
                     required
                     value={mainCategoryId}
                     onChange={(e) => handleMainCategoryChange(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
+                    className={styles.select}
+                    aria-label={ARIA_LABELS.MAIN_CATEGORY_SELECT}
+                    aria-required="true"
                   >
-                    <option value="">Select Main Category</option>
+                    <option value="">{PLACEHOLDERS.SELECT_MAIN_CATEGORY}</option>
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.icon} {category.name}
@@ -452,29 +515,18 @@ function PostAd() {
                 {/* Subcategory (conditional) */}
                 {subcategories.length > 0 && (
                   <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Subcategory *
+                    <label className={styles.label}>
+                      {LABELS.SUBCATEGORY}
                     </label>
                     <select
                       required
                       value={formData.categoryId}
                       onChange={(e) => handleSubcategoryChange(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none'
-                      }}
+                      className={styles.select}
+                      aria-label={ARIA_LABELS.SUBCATEGORY_SELECT}
+                      aria-required="true"
                     >
-                      <option value="">Select Subcategory</option>
+                      <option value="">{PLACEHOLDERS.SELECT_SUBCATEGORY}</option>
                       {subcategories.map((subcategory) => (
                         <option key={subcategory.id} value={subcategory.id}>
                           {subcategory.name}
@@ -486,57 +538,11 @@ function PostAd() {
               </div>
             </div>
 
-            {/* Template-Specific Fields (e.g., Electronics, Vehicles, etc.) */}
-            {templateType === 'electronics' && fields && fields.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <ElectronicsForm
-                  fields={fields}
-                  values={customFields}
-                  onChange={handleCustomFieldChange}
-                  errors={customFieldsErrors}
-                  subcategoryName={selectedSubcategory?.name || ''}
-                />
-              </div>
-            )}
-
-            {templateType === 'vehicles' && fields && fields.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <VehiclesForm
-                  fields={fields}
-                  values={customFields}
-                  onChange={handleCustomFieldChange}
-                  errors={customFieldsErrors}
-                  subcategoryName={selectedSubcategory?.name || ''}
-                />
-              </div>
-            )}
-
-            {templateType === 'property' && fields && fields.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <PropertyForm
-                  fields={fields}
-                  values={customFields}
-                  onChange={handleCustomFieldChange}
-                  errors={customFieldsErrors}
-                  subcategoryName={selectedSubcategory?.name || ''}
-                />
-              </div>
-            )}
-
-            {templateType === 'fashion' && fields && fields.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <FashionForm
-                  fields={fields}
-                  values={customFields}
-                  onChange={handleCustomFieldChange}
-                  errors={customFieldsErrors}
-                  subcategoryName={selectedSubcategory?.name || ''}
-                />
-              </div>
-            )}
+            {/* Template-Specific Fields - Dynamic Renderer */}
+            {renderedTemplate}
 
             {/* Location Selection with Search + Hierarchical Browser */}
-            <div style={{ marginBottom: '24px' }}>
+            <div className={styles.locationSection}>
               <LocationSelector
                 onAreaSelect={handleAreaSelect}
                 selectedAreaId={formData.areaId}
@@ -544,106 +550,68 @@ function PostAd() {
             </div>
 
             {/* Seller Information */}
-            <div style={{ marginBottom: '32px' }}>
-              <h3 style={{
-                margin: '0 0 16px 0',
-                color: '#1e293b',
-                fontSize: '18px',
-                fontWeight: '600'
-              }}>
-                Contact Information
+            <div className={styles.contactSection}>
+              <h3 id={ARIA_IDS.CONTACT_SECTION} className={styles.sectionHeader}>
+                {SECTIONS.CONTACT_INFO}
               </h3>
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '20px'
-              }}>
+              <div className={styles.gridTwoColumns}>
                 {/* Seller Name */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Your Name * 🔒
+                  <label className={styles.label}>
+                    {LABELS.SELLER_NAME}
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.sellerName}
                     readOnly
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none',
-                      backgroundColor: '#f9fafb',
-                      cursor: 'not-allowed',
-                      color: '#6b7280'
-                    }}
-                    placeholder="Your full name"
+                    className={styles.inputReadOnly}
+                    placeholder={PLACEHOLDERS.SELLER_NAME}
+                    aria-label={ARIA_LABELS.SELLER_NAME_INPUT}
+                    aria-required="true"
+                    aria-readonly="true"
+                    aria-describedby={ARIA_IDS.SELLER_NAME_HELP}
                   />
-                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                    Name is locked from your profile. Update in profile settings if needed.
+                  <small id={ARIA_IDS.SELLER_NAME_HELP} className={styles.helperTextSmall}>
+                    {MESSAGES.SELLER_NAME_LOCKED}
                   </small>
                 </div>
 
                 {/* Seller Phone */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Phone Number * ✏️
+                  <label className={styles.label}>
+                    {LABELS.SELLER_PHONE}
                   </label>
                   <input
                     type="tel"
                     required
                     value={formData.sellerPhone}
                     onChange={(e) => handleInputChange('sellerPhone', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
-                    placeholder="+977-9800000000"
+                    className={styles.input}
+                    placeholder={PLACEHOLDERS.SELLER_PHONE}
+                    aria-label={ARIA_LABELS.SELLER_PHONE_INPUT}
+                    aria-required="true"
+                    aria-describedby={ARIA_IDS.SELLER_PHONE_HELP}
                   />
-                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                    Phone from your profile. You can edit it if needed.
+                  <small id={ARIA_IDS.SELLER_PHONE_HELP} className={styles.helperTextSmall}>
+                    {MESSAGES.SELLER_PHONE_EDITABLE}
                   </small>
                 </div>
               </div>
             </div>
 
             {/* Submit Button */}
-            <div style={{ textAlign: 'center' }}>
+            <div className={styles.submitButtonContainer}>
               <button
                 type="submit"
                 disabled={loading}
-                style={{
-                  backgroundColor: loading ? '#94a3b8' : '#dc1e4a',
-                  color: 'white',
-                  border: 'none',
-                  padding: '16px 48px',
-                  borderRadius: '8px',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
+                className={styles.submitButton}
+                aria-label={ARIA_LABELS.SUBMIT_BUTTON}
+                aria-busy={loading}
+                aria-live="polite"
               >
-                {loading ? '⏳ Posting Ad...' : '🚀 Post Ad'}
+                {loading ? MESSAGES.POSTING : MESSAGES.POST_AD}
               </button>
             </div>
           </form>
