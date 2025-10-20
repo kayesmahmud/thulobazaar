@@ -34,7 +34,7 @@ function AreaSearchInput({ selectedAreas, onAreaSelect }) {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/areas/search`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/areas/search`, {
           params: { q: query, limit: 8 }
         });
 

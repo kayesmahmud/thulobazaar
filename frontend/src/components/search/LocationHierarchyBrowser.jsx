@@ -29,7 +29,7 @@ function LocationHierarchyBrowser({ onLocationSelect }) {
   const fetchProvinces = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/areas/hierarchy`
+        `${import.meta.env.VITE_API_BASE_URL}/areas/hierarchy`
       );
 
       if (response.data.success) {
@@ -44,7 +44,7 @@ function LocationHierarchyBrowser({ onLocationSelect }) {
     setIsLoadingProvince(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/areas/hierarchy`,
+        `${import.meta.env.VITE_API_BASE_URL}/areas/hierarchy`,
         { params: { province_id: provinceId } }
       );
 
@@ -183,7 +183,7 @@ function LocationHierarchyBrowser({ onLocationSelect }) {
     setIsSearching(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/locations/search-all`,
+        `${import.meta.env.VITE_API_BASE_URL}/locations/search-all`,
         { params: { q: query.trim() } }
       );
 

@@ -33,7 +33,7 @@ function LocationSelector({ onAreaSelect, selectedAreaId }) {
   const fetchProvinces = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/areas/hierarchy`
+        `${import.meta.env.VITE_API_BASE_URL}/areas/hierarchy`
       );
 
       if (response.data.success) {
@@ -48,7 +48,7 @@ function LocationSelector({ onAreaSelect, selectedAreaId }) {
     setIsLoadingProvince(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/areas/hierarchy`,
+        `${import.meta.env.VITE_API_BASE_URL}/areas/hierarchy`,
         { params: { province_id: provinceId } }
       );
 
@@ -126,7 +126,7 @@ function LocationSelector({ onAreaSelect, selectedAreaId }) {
     try {
       // Use the search-all endpoint (searches all location types including areas)
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/locations/search-all`,
+        `${import.meta.env.VITE_API_BASE_URL}/locations/search-all`,
         { params: { q: query.trim() } }
       );
 

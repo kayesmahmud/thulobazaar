@@ -20,7 +20,7 @@ function PopularAreas({ selectedAreas, onAreaSelect, municipalityId = null }) {
       }
 
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/areas/popular`,
+        `${import.meta.env.VITE_API_BASE_URL}/areas/popular`,
         { params }
       );
 
