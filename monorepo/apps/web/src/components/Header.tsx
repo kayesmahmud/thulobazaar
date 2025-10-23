@@ -195,7 +195,7 @@ export default function Header({ lang }: HeaderProps) {
                       >
                         {user?.avatar ? (
                           <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/avatars/${user.avatar}`}
+                            src={`/uploads/avatars/${user.avatar}`}
                             alt={user?.fullName || 'User'}
                             className="w-full h-full object-cover"
                           />

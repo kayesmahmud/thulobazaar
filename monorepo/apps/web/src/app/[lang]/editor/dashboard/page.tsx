@@ -717,7 +717,7 @@ function BusinessVerificationCard({
                     </div>
                   </div>
                   <a
-                    href={`http://localhost:5000/uploads/business_verification/${verification.business_license_document}`}
+                    href={`http:///uploads/business_verification/${verification.business_license_document}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
@@ -727,10 +727,10 @@ function BusinessVerificationCard({
                 </div>
               ) : (
                 <img
-                  src={`http://localhost:5000/uploads/business_verification/${verification.business_license_document}`}
+                  src={`http:///uploads/business_verification/${verification.business_license_document}`}
                   alt="Business License Document"
                   className="w-full max-w-2xl h-auto rounded-lg border border-gray-300 cursor-pointer hover:opacity-90"
-                  onClick={() => window.open(`http://localhost:5000/uploads/business_verification/${verification.business_license_document}`, '_blank')}
+                  onClick={() => window.open(`http:///uploads/business_verification/${verification.business_license_document}`, '_blank')}
                 />
               )}
             </div>
@@ -833,10 +833,10 @@ function IndividualVerificationCard({
               <div>
                 <p className="text-sm font-semibold mb-2">ID Front</p>
                 <img
-                  src={`http://localhost:5000/uploads/individual_verification/${verification.id_document_front}`}
+                  src={`http:///uploads/individual_verification/${verification.id_document_front}`}
                   alt="ID Document Front"
                   className="w-full h-auto rounded-lg border border-gray-300 cursor-pointer hover:opacity-90"
-                  onClick={() => window.open(`http://localhost:5000/uploads/individual_verification/${verification.id_document_front}`, '_blank')}
+                  onClick={() => window.open(`http:///uploads/individual_verification/${verification.id_document_front}`, '_blank')}
                 />
               </div>
             )}
@@ -846,10 +846,10 @@ function IndividualVerificationCard({
               <div>
                 <p className="text-sm font-semibold mb-2">ID Back</p>
                 <img
-                  src={`http://localhost:5000/uploads/individual_verification/${verification.id_document_back}`}
+                  src={`http:///uploads/individual_verification/${verification.id_document_back}`}
                   alt="ID Document Back"
                   className="w-full h-auto rounded-lg border border-gray-300 cursor-pointer hover:opacity-90"
-                  onClick={() => window.open(`http://localhost:5000/uploads/individual_verification/${verification.id_document_back}`, '_blank')}
+                  onClick={() => window.open(`http:///uploads/individual_verification/${verification.id_document_back}`, '_blank')}
                 />
               </div>
             )}
@@ -859,10 +859,10 @@ function IndividualVerificationCard({
               <div>
                 <p className="text-sm font-semibold mb-2">Selfie with ID</p>
                 <img
-                  src={`http://localhost:5000/uploads/individual_verification/${verification.selfie_with_id}`}
+                  src={`http:///uploads/individual_verification/${verification.selfie_with_id}`}
                   alt="Selfie with ID"
                   className="w-full h-auto rounded-lg border border-gray-300 cursor-pointer hover:opacity-90"
-                  onClick={() => window.open(`http://localhost:5000/uploads/individual_verification/${verification.selfie_with_id}`, '_blank')}
+                  onClick={() => window.open(`http:///uploads/individual_verification/${verification.selfie_with_id}`, '_blank')}
                 />
               </div>
             )}

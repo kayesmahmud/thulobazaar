@@ -295,7 +295,7 @@ export default function ShopProfileClient({
             className="w-full h-[180px] sm:h-[240px] md:h-[300px] bg-gradient-to-br from-primary to-purple-600 rounded-t-xl"
             style={{
               backgroundImage: initialCover
-                ? `url(${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/covers/${initialCover})`
+                ? `url(/uploads/covers/${initialCover})`
                 : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
@@ -339,7 +339,7 @@ export default function ShopProfileClient({
           <div className="relative -mt-[40px] sm:-mt-[45px] flex-shrink-0 w-[100px] sm:w-[120px] md:w-[150px]">
             {initialAvatar ? (
               <img
-                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/avatars/${initialAvatar}`}
+                src={`/uploads/avatars/${initialAvatar}`}
                 alt={shopName}
                 className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full object-cover border-[4px] sm:border-[5px] shadow-xl ${
                   businessVerificationStatus === 'verified'

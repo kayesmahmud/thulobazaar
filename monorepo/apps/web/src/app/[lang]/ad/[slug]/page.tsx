@@ -485,7 +485,7 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                   width: '60px',
                   height: '60px',
                   borderRadius: '50%',
-                  background: ad.users_ads_user_idTousers?.avatar ? `url(${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/avatars/${ad.users_ads_user_idTousers.avatar})` : '#667eea',
+                  background: ad.users_ads_user_idTousers?.avatar ? `url(/uploads/avatars/${ad.users_ads_user_idTousers.avatar})` : '#667eea',
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   display: 'flex',
