@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
+const helmet = require('helmet');
 const contentFilter = require('./utils/contentFilter');
 const { rateLimiters } = require('./utils/rateLimiter');
 const duplicateDetector = require('./utils/duplicateDetector');
@@ -16,16 +17,37 @@ const { SECURITY, FILE_LIMITS, AD_STATUS, PAGINATION, LOCATION } = require('./co
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'thulobazaar_jwt_secret_key_2024';
 
-// Database connection
+// Security middleware - Helmet for HTTP headers (2025 best practice)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "http://localhost:3000", "http://localhost:5000", "http://localhost:5173"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images to be loaded from different origins (localhost:3000 -> localhost:5000)
+}));
+const PORT = process.env.PORT || 5000;
+
+// Security: JWT_SECRET must be set in environment variables (2025 best practice)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('🚨 FATAL: JWT_SECRET environment variable is not set!');
+  console.error('Please set JWT_SECRET in your .env file before starting the server.');
+  process.exit(1);
+}
+
+// Database connection - Using environment variables (2025 best practice)
 const pool = new Pool({
-  user: 'elw',
-  host: 'localhost',
-  database: 'thulobazaar',
-  password: '', // Usually no password needed on Mac
-  port: 5432,
+  user: process.env.DB_USER || 'elw',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'thulobazaar',
+  password: process.env.DB_PASSWORD || '',
+  port: parseInt(process.env.DB_PORT || '5432'),
 });
 
 // Test database connection
@@ -48,13 +70,18 @@ global.pool = pool;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+  origin: ['http://localhost:3333', 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
   credentials: true
 }));
 app.use(express.json());
 
-// Serve uploaded files statically
-app.use('/uploads', express.static('uploads'));
+// Serve uploaded files statically with CORS headers
+app.use('/uploads', (req, res, next) => {
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  next();
+}, express.static('uploads'));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -112,7 +139,7 @@ app.post('/api/auth/register', rateLimiters.auth, async (req, res) => {
     const saltRounds = SECURITY.BCRYPT_SALT_ROUNDS;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Generate seller_slug from full name
+    // Generate shop_slug from full name (all users get a shop page)
     const generateSlug = (name) => {
       return name.toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
@@ -121,20 +148,20 @@ app.post('/api/auth/register', rateLimiters.auth, async (req, res) => {
         .replace(/-+/g, '-');
     };
 
-    let sellerSlug = generateSlug(fullName);
+    let shopSlug = generateSlug(fullName);
 
     // Check if slug already exists and make it unique
-    const existingSlug = await pool.query('SELECT id FROM users WHERE seller_slug = $1', [sellerSlug]);
+    const existingSlug = await pool.query('SELECT id FROM users WHERE shop_slug = $1 OR seller_slug = $1', [shopSlug]);
     if (existingSlug.rows.length > 0) {
-      sellerSlug = `${sellerSlug}-${Date.now()}`;
+      shopSlug = `${shopSlug}-${Date.now()}`;
     }
 
-    // Insert user with seller_slug
+    // Insert user with shop_slug (all users use /shop/:slug route)
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, full_name, phone, seller_slug)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (email, password_hash, full_name, phone, shop_slug, seller_slug)
+       VALUES ($1, $2, $3, $4, $5, $5)
        RETURNING id, email, full_name, phone, created_at, account_type, shop_slug, seller_slug, business_verification_status, individual_verified`,
-      [email, passwordHash, fullName, phone, sellerSlug]
+      [email, passwordHash, fullName, phone, shopSlug]
     );
 
     const user = result.rows[0];
@@ -317,6 +344,14 @@ app.get('/api/ads/nearby', async (req, res) => {
       queryParams.push(parseFloat(maxPrice));
     }
 
+    // Add lat, lng, radius, and limit as parameterized values (SQL injection protection)
+    const latParam = paramCount + 1;
+    const lngParam = paramCount + 2;
+    const radiusParam = paramCount + 3;
+    const limitParam = paramCount + 4;
+
+    queryParams.push(parseFloat(lat), parseFloat(lng), parseFloat(radius), parseInt(limit));
+
     const query = `
       SELECT *
       FROM (
@@ -326,24 +361,26 @@ app.get('/api/ads/nearby', async (req, res) => {
           a.latitude, a.longitude,
           c.name as category_name, c.icon as category_icon,
           l.name as location_name, l.latitude as location_latitude, l.longitude as location_longitude,
+          u.business_verification_status, u.individual_verified,
           (SELECT filename FROM ad_images WHERE ad_id = a.id AND is_primary = true LIMIT 1) as primary_image,
           (6371 * acos(
-            cos(radians(${parseFloat(lat)})) *
+            cos(radians($${latParam})) *
             cos(radians(COALESCE(a.latitude, l.latitude))) *
-            cos(radians(COALESCE(a.longitude, l.longitude)) - radians(${parseFloat(lng)})) +
-            sin(radians(${parseFloat(lat)})) *
+            cos(radians(COALESCE(a.longitude, l.longitude)) - radians($${lngParam})) +
+            sin(radians($${latParam})) *
             sin(radians(COALESCE(a.latitude, l.latitude)))
           )) AS distance
         FROM ads a
         LEFT JOIN categories c ON a.category_id = c.id
         LEFT JOIN locations l ON a.location_id = l.id
+        LEFT JOIN users u ON a.user_id = u.id
         WHERE ${queryConditions.join(' AND ')}
           AND ((a.latitude IS NOT NULL AND a.longitude IS NOT NULL)
            OR (l.latitude IS NOT NULL AND l.longitude IS NOT NULL))
       ) ads_with_distance
-      WHERE distance <= ${parseFloat(radius)}
+      WHERE distance <= $${radiusParam}
       ORDER BY distance ASC, is_featured DESC, created_at DESC
-      LIMIT ${parseInt(limit)}
+      LIMIT $${limitParam}
     `;
 
     const result = await pool.query(query, queryParams);
@@ -467,35 +504,25 @@ app.get('/api/categories', async (req, res) => {
   try {
     const { includeSubcategories } = req.query;
 
+    console.log(`🔍 [server.js] GET /api/categories - includeSubcategories:`, includeSubcategories);
+
     let result;
     if (includeSubcategories === 'true') {
-      // Fetch categories with subcategories nested
+      // Return FLAT array of ALL categories (both parents and children)
+      // This allows frontend to filter by parent_id to get subcategories
       result = await pool.query(`
-        SELECT
-          c.*,
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', sub.id,
-                'name', sub.name,
-                'slug', sub.slug,
-                'parent_id', sub.parent_id
-              ) ORDER BY sub.id
-            ) FILTER (WHERE sub.id IS NOT NULL),
-            '[]'
-          ) as subcategories
-        FROM categories c
-        LEFT JOIN categories sub ON sub.parent_id = c.id
-        WHERE c.parent_id IS NULL
-        GROUP BY c.id
-        ORDER BY c.id
+        SELECT * FROM categories
+        ORDER BY
+          CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
+          parent_id NULLS FIRST,
+          name ASC
       `);
     } else {
       // Fetch only top-level categories
       result = await pool.query('SELECT * FROM categories WHERE parent_id IS NULL ORDER BY id');
     }
 
-    console.log(`✅ Found ${result.rows.length} categories${includeSubcategories === 'true' ? ' with subcategories' : ''}`);
+    console.log(`✅ [server.js] Returning ${result.rows.length} categories${includeSubcategories === 'true' ? ' (flat array with all)' : ' (parents only)'}`);
 
     res.json({
       success: true,
@@ -881,7 +908,14 @@ app.delete('/api/ads/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Update ad (protected route)
+// REMOVED: Conflicting route that prevented image uploads from working
+// This route was intercepting PUT /api/ads/:id requests BEFORE they could reach
+// the proper handler in /routes/ads.js (line 502) which has upload.array() middleware.
+// The route below had NO image handling - it only updated text fields.
+// Proper handler location: /routes/ads.js line 502 with full image support
+
+/*
+// Update ad (protected route) - DISABLED - USE /routes/ads.js INSTEAD
 app.put('/api/ads/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -961,6 +995,7 @@ app.put('/api/ads/:id', authenticateToken, async (req, res) => {
     });
   }
 });
+*/
 
 // Admin API Routes - MOVED TO routes/admin.js
 
@@ -1516,11 +1551,14 @@ app.use('/api/areas', require('./routes/areas'));
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
-// Admin/Editor authentication routes
-app.use('/api/admin/auth', require('./routes/adminAuth'));
+// Super Admin/Editor authentication routes
+app.use('/api/super-admin/auth', require('./routes/adminAuth'));
 
-// Admin panel routes
-app.use('/api/admin', require('./routes/admin'));
+// Super Admin panel routes
+app.use('/api/super-admin', require('./routes/admin'));
+
+// Editor panel routes
+app.use('/api/editor', require('./routes/editor'));
 
 // Business verification routes
 app.use('/api/business', require('./routes/business'));
@@ -1530,6 +1568,9 @@ app.use('/api', require('./routes/profiles'));
 
 // Individual seller verification routes
 app.use('/api/individual-verification', require('./routes/individualVerification'));
+
+// Unified verification routes (Business + Individual)
+app.use('/api/verification', require('./routes/verification'));
 
 // Mock Payment routes (FOR TESTING ONLY - Remove in production)
 app.use('/api/mock-payment', require('./routes/mockPayment'));
