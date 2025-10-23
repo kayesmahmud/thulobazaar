@@ -1,0 +1,979 @@
+'use client';
+
+import { useState, useEffect, use } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { formatPrice, formatDateTime } from '@thulobazaar/utils';
+import { apiClient } from '@/lib/api';
+
+interface AdminDashboardProps {
+  params: Promise<{ lang: string }>;
+}
+
+export default function AdminDashboard({ params }: AdminDashboardProps) {
+  const { lang } = use(params);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ads' | 'users'>('dashboard');
+  const [selectedAdStatus, setSelectedAdStatus] = useState('pending');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // State for data
+  const [stats, setStats] = useState({
+    totalAds: 0,
+    pendingAds: 0,
+    activeAds: 0,
+    rejectedAds: 0,
+    totalUsers: 0,
+    activeUsers: 0,
+    totalViews: 0,
+    todayAds: 0
+  });
+
+  const [ads, setAds] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Check authentication and authorization
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push(`/${lang}/auth/login`);
+      return;
+    }
+
+    if (status === 'authenticated') {
+      // Check if user has admin role
+      if (session?.user?.role !== 'admin' && session?.user?.role !== 'super_admin') {
+        router.push(`/${lang}`);
+        return;
+      }
+
+      loadAdminData();
+    }
+  }, [status, session, router, lang]);
+
+  const loadAdminData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const [statsResponse, adsResponse, usersResponse] = await Promise.all([
+        apiClient.getAdminStats(),
+        apiClient.getAllAdsForReview({ limit: 100 }),
+        apiClient.getAllUsers({ limit: 100 })
+      ]);
+
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+
+      if (adsResponse.success && adsResponse.data) {
+        setAds(adsResponse.data.data);
+      }
+
+      if (usersResponse.success && usersResponse.data) {
+        setUsers(usersResponse.data);
+      }
+    } catch (err: any) {
+      console.error('Error loading admin data:', err);
+      setError('Failed to load admin data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproveAd = async (adId: number) => {
+    if (!confirm('Are you sure you want to approve this ad?')) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.approveAd(adId);
+      if (response.success) {
+        // Reload ads
+        const adsResponse = await apiClient.getAllAdsForReview({ limit: 100 });
+        if (adsResponse.success && adsResponse.data) {
+          setAds(adsResponse.data.data);
+        }
+        alert('Ad approved successfully!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to approve ad');
+    }
+  };
+
+  const handleRejectAd = async (adId: number) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.rejectAd(adId, reason);
+      if (response.success) {
+        // Reload ads
+        const adsResponse = await apiClient.getAllAdsForReview({ limit: 100 });
+        if (adsResponse.success && adsResponse.data) {
+          setAds(adsResponse.data.data);
+        }
+        alert('Ad rejected successfully!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to reject ad');
+    }
+  };
+
+  const handleToggleUserStatus = async (userId: number) => {
+    if (!confirm('Are you sure you want to toggle this user\'s status?')) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.toggleUserStatus(userId);
+      if (response.success) {
+        // Reload users
+        const usersResponse = await apiClient.getAllUsers({ limit: 100 });
+        if (usersResponse.success && usersResponse.data) {
+          setUsers(usersResponse.data);
+        }
+        alert('User status updated successfully!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update user status');
+    }
+  };
+
+  // Show loading state
+  if (status === 'loading' || loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+          <p style={{ color: '#6b7280' }}>Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter ads based on status
+  const filteredAds = selectedAdStatus === 'all'
+    ? ads
+    : ads.filter(ad => ad.status === selectedAdStatus);
+      account_type: 'business',
+      price: 400,
+      discount_percentage: 20,
+      is_active: true
+    },
+    {
+      id: 3,
+      promotion_type: 'urgent',
+      duration_days: 3,
+      account_type: 'individual',
+      price: 300,
+      discount_percentage: 0,
+      is_active: true
+    },
+    {
+      id: 4,
+      promotion_type: 'bump_up',
+      duration_days: 1,
+      account_type: 'individual',
+      price: 100,
+      discount_percentage: 0,
+      is_active: true
+    }
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return '#10b981';
+      case 'rejected': return '#ef4444';
+      case 'pending': return '#f59e0b';
+      default: return '#6b7280';
+    }
+  };
+
+  const getPromotionTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'featured': '🌟 Featured',
+      'urgent': '🔥 Urgent',
+      'bump_up': '📈 Bump Up',
+      'sticky': '📌 Sticky'
+    };
+    return labels[type] || type;
+  };
+
+  const handleAdStatusChange = (adId: number, status: string, reason?: string) => {
+    // TODO: Connect to API
+    console.log('Update ad status:', adId, status, reason);
+    alert(`Ad ${adId} marked as ${status}. (Demo - connect to real API)`);
+  };
+
+  const handleUserToggle = (userId: number, isActive: boolean) => {
+    // TODO: Connect to API
+    console.log('Toggle user:', userId, !isActive);
+    alert(`User ${userId} ${isActive ? 'deactivated' : 'activated'}. (Demo - connect to real API)`);
+  };
+
+  const handlePriceEdit = (priceId: number, currentPrice: number, currentDiscount: number) => {
+    setEditingPriceId(priceId);
+    setEditingPrice(currentPrice.toString());
+    setEditingDiscount(currentDiscount.toString());
+  };
+
+  const handlePriceSave = (priceId: number) => {
+    const newPrice = parseFloat(editingPrice);
+    const newDiscount = parseFloat(editingDiscount);
+
+    if (isNaN(newPrice) || newPrice < 0) {
+      setError('Please enter a valid price');
+      return;
+    }
+
+    if (isNaN(newDiscount) || newDiscount < 0 || newDiscount > 100) {
+      setError('Please enter a valid discount percentage (0-100)');
+      return;
+    }
+
+    // TODO: Connect to API
+    console.log('Update price:', priceId, newPrice, newDiscount);
+    alert(`Price updated successfully! (Demo - connect to real API)`);
+
+    setEditingPriceId(null);
+    setEditingPrice('');
+    setEditingDiscount('');
+    setError('');
+  };
+
+  const filteredAds = selectedAdStatus === 'all'
+    ? mockAds
+    : mockAds.filter(ad => ad.status === selectedAdStatus);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+      {/* Header */}
+      <header style={{
+        backgroundColor: '#1e293b',
+        color: 'white',
+        padding: '1rem 0',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{
+          maxWidth: '1280px',
+          margin: '0 auto',
+          padding: '0 1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            🛠️ Thulobazaar Admin Panel
+          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{
+              background: '#dc2626',
+              padding: '0.25rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              letterSpacing: '0.05em'
+            }}>
+              SUPER ADMIN
+            </div>
+            <span style={{ fontSize: '0.875rem' }}>Welcome, {user.fullName}</span>
+            <Link
+              href={`/${lang}`}
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}
+            >
+              Back to Site
+            </Link>
+            <button
+              onClick={() => {
+                // TODO: Implement logout
+                alert('Logout (Demo)');
+              }}
+              style={{
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Error Message */}
+      {error && (
+        <div style={{
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
+          padding: '0.75rem 1rem',
+          maxWidth: '1280px',
+          margin: '1rem auto',
+          borderRadius: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          {error}
+          <button
+            onClick={() => setError('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontSize: '1.25rem',
+              fontWeight: '700'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem' }}>
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          borderBottom: '2px solid #e5e7eb',
+          marginBottom: '2rem',
+          gap: '0.5rem'
+        }}>
+          {[
+            { id: 'dashboard', label: '📊 Dashboard', count: '' },
+            { id: 'ads', label: '📝 Ads Management', count: `(${mockStats.totalAds})` },
+            { id: 'users', label: '👥 Users', count: `(${mockStats.totalUsers})` },
+            { id: 'settings', label: '⚙️ Settings', count: '' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                backgroundColor: 'transparent',
+                borderBottom: activeTab === tab.id ? '3px solid #dc2626' : '3px solid transparent',
+                color: activeTab === tab.id ? '#dc2626' : '#64748b',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab.label} {tab.count}
+            </button>
+          ))}
+        </div>
+
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div>
+            {/* Stats Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                color: 'white',
+                padding: '2rem',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(220, 38, 38, 0.2)'
+              }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {mockStats.totalAds}
+                </div>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Total Ads</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: 'white',
+                padding: '2rem',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(245, 158, 11, 0.2)'
+              }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {mockStats.pendingAds}
+                </div>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Pending Review</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                color: 'white',
+                padding: '2rem',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(59, 130, 246, 0.2)'
+              }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {mockStats.totalUsers}
+                </div>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Total Users</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                padding: '2rem',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)'
+              }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {mockStats.totalViews.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Total Views</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                color: 'white',
+                padding: '2rem',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(139, 92, 246, 0.2)'
+              }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {mockStats.todayAds}
+                </div>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Today's Ads</div>
+              </div>
+            </div>
+
+            {/* Top Categories */}
+            <div style={{
+              background: 'white',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: '#1f2937', fontSize: '1.25rem', fontWeight: '600' }}>
+                Top Categories
+              </h3>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {mockStats.topCategories.map((category, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.75rem',
+                    background: '#f9fafb',
+                    borderRadius: '8px'
+                  }}>
+                    <span style={{ color: '#1f2937', fontWeight: '500' }}>{category.name}</span>
+                    <span style={{
+                      background: '#dc2626',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.875rem',
+                      fontWeight: '600'
+                    }}>
+                      {category.count} ads
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Ads Management Tab */}
+        {activeTab === 'ads' && (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{ margin: 0, color: '#1f2937', fontSize: '1.5rem', fontWeight: '600' }}>
+                Ads Management
+              </h2>
+              <select
+                value={selectedAdStatus}
+                onChange={(e) => setSelectedAdStatus(e.target.value)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="all">All Ads</option>
+                <option value="pending">Pending Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              {filteredAds.length === 0 ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+                  No ads found
+                </div>
+              ) : (
+                <div>
+                  {filteredAds.map((ad) => (
+                    <div key={ad.id} style={{
+                      padding: '1.5rem',
+                      borderBottom: '1px solid #f3f4f6',
+                      display: 'grid',
+                      gridTemplateColumns: '80px 1fr auto',
+                      gap: '1rem',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '8px',
+                        background: '#f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '2rem'
+                      }}>
+                        {ad.category_icon}
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <h4 style={{ margin: 0, color: '#1f2937', fontSize: '1.1rem' }}>{ad.title}</h4>
+                          <span style={{
+                            background: getStatusColor(ad.status),
+                            color: 'white',
+                            padding: '0.125rem 0.5rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            textTransform: 'uppercase'
+                          }}>
+                            {ad.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#dc2626', marginBottom: '0.25rem' }}>
+                          {formatPrice(ad.price)}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                          📍 {ad.location_name} • 🕒 {formatDateTime(ad.created_at)}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                          📧 {ad.user_email} • 📞 {ad.seller_phone}
+                        </div>
+                        {ad.status_reason && (
+                          <div style={{
+                            fontSize: '0.875rem',
+                            color: '#ef4444',
+                            marginTop: '0.25rem',
+                            fontStyle: 'italic'
+                          }}>
+                            Reason: {ad.status_reason}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <Link
+                          href={`/${lang}/ad/ad-${ad.id}`}
+                          style={{
+                            background: '#3b82f6',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '6px',
+                            textDecoration: 'none',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            textAlign: 'center'
+                          }}
+                        >
+                          View
+                        </Link>
+                        {ad.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleAdStatusChange(ad.id, 'approved')}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                const reason = prompt('Rejection reason (optional):');
+                                handleAdStatusChange(ad.id, 'rejected', reason || '');
+                              }}
+                              style={{
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {ad.status !== 'pending' && (
+                          <button
+                            onClick={() => handleAdStatusChange(ad.id, 'pending')}
+                            style={{
+                              background: '#f59e0b',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.5rem 1rem',
+                              borderRadius: '6px',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Reset to Pending
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <div>
+            <h2 style={{ margin: '0 0 1.5rem 0', color: '#1f2937', fontSize: '1.5rem', fontWeight: '600' }}>
+              User Management
+            </h2>
+
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              {mockUsers.map((user) => (
+                <div key={user.id} style={{
+                  padding: '1.5rem',
+                  borderBottom: '1px solid #f3f4f6',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  gap: '1rem',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <h4 style={{ margin: 0, color: '#1f2937', fontSize: '1.1rem' }}>{user.full_name}</h4>
+                      {!user.is_active && (
+                        <span style={{
+                          background: '#ef4444',
+                          color: 'white',
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: '700'
+                        }}>
+                          INACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      📧 {user.email} • 📞 {user.phone || 'No phone'}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                      📍 {user.location_name || 'No location'} • 🕒 Joined {formatDateTime(user.created_at)}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                      📝 {user.total_ads} total ads • ✅ {user.approved_ads} approved
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <button
+                      style={{
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                    >
+                      View Ads
+                    </button>
+                    <button
+                      onClick={() => handleUserToggle(user.id, user.is_active)}
+                      style={{
+                        background: user.is_active ? '#ef4444' : '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {user.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div>
+            <h2 style={{ margin: '0 0 1.5rem 0', color: '#1f2937', fontSize: '1.5rem', fontWeight: '600' }}>
+              Promotion Pricing Management
+            </h2>
+
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Promotion Type
+                    </th>
+                    <th style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Duration
+                    </th>
+                    <th style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Account Type
+                    </th>
+                    <th style={{ padding: '1rem', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Price (रू)
+                    </th>
+                    <th style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Discount %
+                    </th>
+                    <th style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Status
+                    </th>
+                    <th style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.875rem' }}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mockPricing.map((price) => (
+                    <tr key={price.id} style={{
+                      borderBottom: '1px solid #f3f4f6',
+                      background: editingPriceId === price.id ? '#fef3c7' : 'transparent'
+                    }}>
+                      <td style={{ padding: '1rem', color: '#1f2937' }}>
+                        {getPromotionTypeLabel(price.promotion_type)}
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>
+                        {price.duration_days} days
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <span style={{
+                          background: price.account_type === 'business' ? '#dbeafe' : '#fef3c7',
+                          color: price.account_type === 'business' ? '#1e40af' : '#92400e',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          textTransform: 'capitalize'
+                        }}>
+                          {price.account_type}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                        {editingPriceId === price.id ? (
+                          <input
+                            type="number"
+                            value={editingPrice}
+                            onChange={(e) => setEditingPrice(e.target.value)}
+                            style={{
+                              width: '100px',
+                              padding: '0.5rem',
+                              border: '2px solid #3b82f6',
+                              borderRadius: '6px',
+                              fontSize: '0.875rem',
+                              textAlign: 'right'
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span style={{ fontWeight: '600', color: '#dc2626' }}>
+                            रू {parseFloat(price.price.toString()).toLocaleString('en-NP')}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        {editingPriceId === price.id ? (
+                          <input
+                            type="number"
+                            value={editingDiscount}
+                            onChange={(e) => setEditingDiscount(e.target.value)}
+                            min="0"
+                            max="100"
+                            style={{
+                              width: '60px',
+                              padding: '0.5rem',
+                              border: '2px solid #3b82f6',
+                              borderRadius: '6px',
+                              fontSize: '0.875rem',
+                              textAlign: 'center'
+                            }}
+                          />
+                        ) : (
+                          <span style={{ color: '#64748b' }}>
+                            {price.discount_percentage}%
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <span style={{
+                          background: price.is_active ? '#dcfce7' : '#fee2e2',
+                          color: price.is_active ? '#166534' : '#991b1b',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>
+                          {price.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        {editingPriceId === price.id ? (
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => handlePriceSave(price.id)}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                fontWeight: '600'
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingPriceId(null);
+                                setEditingPrice('');
+                                setEditingDiscount('');
+                              }}
+                              style={{
+                                background: '#6b7280',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                fontWeight: '600'
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handlePriceEdit(price.id, price.price, price.discount_percentage)}
+                            style={{
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.5rem 0.75rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{
+                padding: '1rem',
+                background: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Total: {mockPricing.length} pricing entries
+                </span>
+                <button
+                  style={{
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  🔄 Refresh Data
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
