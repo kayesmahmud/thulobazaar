@@ -135,6 +135,13 @@ export async function post(endpoint, body, useAuthToken = false, useEditorToken 
   if (!(body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
     body = JSON.stringify(body);
+  } else {
+    console.log('🔍 [API Client] Sending FormData to', endpoint);
+    console.log('🔍 [API Client] FormData detected, not setting Content-Type (browser will set with boundary)');
+    // Log FormData contents
+    for (let pair of body.entries()) {
+      console.log('  🔍', pair[0], ':', pair[1] instanceof File ? `File(${pair[1].name})` : pair[1]);
+    }
   }
 
   return apiRequest(endpoint, {

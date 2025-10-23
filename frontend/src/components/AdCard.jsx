@@ -5,6 +5,8 @@ import { formatDateTime } from '../utils/dateUtils';
 import { useLanguage } from '../context/LanguageContext';
 import { generateAdUrl } from '../utils/urlUtils';
 import { UPLOADS_BASE_URL } from '../config/env.js';
+import VerificationBadge from './common/VerificationBadge';
+import { BusinessVerificationStatus } from '../constants/verificationStatus.ts';
 
 function AdCard({ ad }) {
   const navigate = useNavigate();
@@ -99,8 +101,13 @@ function AdCard({ ad }) {
           <span className="ad-time">🕒 {formatDateTime(ad.created_at)}</span>
         </div>
 
-        <div className="ad-seller">
+        <div className="ad-seller" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <strong>{ad.seller_name}</strong>
+          <VerificationBadge
+            businessVerificationStatus={ad.business_verification_status}
+            individualVerified={ad.individual_verified}
+            size={16}
+          />
         </div>
       </div>
     </div>
@@ -117,7 +124,14 @@ AdCard.propTypes = {
     category_icon: PropTypes.string,
     created_at: PropTypes.string.isRequired,
     seller_name: PropTypes.string.isRequired,
-    is_featured: PropTypes.bool
+    is_featured: PropTypes.bool,
+    business_verification_status: PropTypes.oneOf([
+      BusinessVerificationStatus.PENDING,
+      BusinessVerificationStatus.APPROVED,
+      BusinessVerificationStatus.REJECTED,
+      null
+    ]),
+    individual_verified: PropTypes.bool
   }).isRequired
 };
 

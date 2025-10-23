@@ -4,14 +4,14 @@ const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 
 // =====================================================
-// GET SHOP PROFILE (Business Account with Golden Badge)
+// GET SHOP PROFILE (For ALL users - verified or not)
 // Route: GET /api/shop/:slug
 // =====================================================
 router.get('/shop/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
 
-    // Get shop/business details
+    // Get shop details for any user (try both shop_slug and seller_slug)
     const shopQuery = `
       SELECT
         u.id,
@@ -23,6 +23,7 @@ router.get('/shop/:slug', async (req, res) => {
         u.bio,
         u.account_type,
         u.shop_slug,
+        u.seller_slug,
         u.business_name,
         u.business_category,
         u.business_description,
@@ -31,6 +32,8 @@ router.get('/shop/:slug', async (req, res) => {
         u.business_address,
         u.business_verification_status,
         u.business_verified_at,
+        u.individual_verified,
+        u.individual_verified_at,
         u.latitude,
         u.longitude,
         u.formatted_address,
@@ -40,8 +43,7 @@ router.get('/shop/:slug', async (req, res) => {
         l.slug as location_slug
       FROM users u
       LEFT JOIN locations l ON u.location_id = l.id
-      WHERE u.shop_slug = $1
-        AND u.account_type = 'business'
+      WHERE u.shop_slug = $1 OR u.seller_slug = $1
     `;
 
     const shopResult = await pool.query(shopQuery, [slug]);
@@ -135,6 +137,104 @@ router.get('/shop/:slug', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching shop profile'
+    });
+  }
+});
+
+// =====================================================
+// GET SHOP ADS ONLY
+// Route: GET /api/shop/:slug/ads
+// =====================================================
+router.get('/shop/:slug/ads', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { page = 1, limit = 50, status = 'approved' } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Get shop id first (try both shop_slug and seller_slug)
+    const shopQuery = 'SELECT id FROM users WHERE shop_slug = $1 OR seller_slug = $1';
+    const shopResult = await pool.query(shopQuery, [slug]);
+
+    if (shopResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+
+    const shopId = shopResult.rows[0].id;
+
+    // Get ads with location hierarchy
+    const adsQuery = `
+      WITH RECURSIVE location_hierarchy AS (
+        SELECT
+          id, name, type, parent_id, 0 as level, id as base_location_id
+        FROM locations
+        WHERE id IN (
+          SELECT DISTINCT location_id FROM ads
+          WHERE user_id = $1 AND status = $2 AND location_id IS NOT NULL
+        )
+
+        UNION ALL
+
+        SELECT
+          l.id, l.name, l.type, l.parent_id, lh.level + 1, lh.base_location_id
+        FROM locations l
+        INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+      )
+      SELECT
+        a.id,
+        a.title,
+        a.price,
+        a.condition,
+        a.description,
+        a.created_at,
+        a.view_count,
+        a.is_featured,
+        a.is_bumped,
+        a.is_sticky,
+        a.is_urgent,
+        c.name as category_name,
+        l.name as location_name,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'area' LIMIT 1) as area_name,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'district' LIMIT 1) as district_name,
+        img.filename as primary_image
+      FROM ads a
+      LEFT JOIN categories c ON a.category_id = c.id
+      LEFT JOIN locations l ON a.location_id = l.id
+      LEFT JOIN ad_images img ON a.id = img.ad_id AND img.is_primary = true
+      WHERE a.user_id = $1
+        AND a.status = $2
+      ORDER BY
+        a.is_sticky DESC,
+        a.is_bumped DESC,
+        a.created_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+
+    const adsResult = await pool.query(adsQuery, [shopId, status, parseInt(limit), parseInt(offset)]);
+
+    // Get total count for pagination
+    const countQuery = 'SELECT COUNT(*) as total FROM ads WHERE user_id = $1 AND status = $2';
+    const countResult = await pool.query(countQuery, [shopId, status]);
+    const total = parseInt(countResult.rows[0].total);
+
+    res.json({
+      success: true,
+      data: adsResult.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching shop ads:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching shop ads'
     });
   }
 });
@@ -268,6 +368,104 @@ router.get('/seller/:slug', async (req, res) => {
 });
 
 // =====================================================
+// GET SELLER ADS ONLY
+// Route: GET /api/seller/:slug/ads
+// =====================================================
+router.get('/seller/:slug/ads', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { page = 1, limit = 50, status = 'approved' } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Get seller id first
+    const sellerQuery = 'SELECT id FROM users WHERE seller_slug = $1';
+    const sellerResult = await pool.query(sellerQuery, [slug]);
+
+    if (sellerResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    const sellerId = sellerResult.rows[0].id;
+
+    // Get ads with location hierarchy
+    const adsQuery = `
+      WITH RECURSIVE location_hierarchy AS (
+        SELECT
+          id, name, type, parent_id, 0 as level, id as base_location_id
+        FROM locations
+        WHERE id IN (
+          SELECT DISTINCT location_id FROM ads
+          WHERE user_id = $1 AND status = $2 AND location_id IS NOT NULL
+        )
+
+        UNION ALL
+
+        SELECT
+          l.id, l.name, l.type, l.parent_id, lh.level + 1, lh.base_location_id
+        FROM locations l
+        INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+      )
+      SELECT
+        a.id,
+        a.title,
+        a.price,
+        a.condition,
+        a.description,
+        a.created_at,
+        a.view_count,
+        a.is_featured,
+        a.is_bumped,
+        a.is_sticky,
+        a.is_urgent,
+        c.name as category_name,
+        l.name as location_name,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'area' LIMIT 1) as area_name,
+        (SELECT name FROM location_hierarchy WHERE base_location_id = a.location_id AND type = 'district' LIMIT 1) as district_name,
+        img.filename as primary_image
+      FROM ads a
+      LEFT JOIN categories c ON a.category_id = c.id
+      LEFT JOIN locations l ON a.location_id = l.id
+      LEFT JOIN ad_images img ON a.id = img.ad_id AND img.is_primary = true
+      WHERE a.user_id = $1
+        AND a.status = $2
+      ORDER BY
+        a.is_sticky DESC,
+        a.is_bumped DESC,
+        a.created_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+
+    const adsResult = await pool.query(adsQuery, [sellerId, status, parseInt(limit), parseInt(offset)]);
+
+    // Get total count for pagination
+    const countQuery = 'SELECT COUNT(*) as total FROM ads WHERE user_id = $1 AND status = $2';
+    const countResult = await pool.query(countQuery, [sellerId, status]);
+    const total = parseInt(countResult.rows[0].total);
+
+    res.json({
+      success: true,
+      data: adsResult.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching seller ads:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching seller ads'
+    });
+  }
+});
+
+// =====================================================
 // UPDATE SELLER ABOUT (Bio)
 // Route: PUT /api/seller/:slug/about
 // =====================================================
@@ -386,10 +584,10 @@ router.put('/shop/:slug/about', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if user owns this shop
+    // Check if user owns this shop (works for all users)
     const ownerCheck = await pool.query(
-      'SELECT id FROM users WHERE shop_slug = $1 AND id = $2 AND account_type = $3',
-      [slug, userId, 'business']
+      'SELECT id FROM users WHERE (shop_slug = $1 OR seller_slug = $1) AND id = $2',
+      [slug, userId]
     );
 
     console.log('📝 Owner check result:', ownerCheck.rows.length);
@@ -401,9 +599,9 @@ router.put('/shop/:slug/about', authenticateToken, async (req, res) => {
       });
     }
 
-    // Update business description
+    // Update business description (and bio for individual users)
     const updateResult = await pool.query(
-      'UPDATE users SET business_description = $1 WHERE shop_slug = $2 AND id = $3',
+      'UPDATE users SET business_description = $1, bio = $1 WHERE (shop_slug = $2 OR seller_slug = $2) AND id = $3',
       [business_description, slug, userId]
     );
 
@@ -446,10 +644,10 @@ router.put('/shop/:slug/contact', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if user owns this shop
+    // Check if user owns this shop (works for all users)
     const ownerCheck = await pool.query(
-      'SELECT id FROM users WHERE shop_slug = $1 AND id = $2 AND account_type = $3',
-      [slug, userId, 'business']
+      'SELECT id FROM users WHERE (shop_slug = $1 OR seller_slug = $1) AND id = $2',
+      [slug, userId]
     );
 
     console.log('📞 Owner check result:', ownerCheck.rows.length);
@@ -463,7 +661,7 @@ router.put('/shop/:slug/contact', authenticateToken, async (req, res) => {
 
     // Update contact information
     await pool.query(
-      'UPDATE users SET business_phone = $1, phone = $2, business_website = $3, google_maps_link = $4 WHERE shop_slug = $5 AND id = $6',
+      'UPDATE users SET business_phone = $1, phone = $2, business_website = $3, google_maps_link = $4 WHERE (shop_slug = $5 OR seller_slug = $5) AND id = $6',
       [business_phone, phone, business_website, google_maps_link, slug, userId]
     );
 
@@ -490,39 +688,35 @@ router.put('/shop/:slug/contact', authenticateToken, async (req, res) => {
 router.put('/shop/:slug/location', authenticateToken, async (req, res) => {
   try {
     const { slug } = req.params;
-    const { latitude, longitude, formatted_address } = req.body;
+    const { latitude, longitude, formatted_address, business_address } = req.body;
 
-    console.log('📍 Update location request:', { slug, latitude, longitude, user: req.user });
+    console.log('📍 Update location request:', { slug, business_address, latitude, longitude, user: req.user });
 
     const userId = req.user.userId || req.user.id;
 
-    // Validate inputs
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: 'Latitude and longitude are required'
-      });
+    // Validate coordinate ranges if provided
+    if (latitude !== undefined && latitude !== null) {
+      if (latitude < -90 || latitude > 90) {
+        return res.status(400).json({
+          success: false,
+          message: 'Latitude must be between -90 and 90'
+        });
+      }
     }
 
-    // Validate coordinate ranges
-    if (latitude < -90 || latitude > 90) {
-      return res.status(400).json({
-        success: false,
-        message: 'Latitude must be between -90 and 90'
-      });
+    if (longitude !== undefined && longitude !== null) {
+      if (longitude < -180 || longitude > 180) {
+        return res.status(400).json({
+          success: false,
+          message: 'Longitude must be between -180 and 180'
+        });
+      }
     }
 
-    if (longitude < -180 || longitude > 180) {
-      return res.status(400).json({
-        success: false,
-        message: 'Longitude must be between -180 and 180'
-      });
-    }
-
-    // Check if user owns this shop
+    // Check if user owns this shop (works for all users - business or individual)
     const ownerCheck = await pool.query(
-      'SELECT id FROM users WHERE shop_slug = $1 AND id = $2 AND account_type = $3',
-      [slug, userId, 'business']
+      'SELECT id FROM users WHERE (shop_slug = $1 OR seller_slug = $1) AND id = $2',
+      [slug, userId]
     );
 
     console.log('📍 Owner check result:', ownerCheck.rows.length);
@@ -534,10 +728,49 @@ router.put('/shop/:slug/location', authenticateToken, async (req, res) => {
       });
     }
 
+    // Build update query based on provided fields
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (business_address !== undefined) {
+      updates.push(`business_address = $${paramCount}`);
+      values.push(business_address);
+      paramCount++;
+    }
+
+    if (latitude !== undefined && latitude !== null) {
+      updates.push(`latitude = $${paramCount}`);
+      values.push(latitude);
+      paramCount++;
+    }
+
+    if (longitude !== undefined && longitude !== null) {
+      updates.push(`longitude = $${paramCount}`);
+      values.push(longitude);
+      paramCount++;
+    }
+
+    if (formatted_address !== undefined) {
+      updates.push(`formatted_address = $${paramCount}`);
+      values.push(formatted_address);
+      paramCount++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No location data provided to update'
+      });
+    }
+
+    // Add WHERE clause parameters
+    values.push(slug, userId);
+
     // Update location information
     await pool.query(
-      'UPDATE users SET latitude = $1, longitude = $2, formatted_address = $3 WHERE shop_slug = $4 AND id = $5',
-      [latitude, longitude, formatted_address, slug, userId]
+      `UPDATE users SET ${updates.join(', ')} WHERE (shop_slug = $${paramCount} OR seller_slug = $${paramCount}) AND id = $${paramCount + 1}`,
+      values
     );
 
     console.log('✅ Location updated successfully');

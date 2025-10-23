@@ -240,14 +240,15 @@ function UserHeader() {
                         📊 My Dashboard
                       </button>
 
-                      {/* View My Shop - Show if user has shop_slug or seller_slug */}
-                      {user && (user?.shopSlug || user?.sellerSlug) && (
+                      {/* View My Shop - All users have a shop page */}
+                      {user && (user?.shopSlug || user?.shop_slug) && (
                         <button
                           onClick={() => {
-                            if (user?.businessVerificationStatus === 'approved' && user?.shopSlug) {
-                              handleNavigation(`/shop/${user.shopSlug}`);
-                            } else if (user?.sellerSlug) {
-                              handleNavigation(`/seller/${user.sellerSlug}`);
+                            // All users now have shop_slug (preferred over seller_slug)
+                            const slug = user?.shopSlug || user?.shop_slug;
+
+                            if (slug) {
+                              handleNavigation(`/shop/${slug}`);
                             }
                             setProfileDropdownOpen(false);
                           }}
@@ -259,12 +260,14 @@ function UserHeader() {
                             textAlign: 'left',
                             cursor: 'pointer',
                             fontSize: '14px',
-                            color: user?.businessVerificationStatus === 'approved' ? '#ca8a04' : (user?.individualVerified ? '#3b82f6' : '#334155'),
+                            color: (user?.businessVerificationStatus || user?.business_verification_status) === 'approved' ? '#ca8a04' : (user?.individualVerified || user?.individual_verified) ? '#3b82f6' : '#334155',
                             fontWeight: '500',
                             transition: 'background-color 0.2s'
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = user?.businessVerificationStatus === 'approved' ? '#fef9c3' : (user?.individualVerified ? '#dbeafe' : '#f1f5f9');
+                            const isBusinessVerified = (user?.businessVerificationStatus || user?.business_verification_status) === 'approved';
+                            const isIndividualVerified = user?.individualVerified || user?.individual_verified;
+                            e.target.style.backgroundColor = isBusinessVerified ? '#fef9c3' : (isIndividualVerified ? '#dbeafe' : '#f1f5f9');
                           }}
                           onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                         >

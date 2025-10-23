@@ -16,7 +16,7 @@ import { get, post, put } from './client.js';
  */
 export async function getBusinessVerificationStatus() {
   try {
-    const response = await fetch(`${API_BASE_URL}/business/verification-status`, {
+    const response = await fetch(`${API_BASE_URL}/verification/status`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       }
@@ -32,7 +32,7 @@ export async function getBusinessVerificationStatus() {
  * Submit business verification
  */
 export async function submitBusinessVerification(formData) {
-  const data = await post('/business/verify-request', formData, true);
+  const data = await post('/verification/business', formData, true);
   return data;
 }
 
@@ -74,7 +74,7 @@ export async function rejectBusinessRequest(requestId, reason) {
  */
 export async function getIndividualVerificationStatus() {
   try {
-    const response = await fetch(`${API_BASE_URL}/individual-verification/status`, {
+    const response = await fetch(`${API_BASE_URL}/verification/status`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       }
@@ -90,7 +90,7 @@ export async function getIndividualVerificationStatus() {
  * Submit individual verification
  */
 export async function submitIndividualVerification(formData) {
-  const data = await post('/individual-verification/submit', formData, true);
+  const data = await post('/verification/individual', formData, true);
   return data;
 }
 

@@ -20,6 +20,52 @@ router.use((req, res, next) => {
 });
 
 // =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+/**
+ * Generate a unique shop_slug by checking for collisions and appending numbers
+ * @param {string} name - The business/individual name to convert to slug
+ * @returns {Promise<string>} - Unique slug (e.g., "chetan-thapa" or "chetan-thapa-1")
+ */
+async function generateUniqueShopSlug(name) {
+  // Generate base slug from name
+  const baseSlug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+
+  // Check if base slug is available
+  const existingResult = await pool.query(
+    'SELECT id FROM users WHERE shop_slug = $1 LIMIT 1',
+    [baseSlug]
+  );
+
+  // If no collision, return base slug
+  if (existingResult.rows.length === 0) {
+    return baseSlug;
+  }
+
+  // Collision detected - find next available number
+  let counter = 1;
+  while (true) {
+    const testSlug = `${baseSlug}-${counter}`;
+    const result = await pool.query(
+      'SELECT id FROM users WHERE shop_slug = $1 LIMIT 1',
+      [testSlug]
+    );
+
+    if (result.rows.length === 0) {
+      return testSlug; // Found unique slug
+    }
+
+    counter++;
+  }
+}
+
+// =====================================================
 // DASHBOARD STATISTICS
 // =====================================================
 
@@ -29,27 +75,27 @@ router.get('/stats', catchAsync(async (req, res) => {
       -- Total counts
       (SELECT COUNT(*) FROM ads WHERE deleted_at IS NULL) as total_ads,
       (SELECT COUNT(*) FROM ads WHERE status = 'pending' AND deleted_at IS NULL) as pending_ads,
-      (SELECT COUNT(*) FROM ads WHERE status = 'approved' AND deleted_at IS NULL) as approved_ads,
+      (SELECT COUNT(*) FROM ads WHERE status = 'approved' AND deleted_at IS NULL) as active_ads,
       (SELECT COUNT(*) FROM ads WHERE status = 'rejected' AND deleted_at IS NULL) as rejected_ads,
-      (SELECT COUNT(*) FROM ads WHERE deleted_at IS NOT NULL) as deleted_ads,
 
-      -- User stats
-      (SELECT COUNT(*) FROM users WHERE is_active = true) as total_users,
-      (SELECT COUNT(*) FROM users WHERE is_suspended = true) as suspended_users,
-      (SELECT COUNT(*) FROM users WHERE is_verified = true) as verified_users,
-
-      -- Today's stats
-      (SELECT COUNT(*) FROM ads WHERE DATE(created_at) = CURRENT_DATE AND deleted_at IS NULL) as ads_today,
-      (SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURRENT_DATE) as users_today,
-
-      -- This month's stats
-      (SELECT COUNT(*) FROM ads WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE) AND deleted_at IS NULL) as ads_this_month,
-      (SELECT COUNT(*) FROM users WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)) as users_this_month
+      -- Pending verifications count (business + individual)
+      (
+        (SELECT COUNT(*) FROM business_verification_requests WHERE status = 'pending') +
+        (SELECT COUNT(*) FROM individual_verification_requests WHERE status = 'pending')
+      ) as pending_verifications
   `);
 
+  // Convert snake_case to camelCase for frontend
+  const result = stats.rows[0];
   res.json({
     success: true,
-    data: stats.rows[0]
+    data: {
+      totalAds: parseInt(result.total_ads),
+      pendingAds: parseInt(result.pending_ads),
+      activeAds: parseInt(result.active_ads),
+      rejectedAds: parseInt(result.rejected_ads),
+      pendingVerifications: parseInt(result.pending_verifications)
+    }
   });
 }));
 
@@ -647,6 +693,188 @@ router.get('/activity-logs', catchAsync(async (req, res) => {
       total: parseInt(countResult.rows[0].count),
       totalPages: Math.ceil(countResult.rows[0].count / limit)
     }
+  });
+}));
+
+// =====================================================
+// VERIFICATION MANAGEMENT
+// =====================================================
+
+// Get all pending verifications (business + individual)
+router.get('/verifications', catchAsync(async (req, res) => {
+  // Get pending business verifications
+  const businessVerifications = await pool.query(`
+    SELECT
+      bvr.id,
+      bvr.user_id,
+      bvr.business_name,
+      bvr.business_license_document,
+      bvr.business_category,
+      bvr.business_description,
+      bvr.status,
+      bvr.created_at,
+      u.email,
+      u.full_name,
+      'business' as type
+    FROM business_verification_requests bvr
+    LEFT JOIN users u ON bvr.user_id = u.id
+    WHERE bvr.status = 'pending'
+    ORDER BY bvr.created_at DESC
+  `);
+
+  // Get pending individual verifications
+  const individualVerifications = await pool.query(`
+    SELECT
+      ivr.id,
+      ivr.user_id,
+      ivr.full_name,
+      ivr.id_document_type,
+      ivr.id_document_number,
+      ivr.id_document_front,
+      ivr.id_document_back,
+      ivr.selfie_with_id,
+      ivr.status,
+      ivr.created_at,
+      u.email,
+      'individual' as type
+    FROM individual_verification_requests ivr
+    LEFT JOIN users u ON ivr.user_id = u.id
+    WHERE ivr.status = 'pending'
+    ORDER BY ivr.created_at DESC
+  `);
+
+  // Combine both arrays
+  const allVerifications = [
+    ...businessVerifications.rows,
+    ...individualVerifications.rows
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  res.json({
+    success: true,
+    data: allVerifications
+  });
+}));
+
+// Review business verification
+router.post('/verifications/business/:id/:action', catchAsync(async (req, res) => {
+  const { id, action } = req.params;
+  const { reason } = req.body;
+  const editorId = req.user.userId;
+
+  if (!['approve', 'reject'].includes(action)) {
+    throw new ValidationError('Invalid action. Must be approve or reject');
+  }
+
+  if (action === 'reject' && !reason) {
+    throw new ValidationError('Rejection reason is required');
+  }
+
+  const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+  // Update verification request
+  const result = await pool.query(
+    `UPDATE business_verification_requests
+     SET status = $1,
+         rejection_reason = $2,
+         reviewed_by = $3,
+         reviewed_at = CURRENT_TIMESTAMP
+     WHERE id = $4 AND status = 'pending'
+     RETURNING *`,
+    [newStatus, action === 'reject' ? reason : null, editorId, id]
+  );
+
+  if (result.rows.length === 0) {
+    throw new NotFoundError('Verification request not found or already processed');
+  }
+
+  // If approved, update user's profile to business account
+  if (action === 'approve') {
+    const verificationData = result.rows[0];
+
+    // Generate unique shop_slug from business_name (handles collisions with -1, -2, etc.)
+    const shopSlug = await generateUniqueShopSlug(verificationData.business_name);
+
+    await pool.query(
+      `UPDATE users
+       SET account_type = 'business',
+           business_verification_status = 'approved',
+           business_name = $2,
+           shop_slug = $3,
+           full_name = $2
+       WHERE id = $1`,
+      [verificationData.user_id, verificationData.business_name, shopSlug]
+    );
+
+    console.log(`✅ Business verification approved: ${verificationData.business_name}`);
+    console.log(`   Shop URL: /shop/${shopSlug}`);
+    console.log(`   Profile name updated and locked to: ${verificationData.business_name}`);
+  }
+
+  res.json({
+    success: true,
+    message: `Business verification ${action}d successfully`,
+    data: result.rows[0]
+  });
+}));
+
+// Review individual verification
+router.post('/verifications/individual/:id/:action', catchAsync(async (req, res) => {
+  const { id, action } = req.params;
+  const { reason } = req.body;
+  const editorId = req.user.userId;
+
+  if (!['approve', 'reject'].includes(action)) {
+    throw new ValidationError('Invalid action. Must be approve or reject');
+  }
+
+  if (action === 'reject' && !reason) {
+    throw new ValidationError('Rejection reason is required');
+  }
+
+  const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+  // Update verification request
+  const result = await pool.query(
+    `UPDATE individual_verification_requests
+     SET status = $1,
+         rejection_reason = $2,
+         reviewed_by = $3,
+         reviewed_at = CURRENT_TIMESTAMP
+     WHERE id = $4 AND status = 'pending'
+     RETURNING *`,
+    [newStatus, action === 'reject' ? reason : null, editorId, id]
+  );
+
+  if (result.rows.length === 0) {
+    throw new NotFoundError('Verification request not found or already processed');
+  }
+
+  // If approved, update user's individual_verified status
+  if (action === 'approve') {
+    const verificationData = result.rows[0];
+
+    // Generate unique shop_slug from full_name (handles collisions with -1, -2, etc.)
+    const shopSlug = await generateUniqueShopSlug(verificationData.full_name);
+
+    await pool.query(
+      `UPDATE users
+       SET individual_verified = true,
+           full_name = $2,
+           seller_slug = $3,
+           shop_slug = $3
+       WHERE id = $1`,
+      [verificationData.user_id, verificationData.full_name, shopSlug]
+    );
+
+    console.log(`✅ Individual verification approved: ${verificationData.full_name}`);
+    console.log(`   Shop URL: /shop/${shopSlug}`);
+    console.log(`   Profile name updated and locked to: ${verificationData.full_name}`);
+  }
+
+  res.json({
+    success: true,
+    message: `Individual verification ${action}d successfully`,
+    data: result.rows[0]
   });
 }));
 

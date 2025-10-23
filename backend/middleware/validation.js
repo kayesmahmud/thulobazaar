@@ -321,14 +321,47 @@ const loginSchema = Joi.object({
 const createAdSchema = Joi.object({
   title: Joi.string().min(3).max(200).required(),
   description: Joi.string().min(10).max(5000).required(),
-  price: Joi.number().positive().required(),
-  condition: Joi.string().valid('new', 'used', 'refurbished').optional(), // Made optional - now in customFields
-  categoryId: Joi.number().integer().positive().required(),
-  locationId: Joi.number().integer().positive().optional(), // Keep for backward compatibility
-  areaId: Joi.number().integer().positive().optional(), // New field name
-  sellerName: Joi.string().min(2).max(100).required(),
-  sellerPhone: Joi.string().pattern(/^[0-9+\-\s()]+$/).min(10).max(20).required(),
-  customFields: Joi.object().optional() // Accept template-specific custom fields
+  price: Joi.alternatives().try(
+    Joi.number().positive(),
+    Joi.string().pattern(/^\d+(\.\d{1,2})?$/)
+  ).required(),
+  isNegotiable: Joi.alternatives().try(
+    Joi.boolean(),
+    Joi.string().valid('true', 'false')
+  ).optional(),
+  categoryId: Joi.alternatives().try(
+    Joi.number().integer().positive(),
+    Joi.string().pattern(/^\d+$/)
+  ).required(),
+  subcategoryId: Joi.alternatives().try(
+    Joi.number().integer().positive(),
+    Joi.string().pattern(/^\d+$/)
+  ).optional(),
+  locationId: Joi.alternatives().try(
+    Joi.number().integer().positive(),
+    Joi.string().pattern(/^\d+$/)
+  ).optional(),
+  areaId: Joi.alternatives().try(
+    Joi.number().integer().positive(),
+    Joi.string().pattern(/^\d+$/)
+  ).optional(),
+  condition: Joi.string().valid('new', 'used', 'New', 'Used').optional(),
+  latitude: Joi.alternatives().try(
+    Joi.number(),
+    Joi.string()
+  ).optional(),
+  longitude: Joi.alternatives().try(
+    Joi.number(),
+    Joi.string()
+  ).optional(),
+  googleMapsLink: Joi.string().uri().optional(),
+  attributes: Joi.alternatives().try(
+    Joi.object(),
+    Joi.string()
+  ).optional(),
+  customFields: Joi.object().optional(), // Keep for backward compatibility
+  sellerName: Joi.string().min(2).max(100).optional(), // Made optional - extracted from user session
+  sellerPhone: Joi.string().pattern(/^[0-9+\-\s()]+$/).min(10).max(20).optional() // Made optional - extracted from user session
 }).or('locationId', 'areaId'); // At least one location field must be provided
 
 const updateAdSchema = Joi.object({

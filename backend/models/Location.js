@@ -304,11 +304,11 @@ class Location {
 
   /**
    * Get complete location hierarchy in a single query
-   * Returns provinces with nested districts and municipalities
-   * OPTIMIZED: Single database query instead of 85 separate queries
+   * Returns provinces with nested districts, municipalities, wards, and areas
+   * OPTIMIZED: Single database query instead of hundreds of separate queries
    */
   static async getHierarchy() {
-    // Fetch all locations in one query
+    // Fetch all locations in one query (including wards and areas)
     const query = `
       SELECT
         id,
@@ -316,11 +316,14 @@ class Location {
         type,
         parent_id
       FROM locations
+      WHERE type IN ('province', 'district', 'municipality', 'ward', 'area')
       ORDER BY
         CASE type
           WHEN 'province' THEN 1
           WHEN 'district' THEN 2
           WHEN 'municipality' THEN 3
+          WHEN 'ward' THEN 4
+          WHEN 'area' THEN 5
         END,
         id ASC
     `;
@@ -332,10 +335,14 @@ class Location {
     const provinces = allLocations.filter(loc => loc.type === 'province');
     const districts = allLocations.filter(loc => loc.type === 'district');
     const municipalities = allLocations.filter(loc => loc.type === 'municipality');
+    const wards = allLocations.filter(loc => loc.type === 'ward');
+    const areas = allLocations.filter(loc => loc.type === 'area');
 
     // Create lookup maps for O(1) access
     const districtsByProvince = {};
     const municipalitiesByDistrict = {};
+    const wardsByMunicipality = {};
+    const areasByWard = {};
 
     // Group districts by province
     districts.forEach(district => {
@@ -350,7 +357,30 @@ class Location {
       if (!municipalitiesByDistrict[municipality.parent_id]) {
         municipalitiesByDistrict[municipality.parent_id] = [];
       }
-      municipalitiesByDistrict[municipality.parent_id].push(municipality);
+      municipalitiesByDistrict[municipality.parent_id].push({ ...municipality, wards: [] });
+    });
+
+    // Group wards by municipality
+    wards.forEach(ward => {
+      if (!wardsByMunicipality[ward.parent_id]) {
+        wardsByMunicipality[ward.parent_id] = [];
+      }
+      // Extract ward number from name (e.g., "Ward 1" -> 1)
+      const wardNumber = parseInt(ward.name.replace('Ward ', ''));
+      wardsByMunicipality[ward.parent_id].push({
+        id: ward.id,
+        ward_number: wardNumber,
+        name: ward.name,
+        areas: []
+      });
+    });
+
+    // Group areas by ward
+    areas.forEach(area => {
+      if (!areasByWard[area.parent_id]) {
+        areasByWard[area.parent_id] = [];
+      }
+      areasByWard[area.parent_id].push(area);
     });
 
     // Build final hierarchy
@@ -359,7 +389,21 @@ class Location {
 
       // Attach municipalities to each district
       provinceDistricts.forEach(district => {
-        district.municipalities = municipalitiesByDistrict[district.id] || [];
+        const districtMunicipalities = municipalitiesByDistrict[district.id] || [];
+
+        // Attach wards to each municipality
+        districtMunicipalities.forEach(municipality => {
+          const municipalityWards = wardsByMunicipality[municipality.id] || [];
+
+          // Attach areas to each ward
+          municipalityWards.forEach(ward => {
+            ward.areas = areasByWard[ward.id] || [];
+          });
+
+          municipality.wards = municipalityWards;
+        });
+
+        district.municipalities = districtMunicipalities;
       });
 
       return {

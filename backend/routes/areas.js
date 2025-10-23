@@ -17,33 +17,33 @@ router.get('/search', async (req, res) => {
       });
     }
 
+    // Query from the new hierarchical locations table
     const query = `
-      SELECT
-        area_id as id,
-        area_name as name,
-        area_name_np as name_np,
-        ward_number,
-        municipality_name,
-        district_name,
-        province_name,
-        display_text,
-        listing_count,
-        is_popular,
-        area_latitude as latitude,
-        area_longitude as longitude
-      FROM areas_full_hierarchy
-      WHERE
-        area_name ILIKE $1
-        OR area_name_np ILIKE $1
-        OR search_text ILIKE $1
-        OR municipality_name ILIKE $1
-        OR district_name ILIKE $1
-        OR CAST(ward_number AS TEXT) ILIKE $1
-      ORDER BY
-        is_popular DESC,
-        listing_count DESC,
-        area_name ASC
-      LIMIT $2
+      WITH area_search AS (
+        SELECT
+          areas.id,
+          areas.name,
+          'area' as type,
+          wards.name as ward_name,
+          CAST(REPLACE(wards.name, 'Ward ', '') AS INTEGER) as ward_number,
+          m.name as municipality_name,
+          d.name as district_name,
+          p.name as province_name,
+          areas.name || ', Ward ' || REPLACE(wards.name, 'Ward ', '') || ', ' || m.name || ', ' || d.name as hierarchy_info,
+          COUNT(ads.id) FILTER (WHERE ads.status = 'approved') as listing_count
+        FROM locations areas
+        LEFT JOIN locations wards ON areas.parent_id = wards.id AND wards.type = 'ward'
+        LEFT JOIN locations m ON wards.parent_id = m.id AND m.type IN ('municipality', 'metropolitan', 'sub_metropolitan')
+        LEFT JOIN locations d ON m.parent_id = d.id AND d.type = 'district'
+        LEFT JOIN locations p ON d.parent_id = p.id AND p.type = 'province'
+        LEFT JOIN ads ON ads.location_id = areas.id
+        WHERE areas.type = 'area'
+          AND areas.name ILIKE $1
+        GROUP BY areas.id, areas.name, wards.name, m.name, d.name, p.name
+        ORDER BY listing_count DESC, areas.name ASC
+        LIMIT $2
+      )
+      SELECT * FROM area_search
     `;
 
     const result = await pool.query(query, [`%${q}%`, parseInt(limit)]);
@@ -69,6 +69,8 @@ router.get('/search', async (req, res) => {
 // =====================================================
 // GET POPULAR AREAS
 // Route: GET /api/areas/popular
+// NOTE: This endpoint uses old 'areas_full_hierarchy' view
+// TODO: Update to use hierarchical locations table
 // =====================================================
 router.get('/popular', async (req, res) => {
   try {
@@ -126,6 +128,8 @@ router.get('/popular', async (req, res) => {
 // =====================================================
 // GET AREAS BY MUNICIPALITY/WARD
 // Route: GET /api/areas/by-location?municipality_id=30101&ward=1
+// NOTE: This endpoint uses old 'areas' table directly
+// TODO: Update to use hierarchical locations table
 // =====================================================
 router.get('/by-location', async (req, res) => {
   try {
@@ -195,7 +199,6 @@ router.get('/hierarchy', async (req, res) => {
 
     // If province_id is provided, get a simplified hierarchy for that province
     if (province_id) {
-      // NEW: Use hierarchical locations table
       const districtQuery = `
         SELECT
           d.id,
@@ -378,7 +381,6 @@ router.get('/wards', async (req, res) => {
       });
     }
 
-    // NEW: Query the hierarchical locations table instead of old areas table
     const query = `
       WITH area_listings AS (
         SELECT

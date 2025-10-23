@@ -6,27 +6,16 @@ class Category {
    */
   static async findAll(includeSubcategories = false) {
     if (includeSubcategories) {
-      // Return hierarchical structure with subcategories nested
+      // Return FLAT array of ALL categories (both parents and children)
+      // This allows frontend to filter by parent_id to get subcategories
       const result = await pool.query(
-        `SELECT
-          c.*,
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', sub.id,
-                'name', sub.name,
-                'slug', sub.slug,
-                'parent_id', sub.parent_id
-              ) ORDER BY sub.name
-            ) FILTER (WHERE sub.id IS NOT NULL),
-            '[]'
-          ) as subcategories
-         FROM categories c
-         LEFT JOIN categories sub ON sub.parent_id = c.id
-         WHERE c.parent_id IS NULL
-         GROUP BY c.id
-         ORDER BY c.name ASC`
+        `SELECT * FROM categories
+         ORDER BY
+           CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
+           parent_id NULLS FIRST,
+           name ASC`
       );
+      console.log(`🔍 [Category.findAll] Returning ${result.rows.length} categories (flat array)`);
       return result.rows;
     } else {
       // Return only top-level categories

@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { styles, colors, spacing, borderRadius, typography } from '../../styles/theme';
 import { UPLOADS_BASE_URL } from '../../config/env.js';
+import VerificationBadge from '../common/VerificationBadge';
+import { getVerificationDisplayText } from '../../constants/verificationStatus.ts';
 
 function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPhoneDisplay }) {
   const navigate = useNavigate();
@@ -77,25 +79,14 @@ function SellerCard({ ad, phoneRevealed, onPhoneReveal, onEmailSeller, formatPho
               gap: spacing.sm
             }}>
               {ad.business_verification_status === 'approved' && ad.business_name ? ad.business_name : ad.seller_name}
-              {ad.business_verification_status === 'approved' && (
-                <img
-                  src="/golden-badge.png"
-                  alt="Verified Business"
-                  title="Verified Business"
-                  style={{ width: '20px', height: '20px' }}
-                />
-              )}
-              {ad.individual_verified && (
-                <img
-                  src="/blue-badge.png"
-                  alt="Verified Individual Seller"
-                  title="Verified Individual Seller"
-                  style={{ width: '20px', height: '20px' }}
-                />
-              )}
+              <VerificationBadge
+                businessVerificationStatus={ad.business_verification_status}
+                individualVerified={ad.individual_verified}
+                size={20}
+              />
             </div>
             <div style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-              {ad.business_verification_status === 'approved' ? 'Verified Business Account' : ad.individual_verified ? 'Verified Individual Seller' : 'Seller'}
+              {getVerificationDisplayText(ad.business_verification_status, ad.individual_verified)}
             </div>
             <div style={{
               color: colors.primary,

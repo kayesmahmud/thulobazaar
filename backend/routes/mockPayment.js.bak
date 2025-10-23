@@ -284,20 +284,7 @@ router.get('/success', async (req, res) => {
 
     // Redirect to frontend success page
     const adId = payment.metadata?.adId || payment.related_id;
-
-    // Get ad slug for redirect
-    let adSlug = null;
-    if (adId) {
-      const adResult = await pool.query('SELECT slug FROM ads WHERE id = $1', [adId]);
-      if (adResult.rows.length > 0) {
-        adSlug = adResult.rows[0].slug;
-      }
-    }
-
-    // Redirect to the ad detail page on the new monorepo site
-    const redirectUrl = adSlug
-      ? `http://localhost:3000/en/ad/${adSlug}?promoted=true&txnId=${txnId}`
-      : `http://localhost:3000/en/dashboard?promoted=true&txnId=${txnId}`;
+    const redirectUrl = `http://localhost:5173/en/payment-success?txnId=${txnId}&amount=${amount}&adId=${adId}`;
 
     res.redirect(redirectUrl);
 

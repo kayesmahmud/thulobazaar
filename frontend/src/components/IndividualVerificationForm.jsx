@@ -56,6 +56,19 @@ function IndividualVerificationForm({ onSuccess, onCancel }) {
       }
       submitFormData.append('selfie_with_id', formData.selfie_with_id);
 
+      // Debug logging
+      console.log('🔍 FormData contents before submission:');
+      console.log('  full_name:', formData.full_name);
+      console.log('  id_document_type:', formData.id_document_type);
+      console.log('  id_document_number:', formData.id_document_number);
+      console.log('  id_document_front:', formData.id_document_front);
+      console.log('  id_document_back:', formData.id_document_back);
+      console.log('  selfie_with_id:', formData.selfie_with_id);
+      console.log('🔍 FormData entries:');
+      for (let pair of submitFormData.entries()) {
+        console.log('  ', pair[0], ':', pair[1]);
+      }
+
       await ApiService.submitIndividualVerification(submitFormData);
       alert('✅ Verification request submitted successfully! Your application is under review.');
       onSuccess();

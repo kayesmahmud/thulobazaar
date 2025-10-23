@@ -7,6 +7,7 @@ const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 const config = require('../config/env');
+const { BUSINESS_VERIFICATION_STATUS, isBusinessVerified } = require('../constants/verificationStatus');
 
 // Apply authentication middleware to all routes in this router
 router.use(authenticateToken);
@@ -86,7 +87,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.full_name as name, u.email, u.bio, u.avatar, u.cover_photo, u.phone,
               u.location_id, l.name as location_name, u.role, u.created_at,
-              u.shop_slug, u.seller_slug, u.business_verification_status, u.individual_verified
+              u.shop_slug, u.seller_slug, u.account_type, u.business_verification_status, u.individual_verified, u.business_name
        FROM users u
        LEFT JOIN locations l ON u.location_id = l.id
        WHERE u.id = $1`,
@@ -119,6 +120,8 @@ router.get('/', async (req, res) => {
       createdAt: user.created_at,
       shopSlug: user.shop_slug,
       sellerSlug: user.seller_slug,
+      accountType: user.account_type,
+      businessName: user.business_name,
       businessVerificationStatus: user.business_verification_status,
       individualVerified: user.individual_verified
     };
@@ -169,7 +172,7 @@ router.put('/', async (req, res) => {
       }
 
       // Prevent name change if user has business verification badge
-      if (user.business_verification_status === 'approved') {
+      if (isBusinessVerified(user.business_verification_status)) {
         return res.status(403).json({
           error: 'Cannot change name while business account is verified. Contact support to revoke verification first.'
         });

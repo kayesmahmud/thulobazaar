@@ -6,47 +6,111 @@
  * Promotion Types:
  * - Featured (🌟): Homepage + Search + Category visibility
  * - Urgent (🔥): Priority placement, quick sales
- * - Bump Up (📈): Move to top of listings, cost-effective boost
+ * - Sticky/Bump Up (📌): Move to top of listings, cost-effective boost
  *
- * Duration Options: 3, 7, 15, 30 days
- * Business Discount: 30-40% off for verified businesses
+ * Duration Options: 3, 7, 15 days
+ * Pricing by User Type: Individual, Individual Verified, Business Verified
  */
 
-const pool = require('../config/db');
+const pool = require('../config/database');
 
 class PromotionService {
   /**
-   * Get promotion pricing
-   * @returns {Object} Pricing structure for all promotion types
+   * Get promotion pricing structure
+   * @returns {Object} Pricing structure for all promotion types and user types
    */
   getPricing() {
     return {
       featured: {
-        3: { individual: 500, business: 350 },  // 30% discount
-        7: { individual: 1000, business: 700 },
-        15: { individual: 1800, business: 1080 } // 40% discount
+        3: {
+          individual: 1000,           // Unverified individual seller
+          individual_verified: 800,   // Individual verified seller (20% discount)
+          business: 600               // Business verified seller (40% discount)
+        },
+        7: {
+          individual: 2000,
+          individual_verified: 1600,
+          business: 1200
+        },
+        15: {
+          individual: 3500,
+          individual_verified: 2800,
+          business: 2100
+        }
       },
       urgent: {
-        3: { individual: 300, business: 210 },
-        7: { individual: 600, business: 420 },
-        15: { individual: 1000, business: 600 }
+        3: {
+          individual: 500,
+          individual_verified: 400,
+          business: 300
+        },
+        7: {
+          individual: 1000,
+          individual_verified: 800,
+          business: 600
+        },
+        15: {
+          individual: 1750,
+          individual_verified: 1400,
+          business: 1050
+        }
       },
-      bump_up: {
-        3: { individual: 150, business: 105 },
-        7: { individual: 300, business: 210 },
-        15: { individual: 500, business: 300 }
+      sticky: {
+        3: {
+          individual: 100,
+          individual_verified: 85,
+          business: 70
+        },
+        7: {
+          individual: 200,
+          individual_verified: 170,
+          business: 140
+        },
+        15: {
+          individual: 350,
+          individual_verified: 297,
+          business: 245
+        }
       }
     };
   }
 
   /**
-   * Calculate promotion price
-   * @param {string} promotionType - featured, urgent, or bump_up
-   * @param {number} durationDays - 3, 7, 15, or 30 days
-   * @param {boolean} isVerifiedBusiness - Whether user is verified business
-   * @returns {number} Price in NPR
+   * Determine account type based on user verification status
+   * @param {number} userId - User ID
+   * @returns {Promise<string>} Account type: individual, individual_verified, or business
    */
-  calculatePrice(promotionType, durationDays, isVerifiedBusiness = false) {
+  async getUserAccountType(userId) {
+    const result = await pool.query(
+      `SELECT individual_verified, business_verification_status
+       FROM users
+       WHERE id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error('User not found');
+    }
+
+    const user = result.rows[0];
+
+    if (user.business_verification_status === 'verified') {
+      return 'business';
+    } else if (user.individual_verified) {
+      return 'individual_verified';
+    } else {
+      return 'individual';
+    }
+  }
+
+  /**
+   * Calculate promotion price
+   * @param {string} promotionType - featured, urgent, or sticky
+   * @param {number} durationDays - 3, 7, or 15 days
+   * @param {number} userId - User ID
+   * @returns {Promise<Object>} Price details
+   */
+  async calculatePrice(promotionType, durationDays, userId) {
     const pricing = this.getPricing();
 
     if (!pricing[promotionType]) {
@@ -57,16 +121,24 @@ class PromotionService {
       throw new Error(`Invalid duration: ${durationDays}. Must be 3, 7, or 15 days.`);
     }
 
-    const accountType = isVerifiedBusiness ? 'business' : 'individual';
-    return pricing[promotionType][durationDays][accountType];
+    const accountType = await this.getUserAccountType(userId);
+    const price = pricing[promotionType][durationDays][accountType];
+
+    return {
+      promotionType,
+      durationDays,
+      accountType,
+      price,
+      currency: 'NPR'
+    };
   }
 
   /**
    * Activate promotion after successful payment
    * @param {number} adId - Ad ID to promote
    * @param {number} userId - User ID
-   * @param {string} promotionType - featured, urgent, or bump_up
-   * @param {number} durationDays - 3, 7, 15, or 30 days
+   * @param {string} promotionType - featured, urgent, or sticky
+   * @param {number} durationDays - 3, 7, or 15 days
    * @param {number} amount - Payment amount
    * @param {string} transactionId - Payment transaction ID
    * @returns {Promise<Object>} Activation result
@@ -113,16 +185,10 @@ class PromotionService {
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + durationDays);
 
-      // 2. Determine account type (for tracking purposes)
-      const userResult = await client.query(
-        `SELECT business_verification_status FROM users WHERE id = $1`,
-        [userId]
-      );
-      const accountType = userResult.rows[0]?.business_verification_status === 'approved'
-        ? 'business'
-        : 'individual';
+      // 3. Determine account type
+      const accountType = await this.getUserAccountType(userId);
 
-      // 3. Insert into ad_promotions table
+      // 4. Insert into ad_promotions table
       const promotionResult = await client.query(
         `INSERT INTO ad_promotions (
           ad_id, user_id, promotion_type, duration_days,
@@ -146,7 +212,7 @@ class PromotionService {
 
       const promotion = promotionResult.rows[0];
 
-      // 4. First, clear ALL promotion flags (to prevent multiple active promotions)
+      // 5. Clear ALL promotion flags (to prevent multiple active promotions)
       await client.query(
         `UPDATE ads
          SET
@@ -160,7 +226,7 @@ class PromotionService {
         [adId]
       );
 
-      // 5. Deactivate any existing active promotions for this ad
+      // 6. Deactivate any existing active promotions for this ad
       await client.query(
         `UPDATE ad_promotions
          SET is_active = false
@@ -168,13 +234,12 @@ class PromotionService {
         [adId, promotion.id]
       );
 
-      // 6. Set the NEW promotion flag (map bump_up to sticky in database)
-      const dbPromotionType = promotionType === 'bump_up' ? 'sticky' : promotionType;
+      // 7. Set the NEW promotion flag
       await client.query(
         `UPDATE ads
          SET
-           is_${dbPromotionType} = true,
-           ${dbPromotionType}_until = $1,
+           is_${promotionType} = true,
+           ${promotionType}_until = $1,
            promoted_at = CURRENT_TIMESTAMP
          WHERE id = $2`,
         [expiryDate, adId]
@@ -336,7 +401,7 @@ class PromotionService {
         a.id, a.user_id, a.status,
         a.is_featured, a.featured_until,
         a.is_urgent, a.urgent_until,
-        a.is_bump_up, a.bump_up_until
+        a.is_sticky, a.sticky_until
        FROM ads a
        WHERE a.id = $1`,
       [adId]
@@ -375,14 +440,14 @@ class PromotionService {
     if (ad.is_urgent && new Date(ad.urgent_until) > now) {
       activePromotions.push('urgent');
     }
-    if (ad.is_bump_up && new Date(ad.bump_up_until) > now) {
-      activePromotions.push('bump_up');
+    if (ad.is_sticky && new Date(ad.sticky_until) > now) {
+      activePromotions.push('sticky');
     }
 
     return {
       canPromote: true,
       activePromotions,
-      availablePromotions: ['featured', 'urgent', 'bump_up'].filter(
+      availablePromotions: ['featured', 'urgent', 'sticky'].filter(
         type => !activePromotions.includes(type)
       )
     };

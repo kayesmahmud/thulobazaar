@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { styles, colors, spacing, typography, borderRadius } from '../../styles/theme';
 import { UPLOADS_BASE_URL } from '../../config/env.js';
+import VerificationBadge from '../common/VerificationBadge';
 
 function SearchResultCard({ ad }) {
   const navigate = useNavigate();
@@ -158,6 +159,37 @@ function SearchResultCard({ ad }) {
             textTransform: 'capitalize'
           }}>
             {ad.condition.replace('-', ' ')}
+          </div>
+        )}
+
+        {/* Seller Info with Verification Badge */}
+        {ad.seller_name && (
+          <div style={{
+            marginTop: spacing.md,
+            paddingTop: spacing.md,
+            borderTop: `1px solid ${colors.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.xs
+          }}>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary
+            }}>
+              Seller:
+            </span>
+            <span style={{
+              fontSize: typography.fontSize.sm,
+              fontWeight: typography.fontWeight.semibold,
+              color: colors.text.primary
+            }}>
+              {ad.seller_name}
+            </span>
+            <VerificationBadge
+              businessVerificationStatus={ad.business_verification_status}
+              individualVerified={ad.individual_verified}
+              size={16}
+            />
           </div>
         )}
       </div>

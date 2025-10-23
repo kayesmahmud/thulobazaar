@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { catchAsync, ValidationError } = require('../middleware/errorHandler');
+const { BUSINESS_VERIFICATION_STATUS } = require('../constants/verificationStatus');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -67,17 +68,17 @@ router.post('/submit', upload.single('business_license'), catchAsync(async (req,
   // Check if user already has a pending or approved request
   const existingRequest = await pool.query(
     `SELECT id, status FROM business_verification_requests
-     WHERE user_id = $1 AND status IN ('pending', 'approved')
+     WHERE user_id = $1 AND status IN ($2, $3)
      ORDER BY created_at DESC LIMIT 1`,
-    [userId]
+    [userId, BUSINESS_VERIFICATION_STATUS.PENDING, BUSINESS_VERIFICATION_STATUS.APPROVED]
   );
 
   if (existingRequest.rows.length > 0) {
     const status = existingRequest.rows[0].status;
-    if (status === 'approved') {
+    if (status === BUSINESS_VERIFICATION_STATUS.APPROVED) {
       throw new ValidationError('Your business account is already verified');
     }
-    if (status === 'pending') {
+    if (status === BUSINESS_VERIFICATION_STATUS.PENDING) {
       throw new ValidationError('You already have a pending verification request. Please wait for review.');
     }
   }
@@ -90,7 +91,7 @@ router.post('/submit', upload.single('business_license'), catchAsync(async (req,
       user_id, business_name, business_license_document, business_category,
       business_description, business_website, business_phone, business_address,
       payment_reference, payment_amount, status, created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING id, status, created_at`,
     [
       userId,
@@ -102,7 +103,8 @@ router.post('/submit', upload.single('business_license'), catchAsync(async (req,
       business_phone || null,
       business_address || null,
       payment_reference || null,
-      payment_amount || null
+      payment_amount || null,
+      BUSINESS_VERIFICATION_STATUS.PENDING
     ]
   );
 

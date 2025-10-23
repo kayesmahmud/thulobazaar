@@ -8,15 +8,17 @@ class CategoryController {
   static async getAll(req, res) {
     const { includeSubcategories } = req.query;
 
+    console.log(`🔍 [CategoryController] includeSubcategories param:`, includeSubcategories, typeof includeSubcategories);
+
     const categories = includeSubcategories === 'true'
       ? await Category.findAll(true)
       : await Category.findAllWithCount();
 
-    console.log(`✅ Found ${categories.length} categories`);
+    console.log(`✅ [CategoryController] Returning ${categories.length} categories`);
 
     res.json({
       success: true,
-      categories
+      data: categories  // Changed from 'categories' to 'data' to match API client expectations
     });
   }
 

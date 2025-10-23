@@ -3,14 +3,27 @@ const { NotFoundError } = require('../middleware/errorHandler');
 
 class LocationController {
   /**
-   * Get all locations (with optional parent_id filter for hierarchical selection)
+   * Get all locations (with optional parent_id or type filter for hierarchical selection)
    */
   static async getAll(req, res) {
-    const { parent_id } = req.query;
+    const { parent_id, type } = req.query;
 
     let locations;
 
-    if (parent_id !== undefined) {
+    if (type !== undefined) {
+      // Filter by location type (province, district, municipality, etc.)
+      const query = `
+        SELECT l.*, COUNT(a.id) as ad_count
+        FROM locations l
+        LEFT JOIN ads a ON l.id = a.location_id AND a.status = 'approved'
+        WHERE l.type = $1
+        GROUP BY l.id
+        ORDER BY l.name ASC
+      `;
+      const result = await require('../config/database').query(query, [type]);
+      locations = result.rows;
+      console.log(`✅ Found ${locations.length} locations (type: ${type})`);
+    } else if (parent_id !== undefined) {
       // Fetch children of specific parent (or provinces if parent_id is null/empty)
       if (parent_id === '' || parent_id === 'null') {
         // Get top-level locations (provinces)
@@ -158,8 +171,8 @@ class LocationController {
   }
 
   /**
-   * Get complete location hierarchy (provinces > districts > municipalities)
-   * OPTIMIZED: Returns all locations in a single call instead of 85 separate calls
+   * Get complete location hierarchy (provinces > districts > municipalities > wards > areas)
+   * OPTIMIZED: Returns all locations in a single call instead of hundreds of separate calls
    */
   static async getHierarchy(req, res) {
     const hierarchy = await Location.getHierarchy();
@@ -171,8 +184,26 @@ class LocationController {
         sum + p.districts.reduce((districtSum, d) =>
           districtSum + d.municipalities.length, 0
         ), 0
+      ),
+      wards: hierarchy.reduce((sum, p) =>
+        sum + p.districts.reduce((districtSum, d) =>
+          districtSum + d.municipalities.reduce((munSum, m) =>
+            munSum + (m.wards?.length || 0), 0
+          ), 0
+        ), 0
+      ),
+      areas: hierarchy.reduce((sum, p) =>
+        sum + p.districts.reduce((districtSum, d) =>
+          districtSum + d.municipalities.reduce((munSum, m) =>
+            munSum + (m.wards || []).reduce((wardSum, w) =>
+              wardSum + (w.areas?.length || 0), 0
+            ), 0
+          ), 0
+        ), 0
       )
     };
+
+    console.log('📍 Location hierarchy stats:', stats);
 
     res.json({
       success: true,
