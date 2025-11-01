@@ -1,28 +1,71 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatPrice, formatDateTime, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
 import { notFound } from 'next/navigation';
 import AdDetailClient from './AdDetailClient';
 import PromoteSection from './PromoteSection';
+import Breadcrumb from '@/components/Breadcrumb';
+import PromotionSuccessToast from './PromotionSuccessToast';
+import { generateProductStructuredData, generateBreadcrumbStructuredData } from '@/lib/structuredData';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
 }
 
 export async function generateMetadata({ params }: AdDetailPageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, lang } = await params;
+  const baseUrl = 'https://thulobazaar.com'; // TODO: Use env variable
 
   try {
     const ad = await prisma.ads.findFirst({
       where: { slug, status: 'approved', deleted_at: null },
-      select: { title: true, description: true },
+      select: {
+        title: true,
+        description: true,
+        price: true,
+        ad_images: {
+          where: { is_primary: true },
+          take: 1,
+          select: { file_path: true },
+        },
+      },
     });
 
     if (ad) {
+      const imageUrl = ad.ad_images && ad.ad_images.length > 0
+        ? ad.ad_images[0]?.file_path || `${baseUrl}/placeholder-ad.png`
+        : `${baseUrl}/placeholder-ad.png`;
+
+      const description = ad.description?.substring(0, 160) || `View details for ${ad.title}`;
+      const priceText = ad.price ? `Rs. ${parseFloat(ad.price.toString()).toLocaleString()}` : 'Price on request';
+
       return {
-        title: `${ad.title} - Thulobazaar`,
-        description: ad.description?.substring(0, 160) || `View details for ${ad.title}`,
+        title: `${ad.title} | ${priceText} - Thulobazaar`,
+        description,
+        openGraph: {
+          title: ad.title,
+          description,
+          url: `${baseUrl}/${lang}/ad/${slug}`,
+          siteName: 'Thulobazaar',
+          images: [
+            {
+              url: imageUrl,
+              width: 800,
+              height: 600,
+              alt: ad.title,
+            },
+          ],
+          locale: lang === 'en' ? 'en_US' : 'ne_NP',
+          type: 'website',
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: ad.title,
+          description,
+          images: [imageUrl],
+        },
       };
     }
   } catch (error) {
@@ -149,103 +192,50 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
 
   // Prepare images for client component (array of full URL strings)
   const images = ad.ad_images.map(img =>
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${img.file_path}`
+    `/${img.file_path}`
   );
 
+  // Build breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Home', path: `/${lang}` },
+    { label: 'All Ads', path: `/${lang}/search` },
+  ];
+
+  if (ad.categories?.name && ad.categories?.slug) {
+    breadcrumbItems.push({
+      label: ad.categories.name,
+      path: `/${lang}/search?category=${ad.categories.slug}`
+    });
+  }
+
+  breadcrumbItems.push({
+    label: ad.title.substring(0, 40) + (ad.title.length > 40 ? '...' : ''),
+    path: '' // Current page
+  });
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb */}
-      <div style={{
-        background: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '1rem 0'
-      }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280', flexWrap: 'wrap' }}>
-            <Link href={`/${lang}`} style={{ color: '#667eea', textDecoration: 'none' }}>
-              Home
-            </Link>
-            <span>/</span>
-            <Link href={`/${lang}/search`} style={{ color: '#667eea', textDecoration: 'none' }}>
-              All Ads
-            </Link>
-            <span>/</span>
-            {ad.categories?.name && ad.categories?.slug && (
-              <>
-                <Link href={`/${lang}/search?category=${ad.categories.slug}`} style={{ color: '#667eea', textDecoration: 'none' }}>
-                  {ad.categories.name}
-                </Link>
-                <span>/</span>
-              </>
-            )}
-            <span>{ad.title.substring(0, 40)}{ad.title.length > 40 ? '...' : ''}</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumb items={breadcrumbItems} />
 
-      {/* Success Banner - Show after successful promotion */}
-      {search.promoted === 'true' && (
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1rem 0 1rem' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: 'white',
-            padding: '1rem 1.5rem',
-            borderRadius: '12px',
-            boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem'
-          }}>
-            <span style={{ fontSize: '2rem' }}>🎉</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.25rem' }}>
-                Promotion Activated Successfully!
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.95 }}>
-                Your ad is now promoted and will get more visibility. Transaction ID: {search.txnId}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Toast notification for successful promotion */}
+      <PromotionSuccessToast promoted={search.promoted === 'true'} txnId={search.txnId} />
 
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
+      <div className="max-w-screen-desktop mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
           {/* Main Content */}
           <div>
             {/* Image Gallery - Client component for interactivity */}
             <AdDetailClient images={images} lang={lang} />
 
             {/* Ad Details */}
-            <div style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '1.5rem',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'start',
-                marginBottom: '1.5rem'
-              }}>
+            <div className="bg-white rounded-xl p-8 mb-6 shadow-sm">
+              <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h1 style={{
-                    fontSize: '1.75rem',
-                    fontWeight: '700',
-                    color: '#1f2937',
-                    marginBottom: '0.5rem'
-                  }}>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
                     {ad.title}
                   </h1>
-                  <div style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    fontSize: '0.875rem',
-                    color: '#6b7280',
-                    flexWrap: 'wrap'
-                  }}>
+                  <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
                     {fullLocation && <span>📍 {fullLocation}</span>}
                     {fullLocation && <span>•</span>}
                     <span>🕒 {formatRelativeTime(ad.created_at || new Date())}</span>
@@ -255,50 +245,21 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 </div>
               </div>
 
-              <div style={{
-                fontSize: '2rem',
-                fontWeight: '700',
-                color: '#10b981',
-                marginBottom: '1rem'
-              }}>
-                {formatPrice(parseFloat(ad.price.toString()))}
+              <div className="text-4xl font-bold text-green-600 mb-4">
+                {ad.price ? formatPrice(parseFloat(ad.price.toString())) : 'Price on request'}
               </div>
 
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                marginBottom: '2rem',
-                flexWrap: 'wrap'
-              }}>
-                <span style={{
-                  background: '#f0f9ff',
-                  color: '#0369a1',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '4px',
-                  fontSize: '0.875rem'
-                }}>
+              <div className="flex gap-2 mb-8 flex-wrap">
+                <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded text-sm">
                   {condition}
                 </span>
                 {(ad.custom_fields as any)?.isNegotiable && (
-                  <span style={{
-                    background: '#fef3c7',
-                    color: '#78350f',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '4px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600'
-                  }}>
+                  <span className="bg-amber-50 text-amber-900 px-3 py-1 rounded text-sm font-semibold">
                     💰 Price is negotiable
                   </span>
                 )}
                 {fullCategory && (
-                  <span style={{
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '4px',
-                    fontSize: '0.875rem'
-                  }}>
+                  <span className="bg-green-50 text-green-800 px-3 py-1 rounded text-sm">
                     {fullCategory}
                   </span>
                 )}
@@ -344,69 +305,95 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 )}
               </div>
 
-              <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{
-                  fontSize: '1.25rem',
-                  fontWeight: '600',
-                  marginBottom: '1rem',
-                  color: '#1f2937'
-                }}>
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4 text-gray-800">
                   Description
                 </h2>
-                <p style={{
-                  color: '#4b5563',
-                  lineHeight: '1.7',
-                  whiteSpace: 'pre-line'
-                }}>
+                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
                   {ad.description}
                 </p>
               </div>
 
               {/* Specifications Section */}
               {ad.custom_fields && Object.keys(ad.custom_fields as object).length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h2 style={{
-                    fontSize: '1.25rem',
-                    fontWeight: '600',
-                    marginBottom: '1rem',
-                    color: '#1f2937'
-                  }}>
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">
                     Specifications
                   </h2>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '1rem'
-                  }}>
-                    {Object.entries(ad.custom_fields as Record<string, any>)
-                      .filter(([key]) => key !== 'isNegotiable') // Filter out isNegotiable since it's shown as a badge
-                      .map(([key, value]) => (
-                      <div
-                        key={key}
-                        style={{
-                          padding: '0.75rem',
-                          background: '#f9fafb',
-                          borderRadius: '8px'
-                        }}
-                      >
-                        <div style={{
-                          fontSize: '0.75rem',
-                          color: '#6b7280',
-                          marginBottom: '0.25rem',
-                          textTransform: 'capitalize'
-                        }}>
-                          {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(() => {
+                      const entries = Object.entries(ad.custom_fields as Record<string, any>)
+                        .filter(([key]) => key !== 'isNegotiable' && key !== 'amenities');
+
+                      // Check if this is a property-related ad (has totalArea field)
+                      const hasAreaFields = entries.some(([key]) => key === 'totalArea' || key === 'areaUnit');
+
+                      if (hasAreaFields) {
+                        // Sort to put totalArea first, then areaUnit, then everything else
+                        entries.sort((a, b) => {
+                          const [keyA] = a;
+                          const [keyB] = b;
+
+                          if (keyA === 'totalArea') return -1;
+                          if (keyB === 'totalArea') return 1;
+                          if (keyA === 'areaUnit') return -1;
+                          if (keyB === 'areaUnit') return 1;
+
+                          return 0;
+                        });
+                      }
+
+                      return entries.map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="text-xs text-gray-600 mb-1 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+                          </div>
+                          <div className="text-base font-medium text-gray-800">
+                            {String(value)}
+                          </div>
                         </div>
-                        <div style={{
-                          fontSize: '0.95rem',
-                          fontWeight: '500',
-                          color: '#1f2937'
-                        }}>
-                          {String(value)}
-                        </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
+
+                  {/* Amenities Section - Display at bottom with checkmarks */}
+                  {(ad.custom_fields as Record<string, any>)?.amenities && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                        Amenities
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {(() => {
+                          const amenitiesValue = (ad.custom_fields as Record<string, any>).amenities;
+                          let amenitiesList: string[] = [];
+
+                          // Handle if amenities is a string (comma-separated)
+                          if (typeof amenitiesValue === 'string') {
+                            amenitiesList = amenitiesValue.split(',').map(a => a.trim()).filter(Boolean);
+                          }
+                          // Handle if amenities is an array
+                          else if (Array.isArray(amenitiesValue)) {
+                            amenitiesList = amenitiesValue;
+                          }
+
+                          return amenitiesList.map((amenity, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-3 text-gray-700"
+                            >
+                              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 text-sm font-bold flex-shrink-0">
+                                ✓
+                              </span>
+                              <span>{amenity}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -517,21 +504,23 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                         : ad.users_ads_user_idTousers?.full_name || 'Seller'}
                       {/* Golden Badge for Verified Business */}
                       {ad.users_ads_user_idTousers?.account_type === 'business' && ad.users_ads_user_idTousers?.business_verification_status === 'approved' && (
-                        <img
+                        <Image
                           src="/golden-badge.png"
                           alt="Verified Business"
                           title="Verified Business"
-                          style={{ width: '20px', height: '20px' }}
+                          width={20}
+                          height={20}
                         />
                       )}
                       {/* Blue Badge for Verified Individual */}
                       {ad.users_ads_user_idTousers?.account_type === 'individual' &&
                        (ad.users_ads_user_idTousers?.individual_verified || ad.users_ads_user_idTousers?.business_verification_status === 'verified') && (
-                        <img
+                        <Image
                           src="/blue-badge.png"
                           alt="Verified Individual Seller"
                           title="Verified Individual Seller"
-                          style={{ width: '20px', height: '20px' }}
+                          width={20}
+                          height={20}
                         />
                       )}
                     </Link>
@@ -569,20 +558,12 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
               </div>
 
               {ad.users_ads_user_idTousers?.phone && (
-                <div style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  marginBottom: '0.75rem',
-                  fontSize: '1rem',
-                  textAlign: 'center'
-                }}>
+                <a
+                  href={`tel:${ad.users_ads_user_idTousers.phone}`}
+                  className="block w-full px-3 py-3 bg-green-600 text-white rounded-lg font-semibold mb-3 text-center no-underline transition-all duration-200 hover:bg-green-700 hover:-translate-y-0.5 active:translate-y-0"
+                >
                   📞 {ad.users_ads_user_idTousers.phone}
-                </div>
+                </a>
               )}
 
               {ad.users_ads_user_idTousers?.email && (
@@ -621,12 +602,12 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
             <PromoteSection ad={{
               id: ad.id,
               title: ad.title,
-              user_id: ad.user_id,
-              is_featured: ad.is_featured,
+              user_id: ad.user_id || 0,
+              is_featured: ad.is_featured ?? false,
               featured_until: ad.featured_until,
-              is_urgent: ad.is_urgent,
+              is_urgent: ad.is_urgent ?? false,
               urgent_until: ad.urgent_until,
-              is_sticky: ad.is_sticky,
+              is_sticky: ad.is_sticky ?? false,
               sticky_until: ad.sticky_until
             }} />
 

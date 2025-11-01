@@ -7,60 +7,33 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '70vh',
-      padding: '2rem',
-      textAlign: 'center'
-    }}>
-      <div style={{ maxWidth: '600px' }}>
-        <h1 style={{
-          fontSize: '6rem',
-          fontWeight: 'bold',
-          marginBottom: '1rem',
-          background: 'linear-gradient(to right, #3b82f6, #8b5cf6)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
+    <div className="flex flex-col items-center justify-center min-h-[70vh] p-8 text-center bg-gray-50">
+      <div className="max-w-md">
+        <h1 className="text-8xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
           404
         </h1>
 
-        <h2 style={{
-          fontSize: '1.875rem',
-          fontWeight: '600',
-          marginBottom: '1rem',
-          color: '#1f2937'
-        }}>
+        <h2 className="text-3xl font-semibold text-gray-900 mb-2">
           Page Not Found
         </h2>
 
-        <p style={{
-          color: '#6b7280',
-          marginBottom: '2rem',
-          fontSize: '1.125rem'
-        }}>
+        <p className="text-gray-600 mb-8 text-lg">
           Sorry, we couldn&apos;t find the page you&apos;re looking for.
           The page might have been moved or deleted.
         </p>
 
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <div className="flex gap-3 justify-center flex-wrap">
           <Link
             href="/en"
-            style={{
-              background: '#3b82f6',
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              fontSize: '1rem',
-              fontWeight: '500'
-            }}
+            className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors no-underline"
           >
             Go Home
+          </Link>
+          <Link
+            href="/en/all-ads"
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors no-underline"
+          >
+            Browse Ads
           </Link>
         </div>
       </div>

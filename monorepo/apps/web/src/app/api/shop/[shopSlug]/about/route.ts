@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@thulobazaar/database';
+import { requireAuth } from '@/lib/jwt';
+
+interface RouteContext {
+  params: Promise<{ shopSlug: string }>;
+}
+
+/**
+ * PUT /api/shop/:shopSlug/about
+ * Update shop's about/business description section
+ */
+export async function PUT(request: NextRequest, context: RouteContext) {
+  try {
+    // Authenticate user
+    const userId = await requireAuth(request);
+    const { shopSlug } = await context.params;
+
+    // Get the user by shop_slug
+    const shop = await prisma.users.findFirst({
+      where: { shop_slug: shopSlug },
+      select: { id: true },
+    });
+
+    if (!shop) {
+      return NextResponse.json(
+        { success: false, message: 'Shop not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify ownership
+    if (shop.id !== userId) {
+      return NextResponse.json(
+        { success: false, message: 'You can only edit your own shop' },
+        { status: 403 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { business_description } = body;
+
+    // Update the shop
+    await prisma.users.update({
+      where: { id: userId },
+      data: {
+        business_description: business_description || null,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'About section updated successfully',
+    });
+  } catch (error: any) {
+    console.error('Shop about update error:', error);
+
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Failed to update about section',
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}

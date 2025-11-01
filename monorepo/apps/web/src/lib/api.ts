@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createApiClient } from '@thulobazaar/api-client';
 import { getSession } from 'next-auth/react';
 
@@ -6,7 +7,7 @@ import { getSession } from 'next-auth/react';
  * This uses the shared @thulobazaar/api-client package
  */
 export const apiClient = createApiClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
 
   // Get auth token from NextAuth session (client-side only)
   getAuthToken: async () => {

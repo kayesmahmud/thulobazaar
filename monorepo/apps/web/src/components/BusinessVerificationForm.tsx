@@ -2,6 +2,7 @@
 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { apiClient } from '@/lib/api';
+import { Button } from '@/components/ui';
 
 interface FormData {
   businessName: string;
@@ -146,7 +147,7 @@ export default function BusinessVerificationForm({
         <button
           onClick={onCancel}
           type="button"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold bg-transparent border-none cursor-pointer"
           aria-label="Close"
         >
           ✕
@@ -397,21 +398,24 @@ export default function BusinessVerificationForm({
 
           {/* Action Buttons */}
           <div className="flex gap-4">
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              loading={loading}
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1"
             >
               {loading ? 'Submitting...' : 'Submit for Verification'}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={onCancel}
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-white text-gray-700 font-semibold border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:cursor-not-allowed"
+              className="flex-1"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>

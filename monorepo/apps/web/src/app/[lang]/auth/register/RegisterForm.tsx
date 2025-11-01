@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 
 interface RegisterFormProps {
   lang: string;
@@ -193,20 +194,15 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        fullWidth
+        loading={isLoading}
         disabled={isLoading}
-        className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="spinner"></span>
-            Creating account...
-          </span>
-        ) : (
-          'Create account'
-        )}
-      </button>
+        {isLoading ? 'Creating account...' : 'Create account'}
+      </Button>
     </form>
   );
 }

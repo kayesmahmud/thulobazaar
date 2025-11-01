@@ -119,16 +119,11 @@ export default function ImageUpload({
         onDragOver={handleDrag}
         onDrop={handleDrop}
         onClick={handleButtonClick}
-        style={{
-          border: dragActive ? '2px solid #667eea' : '2px dashed #d1d5db',
-          borderRadius: '12px',
-          padding: '2rem',
-          textAlign: 'center',
-          cursor: 'pointer',
-          background: dragActive ? '#f0f4ff' : 'white',
-          transition: 'all 0.2s',
-          marginBottom: images.length > 0 ? '1.5rem' : '0'
-        }}
+        className={`
+          border-2 rounded-xl p-8 text-center cursor-pointer transition-all duration-200
+          ${dragActive ? 'border-primary bg-primary-light' : 'border-dashed border-gray-300 bg-white'}
+          ${images.length > 0 ? 'mb-6' : ''}
+        `}
       >
         <input
           ref={inputRef}
@@ -136,35 +131,22 @@ export default function ImageUpload({
           multiple
           accept="image/*"
           onChange={handleChange}
-          style={{ display: 'none' }}
+          className="hidden"
         />
 
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+        <div className="text-5xl mb-4">
           {dragActive ? '📥' : '📷'}
         </div>
 
-        <p style={{
-          fontSize: '1rem',
-          fontWeight: '500',
-          color: '#1f2937',
-          marginBottom: '0.5rem'
-        }}>
+        <p className="text-base font-medium text-gray-900 mb-2">
           {dragActive ? 'Drop images here' : 'Click to upload or drag and drop'}
         </p>
 
-        <p style={{
-          fontSize: '0.875rem',
-          color: '#6b7280'
-        }}>
+        <p className="text-sm text-gray-500">
           PNG, JPG, GIF up to {maxSizeMB}MB (Max {maxImages} images)
         </p>
 
-        <p style={{
-          fontSize: '0.875rem',
-          color: '#667eea',
-          marginTop: '0.5rem',
-          fontWeight: '500'
-        }}>
+        <p className="text-sm text-primary mt-2 font-medium">
           {existingImages.length + images.length}/{maxImages} images total
           {existingImages.length > 0 && ` (${existingImages.length} saved, ${images.length} new)`}
         </p>
@@ -172,81 +154,36 @@ export default function ImageUpload({
 
       {/* Error Message */}
       {error && (
-        <div style={{
-          background: '#fef2f2',
-          border: '1px solid #fca5a5',
-          color: '#dc2626',
-          padding: '0.75rem 1rem',
-          borderRadius: '8px',
-          fontSize: '0.875rem',
-          marginBottom: '1rem'
-        }}>
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
           {error}
         </div>
       )}
 
       {/* Existing Images (from server) */}
       {existingImages.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem'
-          }}>
-            <h3 style={{
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: '#1f2937'
-            }}>
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-semibold text-gray-900">
               Current Images ({existingImages.length})
             </h3>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-            gap: '1rem'
-          }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4">
             {existingImages.map((imageUrl, index) => (
               <div
                 key={`existing-${index}`}
-                style={{
-                  position: 'relative',
-                  paddingBottom: '100%',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  border: '2px solid #10b981',
-                  background: '#f9fafb'
-                }}
+                className="relative pb-[100%] rounded-lg overflow-hidden border-2 border-green-500 bg-gray-50"
               >
                 {/* Image */}
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${imageUrl}`}
+                  src={`/${imageUrl}`}
                   alt={`Existing ${index + 1}`}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
+                  className="absolute top-0 left-0 w-full h-full object-cover"
                 />
 
                 {/* First Image Badge */}
                 {index === 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '0.5rem',
-                    left: '0.5rem',
-                    background: '#10b981',
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600'
-                  }}>
+                  <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold">
                     Main
                   </div>
                 )}
@@ -259,24 +196,7 @@ export default function ImageUpload({
                       e.stopPropagation();
                       onRemoveExisting(index);
                     }}
-                    style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      background: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '28px',
-                      height: '28px',
-                      cursor: 'pointer',
-                      fontSize: '18px',
-                      lineHeight: '1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0
-                    }}
+                    className="absolute top-2 right-2 bg-black/70 text-white border-none rounded-full w-7 h-7 cursor-pointer text-lg leading-none flex items-center justify-center p-0 hover:bg-black/90"
                     title="Remove image"
                   >
                     ×
@@ -284,17 +204,7 @@ export default function ImageUpload({
                 )}
 
                 {/* Saved Badge */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'rgba(16, 185, 129, 0.9)',
-                  color: 'white',
-                  padding: '0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: '500'
-                }}>
+                <div className="absolute bottom-0 left-0 right-0 bg-green-500/90 text-white p-2 text-xs font-medium">
                   ✓ Saved
                 </div>
               </div>
@@ -306,83 +216,37 @@ export default function ImageUpload({
       {/* New Uploaded Images */}
       {images.length > 0 && (
         <div>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem'
-          }}>
-            <h3 style={{
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: '#1f2937'
-            }}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-semibold text-gray-900">
               New Images ({images.length})
             </h3>
             {images.length > 0 && (
               <button
                 type="button"
                 onClick={() => onChange([])}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#fef2f2',
-                  color: '#dc2626',
-                  border: '1px solid #fca5a5',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}
+                className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md cursor-pointer text-sm font-medium hover:bg-red-100"
               >
                 Clear All
               </button>
             )}
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-            gap: '1rem'
-          }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4">
             {images.map((image, index) => (
               <div
                 key={index}
-                style={{
-                  position: 'relative',
-                  paddingBottom: '100%',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  border: '2px solid #e5e7eb',
-                  background: '#f9fafb'
-                }}
+                className="relative pb-[100%] rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"
               >
                 {/* Image */}
                 <img
                   src={URL.createObjectURL(image)}
                   alt={`Preview ${index + 1}`}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
+                  className="absolute top-0 left-0 w-full h-full object-cover"
                 />
 
                 {/* First Image Badge - only show if no existing images */}
                 {index === 0 && existingImages.length === 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '0.5rem',
-                    left: '0.5rem',
-                    background: '#667eea',
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600'
-                  }}>
+                  <div className="absolute top-2 left-2 bg-primary text-white px-2 py-1 rounded text-xs font-semibold">
                     Main
                   </div>
                 )}
@@ -394,40 +258,14 @@ export default function ImageUpload({
                     e.stopPropagation();
                     removeImage(index);
                   }}
-                  style={{
-                    position: 'absolute',
-                    top: '0.5rem',
-                    right: '0.5rem',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    cursor: 'pointer',
-                    fontSize: '18px',
-                    lineHeight: '1',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 0
-                  }}
+                  className="absolute top-2 right-2 bg-black/70 text-white border-none rounded-full w-7 h-7 cursor-pointer text-lg leading-none flex items-center justify-center p-0 hover:bg-black/90"
                   title="Remove image"
                 >
                   ×
                 </button>
 
                 {/* File Info */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'rgba(0, 0, 0, 0.7)',
-                  color: 'white',
-                  padding: '0.5rem',
-                  fontSize: '0.75rem'
-                }}>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-2 text-xs">
                   {(image.size / 1024).toFixed(0)} KB
                 </div>
               </div>
@@ -435,12 +273,7 @@ export default function ImageUpload({
           </div>
 
           {/* Helper Text */}
-          <p style={{
-            fontSize: '0.75rem',
-            color: '#6b7280',
-            marginTop: '1rem',
-            fontStyle: 'italic'
-          }}>
+          <p className="text-xs text-gray-500 mt-4 italic">
             💡 Tip: The first image will be used as the main photo for your ad
           </p>
         </div>

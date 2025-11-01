@@ -24,28 +24,47 @@ export async function generateMetadata({ params }: AdsPageProps): Promise<Metada
   let categoryName = '';
 
   if (urlParams && urlParams.length > 0) {
-    // Check if first param is location or category
     const firstParam = urlParams[0];
-    const location = await prisma.locations.findFirst({
-      where: { slug: firstParam },
-      select: { name: true },
-    });
 
-    if (location) {
-      locationName = location.name;
-      if (urlParams.length > 1) {
+    // Handle explicit /ads/category/{slug} pattern
+    if (firstParam === 'category' && urlParams.length > 1) {
+      const category = await prisma.categories.findFirst({
+        where: { slug: urlParams[1] },
+        select: { name: true },
+      });
+      categoryName = category?.name || '';
+    }
+    // Handle explicit /ads/location/{slug} pattern
+    else if (firstParam === 'location' && urlParams.length > 1) {
+      const location = await prisma.locations.findFirst({
+        where: { slug: urlParams[1] },
+        select: { name: true },
+      });
+      locationName = location?.name || '';
+    }
+    // Check if first param is location or category
+    else {
+      const location = await prisma.locations.findFirst({
+        where: { slug: firstParam },
+        select: { name: true },
+      });
+
+      if (location) {
+        locationName = location.name;
+        if (urlParams.length > 1) {
+          const category = await prisma.categories.findFirst({
+            where: { slug: urlParams[1] },
+            select: { name: true },
+          });
+          categoryName = category?.name || '';
+        }
+      } else {
         const category = await prisma.categories.findFirst({
-          where: { slug: urlParams[1] },
+          where: { slug: firstParam },
           select: { name: true },
         });
         categoryName = category?.name || '';
       }
-    } else {
-      const category = await prisma.categories.findFirst({
-        where: { slug: firstParam },
-        select: { name: true },
-      });
-      categoryName = category?.name || '';
     }
   }
 
@@ -90,44 +109,76 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
   if (urlParams && urlParams.length > 0) {
     const firstParam = urlParams[0];
 
-    // Try to find as location first
-    const location = await prisma.locations.findFirst({
-      where: { slug: firstParam },
-      select: { id: true, name: true },
-    });
-
-    if (location) {
-      // First param is a location
-      locationSlug = firstParam;
-      locationId = location.id;
-      locationName = location.name;
-
-      // Check if second param is category
-      if (urlParams.length > 1) {
-        const category = await prisma.categories.findFirst({
-          where: { slug: urlParams[1] },
-          select: { id: true, name: true },
-        });
-        if (category) {
-          categorySlug = urlParams[1];
-          categoryId = category.id;
-          categoryName = category.name;
-        }
-      }
-    } else {
-      // First param is not a location, try as category
+    // Handle explicit /ads/category/{slug} pattern
+    if (firstParam === 'category' && urlParams.length > 1) {
       const category = await prisma.categories.findFirst({
-        where: { slug: firstParam },
+        where: { slug: urlParams[1] },
         select: { id: true, name: true },
       });
 
       if (category) {
-        categorySlug = firstParam;
+        categorySlug = urlParams[1];
         categoryId = category.id;
         categoryName = category.name;
       } else {
-        // Param not found as either location or category
         notFound();
+      }
+    }
+    // Handle explicit /ads/location/{slug} pattern
+    else if (firstParam === 'location' && urlParams.length > 1) {
+      const location = await prisma.locations.findFirst({
+        where: { slug: urlParams[1] },
+        select: { id: true, name: true },
+      });
+
+      if (location) {
+        locationSlug = urlParams[1];
+        locationId = location.id;
+        locationName = location.name;
+      } else {
+        notFound();
+      }
+    }
+    // Try to find as location first
+    else {
+      const location = await prisma.locations.findFirst({
+        where: { slug: firstParam },
+        select: { id: true, name: true },
+      });
+
+      if (location) {
+        // First param is a location
+        locationSlug = firstParam;
+        locationId = location.id;
+        locationName = location.name;
+
+        // Check if second param is category
+        if (urlParams.length > 1) {
+          const category = await prisma.categories.findFirst({
+            where: { slug: urlParams[1] },
+            select: { id: true, name: true },
+          });
+          if (category) {
+            categorySlug = urlParams[1];
+            categoryId = category.id;
+            categoryName = category.name;
+          }
+        }
+      } else {
+        // First param is not a location, try as category
+        const category = await prisma.categories.findFirst({
+          where: { slug: firstParam },
+          select: { id: true, name: true },
+        });
+
+        if (category) {
+          categorySlug = firstParam;
+          categoryId = category.id;
+          categoryName = category.name;
+        } else {
+          // Param not found as either location or category
+          notFound();
+        }
       }
     }
   }
@@ -412,9 +463,9 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
                       ad={{
                         id: ad.id,
                         title: ad.title,
-                        price: parseFloat(ad.price.toString()),
+                        price: ad.price ? parseFloat(ad.price.toString()) : 0,
                         primaryImage: ad.ad_images && ad.ad_images.length > 0
-                          ? ad.ad_images[0].file_path
+                          ? ad.ad_images[0]?.file_path || null
                           : null,
                         categoryName: ad.categories?.name || null,
                         categoryIcon: ad.categories?.icon || null,

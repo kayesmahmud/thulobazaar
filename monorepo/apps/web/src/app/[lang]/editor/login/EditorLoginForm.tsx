@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
+import { Button } from '@/components/ui';
 
 interface EditorLoginFormProps {
   lang: string;
@@ -96,23 +97,16 @@ export default function EditorLoginForm({ lang }: EditorLoginFormProps) {
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="submit"
+        variant="success"
+        fullWidth
+        loading={isLoading}
         disabled={isLoading}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        icon={!isLoading && '✍️'}
       >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="spinner"></span>
-            Logging in...
-          </span>
-        ) : (
-          <span className="flex items-center justify-center gap-2">
-            <span>✍️</span>
-            Login as Editor
-          </span>
-        )}
-      </button>
+        {isLoading ? 'Logging in...' : 'Login as Editor'}
+      </Button>
     </form>
   );
 }

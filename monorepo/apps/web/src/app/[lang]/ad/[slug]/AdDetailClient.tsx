@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface AdDetailClientProps {
   images: string[];
@@ -13,37 +14,33 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
   // Fallback if no images
   const displayImages = images.length > 0 ? images : ['/placeholder-ad.png'];
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setSelectedImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [displayImages.length]);
+
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: '12px',
-      padding: '1rem',
-      marginBottom: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-    }}>
+    <div className="bg-white rounded-xl p-4 mb-6 shadow-sm">
       {/* Main Image */}
-      <div style={{
-        background: '#f3f4f6',
-        height: '400px',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: '1rem',
-        overflow: 'hidden',
-        position: 'relative'
-      }}>
+      <div className="bg-gray-100 h-[400px] rounded-lg flex items-center justify-center mb-4 overflow-hidden relative">
         {displayImages[selectedImageIndex] === '/placeholder-ad.png' ? (
-          <span style={{ fontSize: '4rem', color: '#9ca3af' }}>📷</span>
+          <span className="text-6xl text-gray-400">📷</span>
         ) : (
-          <img
-            src={displayImages[selectedImageIndex]}
+          <Image
+            src={displayImages[selectedImageIndex] || '/placeholder-ad.png'}
             alt={`Image ${selectedImageIndex + 1}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain'
-            }}
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
           />
         )}
 
@@ -52,47 +49,15 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
           <>
             <button
               onClick={() => setSelectedImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1))}
-              style={{
-                position: 'absolute',
-                left: '1rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                fontSize: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0
-              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-fast"
+              aria-label="Previous image"
             >
               ‹
             </button>
             <button
               onClick={() => setSelectedImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1))}
-              style={{
-                position: 'absolute',
-                right: '1rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                fontSize: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0
-              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-fast"
+              aria-label="Next image"
             >
               ›
             </button>
@@ -101,59 +66,41 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
 
         {/* Image Counter */}
         {displayImages.length > 1 && (
-          <div style={{
-            position: 'absolute',
-            bottom: '1rem',
-            right: '1rem',
-            background: 'rgba(0, 0, 0, 0.7)',
-            color: 'white',
-            padding: '0.25rem 0.75rem',
-            borderRadius: '4px',
-            fontSize: '0.875rem'
-          }}>
+          <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
             {selectedImageIndex + 1} / {displayImages.length}
+          </div>
+        )}
+
+        {/* Keyboard Navigation Hint */}
+        {displayImages.length > 1 && (
+          <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-xs">
+            Use ← → arrow keys
           </div>
         )}
       </div>
 
       {/* Thumbnail Gallery */}
       {displayImages.length > 1 && (
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory'
-        }}>
+        <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide">
           {displayImages.map((image, index) => (
             <div
               key={index}
               onClick={() => setSelectedImageIndex(index)}
-              style={{
-                background: '#f3f4f6',
-                minWidth: '80px',
-                width: '80px',
-                height: '80px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: selectedImageIndex === index ? '2px solid #667eea' : '2px solid transparent',
-                overflow: 'hidden',
-                scrollSnapAlign: 'start'
-              }}
+              className={`bg-gray-100 min-w-[80px] w-20 h-20 rounded-lg flex items-center justify-center cursor-pointer border-2 overflow-hidden snap-start transition-all duration-fast ${
+                selectedImageIndex === index
+                  ? 'border-primary ring-2 ring-primary ring-offset-2'
+                  : 'border-transparent hover:border-gray-300'
+              }`}
             >
               {image === '/placeholder-ad.png' ? (
-                <span style={{ fontSize: '2rem' }}>📷</span>
+                <span className="text-3xl">📷</span>
               ) : (
-                <img
+                <Image
                   src={image}
                   alt={`Thumbnail ${index + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
+                  fill
+                  className="object-cover"
+                  sizes="80px"
                 />
               )}
             </div>

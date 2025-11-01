@@ -7,6 +7,7 @@
  */
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Error({
   error,
@@ -21,68 +22,46 @@ export default function Error({
   }, [error]);
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '50vh',
-      padding: '2rem',
-      textAlign: 'center'
-    }}>
-      <div style={{
-        maxWidth: '600px',
-        width: '100%',
-        background: '#fef2f2',
-        border: '1px solid #fecaca',
-        borderRadius: '8px',
-        padding: '2rem'
-      }}>
-        <h2 style={{
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          marginBottom: '1rem',
-          color: '#991b1b'
-        }}>
-          ⚠️ Something went wrong!
+    <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center bg-gray-50">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <div className="text-6xl mb-4">⚠️</div>
+
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Something went wrong!
         </h2>
 
-        <p style={{
-          color: '#7f1d1d',
-          marginBottom: '1.5rem'
-        }}>
-          {error.message || 'An unexpected error occurred'}
+        <p className="text-gray-600 mb-6">
+          We&apos;re sorry for the inconvenience. Please try again or return to the homepage.
         </p>
 
+        {process.env.NODE_ENV === 'development' && error.message && (
+          <div className="mb-6 p-4 bg-red-50 rounded-lg text-left">
+            <p className="text-sm font-mono text-red-800 break-all">
+              {error.message}
+            </p>
+          </div>
+        )}
+
         {error.digest && (
-          <p style={{
-            fontSize: '0.875rem',
-            color: '#991b1b',
-            marginBottom: '1.5rem',
-            fontFamily: 'monospace'
-          }}>
+          <p className="text-sm text-gray-500 mb-6 font-mono">
             Error ID: {error.digest}
           </p>
         )}
 
-        <button
-          onClick={reset}
-          style={{
-            background: '#dc2626',
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '1rem',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'background 0.2s'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.background = '#b91c1c'}
-          onMouseOut={(e) => e.currentTarget.style.background = '#dc2626'}
-        >
-          Try Again
-        </button>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <button
+            onClick={reset}
+            className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+          >
+            Try Again
+          </button>
+          <Link
+            href="/en"
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors no-underline"
+          >
+            Go Home
+          </Link>
+        </div>
       </div>
     </div>
   );

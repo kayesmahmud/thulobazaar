@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 
 interface LoginFormProps {
   lang: string;
@@ -106,20 +107,15 @@ export default function LoginForm({ lang }: LoginFormProps) {
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        fullWidth
+        loading={isLoading}
         disabled={isLoading}
-        className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="spinner"></span>
-            Logging in...
-          </span>
-        ) : (
-          'Login'
-        )}
-      </button>
+        {isLoading ? 'Logging in...' : 'Login'}
+      </Button>
     </form>
   );
 }

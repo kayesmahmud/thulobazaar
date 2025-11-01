@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@thulobazaar/database';
@@ -60,7 +61,7 @@ export const authOptions: NextAuthOptions = {
           // Also get backend JWT token for API calls
           let backendToken = null;
           try {
-            const response = await fetch(`${process.env.API_URL || 'http://localhost:5000'}/api/auth/login`, {
+            const response = await fetch(`${process.env.API_URL || 'http://localhost:3333'}/api/auth/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

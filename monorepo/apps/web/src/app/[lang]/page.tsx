@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
 import AdCard from '@/components/AdCard';
+import HeroSearch from './HeroSearch';
 
 interface HomePageProps {
   params: Promise<{ lang: string }>;
@@ -106,104 +107,78 @@ export default async function HomePage({ params }: HomePageProps) {
   ]);
 
   return (
-    <div style={{ minHeight: '100vh' }}>
-      {/* Hero Section */}
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        padding: '4rem 2rem',
-        textAlign: 'center'
-      }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          Buy, Sell, and Rent Across Nepal
-        </h1>
-        <p style={{ fontSize: '1.25rem', marginBottom: '2rem', opacity: 0.9 }}>
-          Nepal's Leading Classifieds Marketplace
-        </p>
-
-        {/* Search Bar */}
-        <div style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          display: 'flex',
-          gap: '0.5rem'
-        }}>
-          <input
-            type="text"
-            placeholder="Search for anything..."
-            style={{
-              flex: 1,
-              padding: '1rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '1rem'
-            }}
-          />
-          <Link
-            href={`/${lang}/search`}
-            style={{
-              background: '#10b981',
-              color: 'white',
-              padding: '1rem 2rem',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            Search
-          </Link>
+    <div className="min-h-screen">
+      {/* Hero Section with Enhanced Design */}
+      <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 overflow-hidden">
+        {/* Animated background shapes */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full blur-3xl animate-pulse [animation-delay:1s]" />
         </div>
 
-        {/* Post Ad Button */}
-        <Link
-          href={`/${lang}/post-ad`}
-          style={{
-            display: 'inline-block',
-            marginTop: '1.5rem',
-            background: '#f59e0b',
-            color: 'white',
-            padding: '0.75rem 2rem',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: '600'
-          }}
-        >
-          + Post Free Ad
-        </Link>
+        {/* Content */}
+        <div className="relative max-w-screen-desktop mx-auto px-4 py-16 tablet:py-24 text-center text-white">
+          <h1 className="text-4xl tablet:text-5xl desktop:text-6xl font-bold mb-4 animate-fade-in-up">
+            Buy, Sell, and Rent Across Nepal
+          </h1>
+          <p className="text-lg tablet:text-xl opacity-90 mb-8">
+            Nepal&apos;s Leading Classifieds Marketplace
+          </p>
+
+          {/* Enhanced Search Bar */}
+          <HeroSearch lang={lang} />
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col mobile:flex-row gap-4 justify-center">
+            <Link
+              href={`/${lang}/post-ad`}
+              className="px-8 py-4 bg-white text-indigo-600 rounded-xl font-bold hover:bg-gray-50 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 inline-flex items-center justify-center gap-2 no-underline"
+            >
+              + Post Free Ad
+            </Link>
+            <Link
+              href={`/${lang}/all-ads`}
+              className="px-8 py-4 bg-white/10 text-white rounded-xl font-bold hover:bg-white/20 transition-all duration-300 inline-flex items-center justify-center gap-2 backdrop-blur-sm no-underline"
+            >
+              Browse All Ads →
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Categories Section */}
-      <div style={{ maxWidth: '1200px', margin: '3rem auto', padding: '0 2rem' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '2rem' }}>
-          Browse Categories
-        </h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1.5rem'
-        }}>
+      <div className="max-w-screen-desktop mx-auto py-16 px-4">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              Browse Categories
+            </h2>
+            <p className="text-gray-500">
+              Find what you&apos;re looking for
+            </p>
+          </div>
+          <Link
+            href={`/${lang}/all-ads`}
+            className="text-primary hover:text-primary-hover font-semibold flex items-center gap-1 no-underline transition-colors"
+          >
+            View All
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 mobile:grid-cols-3 tablet:grid-cols-4 desktop:grid-cols-5 gap-4">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/${lang}/ads/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, '-')}`}
-              style={{
-                background: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                textAlign: 'center',
-                textDecoration: 'none',
-                color: '#1f2937',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                cursor: 'pointer'
-              }}
+              className="group bg-white rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-primary transition-all duration-300 hover:shadow-lg hover:-translate-y-1 no-underline"
             >
-              <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>
+              <div className="text-5xl mb-3 transition-transform duration-300 group-hover:scale-110">
                 {category.icon || '📁'}
               </div>
-              <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>
+              <div className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
                 {category.name}
               </div>
             </Link>
@@ -212,59 +187,77 @@ export default async function HomePage({ params }: HomePageProps) {
       </div>
 
       {/* Latest Ads Section */}
-      <div style={{
-        maxWidth: '1200px',
-        margin: '3rem auto',
-        padding: '0 2rem',
-        marginBottom: '4rem'
-      }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '2rem' }}>
-          Latest Ads ({latestAds.length} from Prisma 🎉)
-        </h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1.5rem'
-        }}>
-          {latestAds.map((ad) => (
-            <AdCard
-              key={ad.id}
-              lang={lang}
-              ad={{
-                id: ad.id,
-                title: ad.title,
-                price: parseFloat(ad.price.toString()),
-                primaryImage: ad.ad_images && ad.ad_images.length > 0
-                  ? ad.ad_images[0].file_path
-                  : null,
-                categoryName: ad.categories?.name || null,
-                categoryIcon: ad.categories?.icon || null,
-                createdAt: ad.created_at || new Date(),
-                sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
-                isFeatured: ad.is_featured || false,
-                isUrgent: ad.is_urgent || false,
-                condition: ad.condition || null,
-                slug: ad.slug || undefined,
-                accountType: ad.users_ads_user_idTousers?.account_type || undefined,
-                businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
-                individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
-              }}
-            />
-          ))}
+      <div className="max-w-screen-desktop mx-auto py-12 px-4 mb-12">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Latest Ads
+          </h2>
+          <Link
+            href={`/${lang}/all-ads`}
+            className="text-primary hover:text-primary-hover font-semibold flex items-center gap-1 no-underline transition-colors"
+          >
+            View All Ads
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
+
+        {latestAds.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl">
+            <div className="text-6xl mb-4">📦</div>
+            <h3 className="text-2xl font-semibold mb-2 text-gray-900">
+              No ads yet
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Be the first to post an ad!
+            </p>
+            <Link
+              href={`/${lang}/post-ad`}
+              className="inline-block px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors no-underline"
+            >
+              Post Free Ad
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 mobile:grid-cols-2 tablet:grid-cols-3 desktop:grid-cols-4 gap-6">
+            {latestAds.map((ad) => (
+              <AdCard
+                key={ad.id}
+                lang={lang}
+                ad={{
+                  id: ad.id,
+                  title: ad.title,
+                  price: ad.price ? parseFloat(ad.price.toString()) : 0,
+                  primaryImage: ad.ad_images && ad.ad_images.length > 0
+                    ? ad.ad_images[0]?.file_path || null
+                    : null,
+                  categoryName: ad.categories?.name || null,
+                  categoryIcon: ad.categories?.icon || null,
+                  createdAt: ad.created_at || new Date(),
+                  sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
+                  isFeatured: ad.is_featured || false,
+                  isUrgent: ad.is_urgent || false,
+                  condition: ad.condition || null,
+                  slug: ad.slug || undefined,
+                  accountType: ad.users_ads_user_idTousers?.account_type || undefined,
+                  businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
+                  individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
-      <footer style={{
-        background: '#1f2937',
-        color: 'white',
-        padding: '2rem',
-        textAlign: 'center'
-      }}>
-        <p>&copy; 2025 Thulobazaar. All rights reserved.</p>
-        <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', opacity: 0.8 }}>
-          🚀 Built with Next.js 15 + TypeScript + Monorepo Architecture
-        </p>
+      <footer className="bg-gray-900 text-white py-8 text-center">
+        <div className="max-w-screen-desktop mx-auto px-4">
+          <p className="text-gray-300">&copy; 2025 Thulobazaar. All rights reserved.</p>
+          <p className="text-sm mt-2 text-gray-400">
+            Built with Next.js 15 + TypeScript + Tailwind CSS
+          </p>
+        </div>
       </footer>
     </div>
   );

@@ -67,7 +67,7 @@ export default function LocationHierarchySelector({
   const fetchProvinces = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/locations?type=province`);
+      const response = await fetch(`/api/locations?type=province`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -82,7 +82,7 @@ export default function LocationHierarchySelector({
 
   const fetchDistricts = async (provinceId: number) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/locations?parent_id=${provinceId}&type=district`);
+      const response = await fetch(`/api/locations?parent_id=${provinceId}&type=district`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -95,7 +95,7 @@ export default function LocationHierarchySelector({
 
   const fetchMunicipalities = async (districtId: number) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/locations?parent_id=${districtId}&type=municipality`);
+      const response = await fetch(`/api/locations?parent_id=${districtId}&type=municipality`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -112,7 +112,7 @@ export default function LocationHierarchySelector({
       console.log('📍 Loading location hierarchy for ID:', locationId);
 
       // Fetch the location details
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/locations/${locationId}`);
+      const response = await fetch(`/api/locations/${locationId}`);
       const data = await response.json();
 
       if (!data.success || !data.data) {
@@ -154,7 +154,7 @@ export default function LocationHierarchySelector({
 
         if (location.parent_id) {
           // First get the district
-          const districtRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/locations/${location.parent_id}`);
+          const districtRes = await fetch(`/api/locations/${location.parent_id}`);
           const districtData = await districtRes.json();
 
           if (districtData.success && districtData.data) {
@@ -286,7 +286,7 @@ export default function LocationHierarchySelector({
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/locations/search-all?q=${encodeURIComponent(query.trim())}`
+        `/api/locations/search-all?q=${encodeURIComponent(query.trim())}`
       );
       const data = await response.json();
 

@@ -3,6 +3,7 @@
 import { SessionProvider } from 'next-auth/react';
 import { UserAuthProvider } from '@/contexts/UserAuthContext';
 import { StaffAuthProvider } from '@/contexts/StaffAuthContext';
+import { ToastProvider } from '@/components/Toast';
 import { ReactNode } from 'react';
 
 interface ProvidersProps {
@@ -14,7 +15,9 @@ export function Providers({ children }: ProvidersProps) {
     <SessionProvider>
       <UserAuthProvider>
         <StaffAuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </StaffAuthProvider>
       </UserAuthProvider>
     </SessionProvider>

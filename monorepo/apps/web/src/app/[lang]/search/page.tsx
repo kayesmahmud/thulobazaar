@@ -6,6 +6,7 @@ import SearchFilters from './SearchFilters';
 import SearchPagination from './SearchPagination';
 import SortDropdown from './SortDropdown';
 import AdCard from '@/components/AdCard';
+import Breadcrumb from '@/components/Breadcrumb';
 
 interface SearchPageProps {
   params: Promise<{ lang: string }>;
@@ -244,17 +245,16 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
     query || categoryId || locationId || minPrice || maxPrice || condition
   );
 
+  const breadcrumbItems = [
+    { label: 'Home', path: `/${lang}` },
+    { label: 'Search Results', current: true },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <Breadcrumb items={breadcrumbItems} />
+
       <div className="container-custom py-6">
-        {/* Breadcrumb */}
-        <div className="mb-4 text-sm text-muted">
-          <Link href={`/${lang}`} className="link">
-            Home
-          </Link>
-          <span className="mx-2">/</span>
-          <span>Search Results</span>
-        </div>
 
         {/* Page Header */}
         <div className="mb-6">
@@ -335,9 +335,9 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                       ad={{
                         id: ad.id,
                         title: ad.title,
-                        price: parseFloat(ad.price.toString()),
+                        price: ad.price ? parseFloat(ad.price.toString()) : 0,
                         primaryImage: ad.ad_images && ad.ad_images.length > 0
-                          ? ad.ad_images[0].file_path
+                          ? ad.ad_images[0]?.file_path || null
                           : null,
                         categoryName: ad.categories?.name || null,
                         categoryIcon: ad.categories?.icon || null,

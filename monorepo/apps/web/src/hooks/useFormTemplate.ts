@@ -23,20 +23,9 @@ export function useFormTemplate(
   const templateType = useMemo(() => {
     if (!selectedCategory) return null;
 
-    // If this is a parent category, use its name directly
-    if (selectedCategory.parent_id === null) {
-      return getTemplateForCategory(selectedCategory.name, selectedCategory.name);
-    }
-
-    // If this is a subcategory, find parent category and use parent name
-    const parentCategory = allCategories.find(cat => cat.id === selectedCategory.parent_id);
-    if (parentCategory) {
-      return getTemplateForCategory(selectedCategory.name, parentCategory.name);
-    }
-
-    // Default fallback
-    return 'general';
-  }, [selectedCategory, allCategories]);
+    // Get template from category's formTemplate field (matches old site exactly)
+    return (selectedCategory as any).formTemplate || (selectedCategory as any).form_template || 'general';
+  }, [selectedCategory]);
 
   // Get the template configuration
   const template = useMemo(() => {
@@ -117,11 +106,28 @@ export function useFormTemplate(
     return initialValues;
   };
 
+  // Auto-lock gender field for fashion categories (matches old site)
+  const getAutoLockedFields = () => {
+    const locked: Record<string, any> = {};
+
+    if (templateType === 'fashion' && selectedCategory) {
+      // Lock gender based on parent category
+      if (selectedCategory.name === "Men's Fashion & Grooming" || selectedCategory.id === 7) {
+        locked.gender = 'Men';
+      } else if (selectedCategory.name === "Women's Fashion & Beauty" || selectedCategory.id === 8) {
+        locked.gender = 'Women';
+      }
+    }
+
+    return locked;
+  };
+
   return {
     templateType,
     template,
     fields: applicableFields,
     validateFields,
-    getInitialValues
+    getInitialValues,
+    getAutoLockedFields
   };
 }

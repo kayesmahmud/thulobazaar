@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
+import { Button } from '@/components/ui';
 
 interface SuperAdminLoginFormProps {
   lang: string;
@@ -96,23 +97,16 @@ export default function SuperAdminLoginForm({ lang }: SuperAdminLoginFormProps) 
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        fullWidth
+        loading={isLoading}
         disabled={isLoading}
-        className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+        icon={!isLoading && '🛡️'}
       >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="spinner"></span>
-            Logging in...
-          </span>
-        ) : (
-          <span className="flex items-center justify-center gap-2">
-            <span>🛡️</span>
-            Login as Super Admin
-          </span>
-        )}
-      </button>
+        {isLoading ? 'Logging in...' : 'Login as Super Admin'}
+      </Button>
     </form>
   );
 }

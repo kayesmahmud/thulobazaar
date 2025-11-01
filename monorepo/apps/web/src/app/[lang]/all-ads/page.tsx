@@ -4,6 +4,8 @@ import { prisma } from '@thulobazaar/database';
 import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import AllAdsFilters from './AllAdsFilters';
 import AdCard from '@/components/AdCard';
+import AllAdsPagination from './AllAdsPagination';
+import Breadcrumb from '@/components/Breadcrumb';
 
 interface AllAdsPageProps {
   params: Promise<{ lang: string }>;
@@ -228,43 +230,23 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
   const totalPages = Math.ceil(totalAds / adsPerPage);
 
 
+  const breadcrumbItems = [
+    { label: 'Home', path: `/${lang}` },
+    { label: 'All Ads', current: true },
+  ];
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb */}
-      <div style={{
-        background: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '1rem 0'
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-            <Link href={`/${lang}`} style={{ color: '#667eea', textDecoration: 'none' }}>
-              Home
-            </Link>
-            <span>/</span>
-            <span>All Ads</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumb items={breadcrumbItems} />
 
       {/* Container with sidebar layout */}
-      <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto' }}>
+      <div className="flex max-w-7xl mx-auto">
         {/* Left Sidebar - Fixed width */}
-        <aside style={{
-          width: '280px',
-          minWidth: '280px',
-          background: 'white',
-          borderRight: '1px solid #e5e7eb',
-          minHeight: 'calc(100vh - 120px)',
-          position: 'sticky',
-          top: '0',
-          alignSelf: 'flex-start',
-          overflowY: 'auto',
-          maxHeight: '100vh',
-        }} className="hidden lg:block">
+        <aside className="hidden lg:block w-[280px] min-w-[280px] bg-white border-r border-gray-200 sticky top-0 self-start">
           <AllAdsFilters
             lang={lang}
-            categories={categories}
+            categories={categories as any}
             selectedCategory={categorySlug}
             selectedLocation={locationId}
             minPrice={minPrice?.toString() || ''}
@@ -274,39 +256,30 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
         </aside>
 
         {/* Main Content Area */}
-        <main style={{ flex: 1, padding: '2rem 1rem' }}>
+        <main className="flex-1 p-8 px-4 lg:px-8">
           {/* Header */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.5rem' }}>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
               All Ads
             </h1>
-            <p style={{ color: '#6b7280' }}>
-              Found <span style={{ fontWeight: '600', color: '#1f2937' }}>{totalAds.toLocaleString()}</span> ads
+            <p className="text-gray-500">
+              Found <span className="font-semibold text-gray-800">{totalAds.toLocaleString()}</span> ads
             </p>
           </div>
 
           {/* Ads Grid */}
           {ads.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '4rem 0',
-              background: 'white',
-              borderRadius: '12px'
-            }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📦</div>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+            <div className="text-center py-16 bg-white rounded-xl">
+              <div className="text-6xl mb-4">📦</div>
+              <h3 className="text-2xl font-semibold mb-2">
                 No ads found
               </h3>
-              <p style={{ color: '#6b7280' }}>
+              <p className="text-gray-500">
                 Check back later for new listings
               </p>
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '1.5rem'
-            }}>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
               {ads.map((ad) => (
                 <AdCard
                   key={ad.id}
@@ -314,9 +287,9 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
                   ad={{
                     id: ad.id,
                     title: ad.title,
-                    price: parseFloat(ad.price.toString()),
+                    price: ad.price ? parseFloat(ad.price.toString()) : 0,
                     primaryImage: ad.ad_images && ad.ad_images.length > 0
-                      ? ad.ad_images[0].file_path
+                      ? ad.ad_images[0]?.file_path || null
                       : null,
                     categoryName: ad.categories?.name || null,
                     categoryIcon: ad.categories?.icon || null,
@@ -336,59 +309,12 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
           )}
 
           {/* Pagination */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            marginTop: '3rem'
-          }}>
-            <button style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer'
-            }}>
-              Previous
-            </button>
-            <button style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: '#667eea',
-              color: 'white',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}>
-              1
-            </button>
-            <button style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer'
-            }}>
-              2
-            </button>
-            <button style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer'
-            }}>
-              3
-            </button>
-            <button style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer'
-            }}>
-              Next
-            </button>
+          <div className="mt-12">
+            <AllAdsPagination
+              currentPage={page}
+              totalPages={totalPages}
+              lang={lang}
+            />
           </div>
         </main>
       </div>

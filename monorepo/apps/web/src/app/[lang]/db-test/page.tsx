@@ -159,16 +159,16 @@ export default async function DbTestPage({ params }: DbTestPageProps) {
                       {ad.title}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#10b981', fontWeight: '600' }}>
-                      {formatPrice(parseFloat(ad.price.toString()))}
+                      {ad.price ? formatPrice(parseFloat(ad.price.toString())) : 'N/A'}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                      {ad.users_ads_user_idTousers.full_name}
+                      {ad.users_ads_user_idTousers?.full_name || 'Unknown'}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                      {ad.categories.icon} {ad.categories.name}
+                      {ad.categories?.icon} {ad.categories?.name || 'N/A'}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                      {ad.locations.name}
+                      {ad.locations?.name || 'N/A'}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
                       {formatDateTime(ad.created_at || new Date())}

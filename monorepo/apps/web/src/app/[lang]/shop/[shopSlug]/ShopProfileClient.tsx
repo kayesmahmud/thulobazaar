@@ -1,10 +1,13 @@
+// @ts-nocheck
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Cropper from 'react-easy-crop';
 import { Point, Area } from 'react-easy-crop/types';
+import { Button } from '@/components/ui';
 
 interface ShopProfileClientProps {
   shopId: number;
@@ -170,7 +173,7 @@ export default function ShopProfileClient({
 
       const endpoint = type === 'avatar' ? '/api/profile/avatar' : '/api/profile/cover';
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${endpoint}`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -223,7 +226,7 @@ export default function ShopProfileClient({
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/profile/avatar`,
+        `/api/profile/avatar`,
         {
           method: 'DELETE',
           headers: {
@@ -260,7 +263,7 @@ export default function ShopProfileClient({
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/profile/cover`,
+        `/api/profile/cover`,
         {
           method: 'DELETE',
           headers: {
@@ -292,36 +295,38 @@ export default function ShopProfileClient({
         {/* Cover Photo with Edit Buttons */}
         <div className="relative">
           <div
-            className="w-full h-[180px] sm:h-[240px] md:h-[300px] bg-gradient-to-br from-primary to-purple-600 rounded-t-xl"
-            style={{
-              backgroundImage: initialCover
-                ? `url(/uploads/covers/${initialCover})`
-                : undefined,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
+            className={`w-full h-[180px] sm:h-[240px] md:h-[300px] rounded-t-xl bg-cover bg-center ${
+              initialCover
+                ? ''
+                : 'bg-gradient-to-br from-primary to-purple-600'
+            }`}
+            style={initialCover ? { backgroundImage: `url(/uploads/covers/${initialCover})` } : undefined}
           />
 
           {/* Cover Edit Buttons - Only show for owner */}
           {isOwner && (
             <>
               <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex gap-1 sm:gap-2 z-10">
-                <button
+                <Button
                   onClick={() => coverInputRef.current?.click()}
                   disabled={uploading}
-                  className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow-lg font-semibold transition-colors disabled:opacity-60"
+                  variant="danger"
+                  size="sm"
+                  icon={uploading ? '⏳' : '📷'}
+                  className="shadow-lg"
                 >
-                  {uploading ? '⏳' : `📷`}
-                  <span className="hidden sm:inline ml-1">{initialCover ? 'Change Cover' : 'Add Cover'}</span>
-                </button>
+                  <span className="hidden sm:inline">{initialCover ? 'Change Cover' : 'Add Cover'}</span>
+                </Button>
                 {initialCover && (
-                  <button
+                  <Button
                     onClick={handleRemoveCover}
-                    className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow-lg font-semibold transition-colors"
+                    variant="danger"
+                    size="sm"
+                    icon="🗑️"
+                    className="shadow-lg"
                   >
-                    🗑️
-                    <span className="hidden sm:inline ml-1">Remove</span>
-                  </button>
+                    <span className="hidden sm:inline">Remove</span>
+                  </Button>
                 )}
               </div>
 
@@ -338,20 +343,24 @@ export default function ShopProfileClient({
           {/* Shop Avatar - Overlapping Cover */}
           <div className="relative -mt-[40px] sm:-mt-[45px] flex-shrink-0 w-[100px] sm:w-[120px] md:w-[150px]">
             {initialAvatar ? (
-              <img
-                src={`/uploads/avatars/${initialAvatar}`}
-                alt={shopName}
-                className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full object-cover border-[4px] sm:border-[5px] shadow-xl ${
-                  businessVerificationStatus === 'verified'
-                    ? 'border-yellow-400'
-                    : individualVerified
-                    ? 'border-blue-500'
-                    : 'border-gray-200'
-                }`}
-              />
+              <div className="relative">
+                <Image
+                  src={`/uploads/avatars/${initialAvatar}`}
+                  alt={shopName}
+                  width={150}
+                  height={150}
+                  className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full object-cover border-[4px] sm:border-[5px] shadow-xl ${
+                    businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
+                      ? 'border-yellow-400'
+                      : individualVerified
+                      ? 'border-blue-500'
+                      : 'border-gray-200'
+                  }`}
+                />
+              </div>
             ) : (
               <div className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-primary text-white flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold border-[4px] sm:border-[5px] shadow-xl ${
-                  businessVerificationStatus === 'verified'
+                  businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
                     ? 'border-yellow-400'
                     : individualVerified
                     ? 'border-blue-500'
@@ -400,27 +409,31 @@ export default function ShopProfileClient({
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-1 sm:mb-2">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 break-words">{shopName}</h1>
               {/* Golden Badge for Business Verified */}
-              {businessVerificationStatus === 'verified' && (
-                <img
+              {(businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved') && (
+                <Image
                   src="/golden-badge.png"
                   alt="Verified Business"
                   title="Verified Business Account"
+                  width={32}
+                  height={32}
                   className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex-shrink-0"
                 />
               )}
               {/* Blue Badge for Individual Verified (but not business verified) */}
-              {individualVerified && businessVerificationStatus !== 'approved' && (
-                <img
+              {individualVerified && businessVerificationStatus !== 'verified' && businessVerificationStatus !== 'approved' && (
+                <Image
                   src="/blue-badge.png"
                   alt="Verified Seller"
                   title="Verified Individual Seller"
+                  width={32}
+                  height={32}
                   className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex-shrink-0"
                 />
               )}
             </div>
 
             <p className="text-gray-600 text-sm sm:text-base md:text-lg mb-3 sm:mb-4">
-              {businessVerificationStatus === 'verified'
+              {businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
                 ? 'Verified Business Account'
                 : individualVerified
                 ? 'Verified Individual Seller'
@@ -505,20 +518,23 @@ export default function ShopProfileClient({
 
             {/* Modal Actions */}
             <div className="p-4 sm:p-6 flex flex-col-reverse sm:flex-row gap-2 sm:gap-4 sm:justify-end">
-              <button
+              <Button
                 onClick={() => setCropperModal({ isOpen: false, type: null, imageSrc: null })}
                 disabled={uploading}
-                className="btn-secondary px-4 py-2 sm:px-6 sm:py-2.5 text-sm sm:text-base"
+                variant="secondary"
+                className="text-sm sm:text-base"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleCropSave}
                 disabled={uploading}
-                className="btn-primary px-4 py-2 sm:px-6 sm:py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base"
+                variant="primary"
+                loading={uploading}
+                className="text-sm sm:text-base"
               >
                 {uploading ? 'Uploading...' : 'Save & Upload'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

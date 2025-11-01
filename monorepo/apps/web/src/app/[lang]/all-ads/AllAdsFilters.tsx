@@ -97,33 +97,13 @@ export default function AllAdsFilters({
   const totalActiveFilters = categoryCount + locationCount + priceCount;
 
   return (
-    <div style={{
-      padding: '1.5rem',
-    }}>
+    <div className="p-6">
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '1.5rem',
-        paddingBottom: '1rem',
-        borderBottom: '1px solid #e5e7eb'
-      }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
           Filters
           {totalActiveFilters > 0 && (
-            <span style={{
-              background: '#667eea',
-              color: 'white',
-              borderRadius: '50%',
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: '700'
-            }}>
+            <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
               {totalActiveFilters}
             </span>
           )}
@@ -131,14 +111,7 @@ export default function AllAdsFilters({
         {totalActiveFilters > 0 && (
           <button
             onClick={clearAllFilters}
-            style={{
-              color: '#667eea',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              border: 'none',
-              background: 'none'
-            }}
+            className="text-primary text-sm font-semibold cursor-pointer border-none bg-transparent hover:text-primary-dark transition-colors"
           >
             Clear All
           </button>
@@ -152,33 +125,18 @@ export default function AllAdsFilters({
         isExpanded={expandedSections.categories}
         onToggle={() => toggleSection('categories')}
       >
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="flex flex-col">
           {categories.map((category) => (
-            <div key={category.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+            <div key={category.id} className="border-b border-gray-200">
               {/* Parent Category */}
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className="flex items-center">
                 {/* Expand/Collapse Arrow */}
                 {category.other_categories && category.other_categories.length > 0 && (
                   <button
                     onClick={() => toggleCategory(category.id)}
-                    style={{
-                      padding: '0.625rem',
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#6b7280',
-                      transition: 'transform 0.2s',
-                    }}
+                    className="p-2.5 border-none bg-transparent cursor-pointer flex items-center justify-center text-gray-500 transition-transform"
                   >
-                    <span style={{
-                      fontSize: '0.75rem',
-                      transform: expandedCategories.has(category.id) ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s',
-                      display: 'inline-block',
-                    }}>
+                    <span className={`text-xs inline-block transition-transform ${expandedCategories.has(category.id) ? 'rotate-90' : 'rotate-0'}`}>
                       ▶
                     </span>
                   </button>
@@ -191,34 +149,15 @@ export default function AllAdsFilters({
                       category: selectedCategory === category.slug ? undefined : category.slug,
                     });
                   }}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.625rem 0.5rem',
-                    paddingLeft: category.other_categories && category.other_categories.length > 0 ? '0' : '0.625rem',
-                    border: 'none',
-                    background: selectedCategory === category.slug ? '#f0f0ff' : 'transparent',
-                    color: selectedCategory === category.slug ? '#667eea' : '#1f2937',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: selectedCategory === category.slug ? '600' : '500',
-                    textAlign: 'left',
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedCategory !== category.slug) {
-                      e.currentTarget.style.background = '#f9fafb';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedCategory !== category.slug) {
-                      e.currentTarget.style.background = 'transparent';
-                    }
-                  }}
+                  className={`flex-1 flex items-center gap-2 py-2.5 px-2 border-none cursor-pointer text-sm text-left transition-all ${
+                    category.other_categories && category.other_categories.length > 0 ? 'pl-0' : 'pl-2.5'
+                  } ${
+                    selectedCategory === category.slug
+                      ? 'bg-indigo-50 text-primary font-semibold'
+                      : 'bg-transparent text-gray-800 font-medium hover:bg-gray-50'
+                  }`}
                 >
-                  <span style={{ fontSize: '1.125rem' }}>{category.icon}</span>
+                  <span className="text-lg">{category.icon}</span>
                   <span>{category.name}</span>
                 </button>
               </div>
@@ -234,34 +173,11 @@ export default function AllAdsFilters({
                           category: selectedCategory === subcategory.slug ? undefined : subcategory.slug,
                         });
                       }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 0.5rem 0.5rem 2.5rem',
-                        border: 'none',
-                        borderTop: '1px solid #f3f4f6',
-                        background: selectedCategory === subcategory.slug ? '#f0f0ff' : 'transparent',
-                        color: selectedCategory === subcategory.slug ? '#667eea' : '#6b7280',
-                        cursor: 'pointer',
-                        fontSize: '0.8125rem',
-                        fontWeight: selectedCategory === subcategory.slug ? '600' : '400',
-                        textAlign: 'left',
-                        transition: 'all 0.15s',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (selectedCategory !== subcategory.slug) {
-                          e.currentTarget.style.background = '#f9fafb';
-                          e.currentTarget.style.color = '#1f2937';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedCategory !== subcategory.slug) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = '#6b7280';
-                        }
-                      }}
+                      className={`w-full flex items-center gap-2 py-2 px-2 pl-10 border-none border-t border-gray-100 cursor-pointer text-[0.8125rem] text-left transition-all ${
+                        selectedCategory === subcategory.slug
+                          ? 'bg-indigo-50 text-primary font-semibold'
+                          : 'bg-transparent text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-800'
+                      }`}
                     >
                       <span>{subcategory.name}</span>
                     </button>
@@ -285,9 +201,9 @@ export default function AllAdsFilters({
             updateFilters({ location: location ? location.id.toString() : undefined });
           }}
           selectedLocationId={selectedLocation || null}
+          filterType="all"
           label=""
           placeholder="Search province, district, area..."
-          filterType="all"
         />
       </FilterSection>
 
@@ -298,33 +214,21 @@ export default function AllAdsFilters({
         isExpanded={expandedSections.price}
         onToggle={() => toggleSection('price')}
       >
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           <input
             type="number"
             placeholder="Min"
             defaultValue={minPrice}
             onBlur={(e) => updateFilters({ minPrice: e.target.value || undefined })}
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              fontSize: '0.875rem'
-            }}
+            className="flex-1 px-2 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
-          <span style={{ color: '#6b7280' }}>-</span>
+          <span className="text-gray-500">-</span>
           <input
             type="number"
             placeholder="Max"
             defaultValue={maxPrice}
             onBlur={(e) => updateFilters({ maxPrice: e.target.value || undefined })}
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              fontSize: '0.875rem'
-            }}
+            className="flex-1 px-2 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
       </FilterSection>
@@ -343,54 +247,30 @@ interface FilterSectionProps {
 
 function FilterSection({ title, count, isExpanded, onToggle, children }: FilterSectionProps) {
   return (
-    <div style={{ marginBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+    <div className="mb-4 border-b border-gray-200">
       <button
         onClick={onToggle}
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '0.75rem 0',
-          textAlign: 'left',
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer'
-        }}
+        className="w-full flex justify-between items-center py-3 text-left border-none bg-transparent cursor-pointer hover:opacity-80 transition-opacity"
       >
-        <span style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span className="font-semibold flex items-center gap-2">
           {title}
           {count > 0 && (
-            <span style={{
-              background: '#667eea',
-              color: 'white',
-              borderRadius: '50%',
-              padding: '0.125rem 0.5rem',
-              fontSize: '0.75rem',
-              fontWeight: '700'
-            }}>
+            <span className="bg-primary text-white rounded-full px-2 py-0.5 text-xs font-bold">
               {count}
             </span>
           )}
         </span>
         <span
-          style={{
-            fontSize: '1.125rem',
-            transition: 'transform 0.2s',
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
-          }}
+          className={`text-lg transition-transform ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
         >
           ▼
         </span>
       </button>
 
       <div
-        style={{
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease-out',
-          maxHeight: isExpanded ? '1000px' : '0',
-          paddingBottom: isExpanded ? '1rem' : '0'
-        }}
+        className={`overflow-hidden transition-[max-height] duration-300 ease-out ${
+          isExpanded ? 'max-h-[1000px] pb-4' : 'max-h-0 pb-0'
+        }`}
       >
         {children}
       </div>
