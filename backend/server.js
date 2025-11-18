@@ -1551,14 +1551,22 @@ app.use('/api/areas', require('./routes/areas'));
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
-// Super Admin/Editor authentication routes
+// Super Admin/Editor authentication routes (no auth required for login)
 app.use('/api/super-admin/auth', require('./routes/adminAuth'));
+app.use('/api/admin/auth', require('./routes/adminAuth')); // Alias for admin login
+app.use('/api/editor/auth', require('./routes/adminAuth')); // Alias for editor login
 
 // Super Admin panel routes
 app.use('/api/super-admin', require('./routes/admin'));
 
 // Editor panel routes
 app.use('/api/editor', require('./routes/editor'));
+
+// Admin panel routes (alias for editor routes - super admin uses same endpoints)
+app.use('/api/admin', require('./routes/editor'));
+
+// Editor dashboard extensions (user reports, notifications, alerts)
+app.use('/api/editor', require('./routes/editor_dashboard_extensions'));
 
 // Business verification routes
 app.use('/api/business', require('./routes/business'));

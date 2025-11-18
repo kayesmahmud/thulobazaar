@@ -46,7 +46,7 @@ module.exports = {
           200: '#e2e8f0',
           300: '#cbd5e1',
           400: '#94a3b8',
-          500: '#64748b',
+          500: '#475569',
           600: '#475569',
           700: '#334155',
           800: '#1e293b',
@@ -153,6 +153,31 @@ module.exports = {
         laptop: '1024px',
         desktop: '1280px',
         wide: '1536px',
+      },
+
+      // Animations
+      animation: {
+        blob: 'blob 7s infinite',
+      },
+      keyframes: {
+        blob: {
+          '0%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+          '33%': {
+            transform: 'translate(30px, -50px) scale(1.1)',
+          },
+          '66%': {
+            transform: 'translate(-20px, 20px) scale(0.9)',
+          },
+          '100%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+        },
+      },
+      animationDelay: {
+        2000: '2s',
+        4000: '4s',
       },
     },
   },
