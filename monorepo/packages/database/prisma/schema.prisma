@@ -149,6 +149,7 @@ model ads {
   users_ads_reviewed_byTousers users?             @relation("ads_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_ads_user_idTousers     users?             @relation("ads_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   contact_messages             contact_messages[]
+  user_favorites               user_favorites[]
 
   @@index([area_id], map: "idx_ads_area_id")
   @@index([category_id], map: "idx_ads_category_id")
@@ -398,6 +399,7 @@ model users {
   is_active                                                                            Boolean?                           @default(true)
   created_at                                                                           DateTime?                          @default(now()) @db.Timestamp(6)
   updated_at                                                                           DateTime?                          @default(now()) @db.Timestamp(6)
+  last_login                                                                           DateTime?                          @db.Timestamp(6)
   role                                                                                 user_role?                         @default(user)
   bio                                                                                  String?
   avatar                                                                               String?                            @db.VarChar(255)
@@ -428,6 +430,7 @@ model users {
   business_subscription_status                                                         String?                            @db.VarChar(20)
   shop_slug                                                                            String?                            @unique @db.VarChar(255)
   seller_slug                                                                          String?                            @unique @db.VarChar(255)
+  custom_shop_slug                                                                     String?                            @unique @db.VarChar(255)
   individual_verified                                                                  Boolean?                           @default(false)
   individual_verified_at                                                               DateTime?                          @db.Timestamp(6)
   individual_verified_by                                                               Int?
@@ -438,6 +441,9 @@ model users {
   longitude                                                                            Decimal?                           @db.Decimal(11, 8)
   formatted_address                                                                    String?
   google_maps_link                                                                     String?
+  two_factor_enabled                                                                   Boolean?                           @default(false)
+  two_factor_secret                                                                    String?                            @db.VarChar(255)
+  two_factor_backup_codes                                                              Json?
   ad_promotions                                                                        ad_promotions[]
   ad_reports                                                                           ad_reports[]
   admin_activity_logs                                                                  admin_activity_logs[]
@@ -454,6 +460,7 @@ model users {
   individual_verification_requests_individual_verification_requests_reviewed_byTousers individual_verification_requests[] @relation("individual_verification_requests_reviewed_byTousers")
   individual_verification_requests_individual_verification_requests_user_idTousers     individual_verification_requests[] @relation("individual_verification_requests_user_idTousers")
   payment_transactions                                                                 payment_transactions[]
+  user_favorites                                                                       user_favorites[]
   locations                                                                            locations?                         @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_user_location")
   users_users_business_verified_byTousers                                              users?                             @relation("users_business_verified_byTousers", fields: [business_verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_users_users_business_verified_byTousers                                        users[]                            @relation("users_business_verified_byTousers")
@@ -469,8 +476,24 @@ model users {
   @@index([role], map: "idx_users_role")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_favorites {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  ad_id      Int
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  ads        ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, ad_id])
+  @@index([ad_id], map: "idx_user_favorites_ad_id")
+  @@index([created_at(sort: Desc)], map: "idx_user_favorites_created_at")
+  @@index([user_id], map: "idx_user_favorites_user_id")
+}
+
 enum user_role {
   user
   editor
   super_admin
+  root
 }

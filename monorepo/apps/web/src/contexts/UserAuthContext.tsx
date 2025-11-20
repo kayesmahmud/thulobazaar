@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import { createContext, useContext, ReactNode, useEffect, useRef, useMemo } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import type { User } from '@thulobazaar/types';
 
@@ -25,25 +25,31 @@ export function UserAuthProvider({ children }: UserAuthProviderProps) {
   const wasAuthenticated = useRef(false);
 
   // Convert NextAuth session to User type with backendToken
-  const user: any = session?.user ? {
-    id: parseInt(session.user.id),
-    email: session.user.email!,
-    fullName: session.user.name || '',
-    phone: session.user.phone || null,
-    role: session.user.role as any,
-    isActive: true,
-    isVerified: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    avatar: session.user.image || null, // Avatar from session.user.image
-    accountType: session.user.accountType as any || 'individual',
-    shopSlug: session.user.shopSlug || null,
-    sellerSlug: session.user.sellerSlug || null,
-    businessName: session.user.businessName || null,
-    businessVerificationStatus: session.user.businessVerificationStatus as any || null,
-    individualVerified: session.user.individualVerified || false,
-    backendToken: session.user.backendToken || null, // Add backend token
-  } : null;
+  // Memoized to prevent unnecessary re-renders
+  const user: any = useMemo(() => {
+    if (!session?.user) return null;
+
+    return {
+      id: parseInt(session.user.id),
+      email: session.user.email!,
+      fullName: session.user.name || '',
+      phone: session.user.phone || null,
+      role: session.user.role as any,
+      isActive: true,
+      isVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      avatar: session.user.image || null, // Avatar from session.user.image
+      accountType: session.user.accountType as any || 'individual',
+      shopSlug: session.user.shopSlug || null,
+      sellerSlug: session.user.sellerSlug || null,
+      customShopSlug: session.user.customShopSlug || null,
+      businessName: session.user.businessName || null,
+      businessVerificationStatus: session.user.businessVerificationStatus as any || null,
+      individualVerified: session.user.individualVerified || false,
+      backendToken: session.user.backendToken || null, // Add backend token
+    };
+  }, [session?.user]);
 
   // Only show user if they have 'user' role (not editor/super_admin)
   const isRegularUser = user?.role === 'user';
@@ -58,7 +64,7 @@ export function UserAuthProvider({ children }: UserAuthProviderProps) {
     // If was authenticated but now session is null (expired), force logout
     if (wasAuthenticated.current && status === 'unauthenticated' && !session) {
       console.log('🔐 [UserAuth] Session expired, logging out...');
-      signOut({ redirect: true, callbackUrl: '/en/auth/login' });
+      signOut({ redirect: true, callbackUrl: '/en/auth/signin' });
       wasAuthenticated.current = false;
     }
   }, [session, status]);

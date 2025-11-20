@@ -377,6 +377,18 @@ export class ApiClient {
     return response.data;
   }
 
+  async checkShopSlugAvailability(slug: string): Promise<ApiResponse<{ available: boolean }>> {
+    const response = await this.client.get('/api/shop/check-slug', {
+      params: { slug },
+    });
+    return response.data;
+  }
+
+  async updateShopSlug(slug: string): Promise<ApiResponse<{ shopSlug: string }>> {
+    const response = await this.client.put('/api/shop/update-slug', { slug });
+    return response.data;
+  }
+
   // ============================================
   // VERIFICATION ENDPOINTS
   // ============================================
@@ -578,12 +590,14 @@ export class ApiClient {
   }
 
   async approveAd(adId: number): Promise<ApiResponse<Ad>> {
-    const response = await this.client.post(`/api/super-admin/ads/${adId}/approve`);
+    // Use editor endpoint which works for both editors and super admins
+    const response = await this.client.put(`/api/editor/ads/${adId}/approve`);
     return response.data;
   }
 
   async rejectAd(adId: number, reason: string): Promise<ApiResponse<Ad>> {
-    const response = await this.client.post(`/api/super-admin/ads/${adId}/reject`, { reason });
+    // Use editor endpoint which works for both editors and super admins
+    const response = await this.client.put(`/api/editor/ads/${adId}/reject`, { reason });
     return response.data;
   }
 
@@ -630,6 +644,391 @@ export class ApiClient {
     const response = await this.client.post(`/api/editor/verifications/${type}/${verificationId}/${action}`, {
       reason
     });
+    return response.data;
+  }
+
+  // ============================================
+  // ADMIN ENDPOINTS (Super Admin Dashboard)
+  // ============================================
+
+  async getAdminStats(): Promise<ApiResponse<{
+    totalUsers: number;
+    totalAds: number;
+    activeAds: number;
+    pendingAds: number;
+    adsThisWeek: number;
+    usersThisWeek: number;
+    totalViews: number;
+    todayAds: number;
+    topCategories: any[];
+  }>> {
+    const isBrowser = typeof globalThis !== 'undefined' && typeof (globalThis as any).window !== 'undefined';
+
+    if (isBrowser) {
+      try {
+        const token = this.config.getAuthToken ? await this.config.getAuthToken() : null;
+        const response = await axios.get('/api/admin/stats', {
+          baseURL: '',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        return response.data;
+      } catch (browserError) {
+        console.warn('[api-client] Local admin stats route failed, falling back to API base URL', browserError);
+      }
+    }
+
+    const response = await this.client.get('/api/admin/stats');
+    return response.data;
+  }
+
+  async getEditorActivityLogs(params?: {
+    adminId?: number;
+    actionType?: string;
+    targetType?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    data: Array<{
+      id: number;
+      action_type: string;
+      target_type: string;
+      target_id: number;
+      details: any;
+      ip_address: string;
+      created_at: string;
+      admin_name: string;
+      admin_email: string;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>> {
+    const response = await this.client.get('/api/editor/activity-logs', { params });
+    return response.data;
+  }
+
+  async getEditorAds(params?: {
+    status?: string;
+    category?: string;
+    location?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+    includeDeleted?: string;
+  }): Promise<ApiResponse<{
+    data: Array<any>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>> {
+    const response = await this.client.get('/api/editor/ads', { params });
+    return response.data;
+  }
+
+  async getEditors(): Promise<ApiResponse<Array<{
+    id: number;
+    full_name: string;
+    email: string;
+    role: string;
+    is_active: boolean;
+    created_at: string;
+    avatar: string | null;
+    total_actions: number;
+  }>>> {
+    const response = await this.client.get('/api/editor/editors');
+    return response.data;
+  }
+
+  async getEditorUsers(params?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    data: Array<any>;
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>> {
+    const response = await this.client.get('/api/super-admin/users', { params });
+    // Simple endpoint returns flat array, wrap it in expected format
+    if (response.data.success && Array.isArray(response.data.data)) {
+      return {
+        success: true,
+        data: {
+          data: response.data.data,
+          pagination: {
+            page: params?.page || 1,
+            limit: params?.limit || 20,
+            total: response.data.data.length,
+            totalPages: 1,
+          },
+        },
+      };
+    }
+    return response.data;
+  }
+
+  async suspendUser(userId: number, reason: string, duration?: number): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/editor/users/${userId}/suspend`, {
+      reason,
+      duration,
+    });
+    return response.data;
+  }
+
+  async unsuspendUser(userId: number): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/editor/users/${userId}/unsuspend`);
+    return response.data;
+  }
+
+  async verifyUser(userId: number): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/editor/users/${userId}/verify`);
+    return response.data;
+  }
+
+  async unverifyUser(userId: number): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/editor/users/${userId}/unverify`);
+    return response.data;
+  }
+
+  // Promotion Pricing Methods
+  async getAllPromotionPricing(): Promise<ApiResponse<Array<any>>> {
+    const response = await this.client.get('/api/promotion-pricing/admin/all');
+    return response.data;
+  }
+
+  async updatePromotionPricing(id: number, data: {
+    price: number;
+    discount_percentage?: number;
+    is_active?: boolean;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/promotion-pricing/${id}`, data);
+    return response.data;
+  }
+
+  async createPromotionPricing(data: {
+    promotion_type: string;
+    duration_days: number;
+    account_type: string;
+    price: number;
+    discount_percentage?: number;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/api/promotion-pricing', data);
+    return response.data;
+  }
+
+  async deletePromotionPricing(id: number): Promise<ApiResponse<any>> {
+    const response = await this.client.delete(`/api/promotion-pricing/${id}`);
+    return response.data;
+  }
+
+  // ============================================
+  // FINANCIAL TRACKING ENDPOINTS
+  // ============================================
+
+  async getFinancialStats(params?: {
+    period?: 'today' | 'yesterday' | 'thisweek' | 'thismonth' | '7days' | '30days' | '90days' | 'all';
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<{
+    summary: {
+      totalRevenue: number;
+      totalTransactions: number;
+      failedTransactions: {
+        count: number;
+        amount: number;
+      };
+      pendingTransactions: {
+        count: number;
+        amount: number;
+      };
+    };
+    revenueByGateway: Array<{
+      gateway: string;
+      revenue: number;
+      transactions: number;
+    }>;
+    revenueByType: Array<{
+      type: string;
+      revenue: number;
+      transactions: number;
+    }>;
+    promotionStats: Array<{
+      promotionType: string;
+      totalPromotions: number;
+      totalRevenue: number;
+      activePromotions: number;
+    }>;
+    dailyRevenue: Array<{
+      date: string;
+      revenue: number;
+      transactions: number;
+    }>;
+    topCustomers: Array<{
+      id: number;
+      fullName: string;
+      email: string;
+      totalSpent: number;
+      transactions: number;
+    }>;
+  }>> {
+    const response = await this.client.get('/api/editor/financial/stats', { params });
+    return response.data;
+  }
+
+  async getFinancialTransactions(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    gateway?: string;
+    type?: string;
+  }): Promise<ApiResponse<{
+    transactions: Array<any>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>> {
+    const response = await this.client.get('/api/editor/financial/transactions', { params });
+    return response.data;
+  }
+
+  async getSuperAdmins(): Promise<ApiResponse<Array<any>>> {
+    const response = await this.client.get('/api/editor/super-admins');
+    return response.data;
+  }
+
+  async updateSuperAdmin(
+    id: number,
+    data: {
+      email?: string;
+      password?: string;
+      full_name?: string;
+      two_factor_enabled?: boolean;
+    }
+  ): Promise<ApiResponse<any>> {
+    const response = await this.client.patch(`/api/editor/super-admins/${id}`, data);
+    return response.data;
+  }
+
+  // 2FA Methods
+  async setup2FA(userId: number): Promise<ApiResponse<{ secret: string; qrCode: string }>> {
+    const response = await this.client.post(`/api/editor/super-admins/${userId}/2fa/setup`);
+    return response.data;
+  }
+
+  async verify2FA(userId: number, data: { secret: string; token: string }): Promise<ApiResponse<{ backupCodes: string[] }>> {
+    const response = await this.client.post(`/api/editor/super-admins/${userId}/2fa/verify`, data);
+    return response.data;
+  }
+
+  async disable2FA(userId: number): Promise<ApiResponse<any>> {
+    const response = await this.client.post(`/api/editor/super-admins/${userId}/2fa/disable`);
+    return response.data;
+  }
+
+  // System Health
+  async getSystemHealth(): Promise<ApiResponse<any>> {
+    const response = await this.client.get('/api/editor/system-health');
+    return response.data;
+  }
+
+  // Security & Audit
+  async getSecurityAudit(params?: {
+    timeRange?: '1h' | '24h' | '7d' | '30d';
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.get('/api/editor/security-audit', { params });
+    return response.data;
+  }
+
+  // ============================================
+  // CATEGORIES MANAGEMENT (Super Admin)
+  // ============================================
+
+  async getAdminCategories(): Promise<ApiResponse<any>> {
+    const response = await this.client.get('/api/editor/categories');
+    return response.data;
+  }
+
+  async createCategory(data: {
+    name: string;
+    slug: string;
+    icon?: string;
+    parent_id?: number;
+    form_template?: string;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/api/editor/categories', data);
+    return response.data;
+  }
+
+  async updateCategory(id: number, data: {
+    name?: string;
+    slug?: string;
+    icon?: string;
+    parent_id?: number;
+    form_template?: string;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/editor/categories/${id}`, data);
+    return response.data;
+  }
+
+  async deleteCategory(id: number): Promise<ApiResponse<any>> {
+    const response = await this.client.delete(`/api/editor/categories/${id}`);
+    return response.data;
+  }
+
+  // ============================================
+  // LOCATIONS MANAGEMENT (Super Admin)
+  // ============================================
+
+  async getAdminLocations(): Promise<ApiResponse<any>> {
+    const response = await this.client.get('/api/editor/locations');
+    return response.data;
+  }
+
+  async createLocation(data: {
+    name: string;
+    slug?: string;
+    type: 'country' | 'region' | 'city' | 'district';
+    parent_id?: number;
+    latitude?: number;
+    longitude?: number;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/api/editor/locations', data);
+    return response.data;
+  }
+
+  async updateLocation(id: number, data: {
+    name?: string;
+    slug?: string;
+    type?: 'country' | 'region' | 'city' | 'district';
+    parent_id?: number;
+    latitude?: number;
+    longitude?: number;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/api/editor/locations/${id}`, data);
+    return response.data;
+  }
+
+  async deleteLocation(id: number): Promise<ApiResponse<any>> {
+    const response = await this.client.delete(`/api/editor/locations/${id}`);
     return response.data;
   }
 }

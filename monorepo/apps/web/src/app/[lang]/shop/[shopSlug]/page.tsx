@@ -16,9 +16,13 @@ export async function generateMetadata({ params }: ShopProfilePageProps): Promis
   const { shopSlug } = await params;
 
   try {
+    // Extract user ID from slug (format: business-name-{userId})
+    const userId = parseInt(shopSlug.split('-').pop() || '0');
+
     const shop = await prisma.users.findFirst({
       where: {
-        shop_slug: shopSlug,
+        id: userId,
+        business_verification_status: { in: ['approved', 'verified'] },
       },
       select: {
         full_name: true,
@@ -50,10 +54,11 @@ export async function generateMetadata({ params }: ShopProfilePageProps): Promis
 export default async function ShopProfilePage({ params }: ShopProfilePageProps) {
   const { lang, shopSlug } = await params;
 
-  // Fetch shop details - all users use shop_slug
-  const shop = await prisma.users.findFirst({
+  // First, try to find by custom_shop_slug
+  let shop = await prisma.users.findFirst({
     where: {
-      shop_slug: shopSlug,
+      custom_shop_slug: shopSlug,
+      business_verification_status: { in: ['approved', 'verified'] },
     },
     select: {
       id: true,
@@ -85,6 +90,47 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
       },
     },
   });
+
+  // If not found by custom slug, try extracting user ID from slug (format: business-name-{userId})
+  if (!shop) {
+    const userId = parseInt(shopSlug.split('-').pop() || '0');
+
+    shop = await prisma.users.findFirst({
+      where: {
+        id: userId,
+        business_verification_status: { in: ['approved', 'verified'] },
+      },
+      select: {
+        id: true,
+        email: true,
+        full_name: true,
+        phone: true,
+        avatar: true,
+        cover_photo: true,
+        bio: true,
+        account_type: true,
+        shop_slug: true,
+        seller_slug: true,
+        business_name: true,
+        business_category: true,
+        business_description: true,
+        business_website: true,
+        business_phone: true,
+        business_address: true,
+        google_maps_link: true,
+        business_verification_status: true,
+        individual_verified: true,
+        created_at: true,
+        locations: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+  }
 
   if (!shop) {
     notFound();

@@ -1551,6 +1551,12 @@ app.use('/api/areas', require('./routes/areas'));
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
+// Shop routes (custom shop URL management)
+app.use('/api/shop', require('./routes/shop'));
+
+// User authentication routes (login, register)
+app.use('/api/auth', require('./routes/authRoutes'));
+
 // Super Admin/Editor authentication routes (no auth required for login)
 app.use('/api/super-admin/auth', require('./routes/adminAuth'));
 app.use('/api/admin/auth', require('./routes/adminAuth')); // Alias for admin login

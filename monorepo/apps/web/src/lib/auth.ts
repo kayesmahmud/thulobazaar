@@ -41,6 +41,7 @@ export const authOptions: NextAuthOptions = {
               account_type: true,
               shop_slug: true,
               seller_slug: true,
+              custom_shop_slug: true,
               business_name: true,
               business_verification_status: true,
               individual_verified: true,
@@ -129,26 +130,44 @@ export const authOptions: NextAuthOptions = {
             data: { last_login: new Date() },
           });
 
-          // Also get backend JWT token for admin/editor API calls
+          // Also get backend JWT token for API calls
           let backendToken = null;
           try {
             const backendUrl = process.env.API_URL || 'http://localhost:5000';
-            const response = await fetch(`${backendUrl}/api/admin/auth/login`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: credentials.email,
-                password: credentials.password,
-              }),
-            });
 
-            if (response.ok) {
-              const data = await response.json();
-              // Backend returns flat structure: { success, token, user }
-              backendToken = data.token;
-              console.log('🔐 [NextAuth] Backend token fetched:', backendToken ? 'Yes' : 'No');
+            // Choose correct endpoint based on role
+            let loginEndpoint;
+            if (user.role === 'root') {
+              loginEndpoint = `${backendUrl}/api/editor/root-login`;
+            } else if (user.role === 'super_admin') {
+              loginEndpoint = `${backendUrl}/api/admin/auth/login`;
+            } else if (user.role === 'editor') {
+              // Regular editors use admin auth endpoint
+              loginEndpoint = `${backendUrl}/api/admin/auth/login`;
             } else {
-              console.error('🔐 [NextAuth] Backend login failed:', response.status, await response.text());
+              // Regular users use the user auth endpoint
+              loginEndpoint = `${backendUrl}/api/auth/login`;
+            }
+
+            if (loginEndpoint) {
+              const response = await fetch(loginEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: credentials.email,
+                  password: credentials.password,
+                }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                // Backend returns: { success, data: { token, user } } or { success, token, user }
+                backendToken = data.data?.token || data.token;
+                console.log('🔐 [NextAuth] Backend token fetched for role', user.role, ':', backendToken ? 'Yes' : 'No');
+              } else {
+                const errorText = await response.text();
+                console.error('🔐 [NextAuth] Backend login failed:', response.status, errorText);
+              }
             }
           } catch (error) {
             console.error('🔐 [NextAuth] Failed to get backend token:', error);
@@ -166,6 +185,7 @@ export const authOptions: NextAuthOptions = {
             accountType: user.account_type,
             shopSlug: user.shop_slug,
             sellerSlug: user.seller_slug,
+            customShopSlug: user.custom_shop_slug,
             businessName: user.business_name,
             businessVerificationStatus: user.business_verification_status,
             individualVerified: user.individual_verified,
@@ -193,6 +213,7 @@ export const authOptions: NextAuthOptions = {
         token.accountType = user.accountType;
         token.shopSlug = user.shopSlug;
         token.sellerSlug = user.sellerSlug;
+        token.customShopSlug = user.customShopSlug;
         token.businessName = user.businessName;
         token.businessVerificationStatus = user.businessVerificationStatus;
         token.individualVerified = user.individualVerified;
@@ -217,6 +238,7 @@ export const authOptions: NextAuthOptions = {
               account_type: true,
               shop_slug: true,
               seller_slug: true,
+              custom_shop_slug: true,
               business_name: true,
               business_verification_status: true,
               individual_verified: true,
@@ -233,6 +255,7 @@ export const authOptions: NextAuthOptions = {
             token.accountType = updatedUser.account_type;
             token.shopSlug = updatedUser.shop_slug;
             token.sellerSlug = updatedUser.seller_slug;
+            token.customShopSlug = updatedUser.custom_shop_slug;
             token.businessName = updatedUser.business_name;
             token.businessVerificationStatus = updatedUser.business_verification_status;
             token.individualVerified = updatedUser.individual_verified;
@@ -270,6 +293,7 @@ export const authOptions: NextAuthOptions = {
         session.user.accountType = token.accountType as string | null;
         session.user.shopSlug = token.shopSlug as string | null;
         session.user.sellerSlug = token.sellerSlug as string | null;
+        session.user.customShopSlug = token.customShopSlug as string | null;
         session.user.businessName = token.businessName as string | null;
         session.user.businessVerificationStatus = token.businessVerificationStatus as string | null;
         session.user.individualVerified = token.individualVerified as boolean | null;

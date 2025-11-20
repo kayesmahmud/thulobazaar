@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.full_name as name, u.email, u.bio, u.avatar, u.cover_photo, u.phone,
               u.location_id, l.name as location_name, u.role, u.created_at,
-              u.shop_slug, u.seller_slug, u.account_type, u.business_verification_status, u.individual_verified, u.business_name
+              u.shop_slug, u.seller_slug, u.account_type, u.business_verification_status, u.individual_verified, u.business_name, u.custom_shop_slug
        FROM users u
        LEFT JOIN locations l ON u.location_id = l.id
        WHERE u.id = $1`,
@@ -123,7 +123,8 @@ router.get('/', async (req, res) => {
       accountType: user.account_type,
       businessName: user.business_name,
       businessVerificationStatus: user.business_verification_status,
-      individualVerified: user.individual_verified
+      individualVerified: user.individual_verified,
+      customShopSlug: user.custom_shop_slug
     };
 
     res.json({

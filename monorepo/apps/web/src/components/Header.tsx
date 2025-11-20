@@ -123,7 +123,7 @@ export default function Header({ lang }: HeaderProps) {
             {!isAuthenticated ? (
               <>
                 <Link
-                  href={`/${lang}/auth/login`}
+                  href={`/${lang}/auth/signin`}
                   className="btn-outline-primary text-sm"
                 >
                   Sign In
@@ -158,22 +158,11 @@ export default function Header({ lang }: HeaderProps) {
                     ) : (
                       <Link
                         href={`/${lang}/editor/dashboard`}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-emerald-700 transition-all"
+                        className="px-6 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-lg transition-all duration-200 text-center"
                       >
-                        <span>✍️</span>
-                        Editor Panel
+                        Editor Dashboard
                       </Link>
                     )}
-
-                    {/* User info with role badge */}
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getRoleBadgeColor()}`}>
-                        {getRoleLabel()}
-                      </span>
-                      <span className="text-gray-600 text-sm font-medium">
-                        {currentUser?.fullName || currentUser?.email}
-                      </span>
-                    </div>
                   </>
                 ) : (
                   <>
@@ -238,20 +227,21 @@ export default function Header({ lang }: HeaderProps) {
                               📊 My Dashboard
                             </Link>
 
-                            {/* View My Shop - if user has shop slug */}
-                            {user && user?.shopSlug && (
+                            {/* View My Shop - for business verified users */}
+                            {user && (user?.businessVerificationStatus === 'approved' || user?.businessVerificationStatus === 'verified') && user?.businessName && (
                               <Link
-                                href={`/${lang}/shop/${user.shopSlug}`}
+                                href={`/${lang}/shop/${user.customShopSlug || `${user.businessName.toLowerCase().replace(/\s+/g, '-')}-${user.id}`}`}
                                 onClick={() => setProfileDropdownOpen(false)}
-                                className={`block w-full px-4 py-2.5 text-left text-sm font-medium no-underline transition-colors ${
-                                  user?.accountType === 'business' && user?.businessVerificationStatus === 'approved'
-                                    ? 'text-yellow-600 hover:bg-yellow-50'
-                                    : user?.individualVerified
-                                    ? 'text-blue-600 hover:bg-blue-50'
-                                    : 'text-gray-700 hover:bg-gray-50'
-                                }`}
+                                className="block w-full px-4 py-2.5 text-left text-sm font-medium no-underline transition-colors bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 hover:from-purple-100 hover:to-pink-100 border-l-4 border-purple-500"
                               >
-                                🏪 View My Shop
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-2">
+                                    🏪 My Shop
+                                  </span>
+                                  <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-0.5 rounded-full font-bold">
+                                    ⭐ VERIFIED
+                                  </span>
+                                </div>
                               </Link>
                             )}
                           </div>
@@ -304,7 +294,7 @@ export default function Header({ lang }: HeaderProps) {
 
               {!isAuthenticated ? (
                 <>
-                  <Link href={`/${lang}/auth/login`} className="btn-outline-primary w-full text-center">
+                  <Link href={`/${lang}/auth/signin`} className="btn-outline-primary w-full text-center">
                     Sign In
                   </Link>
                   <Link href={`/${lang}/auth/register`} className="btn-primary w-full text-center">
@@ -321,13 +311,31 @@ export default function Header({ lang }: HeaderProps) {
                       🛡️ Super Admin Panel
                     </Link>
                   ) : currentUser?.role === 'editor' ? (
-                    <Link href={`/${lang}/editor/dashboard`} className="btn-primary w-full text-center">
-                      ✍️ Editor Panel
+                    <Link href={`/${lang}/editor/dashboard`} className="px-6 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-lg transition-all duration-200 w-full text-center">
+                      Editor Dashboard
                     </Link>
                   ) : (
-                    <Link href={`/${lang}/dashboard`} className="text-gray-600 hover:text-primary py-2">
-                      Dashboard
-                    </Link>
+                    <>
+                      <Link href={`/${lang}/profile`} className="text-gray-600 hover:text-primary py-2">
+                        👤 My Profile
+                      </Link>
+                      <Link href={`/${lang}/dashboard`} className="text-gray-600 hover:text-primary py-2">
+                        📊 Dashboard
+                      </Link>
+
+                      {/* My Shop - for business verified users */}
+                      {user && (user?.businessVerificationStatus === 'approved' || user?.businessVerificationStatus === 'verified') && user?.businessName && (
+                        <Link
+                          href={`/${lang}/shop/${user.customShopSlug || `${user.businessName.toLowerCase().replace(/\s+/g, '-')}-${user.id}`}`}
+                          className="text-purple-600 hover:text-purple-700 py-2 font-medium flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 px-3 rounded-lg border-l-4 border-purple-500"
+                        >
+                          <span>🏪 My Shop</span>
+                          <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-0.5 rounded-full font-bold">
+                            ⭐ VERIFIED
+                          </span>
+                        </Link>
+                      )}
+                    </>
                   )}
 
                   {/* Only show Sign Out for regular users (not staff) in mobile */}
