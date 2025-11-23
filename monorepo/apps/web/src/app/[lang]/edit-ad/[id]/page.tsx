@@ -79,7 +79,7 @@ export default function EditAdPage({ params }: EditAdPageProps) {
   useEffect(() => {
     // Redirect if not authenticated
     if (status === 'unauthenticated') {
-      router.push(`/${lang}/auth/login`);
+      router.push(`/${lang}/auth/signin`);
       return;
     }
 

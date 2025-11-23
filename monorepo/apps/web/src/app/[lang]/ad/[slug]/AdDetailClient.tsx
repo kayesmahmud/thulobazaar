@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 
 interface AdDetailClientProps {
   images: string[];
@@ -35,12 +34,10 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
         {displayImages[selectedImageIndex] === '/placeholder-ad.png' ? (
           <span className="text-6xl text-gray-400">📷</span>
         ) : (
-          <Image
+          <img
             src={displayImages[selectedImageIndex] || '/placeholder-ad.png'}
             alt={`Image ${selectedImageIndex + 1}`}
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
+            className="w-full h-full object-contain"
           />
         )}
 
@@ -95,12 +92,10 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
               {image === '/placeholder-ad.png' ? (
                 <span className="text-3xl">📷</span>
               ) : (
-                <Image
+                <img
                   src={image}
                   alt={`Thumbnail ${index + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="80px"
+                  className="w-full h-full object-cover"
                 />
               )}
             </div>

@@ -42,7 +42,7 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
 
           {/* Login Link */}
           <div className="text-center">
-            <Link href={`/${lang}/auth/login`} className="btn-outline-primary w-full">
+            <Link href={`/${lang}/auth/signin`} className="btn-outline-primary w-full">
               Login instead
             </Link>
           </div>

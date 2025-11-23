@@ -54,9 +54,14 @@ export function DashboardLayout({
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  // Theme-specific background gradients
+  const backgroundGradient = theme === 'editor'
+    ? 'bg-gradient-to-br from-gray-50 via-gray-50 to-emerald-50/30'
+    : 'bg-gradient-to-br from-gray-50 via-gray-50 to-indigo-50/30';
+
   return (
     <div
-      className="flex min-h-screen bg-gray-50"
+      className={`flex min-h-screen ${backgroundGradient}`}
       style={{
         ['--admin-primary' as any]: themeColors.primary,
         ['--admin-primary-hover' as any]: themeColors.primaryHover,
@@ -77,7 +82,7 @@ export function DashboardLayout({
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
         <Header
           onSidebarToggle={handleSidebarToggle}
@@ -88,10 +93,12 @@ export function DashboardLayout({
           userEmail={userEmail}
           userAvatar={userAvatar}
           onLogout={onLogout}
+          theme={theme}
+          showDashboardButton={theme === 'editor'}
         />
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 p-8">
           {children}
         </main>
       </div>

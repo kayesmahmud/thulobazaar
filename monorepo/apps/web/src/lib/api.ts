@@ -25,6 +25,6 @@ export const apiClient = createApiClient({
   // Handle unauthorized access
   onUnauthorized: () => {
     if (typeof window === 'undefined') return;
-    window.location.href = '/en/auth/login';
+    window.location.href = '/en/auth/signin';
   },
 });

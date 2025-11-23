@@ -8,6 +8,7 @@ import AdDetailClient from './AdDetailClient';
 import PromoteSection from './PromoteSection';
 import Breadcrumb from '@/components/Breadcrumb';
 import PromotionSuccessToast from './PromotionSuccessToast';
+import SendMessageButton from '@/components/messages/SendMessageButton';
 import { generateProductStructuredData, generateBreadcrumbStructuredData } from '@/lib/structuredData';
 
 interface AdDetailPageProps {
@@ -191,8 +192,10 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
   const fullCategory = categoryParts.join(' › ');
 
   // Prepare images for client component (array of full URL strings)
+  // Images are served from the backend on port 5000
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   const images = ad.ad_images.map(img =>
-    `/${img.file_path}`
+    `${BACKEND_URL}/${img.file_path}`
   );
 
   // Build breadcrumb items
@@ -566,20 +569,13 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 </a>
               )}
 
-              {ad.users_ads_user_idTousers?.email && (
-                <button style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: '#667eea',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  cursor: 'pointer'
-                }}>
-                  ✉️ Send Message
-                </button>
+              {ad.user_id && (
+                <SendMessageButton
+                  sellerId={ad.user_id}
+                  adId={ad.id}
+                  adTitle={ad.title}
+                  lang={lang}
+                />
               )}
 
               <div style={{

@@ -80,7 +80,7 @@ export default function BusinessVerificationForm({
     setImagePreview(null);
   };
 
-  // Handle form submission
+  // Handle form submission with payment
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -99,10 +99,18 @@ export default function BusinessVerificationForm({
     try {
       setLoading(true);
 
-      // Create FormData with snake_case field names that match backend expectations
+      // For testing: Skip payment and submit directly with mock transaction ID
+      const VERIFICATION_FEE = 500; // NPR 500 for business verification
+      const mockTransactionId = `MOCK_BIZ_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+      console.log('🎭 Using mock payment (test mode):', mockTransactionId);
+
+      // Submit verification with mock payment reference
       const submitData = new FormData();
       submitData.append('business_name', formData.businessName.trim());
       submitData.append('business_license_document', formData.licenseFile);
+      submitData.append('payment_reference', mockTransactionId);
+      submitData.append('payment_amount', VERIFICATION_FEE.toString());
 
       if (formData.businessCategory.trim()) {
         submitData.append('business_category', formData.businessCategory.trim());
@@ -124,11 +132,15 @@ export default function BusinessVerificationForm({
         submitData.append('business_address', formData.businessAddress.trim());
       }
 
+      console.log('📤 Submitting business verification...');
+
       // Submit via API client
       await apiClient.submitBusinessVerification(submitData);
 
+      console.log('✅ Business verification submitted successfully!');
+
       // Success!
-      alert('✅ Business verification request submitted successfully! Your application is under review.');
+      alert('✅ Payment successful! Business verification request submitted. Your application is under review.');
       onSuccess();
     } catch (err: any) {
       console.error('❌ Business verification submission error:', err);
@@ -158,6 +170,21 @@ export default function BusinessVerificationForm({
           <h2 className="text-2xl font-bold text-primary mb-6">
             Business Verification
           </h2>
+
+          {/* Verification Fee Notice */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">💳</span>
+              <div>
+                <div className="font-bold text-green-900 mb-1">
+                  Verification Fee: NPR 500 (Mock Payment)
+                </div>
+                <div className="text-sm text-green-700">
+                  🎭 Test payment - automatically processed. One-time fee for business verification.
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Error Alert */}
           {error && (

@@ -67,6 +67,9 @@ class AuthController {
       throw new AuthenticationError('Invalid email or password');
     }
 
+    // Update last login timestamp
+    await User.updateLastLogin(user.id);
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },

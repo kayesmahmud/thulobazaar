@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
@@ -14,9 +16,23 @@ const { MobileLocationService } = require('./utils/mobileLocationUtils');
 const profileRoutes = require('./routes/profileRoutes');
 const { upload, validateFileType } = require('./middleware/secureFileUpload');
 const { SECURITY, FILE_LIMITS, AD_STATUS, PAGINATION, LOCATION } = require('./config/constants');
+const { initializeSocketIO } = require('./socket/socketHandler');
 require('dotenv').config();
 
 const app = express();
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO with CORS - 2025 Best Practices
+const io = new Server(httpServer, {
+  cors: {
+    origin: ['http://localhost:3333', 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+    credentials: true,
+    methods: ['GET', 'POST']
+  },
+  // Connection timeout settings
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
 
 // Security middleware - Helmet for HTTP headers (2025 best practice)
 app.use(helmet({
@@ -281,6 +297,59 @@ app.post('/api/auth/login', rateLimiters.auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error logging in user',
+      error: error.message
+    });
+  }
+});
+
+// Token refresh endpoint for messaging (no password required, uses existing NextAuth session)
+app.post('/api/auth/refresh-token', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Find user by email
+    const result = await pool.query(
+      'SELECT id, email, role FROM users WHERE email = $1 AND is_active = true',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Generate fresh JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    console.log(`🔄 Token refreshed for: ${user.email} (userId: ${user.id})`);
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        token
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error refreshing token:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error refreshing token',
       error: error.message
     });
   }
@@ -1551,6 +1620,10 @@ app.use('/api/areas', require('./routes/areas'));
 // Profile routes
 app.use('/api/profile', require('./routes/profile'));
 
+// Messages routes (real-time messaging system)
+app.use('/api/messages', require('./routes/messages'));
+console.log('💬 Messaging routes registered at /api/messages');
+
 // Shop routes (custom shop URL management)
 app.use('/api/shop', require('./routes/shop'));
 
@@ -1609,11 +1682,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+// Initialize Socket.IO with JWT authentication and event handlers
+initializeSocketIO(io);
+
+// Start HTTP server (replaces app.listen for Socket.IO compatibility)
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 API endpoints:`);
   console.log(`   - http://localhost:${PORT}/api/test`);
   console.log(`   - http://localhost:${PORT}/api/ads`);
   console.log(`   - http://localhost:${PORT}/api/categories`);
   console.log(`   - http://localhost:${PORT}/api/search (Typesense powered)`);
+  console.log(`💬 Socket.IO messaging ready on ws://localhost:${PORT}`);
 });

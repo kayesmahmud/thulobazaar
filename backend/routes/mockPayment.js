@@ -296,8 +296,8 @@ router.get('/success', async (req, res) => {
 
     // Redirect to the ad detail page on the new monorepo site
     const redirectUrl = adSlug
-      ? `http://localhost:3000/en/ad/${adSlug}?promoted=true&txnId=${txnId}`
-      : `http://localhost:3000/en/dashboard?promoted=true&txnId=${txnId}`;
+      ? `http://localhost:3333/en/ad/${adSlug}?promoted=true&txnId=${txnId}`
+      : `http://localhost:3333/en/dashboard?promoted=true&txnId=${txnId}`;
 
     res.redirect(redirectUrl);
 

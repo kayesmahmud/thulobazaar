@@ -145,6 +145,16 @@ class User {
   static async delete(id) {
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
   }
+
+  /**
+   * Update last login timestamp
+   */
+  static async updateLastLogin(id) {
+    await pool.query(
+      'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [id]
+    );
+  }
 }
 
 module.exports = User;

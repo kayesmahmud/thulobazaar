@@ -66,7 +66,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
 
       if (loginResult?.error) {
         // Registration succeeded but login failed - redirect to login page
-        router.push(`/${lang}/auth/login?registered=true`);
+        router.push(`/${lang}/auth/signin?registered=true`);
       } else if (loginResult?.ok) {
         // Both registration and login succeeded
         router.push(`/${lang}`);

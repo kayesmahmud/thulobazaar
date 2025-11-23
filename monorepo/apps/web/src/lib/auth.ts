@@ -300,6 +300,10 @@ export const authOptions: NextAuthOptions = {
         session.user.lastLogin = token.lastLogin as string | null;
         session.user.backendToken = token.backendToken as string | null;
       }
+
+      // CRITICAL: Add backendToken at session root level for easier access
+      (session as any).backendToken = token.backendToken as string | null;
+
       return session;
     },
   },

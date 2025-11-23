@@ -14,21 +14,21 @@ export default withAuth(
     // Super Admin routes
     if (pathname.includes('/super-admin')) {
       if (token?.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/en/auth/login', req.url));
+        return NextResponse.redirect(new URL('/en/auth/signin', req.url));
       }
     }
 
     // Editor routes
     if (pathname.includes('/editor')) {
       if (token?.role !== 'editor' && token?.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/en/auth/login', req.url));
+        return NextResponse.redirect(new URL('/en/auth/signin', req.url));
       }
     }
 
     // User dashboard routes
     if (pathname.includes('/dashboard') && !pathname.includes('/super-admin') && !pathname.includes('/editor')) {
       if (!token || token.role !== 'user') {
-        return NextResponse.redirect(new URL('/en/auth/login', req.url));
+        return NextResponse.redirect(new URL('/en/auth/signin', req.url));
       }
     }
 

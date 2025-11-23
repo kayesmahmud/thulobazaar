@@ -17,29 +17,34 @@ export async function generateMetadata({ params }: ShopProfilePageProps): Promis
 
   try {
     // Extract user ID from slug (format: business-name-{userId})
-    const userId = parseInt(shopSlug.split('-').pop() || '0');
+    const parts = shopSlug.split('-');
+    const lastPart = parts[parts.length - 1] || '';
+    const userId = parseInt(lastPart);
 
-    const shop = await prisma.users.findFirst({
-      where: {
-        id: userId,
-        business_verification_status: { in: ['approved', 'verified'] },
-      },
-      select: {
-        full_name: true,
-        business_name: true,
-        business_description: true,
-        bio: true,
-      },
-    });
+    // Only query if we have a valid user ID
+    if (!isNaN(userId) && userId > 0) {
+      const shop = await prisma.users.findFirst({
+        where: {
+          id: userId,
+          business_verification_status: { in: ['approved', 'verified'] },
+        },
+        select: {
+          full_name: true,
+          business_name: true,
+          business_description: true,
+          bio: true,
+        },
+      });
 
-    if (shop) {
-      const displayName = shop.business_name || shop.full_name;
-      const description = shop.business_description || shop.bio;
+      if (shop) {
+        const displayName = shop.business_name || shop.full_name;
+        const description = shop.business_description || shop.bio;
 
-      return {
-        title: `${displayName} - Shop | Thulobazaar`,
-        description: description?.substring(0, 160) || `Shop profile for ${displayName}. Browse products and contact the seller.`,
-      };
+        return {
+          title: `${displayName} - Shop | Thulobazaar`,
+          description: description?.substring(0, 160) || `Shop profile for ${displayName}. Browse products and contact the seller.`,
+        };
+      }
     }
   } catch (error) {
     console.error('Error fetching shop metadata:', error);
@@ -54,10 +59,13 @@ export async function generateMetadata({ params }: ShopProfilePageProps): Promis
 export default async function ShopProfilePage({ params }: ShopProfilePageProps) {
   const { lang, shopSlug } = await params;
 
-  // First, try to find by custom_shop_slug
+  // First, try to find by shop_slug (auto-generated) or custom_shop_slug (user-defined)
   let shop = await prisma.users.findFirst({
     where: {
-      custom_shop_slug: shopSlug,
+      OR: [
+        { shop_slug: shopSlug },
+        { custom_shop_slug: shopSlug },
+      ],
       business_verification_status: { in: ['approved', 'verified'] },
     },
     select: {
@@ -93,13 +101,17 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
 
   // If not found by custom slug, try extracting user ID from slug (format: business-name-{userId})
   if (!shop) {
-    const userId = parseInt(shopSlug.split('-').pop() || '0');
+    const parts = shopSlug.split('-');
+    const lastPart = parts[parts.length - 1] || '';
+    const userId = parseInt(lastPart);
 
-    shop = await prisma.users.findFirst({
-      where: {
-        id: userId,
-        business_verification_status: { in: ['approved', 'verified'] },
-      },
+    // Only query if we have a valid user ID
+    if (!isNaN(userId) && userId > 0) {
+      shop = await prisma.users.findFirst({
+        where: {
+          id: userId,
+          business_verification_status: { in: ['approved', 'verified'] },
+        },
       select: {
         id: true,
         email: true,
@@ -129,7 +141,8 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
           },
         },
       },
-    });
+      });
+    }
   }
 
   if (!shop) {

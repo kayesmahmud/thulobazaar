@@ -355,7 +355,7 @@ router.get('/unread-count', catchAsync(async (req, res) => {
      JOIN conversation_participants cp ON cp.conversation_id = m.conversation_id
      WHERE cp.user_id = $1
        AND m.sender_id != $1
-       AND m.created_at > cp.last_read_at
+       AND (cp.last_read_at IS NULL OR m.created_at > cp.last_read_at)
        AND m.is_deleted = false`,
     [userId]
   );

@@ -7,9 +7,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice, formatDateTime } from '@thulobazaar/utils';
 import { apiClient } from '@/lib/api';
+import { messagingApi } from '@/lib/messagingApi';
 import { useToast } from '@/components/Toast';
 import { EmptyAds } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/ui';
+import { useBackendToken } from '@/hooks/useBackendToken';
+import { useMessages } from '@/hooks/useSocket';
 
 interface DashboardPageProps {
   params: Promise<{ lang: string }>;
@@ -63,6 +66,12 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   // Verification state
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
 
+  // Get backend token for Socket.IO connection
+  const { backendToken, loading: tokenLoading } = useBackendToken();
+
+  // Connect to Socket.IO for real-time message notifications (only when token is ready)
+  const { socket } = useMessages(tokenLoading ? null : backendToken);
+
   useEffect(() => {
     // Redirect if not authenticated
     if (status === 'unauthenticated') {
@@ -81,10 +90,14 @@ export default function DashboardPage({ params }: DashboardPageProps) {
       setLoading(true);
       setError('');
 
-      // Fetch user ads and verification status in parallel
-      const [adsResponse, verificationResponse] = await Promise.all([
+      // Get backend token
+      const token = backendToken || (session as any)?.backendToken;
+
+      // Fetch user ads, verification status, and message count in parallel
+      const [adsResponse, verificationResponse, messagesResponse] = await Promise.all([
         apiClient.getUserAds(),
         apiClient.getVerificationStatus().catch(() => ({ success: false, data: null })),
+        token ? messagingApi.getUnreadCount(token).catch(() => ({ data: { unreadCount: 0 } })) : Promise.resolve({ data: { unreadCount: 0 } }),
       ]);
 
       if (adsResponse.success && adsResponse.data) {
@@ -99,7 +112,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           totalAds: ads.length,
           activeAds,
           totalViews,
-          totalMessages: 0 // TODO: Fetch from messages API
+          totalMessages: messagesResponse?.data?.unread_messages || 0
         });
       }
 
@@ -113,6 +126,31 @@ export default function DashboardPage({ params }: DashboardPageProps) {
       setLoading(false);
     }
   };
+
+  // Listen for new messages via Socket.IO to update count in real-time
+  useEffect(() => {
+    if (!socket || !backendToken) return;
+
+    const handleNewMessage = async () => {
+      // Fetch updated unread count
+      try {
+        const messagesResponse = await messagingApi.getUnreadCount(backendToken);
+        setStats((prevStats) => ({
+          ...prevStats,
+          totalMessages: messagesResponse?.data?.unread_messages || 0
+        }));
+      } catch (err) {
+        console.error('Failed to update message count:', err);
+      }
+    };
+
+    // Listen for new messages
+    socket.on('message:new', handleNewMessage);
+
+    return () => {
+      socket.off('message:new', handleNewMessage);
+    };
+  }, [socket, backendToken]);
 
 
   const handleDeleteAd = async (adId: number) => {
@@ -285,22 +323,33 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           </div>
 
           {/* Messages Card */}
-          <div className="group bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                  {stats.totalMessages}
+          <Link href={`/${lang}/messages`} className="block">
+            <div className="group bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div className="text-right flex flex-col items-center">
+                  {stats.totalMessages > 0 ? (
+                    <>
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <span className="text-lg font-bold text-white">{stats.totalMessages}</span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        {stats.totalMessages === 1 ? 'unread message' : 'unread messages'}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="text-4xl font-bold text-gray-300">0</div>
+                  )}
                 </div>
               </div>
+              <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Messages</div>
+              <div className="mt-2 text-xs text-gray-500">From buyers</div>
             </div>
-            <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Messages</div>
-            <div className="mt-2 text-xs text-gray-500">From buyers</div>
-          </div>
+          </Link>
         </div>
 
         {/* Verification Section - Enhanced Design */}

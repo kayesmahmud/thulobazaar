@@ -87,7 +87,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   useEffect(() => {
     // Redirect if not authenticated
     if (status === 'unauthenticated') {
-      router.push(`/${lang}/auth/login`);
+      router.push(`/${lang}/auth/signin`);
       return;
     }
 
@@ -131,16 +131,26 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     try {
       setLoading(true);
 
-      const [categoriesRes, locationsRes] = await Promise.all([
-        apiClient.getCategories(),
+      const [categoriesRes, allCategoriesRes, locationsRes] = await Promise.all([
+        apiClient.getCategories(), // Parent categories only
+        apiClient.getCategories({ includeSubcategories: true }), // All categories (flat list)
         apiClient.getLocations({ type: 'municipality' }),
       ]);
 
-      if (categoriesRes.success && categoriesRes.data) {
-        // API already returns parent categories with subcategories embedded
-        // No need to filter - just use the data directly
-        setCategories(categoriesRes.data);
-        console.log('✅ Loaded', categoriesRes.data.length, 'parent categories');
+      if (categoriesRes.success && categoriesRes.data && allCategoriesRes.success && allCategoriesRes.data) {
+        // Store parent categories
+        const parentCategories = categoriesRes.data;
+        // Store all categories (for subcategory lookup)
+        const allCategories = allCategoriesRes.data;
+
+        // Create nested structure: Add subcategories array to each parent
+        const categoriesWithSubcategories = parentCategories.map(parent => ({
+          ...parent,
+          subcategories: allCategories.filter(cat => cat.parent_id === parent.id)
+        }));
+
+        setCategories(categoriesWithSubcategories);
+        console.log('✅ Loaded', categoriesWithSubcategories.length, 'parent categories with subcategories');
       }
 
       if (locationsRes.success && locationsRes.data) {

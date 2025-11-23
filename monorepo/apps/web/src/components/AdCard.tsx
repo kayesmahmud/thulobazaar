@@ -30,11 +30,12 @@ export default function AdCard({ ad, lang }: AdCardProps) {
   // Generate ad URL using seo_slug or slug
   const adUrl = ad.seoSlug || ad.slug || `ad-${ad.id}`;
 
-  // Construct image URL - images are served from Next.js public folder
+  // Construct image URL - images are served from backend server
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   const imageUrl = ad.primaryImage
     ? (ad.primaryImage.startsWith('http')
         ? ad.primaryImage
-        : `/${ad.primaryImage}`)
+        : `${BACKEND_URL}/${ad.primaryImage}`)
     : null;
 
   return (
