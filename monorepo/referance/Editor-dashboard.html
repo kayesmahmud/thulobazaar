@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThuloBazaar - Editor Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --editor-primary: #16a34a;
+            --editor-primary-dark: #15803d;
+            --editor-primary-light: #22c55e;
+            --editor-secondary: #0d9488;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --border-radius: 12px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Modern Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--editor-primary), var(--editor-primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.25rem;
+            box-shadow: var(--shadow);
+        }
+
+        .logo-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: var(--editor-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+            gap: 0.75rem;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(22, 163, 74, 0.05);
+            color: var(--editor-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--editor-primary);
+            font-weight: 500;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--editor-primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .nav-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 1.125rem;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--warning);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .nav-badge.urgent {
+            background: var(--danger);
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--editor-primary), var(--editor-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.875rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--editor-primary);
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: var(--gray-500);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            height: var(--header-height);
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: none;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--gray-100);
+        }
+
+        .search-bar {
+            position: relative;
+            width: 400px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            background: var(--glass);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--editor-primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-500);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-action {
+            position: relative;
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 1.25rem;
+        }
+
+        .header-action:hover {
+            background: var(--gray-100);
+            color: var(--gray-800);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+        }
+
+        .urgent-alert {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dashboard Styles */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            background: linear-gradient(135deg, var(--editor-primary), var(--editor-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            font-size: 1rem;
+            color: var(--gray-600);
+            margin-top: 0.5rem;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--editor-primary), var(--editor-primary-dark));
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-outline {
+            background: var(--glass);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-outline:hover {
+            background: white;
+            border-color: var(--editor-primary);
+            color: var(--editor-primary);
+        }
+
+        .btn-icon {
+            padding: 0.75rem;
+            background: var(--glass);
+            border: 1px solid var(--gray-300);
+            color: var(--gray-600);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-icon:hover {
+            background: white;
+            border-color: var(--gray-400);
+        }
+
+        /* Stats Grid - Modern Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--editor-primary), var(--editor-secondary));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-600);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--editor-primary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .trend-up {
+            color: var(--success);
+        }
+
+        .trend-down {
+            color: var(--danger);
+        }
+
+        /* Quick Actions Grid */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--editor-primary);
+        }
+
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--editor-primary), var(--editor-secondary));
+            color: white;
+        }
+
+        .action-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .action-desc {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 1rem;
+        }
+
+        .action-badge {
+            background: var(--warning);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Tasks & Activity Grid */
+        .tasks-activity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .tasks-card, .activity-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .view-all {
+            color: var(--editor-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .view-all:hover {
+            text-decoration: underline;
+        }
+
+        .task-item, .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .task-item:last-child, .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-icon, .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .task-icon.urgent {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .task-icon.normal {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--editor-primary);
+        }
+
+        .activity-icon.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .activity-icon.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .task-content, .activity-content {
+            flex: 1;
+        }
+
+        .task-title, .activity-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .task-desc, .activity-desc {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .task-meta, .activity-time {
+            color: var(--gray-500);
+            font-size: 0.75rem;
+        }
+
+        .task-priority {
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .priority-medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .tasks-activity-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                bottom: 0;
+                z-index: 1000;
+            }
+            
+            .sidebar.active {
+                left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .search-bar {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">T</div>
+                <div class="logo-text">
+                    <h1>ThuloBazaar</h1>
+                    <p>Editor Dashboard</p>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Overview</div>
+                    <button class="nav-item active" data-section="dashboard">
+                        <i class="fas fa-chart-pie nav-icon"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Content Management</div>
+                    <button class="nav-item" data-section="ad-management">
+                        <i class="fas fa-ad nav-icon"></i>
+                        <span class="nav-text">Ad Management</span>
+                        <span class="nav-badge">23</span>
+                    </button>
+                    <button class="nav-item" data-section="reported-ads">
+                        <i class="fas fa-flag nav-icon"></i>
+                        <span class="nav-text">Reported Ads</span>
+                        <span class="nav-badge urgent">5</span>
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">User Management</div>
+                    <button class="nav-item" data-section="user-management">
+                        <i class="fas fa-users nav-icon"></i>
+                        <span class="nav-text">User Management</span>
+                    </button>
+                    <button class="nav-item" data-section="user-reports">
+                        <i class="fas fa-exclamation-triangle nav-icon"></i>
+                        <span class="nav-text">User Reports</span>
+                        <span class="nav-badge">12</span>
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Verification</div>
+                    <button class="nav-item" data-section="business-verification">
+                        <i class="fas fa-building nav-icon"></i>
+                        <span class="nav-text">Business Verification</span>
+                        <span class="nav-badge">8</span>
+                    </button>
+                    <button class="nav-item" data-section="individual-verification">
+                        <i class="fas fa-id-card nav-icon"></i>
+                        <span class="nav-text">Individual Verification</span>
+                        <span class="nav-badge">7</span>
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Support</div>
+                    <button class="nav-item" data-section="support-chat">
+                        <i class="fas fa-comments nav-icon"></i>
+                        <span class="nav-text">Support Chat</span>
+                        <span class="nav-badge">3</span>
+                    </button>
+                    <button class="nav-item" data-section="templates">
+                        <i class="fas fa-file-alt nav-icon"></i>
+                        <span class="nav-text">Response Templates</span>
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Tools</div>
+                    <button class="nav-item" data-section="bulk-actions">
+                        <i class="fas fa-layer-group nav-icon"></i>
+                        <span class="nav-text">Bulk Actions</span>
+                    </button>
+                    <button class="nav-item" data-section="analytics">
+                        <i class="fas fa-chart-bar nav-icon"></i>
+                        <span class="nav-text">Moderation Analytics</span>
+                    </button>
+                    <button class="nav-item" data-section="audit-logs">
+                        <i class="fas fa-clipboard-list nav-icon"></i>
+                        <span class="nav-text">Audit Logs</span>
+                    </button>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">E</div>
+                    <div class="user-info">
+                        <div class="user-name">Editor User</div>
+                        <div class="user-role">Content Moderator</div>
+                    </div>
+                    <button class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="search-bar">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" placeholder="Search ads, users, verifications...">
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="urgent-alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>5 urgent reports need attention</span>
+                    </div>
+                    
+                    <button class="header-action">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge"></span>
+                    </button>
+                    
+                    <button class="header-action">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="content-section active">
+                    <div class="section-header">
+                        <div>
+                            <h1 class="section-title">Editor Dashboard</h1>
+                            <p class="section-subtitle">Welcome back! Here's your moderation overview for today.</p>
+                        </div>
+                        <div class="section-actions">
+                            <button class="btn btn-outline">
+                                <i class="fas fa-download"></i>
+                                Export Report
+                            </button>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-rocket"></i>
+                                Quick Actions
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">Pending Ads</div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-ad"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">23</div>
+                            <div class="stat-trend trend-up">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>12% from yesterday</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">Pending Verifications</div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-badge-check"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">15</div>
+                            <div class="stat-trend trend-down">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>8% decrease</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">User Reports</div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-flag"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">17</div>
+                            <div class="stat-trend trend-up">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>5 new today</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">Avg. Response Time</div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">2.3h</div>
+                            <div class="stat-trend trend-down">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>Improved 15%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions Grid -->
+                    <div class="quick-actions-grid">
+                        <div class="action-card" data-section="ad-management">
+                            <div class="action-icon">
+                                <i class="fas fa-ad"></i>
+                            </div>
+                            <div class="action-title">Review Ads</div>
+                            <div class="action-desc">Approve or reject pending advertisements</div>
+                            <div class="action-badge">23 pending</div>
+                        </div>
+                        
+                        <div class="action-card" data-section="business-verification">
+                            <div class="action-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="action-title">Business Verification</div>
+                            <div class="action-desc">Verify business accounts and documents</div>
+                            <div class="action-badge">8 pending</div>
+                        </div>
+                        
+                        <div class="action-card" data-section="individual-verification">
+                            <div class="action-icon">
+                                <i class="fas fa-id-card"></i>
+                            </div>
+                            <div class="action-title">Individual Verification</div>
+                            <div class="action-desc">Verify individual seller identities</div>
+                            <div class="action-badge">7 pending</div>
+                        </div>
+                        
+                        <div class="action-card" data-section="reported-ads">
+                            <div class="action-icon">
+                                <i class="fas fa-flag"></i>
+                            </div>
+                            <div class="action-title">Reported Content</div>
+                            <div class="action-desc">Review and action user reports</div>
+                            <div class="action-badge" style="background: var(--danger);">5 urgent</div>
+                        </div>
+                        
+                        <div class="action-card" data-section="support-chat">
+                            <div class="action-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="action-title">Support Chat</div>
+                            <div class="action-desc">Assist users with platform issues</div>
+                            <div class="action-badge">3 active</div>
+                        </div>
+                        
+                        <div class="action-card" data-section="bulk-actions">
+                            <div class="action-icon">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <div class="action-title">Bulk Actions</div>
+                            <div class="action-desc">Process multiple items efficiently</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tasks & Activity Grid -->
+                    <div class="tasks-activity-grid">
+                        <div class="tasks-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Pending Tasks</h3>
+                                <a href="#" class="view-all">View All</a>
+                            </div>
+                            
+                            <div class="task-item">
+                                <div class="task-icon urgent">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="task-content">
+                                    <div class="task-title">Urgent: Scam Report</div>
+                                    <div class="task-desc">User reported potential scam ad</div>
+                                    <div class="task-meta">Reported 25 mins ago</div>
+                                </div>
+                                <div class="task-priority priority-high">High</div>
+                            </div>
+                            
+                            <div class="task-item">
+                                <div class="task-icon normal">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="task-content">
+                                    <div class="task-title">Business Verification</div>
+                                    <div class="task-desc">TechNepal - Documents submitted</div>
+                                    <div class="task-meta">Waiting 2 days</div>
+                                </div>
+                                <div class="task-priority priority-medium">Medium</div>
+                            </div>
+                            
+                            <div class="task-item">
+                                <div class="task-icon normal">
+                                    <i class="fas fa-ad"></i>
+                                </div>
+                                <div class="task-content">
+                                    <div class="task-title">Ad Review Batch</div>
+                                    <div class="task-desc">15 electronics ads pending review</div>
+                                    <div class="task-meta">Category: Electronics</div>
+                                </div>
+                                <div class="task-priority priority-medium">Medium</div>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Recent Activity</h3>
+                                <a href="#" class="view-all">View All</a>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon success">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Ad Approved</div>
+                                    <div class="activity-desc">iPhone 15 Pro listing published</div>
+                                    <div class="activity-time">10 minutes ago</div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon warning">
+                                    <i class="fas fa-user-slash"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">User Suspended</div>
+                                    <div class="activity-desc">7-day suspension for policy violation</div>
+                                    <div class="activity-time">1 hour ago</div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon success">
+                                    <i class="fas fa-badge-check"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Business Verified</div>
+                                    <div class="activity-desc">GreenTech Solutions approved</div>
+                                    <div class="activity-time">2 hours ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Other sections would be implemented similarly -->
+                <section id="ad-management" class="content-section">
+                    <div class="section-header">
+                        <h1 class="section-title">Ad Management</h1>
+                    </div>
+                    <p>Ad Management interface would be displayed here...</p>
+                </section>
+                
+                <!-- Additional sections for other features -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Navigation between sections
+        document.querySelectorAll('.nav-item, .action-card').forEach(item => {
+            item.addEventListener('click', function() {
+                const sectionId = this.getAttribute('data-section');
+                
+                if (sectionId) {
+                    // Remove active class from all nav items
+                    document.querySelectorAll('.nav-item').forEach(nav => {
+                        nav.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked nav item
+                    const correspondingNav = document.querySelector(`[data-section="${sectionId}"]`);
+                    if (correspondingNav && correspondingNav.classList.contains('nav-item')) {
+                        correspondingNav.classList.add('active');
+                    }
+                    
+                    // Hide all content sections
+                    document.querySelectorAll('.content-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    // Show target section
+                    document.getElementById(sectionId).classList.add('active');
+                }
+            });
+        });
+
+        // Mobile sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(e) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(e.target) && 
+                !toggleBtn.contains(e.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                document.querySelector('.sidebar').classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
