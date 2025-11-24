@@ -1,13 +1,18 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { prisma } from '@thulobazaar/database';
-import SearchFilters from '../../search/SearchFilters';
+import AdsFilter from '@/components/AdsFilter';
 import AdCard from '@/components/AdCard';
+import {
+  parseAdUrlParams,
+  getFilterIds,
+  generateAdListingMetadata,
+} from '@/lib/urlParser';
 
 interface AdsPageProps {
   params: Promise<{ lang: string; params?: string[] }>;
   searchParams: Promise<{
+    query?: string;
     page?: string;
     minPrice?: string;
     maxPrice?: string;
@@ -16,80 +21,41 @@ interface AdsPageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: AdsPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: AdsPageProps): Promise<Metadata> {
   const { params: urlParams } = await params;
+  const filters = await searchParams;
 
-  // Parse URL params
-  let locationName = '';
-  let categoryName = '';
+  // Parse URL parameters using helper function
+  const parsed = await parseAdUrlParams(urlParams);
 
-  if (urlParams && urlParams.length > 0) {
-    const firstParam = urlParams[0];
+  // Generate metadata based on filters
+  const metadata = generateAdListingMetadata(
+    parsed.locationName,
+    parsed.categoryName,
+    filters.query || null,
+    0 // Placeholder - will show actual count on page
+  );
 
-    // Handle explicit /ads/category/{slug} pattern
-    if (firstParam === 'category' && urlParams.length > 1) {
-      const category = await prisma.categories.findFirst({
-        where: { slug: urlParams[1] },
-        select: { name: true },
-      });
-      categoryName = category?.name || '';
-    }
-    // Handle explicit /ads/location/{slug} pattern
-    else if (firstParam === 'location' && urlParams.length > 1) {
-      const location = await prisma.locations.findFirst({
-        where: { slug: urlParams[1] },
-        select: { name: true },
-      });
-      locationName = location?.name || '';
-    }
-    // Check if first param is location or category
-    else {
-      const location = await prisma.locations.findFirst({
-        where: { slug: firstParam },
-        select: { name: true },
-      });
-
-      if (location) {
-        locationName = location.name;
-        if (urlParams.length > 1) {
-          const category = await prisma.categories.findFirst({
-            where: { slug: urlParams[1] },
-            select: { name: true },
-          });
-          categoryName = category?.name || '';
-        }
-      } else {
-        const category = await prisma.categories.findFirst({
-          where: { slug: firstParam },
-          select: { name: true },
-        });
-        categoryName = category?.name || '';
-      }
-    }
-  }
-
-  let title = 'All Ads - Thulobazaar';
-  let description = 'Browse all classified ads across Nepal. Find electronics, vehicles, property, and more.';
-
-  if (locationName && categoryName) {
-    title = `${categoryName} in ${locationName} - Thulobazaar`;
-    description = `Find ${categoryName} ads in ${locationName}, Nepal. Browse and buy ${categoryName} products.`;
-  } else if (locationName) {
-    title = `Ads in ${locationName} - Thulobazaar`;
-    description = `Browse all classified ads in ${locationName}, Nepal.`;
-  } else if (categoryName) {
-    title = `${categoryName} Ads - Thulobazaar`;
-    description = `Find ${categoryName} for sale across Nepal. Browse quality ${categoryName} products.`;
-  }
-
-  return { title, description };
+  return metadata;
 }
 
 export default async function AdsPage({ params, searchParams }: AdsPageProps) {
   const { lang, params: urlParams } = await params;
   const search = await searchParams;
 
+  // Parse URL parameters using helper function
+  const parsed = await parseAdUrlParams(urlParams);
+
+  // Get filter IDs for hierarchical filtering using helper function
+  const { locationIds, categoryIds } = await getFilterIds(
+    parsed.locationId,
+    parsed.locationType,
+    parsed.categoryId,
+    parsed.isParentCategory
+  );
+
   // Parse search parameters
+  const searchQuery = search.query || '';
   const page = search.page ? parseInt(search.page) : 1;
   const minPrice = search.minPrice ? parseFloat(search.minPrice) : undefined;
   const maxPrice = search.maxPrice ? parseFloat(search.maxPrice) : undefined;
@@ -97,91 +63,6 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
   const sortBy = search.sortBy || 'newest';
   const adsPerPage = 20;
   const offset = (page - 1) * adsPerPage;
-
-  // Parse URL params to determine location and category
-  let locationSlug: string | undefined;
-  let categorySlug: string | undefined;
-  let locationId: number | undefined;
-  let categoryId: number | undefined;
-  let locationName = '';
-  let categoryName = '';
-
-  if (urlParams && urlParams.length > 0) {
-    const firstParam = urlParams[0];
-
-    // Handle explicit /ads/category/{slug} pattern
-    if (firstParam === 'category' && urlParams.length > 1) {
-      const category = await prisma.categories.findFirst({
-        where: { slug: urlParams[1] },
-        select: { id: true, name: true },
-      });
-
-      if (category) {
-        categorySlug = urlParams[1];
-        categoryId = category.id;
-        categoryName = category.name;
-      } else {
-        notFound();
-      }
-    }
-    // Handle explicit /ads/location/{slug} pattern
-    else if (firstParam === 'location' && urlParams.length > 1) {
-      const location = await prisma.locations.findFirst({
-        where: { slug: urlParams[1] },
-        select: { id: true, name: true },
-      });
-
-      if (location) {
-        locationSlug = urlParams[1];
-        locationId = location.id;
-        locationName = location.name;
-      } else {
-        notFound();
-      }
-    }
-    // Try to find as location first
-    else {
-      const location = await prisma.locations.findFirst({
-        where: { slug: firstParam },
-        select: { id: true, name: true },
-      });
-
-      if (location) {
-        // First param is a location
-        locationSlug = firstParam;
-        locationId = location.id;
-        locationName = location.name;
-
-        // Check if second param is category
-        if (urlParams.length > 1) {
-          const category = await prisma.categories.findFirst({
-            where: { slug: urlParams[1] },
-            select: { id: true, name: true },
-          });
-          if (category) {
-            categorySlug = urlParams[1];
-            categoryId = category.id;
-            categoryName = category.name;
-          }
-        }
-      } else {
-        // First param is not a location, try as category
-        const category = await prisma.categories.findFirst({
-          where: { slug: firstParam },
-          select: { id: true, name: true },
-        });
-
-        if (category) {
-          categorySlug = firstParam;
-          categoryId = category.id;
-          categoryName = category.name;
-        } else {
-          // Param not found as either location or category
-          notFound();
-        }
-      }
-    }
-  }
 
   // Build Prisma where clause
   const where: any = {
@@ -192,69 +73,22 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
     },
   };
 
-  // Category filter (supports hierarchy - parent or subcategory)
-  if (categoryId) {
-    const selectedCategory = await prisma.categories.findUnique({
-      where: { id: categoryId },
-      include: {
-        other_categories: {
-          select: { id: true },
-        },
-      },
-    });
-
-    if (selectedCategory && selectedCategory.other_categories && selectedCategory.other_categories.length > 0) {
-      // Parent category selected - include all subcategories
-      const subcategoryIds = selectedCategory.other_categories.map((sub) => sub.id);
-      where.category_id = { in: [categoryId, ...subcategoryIds] };
-    } else {
-      // Subcategory selected - exact match
-      where.category_id = categoryId;
-    }
+  // Text search (if query provided)
+  if (searchQuery) {
+    where.OR = [
+      { title: { contains: searchQuery, mode: 'insensitive' } },
+      { description: { contains: searchQuery, mode: 'insensitive' } },
+    ];
   }
 
-  // Location filter (supports hierarchy - province, district, or municipality)
-  if (locationId) {
-    const selectedLocation = await prisma.locations.findUnique({
-      where: { id: locationId },
-      select: { id: true, type: true },
-    });
+  // Category filter (using helper-generated IDs)
+  if (categoryIds.length > 0) {
+    where.category_id = { in: categoryIds };
+  }
 
-    if (selectedLocation) {
-      if (selectedLocation.type === 'province') {
-        // Get all district IDs in this province
-        const districts = await prisma.locations.findMany({
-          where: { parent_id: locationId, type: 'district' },
-          select: { id: true },
-        });
-        const districtIds = districts.map((d) => d.id);
-
-        // Get all municipality IDs in these districts
-        const municipalities = await prisma.locations.findMany({
-          where: { parent_id: { in: districtIds }, type: 'municipality' },
-          select: { id: true },
-        });
-
-        const allLocationIds = [
-          locationId,
-          ...districtIds,
-          ...municipalities.map((m) => m.id),
-        ];
-        where.location_id = { in: allLocationIds };
-      } else if (selectedLocation.type === 'district') {
-        // Get district and all its municipalities
-        const municipalities = await prisma.locations.findMany({
-          where: { parent_id: locationId, type: 'municipality' },
-          select: { id: true },
-        });
-
-        const allLocationIds = [locationId, ...municipalities.map((m) => m.id)];
-        where.location_id = { in: allLocationIds };
-      } else {
-        // Municipality or area - exact match
-        where.location_id = locationId;
-      }
-    }
+  // Location filter (using helper-generated IDs)
+  if (locationIds.length > 0) {
+    where.location_id = { in: locationIds };
   }
 
   // Price range filter
@@ -345,30 +179,36 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
 
   // Determine which filters are active
   const hasActiveFilters = Boolean(
-    categoryId || locationId || minPrice || maxPrice || condition
+    parsed.categoryId || parsed.locationId || minPrice || maxPrice || condition || searchQuery
   );
 
-  // Build breadcrumb
+  // Build breadcrumb using parsed data
   const breadcrumbs = [{ label: 'Home', href: `/${lang}` }];
-  if (locationName && categoryName) {
-    breadcrumbs.push({ label: locationName, href: `/${lang}/ads/${locationSlug}` });
-    breadcrumbs.push({ label: categoryName, href: `/${lang}/ads/${locationSlug}/${categorySlug}` });
-  } else if (locationName) {
-    breadcrumbs.push({ label: locationName, href: `/${lang}/ads/${locationSlug}` });
-  } else if (categoryName) {
-    breadcrumbs.push({ label: categoryName, href: `/${lang}/ads/${categorySlug}` });
+  if (parsed.locationName && parsed.categoryName) {
+    breadcrumbs.push({ label: parsed.locationName, href: `/${lang}/ads/${parsed.locationSlug}` });
+    breadcrumbs.push({ label: parsed.categoryName, href: `/${lang}/ads/${parsed.locationSlug}/${parsed.categorySlug}` });
+  } else if (parsed.locationName) {
+    breadcrumbs.push({ label: parsed.locationName, href: `/${lang}/ads/${parsed.locationSlug}` });
+  } else if (parsed.categoryName) {
+    breadcrumbs.push({ label: parsed.categoryName, href: `/${lang}/ads/${parsed.categorySlug}` });
   } else {
     breadcrumbs.push({ label: 'All Ads', href: `/${lang}/ads` });
   }
 
-  // Page title
+  // Page title using parsed data
   let pageTitle = 'All Ads';
-  if (locationName && categoryName) {
-    pageTitle = `${categoryName} in ${locationName}`;
-  } else if (locationName) {
-    pageTitle = `Ads in ${locationName}`;
-  } else if (categoryName) {
-    pageTitle = categoryName;
+  if (searchQuery) {
+    pageTitle = `Search: "${searchQuery}"`;
+    if (parsed.categoryName) pageTitle += ` in ${parsed.categoryName}`;
+    if (parsed.locationName) pageTitle += ` - ${parsed.locationName}`;
+  } else {
+    if (parsed.locationName && parsed.categoryName) {
+      pageTitle = `${parsed.categoryName} in ${parsed.locationName}`;
+    } else if (parsed.locationName) {
+      pageTitle = `Ads in ${parsed.locationName}`;
+    } else if (parsed.categoryName) {
+      pageTitle = parsed.categoryName;
+    }
   }
 
   return (
@@ -404,7 +244,7 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
         <div className="grid grid-cols-1 laptop:grid-cols-4 gap-6">
           {/* Filters Sidebar */}
           <aside className="laptop:col-span-1">
-            <SearchFilters
+            <AdsFilter
               lang={lang}
               categories={categories.map((cat) => ({
                 id: cat.id,
@@ -413,13 +253,13 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
                 icon: cat.icon || '📁',
                 subcategories: cat.other_categories || [],
               }))}
-              locations={topLocations}
-              selectedCategory={categorySlug}
-              selectedLocation={locationId}
+              selectedCategorySlug={parsed.categorySlug || undefined}
+              selectedLocationSlug={parsed.locationSlug || undefined}
               minPrice={minPrice?.toString() || ''}
               maxPrice={maxPrice?.toString() || ''}
               condition={condition}
               sortBy={sortBy}
+              searchQuery={searchQuery}
             />
           </aside>
 
