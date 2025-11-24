@@ -3,38 +3,28 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
-
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  icon: string;
-  other_categories: {
-    id: number;
-    name: string;
-    slug: string;
-    icon: string;
-  }[];
-}
+import FilterSection from '@/components/shared/FilterSection';
+import type { LocationHierarchyProvince } from '@/lib/locationHierarchy';
+import type { CategoryWithSubcategories } from '@/lib/categories';
 
 interface AllAdsFiltersProps {
   lang: string;
-  categories: Category[];
+  categories: CategoryWithSubcategories[];
+  locationHierarchy: LocationHierarchyProvince[];
   selectedCategory?: string; // Changed to string (slug) for SEO-friendly URLs
   selectedLocation?: string; // Changed to string (slug) for SEO-friendly URLs
   minPrice?: string;
   maxPrice?: string;
-  sortBy?: string;
 }
 
 export default function AllAdsFilters({
   lang,
   categories,
+  locationHierarchy,
   selectedCategory,
   selectedLocation,
   minPrice = '',
   maxPrice = '',
-  sortBy,
 }: AllAdsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -131,7 +121,7 @@ export default function AllAdsFilters({
               {/* Parent Category */}
               <div className="flex items-center">
                 {/* Expand/Collapse Arrow */}
-                {category.other_categories && category.other_categories.length > 0 && (
+                {category.subcategories && category.subcategories.length > 0 && (
                   <button
                     onClick={() => toggleCategory(category.id)}
                     className="p-2.5 border-none bg-transparent cursor-pointer flex items-center justify-center text-gray-500 transition-transform"
@@ -150,22 +140,22 @@ export default function AllAdsFilters({
                     });
                   }}
                   className={`flex-1 flex items-center gap-2 py-2.5 px-2 border-none cursor-pointer text-sm text-left transition-all ${
-                    category.other_categories && category.other_categories.length > 0 ? 'pl-0' : 'pl-2.5'
+                    category.subcategories && category.subcategories.length > 0 ? 'pl-0' : 'pl-2.5'
                   } ${
                     selectedCategory === category.slug
                       ? 'bg-indigo-50 text-primary font-semibold'
                       : 'bg-transparent text-gray-800 font-medium hover:bg-gray-50'
                   }`}
                 >
-                  <span className="text-lg">{category.icon}</span>
+                  <span className="text-lg">{category.icon || '📁'}</span>
                   <span>{category.name}</span>
                 </button>
               </div>
 
               {/* Subcategories - Collapsible */}
-              {category.other_categories && category.other_categories.length > 0 && expandedCategories.has(category.id) && (
+              {category.subcategories && category.subcategories.length > 0 && expandedCategories.has(category.id) && (
                 <div>
-                  {category.other_categories.map((subcategory) => (
+                  {category.subcategories.map((subcategory) => (
                     <button
                       key={subcategory.id}
                       onClick={() => {
@@ -201,6 +191,7 @@ export default function AllAdsFilters({
             updateFilters({ location: locationSlug || undefined });
           }}
           selectedLocationSlug={selectedLocation || null}
+          initialProvinces={locationHierarchy}
         />
       </FilterSection>
 
@@ -229,48 +220,6 @@ export default function AllAdsFilters({
           />
         </div>
       </FilterSection>
-    </div>
-  );
-}
-
-// Helper Component
-interface FilterSectionProps {
-  title: string;
-  count: number;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-function FilterSection({ title, count, isExpanded, onToggle, children }: FilterSectionProps) {
-  return (
-    <div className="mb-4 border-b border-gray-200">
-      <button
-        onClick={onToggle}
-        className="w-full flex justify-between items-center py-3 text-left border-none bg-transparent cursor-pointer hover:opacity-80 transition-opacity"
-      >
-        <span className="font-semibold flex items-center gap-2">
-          {title}
-          {count > 0 && (
-            <span className="bg-primary text-white rounded-full px-2 py-0.5 text-xs font-bold">
-              {count}
-            </span>
-          )}
-        </span>
-        <span
-          className={`text-lg transition-transform ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
-        >
-          ▼
-        </span>
-      </button>
-
-      <div
-        className={`overflow-hidden transition-[max-height] duration-300 ease-out ${
-          isExpanded ? 'max-h-[5000px] pb-4' : 'max-h-0 pb-0'
-        }`}
-      >
-        {children}
-      </div>
     </div>
   );
 }

@@ -3,43 +3,31 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
-
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  icon: string | null;
-  subcategories: { id: number; name: string; slug: string }[];
-}
-
-interface Location {
-  id: number;
-  name: string;
-  type: string | null;
-}
+import FilterSection from '@/components/shared/FilterSection';
+import RadioOption from '@/components/shared/RadioOption';
+import type { LocationHierarchyProvince } from '@/lib/locationHierarchy';
+import type { CategoryWithSubcategories } from '@/lib/categories';
 
 interface SearchFiltersProps {
   lang: string;
-  categories: Category[];
-  locations: Location[];
+  categories: CategoryWithSubcategories[];
+  locationHierarchy: LocationHierarchyProvince[];
   selectedCategory?: string; // Changed to string (slug) for SEO-friendly URLs
   selectedLocation?: string; // Changed to string (slug) for SEO-friendly URLs
   minPrice?: string;
   maxPrice?: string;
   condition?: 'new' | 'used';
-  sortBy?: string;
 }
 
 export default function SearchFilters({
   lang,
   categories,
-  locations,
+  locationHierarchy,
   selectedCategory,
   selectedLocation,
   minPrice = '',
   maxPrice = '',
   condition,
-  sortBy,
 }: SearchFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -194,6 +182,7 @@ export default function SearchFilters({
             updateFilters({ location: locationSlug || undefined });
           }}
           selectedLocationSlug={selectedLocation || null}
+          initialProvinces={locationHierarchy}
         />
       </FilterSection>
 
@@ -249,76 +238,5 @@ export default function SearchFilters({
         </div>
       </FilterSection>
     </div>
-  );
-}
-
-// Helper Components
-interface FilterSectionProps {
-  title: string;
-  count: number;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-function FilterSection({ title, count, isExpanded, onToggle, children }: FilterSectionProps) {
-  return (
-    <div className="mb-4 border-b border-gray-200">
-      <button
-        onClick={onToggle}
-        className="w-full flex justify-between items-center py-3 text-left"
-      >
-        <span className="font-semibold flex items-center gap-2">
-          {title}
-          {count > 0 && (
-            <span className="bg-primary text-white rounded-full px-2 py-0.5 text-xs font-bold">
-              {count}
-            </span>
-          )}
-        </span>
-        <span
-          className="text-lg transition-transform"
-          style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        >
-          ▼
-        </span>
-      </button>
-
-      <div
-        className="overflow-hidden transition-all duration-normal"
-        style={{
-          maxHeight: isExpanded ? '1000px' : '0',
-          paddingBottom: isExpanded ? '1rem' : '0',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-interface RadioOptionProps {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}
-
-function RadioOption({ label, checked, onChange }: RadioOptionProps) {
-  return (
-    <label
-      className={`flex items-center gap-2 cursor-pointer p-2 rounded-md transition-colors ${
-        checked ? 'bg-primary-light' : 'hover:bg-gray-50'
-      }`}
-    >
-      <input
-        type="radio"
-        checked={checked}
-        onChange={onChange}
-        className="cursor-pointer"
-      />
-      <span className={`text-sm ${checked ? 'text-primary font-semibold' : 'text-gray-700'}`}>
-        {label}
-      </span>
-    </label>
   );
 }

@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/jwt';
 import { generateSlug } from '@/lib/slug';
 import { processMultipleImages, deleteImage } from '@/lib/imageProcessing';
 import { indexAd, removeAdFromIndex } from '@/lib/typesense';
+import { getLocationBreadcrumb } from '@/lib/locationHierarchy';
 
 /**
  * GET /api/ads/:id
@@ -134,7 +135,9 @@ export async function GET(
       .catch((error) => console.error('Failed to increment view count:', error));
 
     // Get location hierarchy
-    const locationHierarchy = await getLocationHierarchy(ad.locations?.id || null);
+    const locationHierarchy = ad.locations?.id
+      ? await getLocationBreadcrumb(ad.locations.id)
+      : [];
 
     // Transform to camelCase
     const transformedAd = {
@@ -232,40 +235,6 @@ export async function GET(
       { status: 500 }
     );
   }
-}
-
-/**
- * Helper function to get location hierarchy (breadcrumb trail)
- */
-async function getLocationHierarchy(locationId: number | null) {
-  if (!locationId) return [];
-
-  const hierarchy: Array<{ id: number; name: string; type: string }> = [];
-  let currentId: number | null = locationId;
-
-  while (currentId !== null) {
-    const location = await prisma.locations.findUnique({
-      where: { id: currentId },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        parent_id: true,
-      },
-    });
-
-    if (!location) break;
-
-    hierarchy.unshift({
-      id: location.id,
-      name: location.name,
-      type: location.type,
-    });
-
-    currentId = location.parent_id;
-  }
-
-  return hierarchy;
 }
 
 /**

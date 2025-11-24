@@ -1,11 +1,18 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
-import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import AllAdsFilters from './AllAdsFilters';
 import AdCard from '@/components/AdCard';
 import AllAdsPagination from './AllAdsPagination';
 import Breadcrumb from '@/components/Breadcrumb';
+import { getFilterIds } from '@/lib/urlParser';
+import {
+  buildAdsOrderBy,
+  buildAdsWhereClause,
+  standardAdInclude,
+  type AdsSortBy,
+} from '@/lib/adsQueryBuilder';
+import { getRootCategoriesWithChildren } from '@/lib/categories';
+import { getLocationHierarchy } from '@/lib/locationHierarchy';
 
 interface AllAdsPageProps {
   params: Promise<{ lang: string }>;
@@ -33,201 +40,95 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
   const filters = await searchParams;
 
   const page = filters.page ? parseInt(filters.page) : 1;
-  const categorySlug = filters.category || undefined; // Keep as slug
-  const locationId = filters.location ? parseInt(filters.location) : undefined;
+  const categorySlug = filters.category || undefined;
+  const locationSlug = filters.location || undefined;
   const minPrice = filters.minPrice ? parseFloat(filters.minPrice) : undefined;
   const maxPrice = filters.maxPrice ? parseFloat(filters.maxPrice) : undefined;
   const sortBy = filters.sortBy || 'newest';
   const adsPerPage = 24;
   const offset = (page - 1) * adsPerPage;
 
-  // Convert category slug to ID for database queries
-  let categoryId: number | undefined;
-  if (categorySlug) {
-    const category = await prisma.categories.findFirst({
-      where: { slug: categorySlug },
-      select: { id: true },
-    });
-    categoryId = category?.id;
-  }
-
-  // Build order by clause
-  let orderBy: any = { created_at: 'desc' }; // Default: newest first
-  if (sortBy === 'oldest') orderBy = { created_at: 'asc' };
-  if (sortBy === 'price_asc') orderBy = { price: 'asc' };
-  if (sortBy === 'price_desc') orderBy = { price: 'desc' };
-
-  // Build where clause with filters
-  const where: any = {
-    status: 'approved',
-    deleted_at: null,
-    ad_images: {
-      some: {}, // Only show ads with at least one image
-    },
-  };
-
-  // Category filter (supports hierarchy - parent and subcategories)
-  if (categoryId) {
-    const selectedCategory = await prisma.categories.findUnique({
-      where: { id: categoryId },
-      select: { id: true, parent_id: true },
-    });
-
-    if (selectedCategory) {
-      if (selectedCategory.parent_id === null) {
-        // This is a parent category, get all its subcategories
-        const subcategories = await prisma.categories.findMany({
-          where: { parent_id: categoryId },
-          select: { id: true },
-        });
-
-        const allCategoryIds = [categoryId, ...subcategories.map((c) => c.id)];
-        where.category_id = { in: allCategoryIds };
-      } else {
-        // This is a subcategory - exact match
-        where.category_id = categoryId;
-      }
-    }
-  }
-
-  // Location filter (supports hierarchy)
-  if (locationId) {
-    const selectedLocation = await prisma.locations.findUnique({
-      where: { id: locationId },
-      select: { id: true, type: true },
-    });
-
-    if (selectedLocation) {
-      if (selectedLocation.type === 'province') {
-        // Get all districts in this province
-        const districts = await prisma.locations.findMany({
-          where: { parent_id: locationId, type: 'district' },
-          select: { id: true },
-        });
-        const districtIds = districts.map((d) => d.id);
-
-        // Get all municipalities in these districts
-        const municipalities = await prisma.locations.findMany({
-          where: { parent_id: { in: districtIds }, type: 'municipality' },
-          select: { id: true },
-        });
-
-        // Combine all location IDs
-        const allLocationIds = [
-          locationId,
-          ...districtIds,
-          ...municipalities.map((m) => m.id),
-        ];
-        where.location_id = { in: allLocationIds };
-      } else if (selectedLocation.type === 'district') {
-        // Get district and all its municipalities
-        const municipalities = await prisma.locations.findMany({
-          where: { parent_id: locationId, type: 'municipality' },
-          select: { id: true },
-        });
-
-        const allLocationIds = [locationId, ...municipalities.map((m) => m.id)];
-        where.location_id = { in: allLocationIds };
-      } else {
-        // Municipality or area - exact match
-        where.location_id = locationId;
-      }
-    }
-  }
-
-  // Price range filter
-  if (minPrice !== undefined || maxPrice !== undefined) {
-    where.price = {};
-    if (minPrice !== undefined) where.price.gte = minPrice;
-    if (maxPrice !== undefined) where.price.lte = maxPrice;
-  }
-
-  // Fetch all parent categories with their subcategories
-  const allCategories = await prisma.categories.findMany({
-    where: { parent_id: null },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      icon: true,
-      other_categories: {
+  const selectedCategory = categorySlug
+    ? await prisma.categories.findFirst({
+        where: { slug: categorySlug },
         select: {
           id: true,
-          name: true,
-          slug: true,
-          icon: true,
+          parent_id: true,
+          other_categories: {
+            select: { id: true },
+          },
         },
-      },
-    },
+      })
+    : null;
+
+  const selectedLocation = locationSlug
+    ? await prisma.locations.findFirst({
+        where: { slug: locationSlug },
+        select: {
+          id: true,
+          type: true,
+        },
+      })
+    : null;
+
+  const categoryId = selectedCategory?.id;
+  const locationId = selectedLocation?.id;
+
+  const { locationIds, categoryIds } = await getFilterIds(
+    locationId ?? null,
+    selectedLocation?.type ?? null,
+    categoryId ?? null,
+    Boolean(
+      selectedCategory &&
+        selectedCategory.parent_id === null &&
+        (selectedCategory.other_categories?.length || 0) > 0
+    )
+  );
+
+  const where = buildAdsWhereClause({
+    categoryIds,
+    locationIds,
+    minPrice,
+    maxPrice,
   });
 
-  // Sort subcategories alphabetically in JavaScript (Prisma doesn't allow orderBy in nested select)
-  allCategories.forEach((category) => {
-    if (category.other_categories && category.other_categories.length > 0) {
-      category.other_categories.sort((a, b) => a.name.localeCompare(b.name));
-    }
-  });
-
-  // Define custom order for categories
-  const categoryOrder = ['Mobile', 'Electronics', 'Vehicles', 'Home & Living', 'Property'];
-
-  // Sort categories according to the custom order
-  const categories = allCategories.sort((a, b) => {
-    const aIndex = categoryOrder.indexOf(a.name);
-    const bIndex = categoryOrder.indexOf(b.name);
-
-    // If both are in the order array, sort by their position
-    if (aIndex !== -1 && bIndex !== -1) {
-      return aIndex - bIndex;
-    }
-    // If only a is in the order array, it comes first
-    if (aIndex !== -1) return -1;
-    // If only b is in the order array, it comes first
-    if (bIndex !== -1) return 1;
-    // If neither is in the order array, sort alphabetically
-    return a.name.localeCompare(b.name);
-  });
+  const orderBy = buildAdsOrderBy(sortBy as AdsSortBy);
 
   // Fetch ads with images and hierarchical data
-  const [ads, totalAds] = await Promise.all([
+  const [ads, totalAds, locationHierarchy, rootCategories] = await Promise.all([
     prisma.ads.findMany({
       where,
-      include: {
-        ad_images: {
-          where: { is_primary: true },
-          take: 1,
-          select: {
-            id: true,
-            filename: true,
-            file_path: true,
-            is_primary: true,
-          },
-        },
-        categories: {
-          select: {
-            id: true,
-            name: true,
-            icon: true,
-          },
-        },
-        users_ads_user_idTousers: {
-          select: {
-            id: true,
-            full_name: true,
-            account_type: true,
-            business_verification_status: true,
-            individual_verified: true,
-          },
-        },
-      },
+      include: standardAdInclude,
       orderBy,
       take: adsPerPage,
       skip: offset,
     }),
     prisma.ads.count({ where }),
+    getLocationHierarchy(),
+    getRootCategoriesWithChildren(),
   ]);
 
   const totalPages = Math.ceil(totalAds / adsPerPage);
+
+  // Define custom order for categories
+  const categoryOrder = ['Mobile', 'Electronics', 'Vehicles', 'Home & Living', 'Property'];
+
+  const categories = rootCategories
+    .map((category) => ({
+      ...category,
+      icon: category.icon || '📁',
+    }))
+    .sort((a, b) => {
+      const aIndex = categoryOrder.indexOf(a.name);
+      const bIndex = categoryOrder.indexOf(b.name);
+
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
 
   const breadcrumbItems = [
@@ -246,12 +147,12 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
         <aside className="hidden lg:block w-[280px] min-w-[280px] bg-white border-r border-gray-200 sticky top-0 self-start">
           <AllAdsFilters
             lang={lang}
-            categories={categories as any}
+            categories={categories}
+            locationHierarchy={locationHierarchy}
             selectedCategory={categorySlug}
-            selectedLocation={locationId}
+            selectedLocation={locationSlug}
             minPrice={minPrice?.toString() || ''}
             maxPrice={maxPrice?.toString() || ''}
-            sortBy={sortBy}
           />
         </aside>
 
