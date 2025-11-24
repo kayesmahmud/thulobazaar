@@ -6,7 +6,7 @@ import { apiClient } from '../lib/api';
 interface Location {
   id: number;
   name: string;
-  type: 'province' | 'district' | 'municipality' | 'ward' | 'area';
+  type: 'province' | 'district' | 'municipality';
   parent_id?: number | null;
 }
 
@@ -14,14 +14,7 @@ interface District extends Location {
   municipalities?: Municipality[];
 }
 
-interface Municipality extends Location {
-  wards?: Ward[];
-}
-
-interface Ward {
-  ward_number: number;
-  areas?: Location[];
-}
+interface Municipality extends Location {}
 
 interface Province extends Location {
   districts?: District[];
@@ -37,7 +30,7 @@ interface LocationSelectorProps {
   label?: string;
   placeholder?: string;
   required?: boolean;
-  filterType?: 'area' | 'all'; // 'area' for post-ad (only areas), 'all' for filters (any location)
+  filterType?: 'municipality' | 'all'; // 'municipality' for specific selection, 'all' for filters (any location)
 }
 
 export default function LocationSelector({
@@ -46,7 +39,7 @@ export default function LocationSelector({
   label = 'Select Location',
   placeholder = 'Search location...',
   required = false,
-  filterType = 'area'
+  filterType = 'municipality'
 }: LocationSelectorProps) {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [isLoadingHierarchy, setIsLoadingHierarchy] = useState(false);
@@ -56,7 +49,6 @@ export default function LocationSelector({
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [selectedMunicipality, setSelectedMunicipality] = useState<Municipality | null>(null);
-  const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
 
   // Search autocomplete states
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,13 +66,9 @@ export default function LocationSelector({
   const fetchHierarchy = async () => {
     try {
       setIsLoadingHierarchy(true);
-      // Use areas hierarchy API for area selection (Province → District → Municipality → Ward → Area)
-      const response = filterType === 'area'
-        ? await apiClient.getAreasHierarchy()
-        : await apiClient.getHierarchy();
+      const response = await apiClient.getHierarchy();
 
       if (response.success && response.data) {
-        // For areas API, the response is an array of provinces (without nested data initially)
         setProvinces(response.data as Province[]);
       }
     } catch (error) {
@@ -94,7 +82,7 @@ export default function LocationSelector({
   const fetchProvinceData = async (provinceId: number) => {
     try {
       setIsLoadingHierarchy(true);
-      const response = await apiClient.getAreasHierarchy(provinceId);
+      const response = await apiClient.getHierarchy(provinceId);
 
       if (response.success && response.data) {
         // Update the provinces array with the nested data for this province
@@ -142,17 +130,14 @@ export default function LocationSelector({
 
     setIsSearching(true);
     try {
-      // Use areas search API for area-only selection
-      const response = filterType === 'area'
-        ? await apiClient.searchAreas(query.trim())
-        : await apiClient.searchAllLocations(query.trim());
+      const response = await apiClient.searchAllLocations(query.trim());
 
       if (response.success && response.data) {
         let results = response.data;
 
-        // Filter to only show areas for post-ad (already filtered by areas API)
-        if (filterType === 'area') {
-          results = results.filter((item: SearchResult) => item.type === 'area');
+        // Filter to only show municipalities for specific selection
+        if (filterType === 'municipality') {
+          results = results.filter((item: SearchResult) => item.type === 'municipality');
         }
 
         setSearchResults(results as SearchResult[]);
@@ -206,9 +191,7 @@ export default function LocationSelector({
     const labels: Record<string, string> = {
       province: '🏛 Province',
       district: '📍 District',
-      municipality: '🏙 Municipality',
-      ward: '🏘 Ward',
-      area: '📌 Area'
+      municipality: '🏙 Municipality'
     };
     return labels[type] || type;
   };
@@ -403,7 +386,6 @@ export default function LocationSelector({
               setSelectedProvince(province || null);
               setSelectedDistrict(null);
               setSelectedMunicipality(null);
-              setSelectedWard(null);
 
               // Fetch nested data for this province if not already loaded
               if (province && !province.districts) {
@@ -449,7 +431,6 @@ export default function LocationSelector({
                 const district = selectedProvince.districts?.find(d => d.id === parseInt(e.target.value));
                 setSelectedDistrict(district || null);
                 setSelectedMunicipality(null);
-                setSelectedWard(null);
               }}
               style={{
                 width: '100%',
@@ -488,7 +469,9 @@ export default function LocationSelector({
               onChange={(e) => {
                 const municipality = selectedDistrict.municipalities?.find(m => m.id === parseInt(e.target.value));
                 setSelectedMunicipality(municipality || null);
-                setSelectedWard(null);
+                if (municipality) {
+                  handleLocationSelect(municipality);
+                }
               }}
               style={{
                 width: '100%',
@@ -509,84 +492,6 @@ export default function LocationSelector({
             </select>
           </div>
         )}
-
-        {/* Ward Dropdown */}
-        {filterType === 'area' && selectedMunicipality && selectedMunicipality.wards && (
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: '#374151'
-            }}>
-              4. Select Ward
-            </label>
-            <select
-              value={selectedWard?.ward_number || ''}
-              onChange={(e) => {
-                const ward = selectedMunicipality.wards?.find(w => w.ward_number === parseInt(e.target.value));
-                setSelectedWard(ward || null);
-              }}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                fontSize: '0.875rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">-- Select Ward --</option>
-              {selectedMunicipality.wards.map((ward) => (
-                <option key={`ward-${ward.ward_number}`} value={ward.ward_number}>
-                  Ward {ward.ward_number}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Area Dropdown */}
-        {filterType === 'area' && selectedWard && selectedWard.areas && (
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: '#374151'
-            }}>
-              5. Select Area
-            </label>
-            <select
-              value={selectedLocation?.id || ''}
-              onChange={(e) => {
-                const area = selectedWard.areas?.find(a => a.id === parseInt(e.target.value));
-                if (area) {
-                  handleLocationSelect(area);
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                fontSize: '0.875rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">-- Select Area --</option>
-              {selectedWard.areas.map((area) => (
-                <option key={area.id} value={area.id}>
-                  {area.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       <small style={{
@@ -595,8 +500,8 @@ export default function LocationSelector({
         color: '#6b7280',
         fontSize: '0.75rem'
       }}>
-        {filterType === 'area'
-          ? 'Select a specific area/place (e.g., Thamel, Naxal) for your ad'
+        {filterType === 'municipality'
+          ? 'Select a municipality/metropolitan city for your location'
           : 'Select any location level to filter results'}
       </small>
     </div>

@@ -67,13 +67,14 @@ class LocationController {
    * Get single location
    */
   static async getOne(req, res) {
-    const { id } = req.params;
+    const { id, slug } = req.params;
+    const identifier = slug || id;
 
     let location;
-    if (!isNaN(id)) {
-      location = await Location.findById(parseInt(id));
+    if (!isNaN(identifier)) {
+      location = await Location.findById(parseInt(identifier));
     } else {
-      location = await Location.findBySlug(id);
+      location = await Location.findBySlug(identifier);
     }
 
     if (!location) {

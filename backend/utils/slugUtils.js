@@ -61,33 +61,45 @@ async function generateSlugForExistingAd(adId, title) {
 
 /**
  * Generate SEO-friendly slug with location for ad detail pages
- * Format: title-area-district--id
- * Example: iphone-15-pro-thamel-kathmandu--48
+ * Format: title-area-district OR title-area-district-1, title-area-district-2, etc.
+ * Example: iphone-15-pro-thamel OR iphone-15-pro-thamel-1
  *
  * @param {number} adId - The ad ID
  * @param {string} title - The ad title
  * @param {string|null} areaName - Area name (e.g., "Thamel")
  * @param {string|null} districtName - District name (e.g., "Kathmandu")
- * @returns {string} - SEO-friendly slug with location and ID
+ * @returns {Promise<string>} - SEO-friendly slug with location (and counter if duplicate)
  */
-function generateSeoSlug(adId, title, areaName = null, districtName = null) {
+async function generateSeoSlug(adId, title, areaName = null, districtName = null) {
   const parts = [title];
 
-  // Add area if available
+  // Add area if available (area takes priority over district)
   if (areaName) {
     parts.push(areaName);
-  }
-
-  // Add district if available (and different from area)
-  if (districtName && districtName !== areaName) {
+  } else if (districtName) {
+    // Only add district if no area is available
     parts.push(districtName);
   }
 
   // Slugify the combined parts
-  const slugPart = slugify(parts.join(' '));
+  const baseSlug = slugify(parts.join(' '));
+  let slug = baseSlug;
+  let counter = 0;
 
-  // Return slug with ID at the end: title-area-district--id
-  return `${slugPart}--${adId}`;
+  // Check for duplicates (excluding current ad)
+  while (true) {
+    const query = 'SELECT id FROM ads WHERE slug = $1 AND id != $2 LIMIT 1';
+    const result = await pool.query(query, [slug, adId]);
+
+    // If slug doesn't exist, it's unique!
+    if (result.rows.length === 0) {
+      return slug;
+    }
+
+    // Slug exists, try with counter
+    counter++;
+    slug = `${baseSlug}-${counter}`;
+  }
 }
 
 module.exports = {

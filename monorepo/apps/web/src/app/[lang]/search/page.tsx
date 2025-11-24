@@ -281,7 +281,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
               }))}
               locations={topLocations}
               selectedCategory={categorySlug}
-              selectedLocation={locationId}
+              selectedLocation={locationSlug}
               minPrice={minPrice?.toString() || ''}
               maxPrice={maxPrice?.toString() || ''}
               condition={condition}

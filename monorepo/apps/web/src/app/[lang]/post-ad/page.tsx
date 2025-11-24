@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ImageUpload from '@/components/ImageUpload';
 import DynamicFormFields from '@/components/post-ad/DynamicFormFields';
-import LocationSelector from '@/components/LocationSelector';
+import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import { useFormTemplate } from '@/hooks/useFormTemplate';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
@@ -45,8 +45,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     price: '',
     categoryId: '',
     subcategoryId: '',
-    locationId: '',
-    locationType: '', // Store location type to know if it's an area or other location type
+    locationSlug: '',
     condition: 'new',
     isNegotiable: false,
   });
@@ -222,14 +221,16 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     try {
       setSubmitting(true);
 
-      // Prepare form data for API
-      // Only send areaId if the location type is 'area', otherwise send locationId
-      const locationData = formData.locationId
-        ? (formData.locationType === 'area'
-            ? { areaId: parseInt(formData.locationId) }
-            : { locationId: parseInt(formData.locationId) })
-        : {};
+      // Convert location slug to ID
+      let locationId: number | undefined = undefined;
+      if (formData.locationSlug) {
+        const locationResponse = await apiClient.getLocationBySlug(formData.locationSlug);
+        if (locationResponse.success && locationResponse.data) {
+          locationId = locationResponse.data.id;
+        }
+      }
 
+      // Prepare form data for API
       const adData = {
         title: formData.title,
         description: formData.description,
@@ -237,7 +238,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
         isNegotiable: formData.isNegotiable,
         categoryId: parseInt(formData.categoryId),
         subcategoryId: formData.subcategoryId ? parseInt(formData.subcategoryId) : undefined,
-        ...locationData, // Spread either areaId or locationId based on type
+        locationId: locationId,
         images: images,
         attributes: {
           condition: formData.condition,
@@ -567,21 +568,38 @@ export default function PostAdPage({ params }: PostAdPageProps) {
 
           {/* Location */}
           <div style={{ marginBottom: '2rem' }}>
-            <LocationSelector
-              onLocationSelect={(location) => {
-                console.log('📍 Location selected:', location);
-                setFormData(prev => ({
-                  ...prev,
-                  locationId: location ? location.id.toString() : '',
-                  locationType: location ? location.type : ''
-                }));
-              }}
-              selectedLocationId={formData.locationId ? parseInt(formData.locationId) : null}
-              label="Location (Area/Place)"
-              placeholder="Search area (e.g., Thamel, Samakhushi)..."
-              required
-              filterType="area"
-            />
+            <div style={{
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '1rem'
+            }}>
+              <h3 style={{
+                margin: '0 0 0.75rem 0',
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#111827'
+              }}>
+                Location (Area/Place) *
+              </h3>
+              <CascadingLocationFilter
+                onLocationSelect={(locationSlug) => {
+                  console.log('📍 Location selected:', locationSlug);
+                  setFormData(prev => ({
+                    ...prev,
+                    locationSlug: locationSlug || ''
+                  }));
+                }}
+                selectedLocationSlug={formData.locationSlug || null}
+              />
+              <small style={{
+                display: 'block',
+                marginTop: '0.75rem',
+                color: '#6b7280',
+                fontSize: '0.75rem'
+              }}>
+                Select the most specific location for your ad (area/place preferred)
+              </small>
+            </div>
           </div>
 
           {/* Submit */}

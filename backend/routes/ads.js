@@ -56,11 +56,24 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Handle location filtering - support both ID and hierarchical location name
+    // Handle location filtering - hierarchical search
+    // When user selects a location (e.g., Kathmandu Metro), find all ads in that location AND its child locations (e.g., Thamel)
     if (location && location !== 'all' && !isNaN(parseInt(location))) {
-      // Direct location ID
+      // Location ID - search hierarchically (includes children)
       paramCount++;
-      queryConditions.push(`a.location_id = $${paramCount}`);
+      queryConditions.push(`
+        a.location_id IN (
+          WITH RECURSIVE location_tree AS (
+            -- Start with the selected location
+            SELECT id FROM locations WHERE id = $${paramCount}
+            UNION ALL
+            -- Include all child locations
+            SELECT l.id FROM locations l
+            INNER JOIN location_tree lt ON l.parent_id = lt.id
+          )
+          SELECT id FROM location_tree
+        )
+      `);
       queryParams.push(parseInt(location));
     } else if (location_name) {
       // Location name - search in hierarchy (any level)
@@ -354,9 +367,6 @@ const parseCustomFields = (req, res, next) => {
   if (req.body.locationId && typeof req.body.locationId === 'string') {
     req.body.locationId = parseInt(req.body.locationId);
   }
-  if (req.body.areaId && typeof req.body.areaId === 'string') {
-    req.body.areaId = parseInt(req.body.areaId);
-  }
   if (req.body.price && typeof req.body.price === 'string') {
     req.body.price = parseFloat(req.body.price);
   }
@@ -375,7 +385,6 @@ router.post('/', rateLimiters.posting, authenticateToken, upload.array('images',
     categoryId,
     subcategoryId,
     locationId,
-    areaId,
     latitude,
     longitude,
     googleMapsLink,
@@ -403,14 +412,29 @@ router.post('/', rateLimiters.posting, authenticateToken, upload.array('images',
     }
   }
 
-  // Use areaId if provided, otherwise fall back to locationId, then subcategoryId's default location
-  const finalLocationId = areaId || locationId;
+  // Use locationId directly (can be any location type: province/district/municipality/area)
+  const finalLocationId = locationId;
 
   // Use subcategoryId as the category if provided (preferred), otherwise use categoryId
   const finalCategoryId = subcategoryId || categoryId;
 
-  // Generate unique slug from title
-  const slug = await generateSlug(title);
+  // Get location hierarchy BEFORE creating ad to generate SEO slug
+  const locationQuery = `
+    WITH RECURSIVE location_hierarchy AS (
+      SELECT id, name, type, parent_id, 0 as level
+      FROM locations WHERE id = $1
+      UNION ALL
+      SELECT l.id, l.name, l.type, l.parent_id, lh.level + 1
+      FROM locations l
+      INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
+    )
+    SELECT
+      (SELECT name FROM location_hierarchy WHERE type = 'area' LIMIT 1) as area_name,
+      (SELECT name FROM location_hierarchy WHERE type = 'district' LIMIT 1) as district_name
+  `;
+
+  const locationResult = await pool.query(locationQuery, [finalLocationId]);
+  const { area_name, district_name } = locationResult.rows[0] || {};
 
   // Prepare custom_fields JSON - include isNegotiable and any other metadata
   const customFieldsData = {
@@ -421,10 +445,10 @@ router.post('/', rateLimiters.posting, authenticateToken, upload.array('images',
     ...(googleMapsLink && { googleMapsLink })
   };
 
-  // Insert ad into database
+  // Insert ad into database WITHOUT slug first to get the ID
   const adQuery = `
-    INSERT INTO ads (title, description, price, condition, category_id, location_id, seller_name, seller_phone, user_id, slug, custom_fields, status)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'approved')
+    INSERT INTO ads (title, description, price, condition, category_id, location_id, seller_name, seller_phone, user_id, custom_fields, status)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'approved')
     RETURNING id, title, price, created_at
   `;
 
@@ -438,11 +462,16 @@ router.post('/', rateLimiters.posting, authenticateToken, upload.array('images',
     finalSellerName,
     finalSellerPhone,
     userId,
-    slug,
     JSON.stringify(customFieldsData)
   ]);
 
   const ad = adResult.rows[0];
+
+  // Generate SEO-friendly slug with location: title-area OR title-area-1, title-area-2, etc.
+  const slug = await generateSeoSlug(ad.id, ad.title, area_name, district_name);
+
+  // Update ad with generated slug
+  await pool.query('UPDATE ads SET slug = $1 WHERE id = $2', [slug, ad.id]);
 
   // Handle image uploads if any
   if (req.files && req.files.length > 0) {
@@ -464,28 +493,7 @@ router.post('/', rateLimiters.posting, authenticateToken, upload.array('images',
     }
   }
 
-  // Get location hierarchy for SEO slug
-  const locationQuery = `
-    WITH RECURSIVE location_hierarchy AS (
-      SELECT id, name, type, parent_id, 0 as level
-      FROM locations WHERE id = $1
-      UNION ALL
-      SELECT l.id, l.name, l.type, l.parent_id, lh.level + 1
-      FROM locations l
-      INNER JOIN location_hierarchy lh ON l.id = lh.parent_id
-    )
-    SELECT
-      (SELECT name FROM location_hierarchy WHERE type = 'area' LIMIT 1) as area_name,
-      (SELECT name FROM location_hierarchy WHERE type = 'district' LIMIT 1) as district_name
-  `;
-
-  const locationResult = await pool.query(locationQuery, [finalLocationId]);
-  const { area_name, district_name } = locationResult.rows[0] || {};
-
-  // Generate SEO-friendly slug: title-area-district--id
-  const seoSlug = generateSeoSlug(ad.id, ad.title, area_name, district_name);
-
-  console.log(`✅ Created ad: ${ad.title} with ${req.files?.length || 0} images, SEO slug: ${seoSlug}`);
+  console.log(`✅ Created ad: ${ad.title} with ${req.files?.length || 0} images, slug: ${slug}`);
 
   res.status(201).json({
     success: true,
@@ -495,8 +503,7 @@ router.post('/', rateLimiters.posting, authenticateToken, upload.array('images',
       title: ad.title,
       price: ad.price,
       createdAt: ad.created_at,
-      slug,
-      seo_slug: seoSlug,
+      slug: slug,
       imageCount: req.files?.length || 0
     }
   });

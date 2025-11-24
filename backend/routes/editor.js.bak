@@ -2795,7 +2795,7 @@ router.post('/categories', requireSuperAdmin, catchAsync(async (req, res) => {
     INSERT INTO admin_activity_logs (admin_id, action_type, target_type, target_id, details, ip_address)
     VALUES ($1, $2, $3, $4, $5, $6)
   `, [
-    req.user.userId,
+    req.user.id,
     'category_created',
     'category',
     result.rows[0].id,
@@ -2876,7 +2876,7 @@ router.put('/categories/:id', requireSuperAdmin, catchAsync(async (req, res) => 
     INSERT INTO admin_activity_logs (admin_id, action_type, target_type, target_id, details, ip_address)
     VALUES ($1, $2, $3, $4, $5, $6)
   `, [
-    req.user.userId,
+    req.user.id,
     'category_updated',
     'category',
     id,
@@ -2937,7 +2937,7 @@ router.delete('/categories/:id', requireSuperAdmin, catchAsync(async (req, res) 
     INSERT INTO admin_activity_logs (admin_id, action_type, target_type, target_id, details, ip_address)
     VALUES ($1, $2, $3, $4, $5, $6)
   `, [
-    req.user.userId,
+    req.user.id,
     'category_deleted',
     'category',
     id,
@@ -3033,7 +3033,7 @@ router.post('/locations', requireSuperAdmin, catchAsync(async (req, res) => {
     INSERT INTO admin_activity_logs (admin_id, action_type, target_type, target_id, details, ip_address)
     VALUES ($1, $2, $3, $4, $5, $6)
   `, [
-    req.user.userId,
+    req.user.id,
     'location_created',
     'location',
     result.rows[0].id,
@@ -3126,7 +3126,7 @@ router.put('/locations/:id', requireSuperAdmin, catchAsync(async (req, res) => {
     INSERT INTO admin_activity_logs (admin_id, action_type, target_type, target_id, details, ip_address)
     VALUES ($1, $2, $3, $4, $5, $6)
   `, [
-    req.user.userId,
+    req.user.id,
     'location_updated',
     'location',
     id,
@@ -3200,7 +3200,7 @@ router.delete('/locations/:id', requireSuperAdmin, catchAsync(async (req, res) =
     INSERT INTO admin_activity_logs (admin_id, action_type, target_type, target_id, details, ip_address)
     VALUES ($1, $2, $3, $4, $5, $6)
   `, [
-    req.user.userId,
+    req.user.id,
     'location_deleted',
     'location',
     id,

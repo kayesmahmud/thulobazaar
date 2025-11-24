@@ -10,6 +10,7 @@ router.get('/hierarchy', apiLimiter, catchAsync(LocationController.getHierarchy)
 router.get('/search', apiLimiter, catchAsync(LocationController.searchAreas));
 router.get('/search-all', apiLimiter, catchAsync(LocationController.searchAllLocations));
 router.get('/', apiLimiter, catchAsync(LocationController.getAll));
+router.get('/slug/:slug', apiLimiter, catchAsync(LocationController.getOne));
 router.get('/:id', apiLimiter, catchAsync(LocationController.getOne));
 router.get('/:id/wards', apiLimiter, catchAsync(LocationController.getWards));
 

@@ -153,6 +153,7 @@ class Location {
         'province' as type,
         p.id,
         p.name,
+        p.slug,
         NULL::integer as parent_id,
         NULL::integer as municipality_id,
         NULL::integer as ward_number,
@@ -173,6 +174,7 @@ class Location {
         'district' as type,
         d.id,
         d.name,
+        d.slug,
         d.parent_id,
         NULL::integer as municipality_id,
         NULL::integer as ward_number,
@@ -194,6 +196,7 @@ class Location {
         'municipality' as type,
         m.id,
         m.name,
+        m.slug,
         m.parent_id,
         m.id as municipality_id,
         NULL::integer as ward_number,
@@ -211,37 +214,15 @@ class Location {
 
       UNION ALL
 
-      -- Search Wards (from locations table)
-      SELECT DISTINCT
-        'ward' as type,
-        w.id,
-        w.name,
-        w.parent_id,
-        w.parent_id as municipality_id,
-        CAST(REPLACE(w.name, 'Ward ', '') AS INTEGER) as ward_number,
-        d.id as district_id,
-        p.id as province_id,
-        CASE
-          WHEN LOWER(w.name) = LOWER($1) THEN 1
-          WHEN LOWER(w.name) LIKE LOWER($1) || '%' THEN 2
-          ELSE 3
-        END as rank_priority
-      FROM locations w
-      JOIN locations m ON w.parent_id = m.id
-      JOIN locations d ON m.parent_id = d.id
-      JOIN locations p ON d.parent_id = p.id
-      WHERE w.type = 'ward' AND w.name ILIKE $2
-
-      UNION ALL
-
       -- Search Areas (from locations table)
       SELECT
         'area' as type,
         a.id,
         a.name,
+        a.slug,
         a.parent_id,
         m.id as municipality_id,
-        CAST(REPLACE(w.name, 'Ward ', '') AS INTEGER) as ward_number,
+        NULL::integer as ward_number,
         d.id as district_id,
         p.id as province_id,
         CASE
@@ -250,8 +231,7 @@ class Location {
           ELSE 3
         END as rank_priority
       FROM locations a
-      JOIN locations w ON a.parent_id = w.id AND w.type = 'ward'
-      JOIN locations m ON w.parent_id = m.id
+      JOIN locations m ON a.parent_id = m.id AND m.type = 'municipality'
       JOIN locations d ON m.parent_id = d.id
       JOIN locations p ON d.parent_id = p.id
       WHERE a.type = 'area' AND a.name ILIKE $2
@@ -304,26 +284,26 @@ class Location {
 
   /**
    * Get complete location hierarchy in a single query
-   * Returns provinces with nested districts, municipalities, wards, and areas
+   * Returns provinces with nested districts, municipalities, and areas
    * OPTIMIZED: Single database query instead of hundreds of separate queries
    */
   static async getHierarchy() {
-    // Fetch all locations in one query (including wards and areas)
+    // Fetch all locations in one query (provinces, districts, municipalities, and areas)
     const query = `
       SELECT
         id,
         name,
+        slug,
         type,
         parent_id
       FROM locations
-      WHERE type IN ('province', 'district', 'municipality', 'ward', 'area')
+      WHERE type IN ('province', 'district', 'municipality', 'area')
       ORDER BY
         CASE type
           WHEN 'province' THEN 1
           WHEN 'district' THEN 2
           WHEN 'municipality' THEN 3
-          WHEN 'ward' THEN 4
-          WHEN 'area' THEN 5
+          WHEN 'area' THEN 4
         END,
         id ASC
     `;
@@ -335,14 +315,12 @@ class Location {
     const provinces = allLocations.filter(loc => loc.type === 'province');
     const districts = allLocations.filter(loc => loc.type === 'district');
     const municipalities = allLocations.filter(loc => loc.type === 'municipality');
-    const wards = allLocations.filter(loc => loc.type === 'ward');
     const areas = allLocations.filter(loc => loc.type === 'area');
 
     // Create lookup maps for O(1) access
     const districtsByProvince = {};
     const municipalitiesByDistrict = {};
-    const wardsByMunicipality = {};
-    const areasByWard = {};
+    const areasByMunicipality = {};
 
     // Group districts by province
     districts.forEach(district => {
@@ -357,30 +335,15 @@ class Location {
       if (!municipalitiesByDistrict[municipality.parent_id]) {
         municipalitiesByDistrict[municipality.parent_id] = [];
       }
-      municipalitiesByDistrict[municipality.parent_id].push({ ...municipality, wards: [] });
+      municipalitiesByDistrict[municipality.parent_id].push({ ...municipality, areas: [] });
     });
 
-    // Group wards by municipality
-    wards.forEach(ward => {
-      if (!wardsByMunicipality[ward.parent_id]) {
-        wardsByMunicipality[ward.parent_id] = [];
-      }
-      // Extract ward number from name (e.g., "Ward 1" -> 1)
-      const wardNumber = parseInt(ward.name.replace('Ward ', ''));
-      wardsByMunicipality[ward.parent_id].push({
-        id: ward.id,
-        ward_number: wardNumber,
-        name: ward.name,
-        areas: []
-      });
-    });
-
-    // Group areas by ward
+    // Group areas by municipality
     areas.forEach(area => {
-      if (!areasByWard[area.parent_id]) {
-        areasByWard[area.parent_id] = [];
+      if (!areasByMunicipality[area.parent_id]) {
+        areasByMunicipality[area.parent_id] = [];
       }
-      areasByWard[area.parent_id].push(area);
+      areasByMunicipality[area.parent_id].push(area);
     });
 
     // Build final hierarchy
@@ -391,16 +354,9 @@ class Location {
       provinceDistricts.forEach(district => {
         const districtMunicipalities = municipalitiesByDistrict[district.id] || [];
 
-        // Attach wards to each municipality
+        // Attach areas to each municipality
         districtMunicipalities.forEach(municipality => {
-          const municipalityWards = wardsByMunicipality[municipality.id] || [];
-
-          // Attach areas to each ward
-          municipalityWards.forEach(ward => {
-            ward.areas = areasByWard[ward.id] || [];
-          });
-
-          municipality.wards = municipalityWards;
+          municipality.areas = areasByMunicipality[municipality.id] || [];
         });
 
         district.municipalities = districtMunicipalities;

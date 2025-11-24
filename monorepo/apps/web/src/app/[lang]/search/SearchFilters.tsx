@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import LocationSelector from '@/components/LocationSelector';
+import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 
 interface Category {
   id: number;
@@ -23,7 +23,7 @@ interface SearchFiltersProps {
   categories: Category[];
   locations: Location[];
   selectedCategory?: string; // Changed to string (slug) for SEO-friendly URLs
-  selectedLocation?: number;
+  selectedLocation?: string; // Changed to string (slug) for SEO-friendly URLs
   minPrice?: string;
   maxPrice?: string;
   condition?: 'new' | 'used';
@@ -189,14 +189,11 @@ export default function SearchFilters({
         isExpanded={expandedSections.location}
         onToggle={() => toggleSection('location')}
       >
-        <LocationSelector
-          onLocationSelect={(location) => {
-            updateFilters({ location: location ? location.id.toString() : undefined });
+        <CascadingLocationFilter
+          onLocationSelect={(locationSlug) => {
+            updateFilters({ location: locationSlug || undefined });
           }}
-          selectedLocationId={selectedLocation || null}
-          label=""
-          placeholder="Search province, district, area..."
-          filterType="all"
+          selectedLocationSlug={selectedLocation || null}
         />
       </FilterSection>
 

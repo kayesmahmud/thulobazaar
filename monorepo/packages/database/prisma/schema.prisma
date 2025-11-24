@@ -137,12 +137,10 @@ model ads {
   urgent_until                 DateTime?          @db.Timestamp(6)
   sticky_until                 DateTime?          @db.Timestamp(6)
   promoted_at                  DateTime?          @db.Timestamp(6)
-  area_id                      Int?
   custom_fields                Json?              @default("{}")
   ad_images                    ad_images[]
   ad_promotions                ad_promotions[]
   ad_reports                   ad_reports[]
-  areas                        areas?             @relation(fields: [area_id], references: [id], onUpdate: NoAction)
   categories                   categories?        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_ads_deleted_byTousers  users?             @relation("ads_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   locations                    locations?         @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -151,7 +149,6 @@ model ads {
   contact_messages             contact_messages[]
   user_favorites               user_favorites[]
 
-  @@index([area_id], map: "idx_ads_area_id")
   @@index([category_id], map: "idx_ads_category_id")
   @@index([created_at(sort: Desc)], map: "idx_ads_created_at")
   @@index([location_id], map: "idx_ads_location_id")
@@ -163,31 +160,6 @@ model ads {
   @@index([view_count(sort: Desc)], map: "idx_ads_view_count")
 }
 
-/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
-model areas {
-  id              Int       @id @default(autoincrement())
-  name            String    @db.VarChar(255)
-  name_np         String?   @db.VarChar(255)
-  municipality_id Int
-  ward_number     Int?
-  area_type       String?   @default("neighborhood") @db.VarChar(50)
-  latitude        Decimal?  @db.Decimal(10, 8)
-  longitude       Decimal?  @db.Decimal(11, 8)
-  is_popular      Boolean?  @default(false)
-  listing_count   Int?      @default(0)
-  search_terms    String?
-  created_at      DateTime? @default(now()) @db.Timestamp(6)
-  updated_at      DateTime? @default(now()) @db.Timestamp(6)
-  ads             ads[]
-  locations       locations @relation(fields: [municipality_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([name, ward_number, municipality_id], map: "unique_area_per_ward")
-  @@index([municipality_id], map: "idx_areas_municipality")
-  @@index([name], map: "idx_areas_name")
-  @@index([name], map: "idx_areas_name_pattern")
-  @@index([is_popular], map: "idx_areas_popular")
-  @@index([ward_number], map: "idx_areas_ward")
-}
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model business_subscriptions {
@@ -334,7 +306,6 @@ model locations {
   latitude        Decimal?    @db.Decimal(10, 8)
   longitude       Decimal?    @db.Decimal(11, 8)
   ads             ads[]
-  areas           areas[]
   locations       locations?  @relation("locationsTolocations", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_locations locations[] @relation("locationsTolocations")
   users           users[]

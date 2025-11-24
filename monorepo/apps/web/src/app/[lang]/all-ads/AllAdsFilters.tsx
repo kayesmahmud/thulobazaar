@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import LocationSelector from '@/components/LocationSelector';
+import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 
 interface Category {
   id: number;
@@ -21,7 +21,7 @@ interface AllAdsFiltersProps {
   lang: string;
   categories: Category[];
   selectedCategory?: string; // Changed to string (slug) for SEO-friendly URLs
-  selectedLocation?: number;
+  selectedLocation?: string; // Changed to string (slug) for SEO-friendly URLs
   minPrice?: string;
   maxPrice?: string;
   sortBy?: string;
@@ -196,14 +196,11 @@ export default function AllAdsFilters({
         isExpanded={expandedSections.location}
         onToggle={() => toggleSection('location')}
       >
-        <LocationSelector
-          onLocationSelect={(location) => {
-            updateFilters({ location: location ? location.id.toString() : undefined });
+        <CascadingLocationFilter
+          onLocationSelect={(locationSlug) => {
+            updateFilters({ location: locationSlug || undefined });
           }}
-          selectedLocationId={selectedLocation || null}
-          filterType="all"
-          label=""
-          placeholder="Search province, district, area..."
+          selectedLocationSlug={selectedLocation || null}
         />
       </FilterSection>
 
@@ -269,7 +266,7 @@ function FilterSection({ title, count, isExpanded, onToggle, children }: FilterS
 
       <div
         className={`overflow-hidden transition-[max-height] duration-300 ease-out ${
-          isExpanded ? 'max-h-[1000px] pb-4' : 'max-h-0 pb-0'
+          isExpanded ? 'max-h-[5000px] pb-4' : 'max-h-0 pb-0'
         }`}
       >
         {children}

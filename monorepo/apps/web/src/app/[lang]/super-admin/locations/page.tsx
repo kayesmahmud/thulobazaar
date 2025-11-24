@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, use } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { apiClient } from '@/lib/api';
 import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSession } from 'next-auth/react';
 
 interface Location {
   id: number;
   name: string;
   slug: string | null;
-  type: 'country' | 'region' | 'city' | 'district';
+  type: 'province' | 'district' | 'municipality' | 'area';
   parent_id: number | null;
   parent_name: string | null;
   latitude: string | null;
@@ -33,7 +33,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    type: 'city' as 'country' | 'region' | 'city' | 'district',
+    type: 'municipality' as 'province' | 'district' | 'municipality' | 'area',
     parent_id: '',
     latitude: '',
     longitude: ''
@@ -42,16 +42,63 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
   const [success, setSuccess] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
+  // Helper function to get auth token
+  const getAuthToken = async () => {
+    const session = await getSession();
+
+    if (!session) {
+      console.error('No session found');
+      return null;
+    }
+
+    // Check both locations where token might be stored
+    const token = session?.user?.backendToken || (session as any)?.backendToken;
+
+    if (!token) {
+      console.error('No backend token in session:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userBackendToken: session?.user?.backendToken,
+        sessionBackendToken: (session as any)?.backendToken,
+        userRole: session?.user?.role,
+        userId: session?.user?.id,
+      });
+    }
+
+    return token || null;
+  };
+
   const loadLocations = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getAdminLocations();
-      if (response.success && response.data) {
-        setLocations(response.data);
+      const token = await getAuthToken();
+
+      if (!token) {
+        setError('Not authenticated');
+        return;
       }
-    } catch (error) {
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        setLocations(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to load locations');
+      }
+    } catch (error: any) {
       console.error('Error loading locations:', error);
-      setError('Failed to load locations');
+      setError(error.message || 'Failed to load locations');
     } finally {
       setLoading(false);
     }
@@ -91,7 +138,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
       setFormData({
         name: '',
         slug: '',
-        type: 'city',
+        type: 'municipality',
         parent_id: '',
         latitude: '',
         longitude: ''
@@ -108,7 +155,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
     setFormData({
       name: '',
       slug: '',
-      type: 'city',
+      type: 'municipality',
       parent_id: '',
       latitude: '',
       longitude: ''
@@ -122,6 +169,13 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
     setSuccess('');
 
     try {
+      const token = await getAuthToken();
+
+      if (!token) {
+        setError('Not authenticated');
+        return;
+      }
+
       const data = {
         name: formData.name,
         slug: formData.slug || undefined,
@@ -131,20 +185,34 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
         longitude: formData.longitude ? parseFloat(formData.longitude) : undefined
       };
 
-      if (editingLocation) {
-        await apiClient.updateLocation(editingLocation.id, data);
-        setSuccess('Location updated successfully');
-      } else {
-        await apiClient.createLocation(data as any);
-        setSuccess('Location created successfully');
+      const url = editingLocation
+        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations/${editingLocation.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations`;
+
+      const method = editingLocation ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Failed to ${editingLocation ? 'update' : 'create'} location`);
       }
 
+      setSuccess(editingLocation ? 'Location updated successfully' : 'Location created successfully');
       await loadLocations();
       setTimeout(() => {
         handleCloseModal();
       }, 1500);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to save location');
+      setError(err.message || 'Failed to save location');
     }
   };
 
@@ -155,12 +223,32 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
 
     try {
       setError('');
-      await apiClient.deleteLocation(location.id);
+      const token = await getAuthToken();
+
+      if (!token) {
+        setError('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations/${location.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete location');
+      }
+
       setSuccess('Location deleted successfully');
       await loadLocations();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to delete location');
+      setError(err.message || 'Failed to delete location');
       setTimeout(() => setError(''), 5000);
     }
   };
@@ -204,15 +292,23 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
     ? locations
     : locations.filter(l => l.type === filterType);
 
-  const parentLocations = filteredLocations.filter(l => !l.parent_id);
-  const getSublocations = (parentId: number) => filteredLocations.filter(l => l.parent_id === parentId);
+  // When filtering by specific type, show all locations of that type (flat list)
+  // When showing all, use hierarchical display (parents + sublocations)
+  const parentLocations = filterType === 'all'
+    ? filteredLocations.filter(l => !l.parent_id)
+    : filteredLocations;
+
+  const getSublocations = (parentId: number) => filterType === 'all'
+    ? filteredLocations.filter(l => l.parent_id === parentId)
+    : [];
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'country': return 'bg-purple-100 text-purple-700';
-      case 'region': return 'bg-blue-100 text-blue-700';
-      case 'city': return 'bg-green-100 text-green-700';
-      case 'district': return 'bg-yellow-100 text-yellow-700';
+      case 'province': return 'bg-purple-100 text-purple-700';
+      case 'district': return 'bg-blue-100 text-blue-700';
+      case 'municipality': return 'bg-green-100 text-green-700';
+      case 'ward': return 'bg-yellow-100 text-yellow-700';
+      case 'area': return 'bg-pink-100 text-pink-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -232,7 +328,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Locations Management</h1>
             <p className="text-gray-600 mt-1">
-              Manage countries, regions, cities, and districts
+              Manage provinces, districts, municipalities, and areas
             </p>
           </div>
           <button
@@ -244,7 +340,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
         </div>
 
         {/* Filter Bar */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-lg ${filterType === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
@@ -252,28 +348,28 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
             All ({locations.length})
           </button>
           <button
-            onClick={() => setFilterType('country')}
-            className={`px-4 py-2 rounded-lg ${filterType === 'country' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+            onClick={() => setFilterType('province')}
+            className={`px-4 py-2 rounded-lg ${filterType === 'province' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
           >
-            Countries ({locations.filter(l => l.type === 'country').length})
-          </button>
-          <button
-            onClick={() => setFilterType('region')}
-            className={`px-4 py-2 rounded-lg ${filterType === 'region' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
-          >
-            Regions ({locations.filter(l => l.type === 'region').length})
-          </button>
-          <button
-            onClick={() => setFilterType('city')}
-            className={`px-4 py-2 rounded-lg ${filterType === 'city' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-          >
-            Cities ({locations.filter(l => l.type === 'city').length})
+            Provinces ({locations.filter(l => l.type === 'province').length})
           </button>
           <button
             onClick={() => setFilterType('district')}
-            className={`px-4 py-2 rounded-lg ${filterType === 'district' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`}
+            className={`px-4 py-2 rounded-lg ${filterType === 'district' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
           >
             Districts ({locations.filter(l => l.type === 'district').length})
+          </button>
+          <button
+            onClick={() => setFilterType('municipality')}
+            className={`px-4 py-2 rounded-lg ${filterType === 'municipality' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+          >
+            Municipalities ({locations.filter(l => l.type === 'municipality').length})
+          </button>
+          <button
+            onClick={() => setFilterType('area')}
+            className={`px-4 py-2 rounded-lg ${filterType === 'area' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`}
+          >
+            Areas ({locations.filter(l => l.type === 'area').length})
           </button>
         </div>
 
@@ -307,8 +403,8 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {parentLocations.map((location) => (
-                  <>
-                    <tr key={location.id} className="hover:bg-gray-50">
+                  <React.Fragment key={location.id}>
+                    <tr className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{location.name}</div>
                         {location.latitude && location.longitude && (
@@ -378,7 +474,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -420,10 +516,10 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
-                    <option value="country">Country</option>
-                    <option value="region">Region</option>
-                    <option value="city">City</option>
+                    <option value="province">Province</option>
                     <option value="district">District</option>
+                    <option value="municipality">Municipality</option>
+                    <option value="area">Area</option>
                   </select>
                 </div>
                 <div>
@@ -434,11 +530,15 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="">None (Top Level)</option>
-                    {locations.filter(l => l.type !== 'district').map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name} ({loc.type})
-                      </option>
-                    ))}
+                    {locations
+                      .filter(l => l.type !== 'area')
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name} ({loc.type})
+                        </option>
+                      ))
+                    }
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
