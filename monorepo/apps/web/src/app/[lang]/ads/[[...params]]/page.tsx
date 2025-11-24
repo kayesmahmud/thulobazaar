@@ -8,6 +8,9 @@ import {
   getFilterIds,
   generateAdListingMetadata,
 } from '@/lib/urlParser';
+import { getLocationHierarchy } from '@/lib/locationHierarchy';
+import { getRootCategoriesWithChildren } from '@/lib/categories';
+import { buildAdsWhereClause, buildAdsOrderBy, standardAdInclude } from '@/lib/adsQueryBuilder';
 
 interface AdsPageProps {
   params: Promise<{ lang: string; params?: string[] }>;
@@ -64,115 +67,36 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
   const adsPerPage = 20;
   const offset = (page - 1) * adsPerPage;
 
-  // Build Prisma where clause
-  const where: any = {
+  // Build Prisma where clause using shared helper
+  const where = buildAdsWhereClause({
+    categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
+    locationIds: locationIds.length > 0 ? locationIds : undefined,
+    minPrice,
+    maxPrice,
+    condition,
+    searchQuery,
     status: 'approved',
-    deleted_at: null,
-    ad_images: {
-      some: {}, // Only show ads with at least one image
-    },
-  };
+  });
 
-  // Text search (if query provided)
-  if (searchQuery) {
-    where.OR = [
-      { title: { contains: searchQuery, mode: 'insensitive' } },
-      { description: { contains: searchQuery, mode: 'insensitive' } },
-    ];
-  }
-
-  // Category filter (using helper-generated IDs)
-  if (categoryIds.length > 0) {
-    where.category_id = { in: categoryIds };
-  }
-
-  // Location filter (using helper-generated IDs)
-  if (locationIds.length > 0) {
-    where.location_id = { in: locationIds };
-  }
-
-  // Price range filter
-  if (minPrice !== undefined || maxPrice !== undefined) {
-    where.price = {};
-    if (minPrice !== undefined) where.price.gte = minPrice;
-    if (maxPrice !== undefined) where.price.lte = maxPrice;
-  }
-
-  // Condition filter
-  if (condition) {
-    where.condition = condition;
-  }
-
-  // Build order by clause
-  let orderBy: any = { created_at: 'desc' }; // Default: newest first
-  if (sortBy === 'oldest') orderBy = { created_at: 'asc' };
-  if (sortBy === 'price_asc') orderBy = { price: 'asc' };
-  if (sortBy === 'price_desc') orderBy = { price: 'desc' };
+  // Build order by clause using shared helper
+  const orderBy = buildAdsOrderBy(sortBy as 'newest' | 'oldest' | 'price_asc' | 'price_desc');
 
   // Fetch ads and total count in parallel
-  const [ads, totalAds, categories, topLocations] = await Promise.all([
-    // Get paginated ads with relations
+  const [ads, totalAds, categories, locationHierarchy] = await Promise.all([
+    // Get paginated ads with relations using shared include
     prisma.ads.findMany({
       where,
       orderBy,
       take: adsPerPage,
       skip: offset,
-      include: {
-        ad_images: {
-          where: { is_primary: true },
-          take: 1,
-          select: {
-            id: true,
-            filename: true,
-            file_path: true,
-            is_primary: true,
-          },
-        },
-        categories: {
-          select: {
-            id: true,
-            name: true,
-            icon: true,
-          },
-        },
-        users_ads_user_idTousers: {
-          select: {
-            id: true,
-            full_name: true,
-            account_type: true,
-            business_verification_status: true,
-            individual_verified: true,
-          },
-        },
-      },
+      include: standardAdInclude,
     }),
     // Get total count for pagination
     prisma.ads.count({ where }),
-    // Get categories for filter panel (with slugs)
-    prisma.categories.findMany({
-      where: { parent_id: null },
-      orderBy: { name: 'asc' },
-      include: {
-        other_categories: {
-          orderBy: { name: 'asc' },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-      },
-    }),
-    // Get top-level locations (provinces) for filter panel
-    prisma.locations.findMany({
-      where: { type: 'province' },
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-      },
-    }),
+    // Get categories for filter panel using shared helper
+    getRootCategoriesWithChildren(),
+    // Prefetch province → district hierarchy for instant rendering
+    getLocationHierarchy(),
   ]);
 
   const totalPages = Math.ceil(totalAds / adsPerPage);
@@ -246,13 +170,8 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
           <aside className="laptop:col-span-1">
             <AdsFilter
               lang={lang}
-              categories={categories.map((cat) => ({
-                id: cat.id,
-                name: cat.name,
-                slug: cat.slug,
-                icon: cat.icon || '📁',
-                subcategories: cat.other_categories || [],
-              }))}
+              categories={categories}
+              locationHierarchy={locationHierarchy}
               selectedCategorySlug={parsed.categorySlug || undefined}
               selectedLocationSlug={parsed.locationSlug || undefined}
               minPrice={minPrice?.toString() || ''}

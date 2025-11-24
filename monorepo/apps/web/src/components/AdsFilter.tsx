@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
+import FilterSection from '@/components/shared/FilterSection';
+import RadioOption from '@/components/shared/RadioOption';
 import { buildAdUrl } from '@/lib/urlParser';
+import type { LocationHierarchyProvince } from '@/lib/locationHierarchy';
 
 interface Category {
   id: number;
@@ -16,6 +19,7 @@ interface Category {
 interface AdsFilterProps {
   lang: string;
   categories: Category[];
+  locationHierarchy: LocationHierarchyProvince[];
   selectedCategorySlug?: string;
   selectedLocationSlug?: string;
   minPrice?: string;
@@ -28,6 +32,7 @@ interface AdsFilterProps {
 export default function AdsFilter({
   lang,
   categories,
+  locationHierarchy,
   selectedCategorySlug,
   selectedLocationSlug,
   minPrice = '',
@@ -241,6 +246,7 @@ export default function AdsFilter({
             updateFilters({ location: locationSlug || null });
           }}
           selectedLocationSlug={selectedLocationSlug || null}
+          initialProvinces={locationHierarchy}
         />
       </FilterSection>
 
@@ -296,76 +302,5 @@ export default function AdsFilter({
         </div>
       </FilterSection>
     </div>
-  );
-}
-
-// Helper Components
-interface FilterSectionProps {
-  title: string;
-  count: number;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-function FilterSection({ title, count, isExpanded, onToggle, children }: FilterSectionProps) {
-  return (
-    <div className="mb-4 border-b border-gray-200">
-      <button
-        onClick={onToggle}
-        className="w-full flex justify-between items-center py-3 text-left"
-      >
-        <span className="font-semibold flex items-center gap-2">
-          {title}
-          {count > 0 && (
-            <span className="bg-primary text-white rounded-full px-2 py-0.5 text-xs font-bold">
-              {count}
-            </span>
-          )}
-        </span>
-        <span
-          className="text-lg transition-transform"
-          style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        >
-          ▼
-        </span>
-      </button>
-
-      <div
-        className="overflow-hidden transition-all duration-normal"
-        style={{
-          maxHeight: isExpanded ? '1000px' : '0',
-          paddingBottom: isExpanded ? '1rem' : '0',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-interface RadioOptionProps {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}
-
-function RadioOption({ label, checked, onChange }: RadioOptionProps) {
-  return (
-    <label
-      className={`flex items-center gap-2 cursor-pointer p-2 rounded-md transition-colors ${
-        checked ? 'bg-primary-light' : 'hover:bg-gray-50'
-      }`}
-    >
-      <input
-        type="radio"
-        checked={checked}
-        onChange={onChange}
-        className="cursor-pointer"
-      />
-      <span className={`text-sm ${checked ? 'text-primary font-semibold' : 'text-gray-700'}`}>
-        {label}
-      </span>
-    </label>
   );
 }

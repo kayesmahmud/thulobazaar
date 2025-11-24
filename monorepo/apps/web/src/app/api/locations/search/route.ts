@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { getLocationBreadcrumb } from '@/lib/locationHierarchy';
 
 /**
  * GET /api/locations/search
@@ -55,10 +56,10 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // For each location, get the full hierarchy path
+    // For each location, get the full hierarchy path using shared helper
     const locationsWithHierarchy = await Promise.all(
       locations.map(async (loc) => {
-        const hierarchy = await getLocationHierarchy(loc.id);
+        const hierarchy = await getLocationBreadcrumb(loc.id);
 
         return {
           id: loc.id,
@@ -92,36 +93,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-/**
- * Helper function to get location hierarchy (breadcrumb trail)
- */
-async function getLocationHierarchy(locationId: number) {
-  const hierarchy: Array<{ id: number; name: string; type: string }> = [];
-  let currentId: number | null = locationId;
-
-  while (currentId !== null) {
-    const location = await prisma.locations.findUnique({
-      where: { id: currentId },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        parent_id: true,
-      },
-    });
-
-    if (!location) break;
-
-    hierarchy.unshift({
-      id: location.id,
-      name: location.name,
-      type: location.type,
-    });
-
-    currentId = location.parent_id;
-  }
-
-  return hierarchy;
 }

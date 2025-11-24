@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '../lib/api';
+import type {
+  LocationHierarchyProvince,
+  LocationHierarchyDistrict,
+  LocationHierarchyMunicipality,
+  LocationHierarchyArea,
+} from '@/lib/locationHierarchy';
 
 const EXPANDED_STATE_STORAGE_KEY = 'ads-location-filter-expanded';
 
@@ -52,42 +58,32 @@ const persistExpandedState = (state: PersistedExpandedState) => {
   }
 };
 
-interface Location {
+type Province = LocationHierarchyProvince;
+type District = LocationHierarchyDistrict;
+type Municipality = LocationHierarchyMunicipality;
+type Area = LocationHierarchyArea;
+
+interface SearchResult {
   id: number;
   name: string;
   slug: string;
   type: 'province' | 'district' | 'municipality' | 'area';
   parent_id?: number | null;
-}
-
-interface Province extends Location {
-  districts?: District[];
-}
-
-interface District extends Location {
-  municipalities?: Municipality[];
-}
-
-interface Municipality extends Location {
-  areas?: Area[];
-}
-
-interface Area extends Location {}
-
-interface SearchResult extends Location {
   hierarchy_info?: string;
 }
 
 interface CascadingLocationFilterProps {
   onLocationSelect: (locationSlug: string | null) => void;
   selectedLocationSlug?: string | null;
+  initialProvinces?: Province[];
 }
 
 export default function CascadingLocationFilter({
   onLocationSelect,
   selectedLocationSlug,
+  initialProvinces,
 }: CascadingLocationFilterProps) {
-  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>(initialProvinces || []);
   const [expandedProvinces, setExpandedProvinces] = useState<Set<number>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<number>>(new Set());
   const [expandedMunicipalities, setExpandedMunicipalities] = useState<Set<number>>(new Set());
@@ -104,9 +100,36 @@ export default function CascadingLocationFilter({
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLDivElement>(null);
 
-  // Fetch provinces on mount
-  useEffect(() => {
-    fetchProvinces();
+  const hydrateCachesFromHierarchy = useCallback((hierarchy: Province[]) => {
+    if (!hierarchy || hierarchy.length === 0) {
+      return;
+    }
+
+    const nextDistricts: Record<number, District[]> = {};
+    const nextMunicipalities: Record<number, Municipality[]> = {};
+    const nextAreas: Record<number, Area[]> = {};
+
+    hierarchy.forEach((province) => {
+      if (province.districts && province.districts.length > 0) {
+        nextDistricts[province.id] = province.districts;
+
+        province.districts.forEach((district) => {
+          if (district.municipalities && district.municipalities.length > 0) {
+            nextMunicipalities[district.id] = district.municipalities;
+
+            district.municipalities.forEach((municipality) => {
+              if (municipality.areas && municipality.areas.length > 0) {
+                nextAreas[municipality.id] = municipality.areas;
+              }
+            });
+          }
+        });
+      }
+    });
+
+    setDistrictsCache(nextDistricts);
+    setMunicipalitiesCache(nextMunicipalities);
+    setAreasCache(nextAreas);
   }, []);
 
   // Restore expanded state when the component mounts
@@ -132,19 +155,25 @@ export default function CascadingLocationFilter({
     });
   }, [expandedProvinces, expandedDistricts, expandedMunicipalities]);
 
-  const fetchProvinces = async () => {
+  const fetchProvinces = useCallback(async () => {
+    if (initialProvinces && initialProvinces.length > 0) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await apiClient.getHierarchy();
       if (response.success && response.data) {
-        setProvinces(response.data as Province[]);
+        const fetched = response.data as Province[];
+        setProvinces(fetched);
+        hydrateCachesFromHierarchy(fetched);
       }
     } catch (error) {
       console.error('Error fetching provinces:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [hydrateCachesFromHierarchy, initialProvinces]);
 
   const fetchDistricts = useCallback(async (provinceId: number) => {
     if (districtsCache[provinceId]) return;
@@ -202,6 +231,15 @@ export default function CascadingLocationFilter({
       setIsLoading(false);
     }
   }, [areasCache]);
+
+  useEffect(() => {
+    if (initialProvinces && initialProvinces.length > 0) {
+      setProvinces(initialProvinces);
+      hydrateCachesFromHierarchy(initialProvinces);
+    } else {
+      fetchProvinces();
+    }
+  }, [initialProvinces, hydrateCachesFromHierarchy, fetchProvinces]);
 
   // Ensure children data is loaded for any restored expanded nodes
   useEffect(() => {
@@ -493,7 +531,7 @@ export default function CascadingLocationFilter({
 
                           {/* Areas - Collapsible */}
                           {expandedMunicipalities.has(municipality.id) && areasCache[municipality.id] && areasCache[municipality.id].length > 0 && (
-                            <div>
+                            <div className="max-h-64 overflow-y-auto overflow-x-hidden">
                               {areasCache[municipality.id].map((area) => (
                                 <button
                                   key={area.id}
