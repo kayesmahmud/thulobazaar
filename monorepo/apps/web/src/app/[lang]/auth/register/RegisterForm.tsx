@@ -84,7 +84,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Message */}
       {error && (
-        <div className="bg-danger-light border border-danger text-danger px-4 py-3 rounded-lg">
+        <div className="bg-red-50 border border-red-500 text-red-600 px-4 py-3 rounded-lg">
           <p className="text-sm">{error}</p>
         </div>
       )}
@@ -98,7 +98,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           id="fullName"
           type="text"
           required
-          className="input w-full"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           placeholder="Enter your full name"
           value={formData.fullName}
           onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -115,7 +115,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           id="email"
           type="email"
           required
-          className="input w-full"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           placeholder="your@email.com"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -131,7 +131,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         <input
           id="phone"
           type="tel"
-          className="input w-full"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           placeholder="98XXXXXXXX"
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -148,7 +148,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           id="password"
           type="password"
           required
-          className="input w-full"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           placeholder="At least 6 characters"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -165,7 +165,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           id="confirmPassword"
           type="password"
           required
-          className="input w-full"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           placeholder="Re-enter your password"
           value={formData.confirmPassword}
           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -179,15 +179,15 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           id="terms"
           type="checkbox"
           required
-          className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary mt-0.5"
+          className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500 mt-0.5"
         />
         <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
           I agree to the{' '}
-          <a href="#" className="link">
+          <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
             Terms & Conditions
           </a>{' '}
           and{' '}
-          <a href="#" className="link">
+          <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
             Privacy Policy
           </a>
         </label>

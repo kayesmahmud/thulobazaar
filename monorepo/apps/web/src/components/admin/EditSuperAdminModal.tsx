@@ -122,7 +122,7 @@ export function EditSuperAdminModal({ isOpen, onClose, onSuccess, superAdmin }: 
         setTwoFactorEnabled(true);
         onSuccess(); // Refresh the list
       } else {
-        setErrors({ verification: response.message || 'Invalid verification code. Please try again.' });
+        setErrors({ verification: (response as any).message || 'Invalid verification code. Please try again.' });
       }
     } catch (error: any) {
       console.error('Error verifying 2FA:', error);
@@ -456,7 +456,7 @@ export function EditSuperAdminModal({ isOpen, onClose, onSuccess, superAdmin }: 
 
               {/* Manual Entry Option */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                <p className="text-sm font-semibold text-gray-900 mb-2">Can't scan? Enter manually:</p>
+                <p className="text-sm font-semibold text-gray-900 mb-2">Can&apos;t scan? Enter manually:</p>
                 <code className="text-xs bg-white px-3 py-2 rounded border border-amber-300 block break-all font-mono">
                   {secret}
                 </code>

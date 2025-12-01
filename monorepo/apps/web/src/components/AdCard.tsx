@@ -30,12 +30,13 @@ export default function AdCard({ ad, lang }: AdCardProps) {
   // Generate ad URL using seo_slug or slug
   const adUrl = ad.seoSlug || ad.slug || `ad-${ad.id}`;
 
-  // Construct image URL - images are served from backend server
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  // Construct image URL - images are served from public folder
+  // Database stores paths like "uploads/ads/filename.webp"
+  // Next.js public folder serves at root, so "/uploads/ads/filename.webp"
   const imageUrl = ad.primaryImage
     ? (ad.primaryImage.startsWith('http')
         ? ad.primaryImage
-        : `${BACKEND_URL}/${ad.primaryImage}`)
+        : `/${ad.primaryImage}`)
     : null;
 
   return (
@@ -46,7 +47,7 @@ export default function AdCard({ ad, lang }: AdCardProps) {
       {/* Image Section */}
       <div className="relative w-full h-48 bg-gray-100">
         {ad.isFeatured && (
-          <div className="absolute top-2 left-2 bg-warning text-white px-3 py-1 rounded text-xs font-semibold z-10">
+          <div className="absolute top-2 left-2 bg-amber-500 text-white px-3 py-1 rounded text-xs font-semibold z-10">
             ⭐ FEATURED
           </div>
         )}
@@ -92,7 +93,7 @@ export default function AdCard({ ad, lang }: AdCardProps) {
 
         {/* Price & Condition */}
         <div className="flex items-center gap-2 mb-2">
-          <div className="text-xl font-bold text-success">
+          <div className="text-xl font-bold text-emerald-500">
             {formatPrice(ad.price)}
           </div>
           {ad.condition && (

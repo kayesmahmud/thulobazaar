@@ -14,22 +14,9 @@ interface HeaderProps {
   userEmail?: string;
   userAvatar?: string;
   onLogout?: () => void | Promise<void>;
-}
-
-interface HeaderProps {
-  onSidebarToggle?: () => void;
-  searchPlaceholder?: string;
-  systemAlert?: {
-    message: string;
-    type?: 'warning' | 'info' | 'error';
-  };
-  notificationCount?: number;
-  userName?: string;
-  userEmail?: string;
-  userAvatar?: string;
-  onLogout?: () => void | Promise<void>;
   theme?: 'editor' | 'superadmin';
   showDashboardButton?: boolean;
+  lastLogin?: string | null;
 }
 
 export function Header({
@@ -43,6 +30,7 @@ export function Header({
   onLogout,
   theme = 'superadmin',
   showDashboardButton = false,
+  lastLogin,
 }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -75,11 +63,6 @@ export function Header({
     <header className="h-[72px] bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-sm bg-white/95">
       {/* Left Section */}
       <div className="flex items-center gap-4">
-        {/* Thulobazaar Branding */}
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-red-600">Thulobazaar</h1>
-        </div>
-
         <button
           onClick={onSidebarToggle}
           className="p-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 lg:hidden"
@@ -130,6 +113,23 @@ export function Header({
 
       {/* Right Section */}
       <div className="flex items-center gap-3">
+        {/* Last Login */}
+        {lastLogin !== undefined && (
+          <div className="hidden md:block text-right mr-2">
+            <p className="text-xs text-gray-500">Last Login:</p>
+            <p className="text-sm font-bold text-gray-900">
+              {lastLogin
+                ? new Date(lastLogin).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : 'Never'}
+            </p>
+          </div>
+        )}
+
         {/* System Alert */}
         {systemAlert && alert && (
           <div

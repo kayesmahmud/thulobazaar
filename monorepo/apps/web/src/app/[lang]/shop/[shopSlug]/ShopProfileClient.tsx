@@ -359,7 +359,7 @@ export default function ShopProfileClient({
                 />
               </div>
             ) : (
-              <div className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-primary text-white flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold border-[4px] sm:border-[5px] shadow-xl ${
+              <div className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-rose-500 text-white flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold border-[4px] sm:border-[5px] shadow-xl ${
                   businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
                     ? 'border-yellow-400'
                     : individualVerified
@@ -445,15 +445,15 @@ export default function ShopProfileClient({
             {/* Stats */}
             <div className="flex flex-wrap gap-4 sm:gap-6 md:gap-8">
               <div>
-                <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{stats.total_ads}</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-rose-500">{stats.total_ads}</div>
                 <div className="text-xs sm:text-sm text-gray-600">Active Ads</div>
               </div>
               <div>
-                <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{stats.total_views.toLocaleString()}</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-rose-500">{stats.total_views.toLocaleString()}</div>
                 <div className="text-xs sm:text-sm text-gray-600">Total Views</div>
               </div>
               <div>
-                <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{stats.member_since}</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-rose-500">{stats.member_since}</div>
                 <div className="text-xs sm:text-sm text-gray-600">Member Since</div>
               </div>
             </div>

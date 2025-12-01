@@ -14,7 +14,7 @@ export default function RadioOption({ label, checked, onChange }: RadioOptionPro
   return (
     <label
       className={`flex items-center gap-2 cursor-pointer p-2 rounded-md transition-colors ${
-        checked ? 'bg-primary-light' : 'hover:bg-gray-50'
+        checked ? 'bg-rose-500-light' : 'hover:bg-gray-50'
       }`}
     >
       <input
@@ -23,7 +23,7 @@ export default function RadioOption({ label, checked, onChange }: RadioOptionPro
         onChange={onChange}
         className="cursor-pointer"
       />
-      <span className={`text-sm ${checked ? 'text-primary font-semibold' : 'text-gray-700'}`}>
+      <span className={`text-sm ${checked ? 'text-rose-500 font-semibold' : 'text-gray-700'}`}>
         {label}
       </span>
     </label>

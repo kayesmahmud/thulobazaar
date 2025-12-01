@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import FilterSection from '@/components/shared/FilterSection';
 import RadioOption from '@/components/shared/RadioOption';
-import { buildAdUrl } from '@/lib/urlParser';
+import { buildAdUrl } from '@/lib/urlBuilder';
 import type { LocationHierarchyProvince } from '@/lib/locationHierarchy';
 
 interface Category {
@@ -22,6 +22,7 @@ interface AdsFilterProps {
   locationHierarchy: LocationHierarchyProvince[];
   selectedCategorySlug?: string;
   selectedLocationSlug?: string;
+  selectedLocationName?: string;
   minPrice?: string;
   maxPrice?: string;
   condition?: 'new' | 'used';
@@ -35,6 +36,7 @@ export default function AdsFilter({
   locationHierarchy,
   selectedCategorySlug,
   selectedLocationSlug,
+  selectedLocationName,
   minPrice = '',
   maxPrice = '',
   condition,
@@ -159,13 +161,13 @@ export default function AdsFilter({
         <h3 className="text-lg font-semibold flex items-center gap-2">
           Filters
           {totalActiveFilters > 0 && (
-            <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+            <span className="bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
               {totalActiveFilters}
             </span>
           )}
         </h3>
         {totalActiveFilters > 0 && (
-          <button onClick={clearAllFilters} className="link text-sm font-semibold">
+          <button onClick={clearAllFilters} className="text-rose-500 hover:text-rose-600 transition-colors text-sm font-semibold">
             Clear All
           </button>
         )}
@@ -242,10 +244,11 @@ export default function AdsFilter({
         onToggle={() => toggleSection('location')}
       >
         <CascadingLocationFilter
-          onLocationSelect={(locationSlug) => {
+          onLocationSelect={(locationSlug, _locationName) => {
             updateFilters({ location: locationSlug || null });
           }}
           selectedLocationSlug={selectedLocationSlug || null}
+          selectedLocationName={selectedLocationName || null}
           initialProvinces={locationHierarchy}
         />
       </FilterSection>
@@ -263,15 +266,15 @@ export default function AdsFilter({
             placeholder="Min"
             defaultValue={minPrice}
             onBlur={(e) => updateFilters({ minPrice: e.target.value || undefined })}
-            className="input flex-1 text-sm"
+            className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           />
-          <span className="text-muted">-</span>
+          <span className="text-gray-500">-</span>
           <input
             type="number"
             placeholder="Max"
             defaultValue={maxPrice}
             onBlur={(e) => updateFilters({ maxPrice: e.target.value || undefined })}
-            className="input flex-1 text-sm"
+            className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
           />
         </div>
       </FilterSection>

@@ -3,7 +3,7 @@ export default function SearchLoading() {
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb Skeleton */}
       <div className="py-5 px-4 bg-gray-50 border-b border-gray-200">
-        <div className="max-w-screen-desktop mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function SearchLoading() {
             </div>
 
             {/* Ads Grid Skeleton */}
-            <div className="grid grid-cols-1 mobile:grid-cols-2 desktop:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {[...Array(12)].map((_, i) => (
                 <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm">
                   {/* Image Skeleton */}

@@ -39,13 +39,17 @@ export async function GET(request: NextRequest) {
     const pricingMap: Record<string, Record<number, Record<string, any>>> = {};
 
     pricing.forEach((row) => {
-      if (!pricingMap[row.promotion_type]) {
-        pricingMap[row.promotion_type] = {};
+      const promotionType = row.promotion_type || 'unknown';
+      const durationDays = row.duration_days || 0;
+      const accountType = row.account_type || 'individual';
+
+      if (!pricingMap[promotionType]) {
+        pricingMap[promotionType] = {};
       }
-      if (!pricingMap[row.promotion_type][row.duration_days]) {
-        pricingMap[row.promotion_type][row.duration_days] = {};
+      if (!pricingMap[promotionType][durationDays]) {
+        pricingMap[promotionType][durationDays] = {};
       }
-      pricingMap[row.promotion_type][row.duration_days][row.account_type] = {
+      pricingMap[promotionType][durationDays][accountType] = {
         id: row.id,
         price: parseFloat(row.price.toString()),
         discountPercentage: row.discount_percentage,

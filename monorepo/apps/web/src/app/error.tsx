@@ -51,7 +51,7 @@ export default function Error({
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={reset}
-            className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+            className="px-6 py-3 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-700 transition-colors"
           >
             Try Again
           </button>

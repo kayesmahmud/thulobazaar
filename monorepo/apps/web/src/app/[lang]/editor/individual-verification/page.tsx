@@ -54,7 +54,7 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
         const individualVerifications = response.data.filter(
           (v: any) => v.type === 'individual'
         );
-        setVerifications(individualVerifications);
+        setVerifications(individualVerifications as any);
       } else {
         setVerifications([]);
       }

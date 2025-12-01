@@ -167,7 +167,7 @@ export default function BusinessVerificationForm({
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <h2 className="text-2xl font-bold text-primary mb-6">
+          <h2 className="text-2xl font-bold text-rose-500 mb-6">
             Business Verification
           </h2>
 
@@ -209,7 +209,7 @@ export default function BusinessVerificationForm({
               onChange={handleInputChange}
               placeholder="Enter your registered business name"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
           </div>
 
@@ -228,7 +228,7 @@ export default function BusinessVerificationForm({
               value={formData.businessCategory}
               onChange={handleInputChange}
               placeholder="e.g., Electronics, Clothing, Food & Beverage"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
           </div>
 
@@ -247,7 +247,7 @@ export default function BusinessVerificationForm({
               onChange={handleInputChange}
               placeholder="Brief description of your business"
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
           </div>
 
@@ -267,7 +267,7 @@ export default function BusinessVerificationForm({
                 value={formData.businessPhone}
                 onChange={handleInputChange}
                 placeholder="+977-..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
 
@@ -285,7 +285,7 @@ export default function BusinessVerificationForm({
                 value={formData.businessWebsite}
                 onChange={handleInputChange}
                 placeholder="https://..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function BusinessVerificationForm({
               onChange={handleInputChange}
               placeholder="Full business address"
               rows={2}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
           </div>
 
@@ -319,7 +319,7 @@ export default function BusinessVerificationForm({
             </label>
 
             {/* File Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-rose-500 transition-colors">
               {!formData.licenseFile ? (
                 <>
                   <div className="mb-4">
@@ -329,7 +329,7 @@ export default function BusinessVerificationForm({
                   </div>
                   <label
                     htmlFor="licenseFile"
-                    className="cursor-pointer inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+                    className="cursor-pointer inline-flex items-center px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />

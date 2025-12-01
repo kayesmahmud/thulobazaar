@@ -78,7 +78,7 @@ export default function Pagination({
       {showFirstLast && currentPage > 1 && (
         <button
           onClick={() => handlePageClick(1)}
-          className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-primary transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="First page"
         >
           «
@@ -89,14 +89,14 @@ export default function Pagination({
       <button
         onClick={() => handlePageClick(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-primary transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Previous page"
       >
         ‹
       </button>
 
       {/* Page Numbers */}
-      <div className="hidden mobile:flex items-center gap-2">
+      <div className="hidden sm:flex items-center gap-2">
         {visiblePages.map((page, index) => {
           if (page === '...') {
             return (
@@ -116,10 +116,10 @@ export default function Pagination({
             <button
               key={pageNum}
               onClick={() => handlePageClick(pageNum)}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-fast ${
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                 isActive
-                  ? 'bg-primary text-white shadow-md'
-                  : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:text-primary'
+                  ? 'bg-rose-500 text-white shadow-md'
+                  : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:text-rose-500'
               }`}
               aria-label={`Page ${pageNum}`}
               aria-current={isActive ? 'page' : undefined}
@@ -131,8 +131,8 @@ export default function Pagination({
       </div>
 
       {/* Mobile: Current page indicator */}
-      <div className="flex mobile:hidden items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg">
-        <span className="font-semibold text-primary">{currentPage}</span>
+      <div className="flex sm:hidden items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg">
+        <span className="font-semibold text-rose-500">{currentPage}</span>
         <span className="mx-1">/</span>
         <span>{totalPages}</span>
       </div>
@@ -141,7 +141,7 @@ export default function Pagination({
       <button
         onClick={() => handlePageClick(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-primary transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Next page"
       >
         ›
@@ -151,7 +151,7 @@ export default function Pagination({
       {showFirstLast && currentPage < totalPages && (
         <button
           onClick={() => handlePageClick(totalPages)}
-          className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-primary transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Last page"
         >
           »
@@ -190,7 +190,7 @@ export function CompactPagination({
       </button>
 
       <span className="px-3 py-1 text-xs font-medium text-gray-700">
-        <span className="font-semibold text-primary">{currentPage}</span>
+        <span className="font-semibold text-rose-500">{currentPage}</span>
         <span className="mx-1">/</span>
         <span>{totalPages}</span>
       </span>

@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
         account_type: true,
         business_verification_status: true,
         individual_verified: true,
+        business_name: true,
+        full_name: true,
       },
     });
 
@@ -36,9 +38,11 @@ export async function GET(request: NextRequest) {
         businessVerification: {
           status: user.business_verification_status || 'none',
           verified: user.business_verification_status === 'approved',
+          businessName: user.business_name || null,
         },
         individualVerification: {
           verified: user.individual_verified || false,
+          fullName: user.full_name || null,
         },
       },
     };

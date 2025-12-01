@@ -38,10 +38,10 @@ export default function EmptyState({
 
       {/* Actions */}
       {(actionLabel && actionHref) && (
-        <div className="flex flex-col mobile:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href={actionHref}
-            className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-hover transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 no-underline"
+            className="inline-flex items-center justify-center gap-2 bg-rose-500 text-white px-8 py-4 rounded-xl font-semibold hover:bg-rose-600 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 no-underline"
           >
             {actionLabel}
           </Link>
@@ -140,7 +140,7 @@ export function ErrorState({
       {retry && (
         <button
           onClick={retry}
-          className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-hover transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 bg-rose-500 text-white px-8 py-4 rounded-xl font-semibold hover:bg-rose-600 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
         >
           🔄 Try Again
         </button>

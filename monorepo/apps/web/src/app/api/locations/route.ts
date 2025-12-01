@@ -3,17 +3,18 @@ import { prisma } from '@thulobazaar/database';
 
 /**
  * GET /api/locations
- * Get hierarchical locations (Province → District → Municipality → Ward)
+ * Get hierarchical locations (Province → District → Municipality → Area)
  *
  * Query params:
- * - type: 'province' | 'district' | 'municipality' | 'ward' (optional)
+ * - type: 'province' | 'district' | 'municipality' | 'area' (optional)
  * - parentId: number (optional) - Get children of this location
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
-    const parentId = searchParams.get('parentId');
+    // Support both camelCase (parentId) and snake_case (parent_id)
+    const parentId = searchParams.get('parentId') || searchParams.get('parent_id');
 
     const where: any = {};
 

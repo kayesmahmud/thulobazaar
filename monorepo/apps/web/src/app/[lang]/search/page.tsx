@@ -4,6 +4,7 @@ import { prisma } from '@thulobazaar/database';
 import SearchFilters from './SearchFilters';
 import SearchPagination from './SearchPagination';
 import SortDropdown from './SortDropdown';
+import SearchBar from './SearchBar';
 import AdCard from '@/components/AdCard';
 import Breadcrumb from '@/components/Breadcrumb';
 import { getFilterIds } from '@/lib/urlParser';
@@ -70,7 +71,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   const selectedLocation = locationSlug
     ? await prisma.locations.findFirst({
         where: { slug: locationSlug },
-        select: { id: true, type: true },
+        select: { id: true, name: true, type: true },
       })
     : null;
 
@@ -138,26 +139,16 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
 
       <div className="container-custom py-6">
 
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {query ? `Search results for "${query}"` : 'All Ads'}
-          </h1>
-          <p className="text-muted">
-            Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
-            {hasActiveFilters && ' matching your filters'}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 laptop:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filters Sidebar */}
-          <aside className="laptop:col-span-1">
+          <aside className="lg:col-span-1">
             <SearchFilters
               lang={lang}
               categories={categories}
               locationHierarchy={locationHierarchy}
               selectedCategory={categorySlug}
               selectedLocation={locationSlug}
+              selectedLocationName={selectedLocation?.name}
               minPrice={minPrice?.toString() || ''}
               maxPrice={maxPrice?.toString() || ''}
               condition={condition}
@@ -165,10 +156,23 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           </aside>
 
           {/* Results */}
-          <main className="laptop:col-span-3">
+          <main className="lg:col-span-3">
+            {/* Search Bar */}
+            <SearchBar lang={lang} initialQuery={query} />
+
+            {/* Page Header */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {query ? `Search results for "${query}"` : 'All Ads'}
+              </h1>
+              <p className="text-gray-500">
+                Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
+                {hasActiveFilters && ' matching your filters'}
+              </p>
+            </div>
             {/* Sort & View Options */}
             <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
-              <div className="text-sm text-muted">
+              <div className="text-sm text-gray-500">
                 {totalAds > 0 && (
                   <>
                     Showing {offset + 1}-{Math.min(offset + adsPerPage, totalAds)} of {totalAds} ads
@@ -176,7 +180,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="sort" className="text-sm text-muted">
+                <label htmlFor="sort" className="text-sm text-gray-500">
                   Sort by:
                 </label>
                 <SortDropdown lang={lang} currentSort={sortBy} />
@@ -188,11 +192,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
               <div className="card text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="text-xl font-semibold mb-2">No ads found</h3>
-                <p className="text-muted mb-4">
+                <p className="text-gray-500 mb-4">
                   Try adjusting your filters or search query
                 </p>
                 {hasActiveFilters && (
-                  <Link href={`/${lang}/search`} className="btn-primary inline-block">
+                  <Link href={`/${lang}/search`} className="px-6 py-3 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors inline-block">
                     Clear All Filters
                   </Link>
                 )}
@@ -202,7 +206,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
             {/* Results Grid */}
             {ads.length > 0 && (
               <>
-                <div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
                   {ads.map((ad) => (
                     <AdCard
                       key={ad.id}

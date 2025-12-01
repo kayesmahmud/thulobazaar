@@ -3,19 +3,17 @@ import { prisma } from '@thulobazaar/database';
 
 /**
  * GET /api/areas/by-location
- * Get areas by municipality and/or ward
+ * Get areas by municipality
  *
  * Query params:
  * - municipality_id: Municipality ID (required)
- * - ward: Ward number (optional)
  *
- * Note: Uses old areas table directly
+ * Note: Uses locations table with type='area'
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const municipality_id = searchParams.get('municipality_id');
-    const ward = searchParams.get('ward');
 
     if (!municipality_id) {
       return NextResponse.json(
@@ -27,40 +25,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let query = `
-      SELECT
-        id,
-        name,
-        name_np,
-        ward_number,
-        listing_count,
-        is_popular,
-        latitude,
-        longitude
-      FROM areas
-      WHERE municipality_id = $1
-    `;
-
-    const params: any[] = [parseInt(municipality_id)];
-
-    if (ward) {
-      query += ` AND ward_number = $2`;
-      params.push(parseInt(ward));
-    }
-
-    query += `
-      ORDER BY
-        is_popular DESC,
-        listing_count DESC,
-        name ASC
-    `;
-
-    const results = await prisma.$queryRawUnsafe(query, ...params);
+    // Get areas directly under the municipality
+    const areas = await prisma.locations.findMany({
+      where: {
+        parent_id: parseInt(municipality_id),
+        type: 'area',
+      },
+      orderBy: { name: 'asc' },
+    });
 
     return NextResponse.json(
       {
         success: true,
-        data: results,
+        data: areas,
       },
       { status: 200 }
     );

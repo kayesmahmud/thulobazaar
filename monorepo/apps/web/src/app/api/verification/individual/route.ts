@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         full_name: fullName.trim(),
         id_document_type: idDocumentType,
-        id_document_number: idDocumentNumber || null,
+        id_document_number: idDocumentNumber || '',
         id_document_front: frontFilename,
         id_document_back: backFilename,
         selfie_with_id: selfieFilename,

@@ -1,4 +1,5 @@
 import Typesense from 'typesense';
+import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 
 // Initialize Typesense client
 export const typesenseClient = new Typesense.Client({
@@ -16,26 +17,26 @@ export const typesenseClient = new Typesense.Client({
 export const COLLECTION_NAME = 'ads';
 
 // Typesense schema for ads collection
-export const adsCollectionSchema = {
+export const adsCollectionSchema: CollectionCreateSchema = {
   name: COLLECTION_NAME,
   fields: [
-    { name: 'id', type: 'string', facet: false },
-    { name: 'title', type: 'string', facet: false },
-    { name: 'description', type: 'string', facet: false },
-    { name: 'price', type: 'float', facet: true },
-    { name: 'condition', type: 'string', facet: true },
-    { name: 'category_id', type: 'int32', facet: true },
-    { name: 'category_name', type: 'string', facet: true },
-    { name: 'location_id', type: 'int32', facet: true },
-    { name: 'location_name', type: 'string', facet: true },
-    { name: 'seller_name', type: 'string', facet: false },
-    { name: 'seller_phone', type: 'string', facet: false },
-    { name: 'is_featured', type: 'bool', facet: true },
-    { name: 'is_active', type: 'bool', facet: true },
-    { name: 'created_at', type: 'int64', facet: false },
-    { name: 'updated_at', type: 'int64', facet: false },
-    { name: 'primary_image', type: 'string', facet: false, optional: true },
-    { name: 'images', type: 'string[]', facet: false, optional: true },
+    { name: 'id', type: 'string' as const, facet: false },
+    { name: 'title', type: 'string' as const, facet: false },
+    { name: 'description', type: 'string' as const, facet: false },
+    { name: 'price', type: 'float' as const, facet: true },
+    { name: 'condition', type: 'string' as const, facet: true },
+    { name: 'category_id', type: 'int32' as const, facet: true },
+    { name: 'category_name', type: 'string' as const, facet: true },
+    { name: 'location_id', type: 'int32' as const, facet: true },
+    { name: 'location_name', type: 'string' as const, facet: true },
+    { name: 'seller_name', type: 'string' as const, facet: false },
+    { name: 'seller_phone', type: 'string' as const, facet: false },
+    { name: 'is_featured', type: 'bool' as const, facet: true },
+    { name: 'is_active', type: 'bool' as const, facet: true },
+    { name: 'created_at', type: 'int64' as const, facet: false },
+    { name: 'updated_at', type: 'int64' as const, facet: false },
+    { name: 'primary_image', type: 'string' as const, facet: false, optional: true },
+    { name: 'images', type: 'string[]' as const, facet: false, optional: true },
   ],
   default_sorting_field: 'created_at',
 };

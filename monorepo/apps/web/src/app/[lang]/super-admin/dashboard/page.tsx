@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import {
   DashboardLayout,
   StatsCard,
@@ -24,8 +24,9 @@ interface DashboardStats {
   usersThisWeek: number;
 }
 
-export default function SuperAdminDashboard({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
-  const params = use(paramsPromise);
+export default function SuperAdminDashboard() {
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang || 'en';
   const router = useRouter();
   const { staff, isLoading: authLoading, isSuperAdmin, logout } = useStaffAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -34,8 +35,8 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
 
   const handleLogout = useCallback(async () => {
     await logout();
-    router.push(`/${params.lang}/super-admin/login`);
-  }, [logout, router, params.lang]);
+    router.push(`/${lang}/super-admin/login`);
+  }, [logout, router, lang]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -71,7 +72,7 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
 
     // Check if user is authenticated and is a super admin
     if (!staff || !isSuperAdmin) {
-      router.push(`/${params.lang}/super-admin/login`);
+      router.push(`/${lang}/super-admin/login`);
       return;
     }
 
@@ -79,9 +80,9 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
     if (staff && isSuperAdmin) {
       loadDashboardData();
     }
-  }, [authLoading, staff, isSuperAdmin, params.lang, router, loadDashboardData]);
+  }, [authLoading, staff, isSuperAdmin, lang, router, loadDashboardData]);
 
-  const navSections = getSuperAdminNavSections(params.lang, {
+  const navSections = getSuperAdminNavSections(lang, {
     pendingAds: stats?.pendingAds || 0,
   });
 
@@ -91,25 +92,25 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
       label: 'Review Pending Ads',
       color: 'primary' as const,
       badge: stats?.pendingAds || 0,
-      onClick: () => router.push(`/${params.lang}/super-admin/ads?status=pending`),
+      onClick: () => router.push(`/${lang}/super-admin/ads?status=pending`),
     },
     {
       icon: '✓',
       label: 'Verify Sellers',
       color: 'success' as const,
-      onClick: () => router.push(`/${params.lang}/super-admin/verifications`),
+      onClick: () => router.push(`/${lang}/super-admin/verifications`),
     },
     {
       icon: '📊',
       label: 'Analytics',
       color: 'warning' as const,
-      onClick: () => router.push(`/${params.lang}/super-admin/analytics`),
+      onClick: () => router.push(`/${lang}/super-admin/analytics`),
     },
     {
       icon: '⚙️',
       label: 'System Settings',
       color: 'gray' as const,
-      onClick: () => router.push(`/${params.lang}/super-admin/settings`),
+      onClick: () => router.push(`/${lang}/super-admin/settings`),
     },
   ];
 
@@ -134,7 +135,7 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
 
   return (
     <DashboardLayout
-      lang={params.lang}
+      lang={lang}
       userName={staff?.fullName || 'Admin User'}
       userEmail={staff?.email || 'admin@thulobazaar.com'}
       navSections={navSections}
@@ -149,11 +150,11 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
               Super Admin Dashboard
             </h1>
             <p className="text-gray-600 text-lg">
-              Welcome back, <span className="font-semibold text-indigo-600">{staff?.fullName}</span>! Here's your complete system overview.
+              Welcome back, <span className="font-semibold text-indigo-600">{staff?.fullName}</span>! Here&apos;s your complete system overview.
             </p>
           </div>
           <button
-            onClick={() => router.push(`/${params.lang}/super-admin/analytics`)}
+            onClick={() => router.push(`/${lang}/super-admin/analytics`)}
             className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 hover:scale-105 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -281,7 +282,7 @@ export default function SuperAdminDashboard({ params: paramsPromise }: { params:
         <RecentActivity
           activities={activities}
           showViewAll
-          viewAllHref={`/${params.lang}/super-admin/security`}
+          viewAllHref={`/${lang}/super-admin/security`}
         />
       </div>
     </DashboardLayout>

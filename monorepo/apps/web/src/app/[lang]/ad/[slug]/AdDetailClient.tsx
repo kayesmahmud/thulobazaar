@@ -46,14 +46,14 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
           <>
             <button
               onClick={() => setSelectedImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1))}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-fast"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-200"
               aria-label="Previous image"
             >
               ‹
             </button>
             <button
               onClick={() => setSelectedImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1))}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-fast"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-200"
               aria-label="Next image"
             >
               ›
@@ -83,9 +83,9 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
             <div
               key={index}
               onClick={() => setSelectedImageIndex(index)}
-              className={`bg-gray-100 min-w-[80px] w-20 h-20 rounded-lg flex items-center justify-center cursor-pointer border-2 overflow-hidden snap-start transition-all duration-fast ${
+              className={`bg-gray-100 min-w-[80px] w-20 h-20 rounded-lg flex items-center justify-center cursor-pointer border overflow-hidden snap-start transition-all ${
                 selectedImageIndex === index
-                  ? 'border-primary ring-2 ring-primary ring-offset-2'
+                  ? 'border-rose-400 shadow-[0_0_0_2px_rgba(244,63,94,0.12)]'
                   : 'border-transparent hover:border-gray-300'
               }`}
             >

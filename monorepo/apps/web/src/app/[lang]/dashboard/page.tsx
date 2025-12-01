@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice, formatDateTime } from '@thulobazaar/utils';
@@ -13,10 +13,6 @@ import { EmptyAds } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/ui';
 import { useBackendToken } from '@/hooks/useBackendToken';
 import { useMessages } from '@/hooks/useSocket';
-
-interface DashboardPageProps {
-  params: Promise<{ lang: string }>;
-}
 
 interface Ad {
   id: number;
@@ -36,20 +32,39 @@ interface DashboardStats {
 }
 
 interface VerificationStatus {
-  business?: {
-    status: 'unverified' | 'pending' | 'verified' | 'rejected';
-    rejectionReason?: string;
+  accountType: string;
+  businessVerification: {
+    status: string;
+    verified: boolean;
+    businessName?: string | null;
+    hasRequest?: boolean;
+    request?: {
+      id: number;
+      status: string;
+      businessName: string;
+      createdAt: string;
+      rejectionReason?: string;
+    };
   };
-  individual?: {
-    status: 'unverified' | 'pending' | 'verified' | 'rejected';
-    rejectionReason?: string;
+  individualVerification: {
+    verified: boolean;
+    fullName?: string | null;
+    hasRequest?: boolean;
+    request?: {
+      id: number;
+      status: string;
+      fullName: string;
+      idDocumentType: string;
+      createdAt: string;
+      rejectionReason?: string;
+    };
   };
 }
 
-export default function DashboardPage({ params }: DashboardPageProps) {
-  const { lang } = use(params);
+export default function DashboardPage() {
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang || 'en';
   const { data: session, status } = useSession();
-  const router = useRouter();
   const { success, error: showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'sold'>('active');
@@ -73,17 +88,12 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   const { socket } = useMessages(tokenLoading ? null : backendToken);
 
   useEffect(() => {
-    // Redirect if not authenticated
-    if (status === 'unauthenticated') {
-      router.push(`/${lang}/auth/signin`);
-      return;
-    }
-
-    // Load data when authenticated
+    // Load data when authenticated (middleware handles redirect if unauthenticated)
+    // Also reload when backendToken becomes available to fetch unread messages
     if (status === 'authenticated') {
       loadUserData();
     }
-  }, [status, router, lang]);
+  }, [status, backendToken]);
 
   const loadUserData = async () => {
     try {
@@ -94,11 +104,20 @@ export default function DashboardPage({ params }: DashboardPageProps) {
       const token = backendToken || (session as any)?.backendToken;
 
       // Fetch user ads, verification status, and message count in parallel
+      console.log('📨 [Dashboard] Fetching unread count with token:', token ? 'Present' : 'NULL');
       const [adsResponse, verificationResponse, messagesResponse] = await Promise.all([
         apiClient.getUserAds(),
         apiClient.getVerificationStatus().catch(() => ({ success: false, data: null })),
-        token ? messagingApi.getUnreadCount(token).catch(() => ({ data: { unreadCount: 0 } })) : Promise.resolve({ data: { unreadCount: 0 } }),
+        token ? messagingApi.getUnreadCount(token).catch((err) => {
+          console.error('📨 [Dashboard] getUnreadCount error:', err);
+          return { data: { unreadCount: 0 } };
+        }) : Promise.resolve({ data: { unreadCount: 0 } }),
       ]);
+      console.log('📨 [Dashboard] Messages response:', messagesResponse);
+
+      // Get unread message count
+      const unreadCount = messagesResponse?.data?.unreadCount || messagesResponse?.data?.unread_messages || 0;
+      console.log('📨 [Dashboard] Unread count:', unreadCount);
 
       if (adsResponse.success && adsResponse.data) {
         const ads = adsResponse.data;
@@ -112,12 +131,19 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           totalAds: ads.length,
           activeAds,
           totalViews,
-          totalMessages: messagesResponse?.data?.unread_messages || 0
+          totalMessages: unreadCount
         });
+      } else {
+        // Even if ads fail, still update message count
+        setStats(prev => ({
+          ...prev,
+          totalMessages: unreadCount
+        }));
       }
 
       if (verificationResponse.success && verificationResponse.data) {
-        setVerificationStatus(verificationResponse.data);
+        console.log('🔍 Verification Response:', verificationResponse.data);
+        setVerificationStatus(verificationResponse.data as any);
       }
     } catch (err: any) {
       console.error('Error loading user data:', err);
@@ -137,7 +163,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         const messagesResponse = await messagingApi.getUnreadCount(backendToken);
         setStats((prevStats) => ({
           ...prevStats,
-          totalMessages: messagesResponse?.data?.unread_messages || 0
+          totalMessages: messagesResponse?.data?.unreadCount || messagesResponse?.data?.unread_messages || 0
         }));
       } catch (err) {
         console.error('Failed to update message count:', err);
@@ -353,94 +379,182 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         </div>
 
         {/* Verification Section - Enhanced Design */}
-        <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl p-8 mb-12 shadow-2xl text-white overflow-hidden group hover:shadow-3xl transition-shadow duration-300">
-          {/* Decorative Background Elements */}
-          <div className="absolute inset-0 overflow-hidden opacity-20">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-300 rounded-full blur-3xl transform -translate-x-32 translate-y-32"></div>
-          </div>
+        {(() => {
+          // Check verification status
+          const isBusinessVerified = verificationStatus?.businessVerification?.verified;
+          const isIndividualVerified = verificationStatus?.individualVerification?.verified;
+          const hasAnyVerification = isBusinessVerified || isIndividualVerified;
 
-          <div className="relative z-10 flex items-center justify-between flex-wrap gap-6">
-            <div className="flex-1 min-w-[300px]">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                  <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
+          // Get verified names from user record (not from verification request)
+          const businessName = verificationStatus?.businessVerification?.businessName;
+          const individualName = verificationStatus?.individualVerification?.fullName;
+
+          const isBusinessRejected = verificationStatus?.businessVerification?.request?.status === 'rejected';
+          const isIndividualRejected = verificationStatus?.individualVerification?.request?.status === 'rejected';
+
+          // If user is verified, show success state
+          if (hasAnyVerification) {
+            return (
+              <div className="relative bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 rounded-3xl p-8 mb-12 shadow-2xl text-white overflow-hidden group hover:shadow-3xl transition-shadow duration-300">
+                {/* Decorative Background Elements */}
+                <div className="absolute inset-0 overflow-hidden opacity-30">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-300 rounded-full blur-3xl transform -translate-x-32 translate-y-32"></div>
                 </div>
-                <h2 className="text-3xl font-bold">Get Verified & Stand Out</h2>
+
+                <div className="relative z-10 flex items-center justify-between flex-wrap gap-6">
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl">
+                        <svg className="w-10 h-10 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-3xl font-bold mb-1">Verified Account</h2>
+                        <p className="text-white/90 text-sm">Your account has been verified and trusted</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {isBusinessVerified && (
+                        <div className="flex items-center gap-3 bg-white/95 px-5 py-3 rounded-xl shadow-lg">
+                          <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-900 font-bold text-lg">{businessName || 'Your Business'}</span>
+                              <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                VERIFIED
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm">Business Verification</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {isIndividualVerified && (
+                        <div className="flex items-center gap-3 bg-white/95 px-5 py-3 rounded-xl shadow-lg">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-900 font-bold text-lg">{individualName || session?.user?.name || 'You'}</span>
+                              <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                VERIFIED
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm">Individual Verification</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Link
+                      href={`/${lang}/verification`}
+                      className="inline-flex items-center gap-3 px-8 py-4 bg-white text-amber-600 font-bold rounded-2xl hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Manage Verification
+                    </Link>
+                  </div>
+                </div>
               </div>
-              <p className="text-white/90 mb-5 text-lg leading-relaxed">
-                Build trust with buyers, unlock premium features, and boost your visibility
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {verificationStatus?.individual?.status === 'verified' && (
-                  <div className="flex items-center gap-2 bg-white/30 px-4 py-2 rounded-full backdrop-blur-sm border border-white/40 shadow-lg">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-semibold">Individual Verified</span>
+            );
+          }
+
+          // If user is not verified, show CTA
+          return (
+            <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl p-8 mb-12 shadow-2xl text-white overflow-hidden group hover:shadow-3xl transition-shadow duration-300">
+              {/* Decorative Background Elements */}
+              <div className="absolute inset-0 overflow-hidden opacity-20">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-300 rounded-full blur-3xl transform -translate-x-32 translate-y-32"></div>
+              </div>
+
+              <div className="relative z-10 flex items-center justify-between flex-wrap gap-6">
+                <div className="flex-1 min-w-[300px]">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h2 className="text-3xl font-bold">Get Verified & Stand Out</h2>
                   </div>
-                )}
-                {verificationStatus?.business?.status === 'verified' && (
-                  <div className="flex items-center gap-2 bg-white/30 px-4 py-2 rounded-full backdrop-blur-sm border border-white/40 shadow-lg">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-semibold">Business Verified</span>
+                  <p className="text-white/90 mb-5 text-lg leading-relaxed">
+                    Build trust with buyers, unlock premium features, and boost your visibility
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {isBusinessRejected && (
+                      <div className="flex items-center gap-2 bg-red-500/90 px-4 py-2 rounded-full backdrop-blur-sm border border-red-400 shadow-lg">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="font-semibold">Business Rejected - Reapply</span>
+                      </div>
+                    )}
+                    {isIndividualRejected && (
+                      <div className="flex items-center gap-2 bg-red-500/90 px-4 py-2 rounded-full backdrop-blur-sm border border-red-400 shadow-lg">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="font-semibold">Individual Rejected - Reapply</span>
+                      </div>
+                    )}
+                    {!isBusinessRejected && !isIndividualRejected && (
+                      <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm border border-white/30">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                        </svg>
+                        <span className="font-medium">Not Verified Yet</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {verificationStatus?.individual?.status === 'rejected' && (
-                  <div className="flex items-center gap-2 bg-red-500/90 px-4 py-2 rounded-full backdrop-blur-sm border border-red-400 shadow-lg">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-semibold">Individual Rejected - Reapply</span>
-                  </div>
-                )}
-                {verificationStatus?.business?.status === 'rejected' && (
-                  <div className="flex items-center gap-2 bg-red-500/90 px-4 py-2 rounded-full backdrop-blur-sm border border-red-400 shadow-lg">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-semibold">Business Rejected - Reapply</span>
-                  </div>
-                )}
-                {(!verificationStatus?.individual || verificationStatus.individual.status === 'unverified') &&
-                 (!verificationStatus?.business || verificationStatus.business.status === 'unverified') && (
-                  <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm border border-white/30">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                    </svg>
-                    <span className="font-medium">Not Verified Yet</span>
-                  </div>
-                )}
+                </div>
+                <div>
+                  <Link
+                    href={`/${lang}/verification`}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-white text-purple-600 font-bold rounded-2xl hover:bg-gray-100 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105"
+                  >
+                    {(isBusinessRejected || isIndividualRejected) ? (
+                      <>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Manage Verifications
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Get Verified Now
+                      </>
+                    )}
+                  </Link>
+                </div>
               </div>
             </div>
-            <div>
-              <Link
-                href="verification"
-                className="inline-flex items-center gap-3 px-8 py-4 bg-white text-purple-600 font-bold rounded-2xl hover:bg-gray-100 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105"
-              >
-                {(verificationStatus?.individual?.status === 'rejected' || verificationStatus?.business?.status === 'rejected') ? (
-                  <>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Manage Verifications
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Get Verified Now
-                  </>
-                )}
-              </Link>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
 
         {/* Ads List - Modern Design */}
@@ -525,7 +639,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
                     <div className="w-full md:w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 relative shadow-md group-hover:shadow-xl transition-shadow duration-300">
                       {(ad as any).images && (ad as any).images.length > 0 ? (
                         <Image
-                          src={`/${(ad as any).images[0].filePath || (ad as any).images[0].filename}`}
+                          src={`/${(ad as any).images[0].file_path || (ad as any).images[0].filePath || (ad as any).images[0].filename}`}
                           alt={ad.title}
                           fill
                           className="object-cover group-hover:scale-110 transition-transform duration-300"

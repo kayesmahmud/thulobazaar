@@ -219,7 +219,7 @@ export async function getLocationBreadcrumb(locationId: number): Promise<Array<{
   let currentId: number | null = locationId;
 
   while (currentId !== null) {
-    const location = await prisma.locations.findUnique({
+    const location: { id: number; name: string; type: string; parent_id: number | null } | null = await prisma.locations.findUnique({
       where: { id: currentId },
       select: {
         id: true,

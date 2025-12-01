@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import PromoteAdModal from '@/components/PromoteAdModal';
 import PromotionBadge from '@/components/PromotionBadge';
@@ -25,14 +25,7 @@ export default function PromoteSection({ ad }: PromoteSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  useEffect(() => {
-    // Only fetch user data if authenticated
-    if (status === 'authenticated' && session?.user) {
-      checkCurrentUser();
-    }
-  }, [status, session]);
-
-  const checkCurrentUser = async () => {
+  const checkCurrentUser = useCallback(async () => {
     try {
       const response = await apiClient.getMe();
       if (response.success && response.data) {
@@ -42,7 +35,14 @@ export default function PromoteSection({ ad }: PromoteSectionProps) {
       // User not logged in or API error
       console.log('Failed to fetch user data:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Only fetch user data if authenticated
+    if (status === 'authenticated' && session?.user) {
+      checkCurrentUser();
+    }
+  }, [status, session, checkCurrentUser]);
 
   // Check if current user owns this ad
   const isOwner = currentUser && currentUser.id === ad.user_id;

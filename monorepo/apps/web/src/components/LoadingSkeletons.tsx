@@ -35,7 +35,7 @@ export function AdCardSkeleton() {
 
 export function AdCardGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 mobile:grid-cols-2 tablet:grid-cols-3 desktop:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
       {Array.from({ length: count }).map((_, i) => (
         <AdCardSkeleton key={i} />
       ))}
@@ -76,7 +76,7 @@ export function CategoryCardSkeleton() {
 
 export function CategoryGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 mobile:grid-cols-3 tablet:grid-cols-4 desktop:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
       {Array.from({ length: count }).map((_, i) => (
         <CategoryCardSkeleton key={i} />
       ))}
@@ -86,10 +86,10 @@ export function CategoryGridSkeleton({ count = 8 }: { count?: number }) {
 
 export function AdDetailSkeleton() {
   return (
-    <div className="max-w-screen-desktop mx-auto py-8 px-4">
-      <div className="grid grid-cols-1 desktop:grid-cols-3 gap-8">
+    <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Left Column - Images & Details */}
-        <div className="desktop:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* Breadcrumb */}
           <div className="flex gap-2">
             <div className="h-4 bg-gray-200 rounded animate-pulse w-20" />
@@ -212,7 +212,7 @@ export function PageLoadingSkeleton() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center space-y-4">
         {/* Spinner */}
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto" />
 
         {/* Text */}
         <p className="text-gray-500 font-medium">Loading...</p>
@@ -229,6 +229,6 @@ export function InlineLoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg
   };
 
   return (
-    <div className={`${sizeClasses[size]} border-primary border-t-transparent rounded-full animate-spin`} />
+    <div className={`${sizeClasses[size]} border-rose-500 border-t-transparent rounded-full animate-spin`} />
   );
 }

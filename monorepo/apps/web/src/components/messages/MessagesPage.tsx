@@ -38,18 +38,41 @@ export default function MessagesPage() {
   // Combines API-loaded history with real-time Socket.IO messages
   const [conversationMessages, setConversationMessages] = useState<any[]>([]);
 
-  // Socket.IO connection
+  // Socket.IO connection (optional - works without when backend not available)
   const {
     connected,
     error: socketError,
     messages,
     typingUsers,
-    sendMessage,
-    markAsRead,
+    sendMessage: socketSendMessage,
+    markAsRead: socketMarkAsRead,
     startTyping,
     stopTyping,
     socket,
   } = useMessages(token);
+
+  // REST API fallback for sending messages when Socket.IO not available
+  const sendMessageViaApi = async (conversationId: number, content: string) => {
+    const response = await fetch(`/api/messages/conversations/${conversationId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || 'Failed to send message');
+    }
+
+    return response.json();
+  };
+
+  // Use Socket.IO if connected, otherwise use REST API
+  const sendMessage = connected ? socketSendMessage : sendMessageViaApi;
+  const markAsRead = connected ? socketMarkAsRead : async () => {}; // No-op for REST (read marking happens on GET)
 
   // Load conversations on mount
   useEffect(() => {
@@ -75,27 +98,65 @@ export default function MessagesPage() {
 
   // ✅ 2025 Best Practice: Listen for conversation updates in real-time
   // This ensures conversation list stays in sync when messages are sent/received
+  // NOTE: We use `connected` as dependency because `socket` is a ref that doesn't trigger re-renders
+  // Also include `selectedConversation?.id` to properly track which conversation is being viewed
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !connected) {
+      console.log('⚠️ [MessagesPage] Socket not available/connected for conversation:updated listener');
+      return;
+    }
+
+    console.log('✅ [MessagesPage] Setting up conversation:updated listener on socket:', socket.id);
+    const currentlyViewingId = selectedConversation?.id;
 
     const handleConversationUpdated = (data: any) => {
-      console.log('💬 Conversation updated:', data);
+      console.log('💬 [MessagesPage] conversation:updated received:', data);
+      console.log('💬 [MessagesPage] Currently viewing conversation:', currentlyViewingId);
 
-      // Refresh conversations to show updated last message and timestamp
-      loadConversations();
+      // Update the specific conversation in the list (without reloading all)
+      setConversations((prevConversations) => {
+        const updatedConversations = prevConversations.map((conv) => {
+          if (conv.id === data.conversationId) {
+            // If this is the currently selected conversation, don't increment unread count
+            // The user is already viewing it
+            const isCurrentlyViewing = currentlyViewingId === data.conversationId;
+            console.log('✅ [MessagesPage] Updating conversation:', conv.id, 'isViewing:', isCurrentlyViewing);
+
+            return {
+              ...conv,
+              lastMessage: data.lastMessage,
+              last_message: data.lastMessage, // Support both naming conventions
+              last_message_at: data.timestamp,
+              lastMessageAt: data.timestamp,
+              // Clear unread count if user is viewing this conversation, otherwise increment
+              unreadCount: isCurrentlyViewing ? 0 : (conv.unreadCount || 0) + 1,
+              unread_count: isCurrentlyViewing ? 0 : (conv.unread_count || 0) + 1,
+            };
+          }
+          return conv;
+        });
+
+        // Sort by most recent message first
+        return updatedConversations.sort((a, b) => {
+          const dateA = new Date(a.lastMessageAt || a.last_message_at || 0).getTime();
+          const dateB = new Date(b.lastMessageAt || b.last_message_at || 0).getTime();
+          return dateB - dateA;
+        });
+      });
     };
 
     socket.on('conversation:updated', handleConversationUpdated);
 
     return () => {
+      console.log('🧹 [MessagesPage] Cleaning up conversation:updated listener');
       socket.off('conversation:updated', handleConversationUpdated);
     };
-  }, [socket]);
+  }, [socket, connected, selectedConversation?.id]);
 
   // ✅ 2025 Best Practice: Merge real-time messages with historical messages
   // This is the CRITICAL fix - append Socket.IO messages to API-loaded history
   useEffect(() => {
-    if (!socket || !selectedConversation) return;
+    if (!socket || !connected || !selectedConversation) return;
 
     const handleNewMessage = (messageData: any) => {
       console.log('📨 New real-time message received:', messageData);
@@ -118,12 +179,12 @@ export default function MessagesPage() {
     return () => {
       socket.off('message:new', handleNewMessage);
     };
-  }, [socket, selectedConversation]);
+  }, [socket, connected, selectedConversation]);
 
   const loadConversations = async () => {
     try {
       setLoading(true);
-      const response = await messagingApi.getConversations(token);
+      const response = await messagingApi.getConversations(token || '');
       setConversations(response.data || []);
       setError(null);
     } catch (err: any) {
@@ -139,19 +200,22 @@ export default function MessagesPage() {
       setSelectedConversation(conversation);
 
       // ✅ 2025 Best Practice: Load historical messages via REST API
-      const response = await messagingApi.getConversation(token, conversation.id);
-      setSelectedConversation(response.data.conversation);
+      const response = await messagingApi.getConversation(token || '', conversation.id);
+
+      // API returns flat structure - data contains conversation with embedded messages
+      const conversationData = response.data;
+      setSelectedConversation(conversationData);
 
       // Set historical messages (REST API)
-      if (response.data.messages) {
-        console.log('📚 Loaded historical messages:', response.data.messages.length);
-        console.log('📋 Sample message data:', response.data.messages[0]);
-        setConversationMessages(response.data.messages);
+      if (conversationData.messages) {
+        console.log('📚 Loaded historical messages:', conversationData.messages.length);
+        console.log('📋 Sample message data:', conversationData.messages[0]);
+        setConversationMessages(conversationData.messages);
       } else {
         setConversationMessages([]);
       }
 
-      // Mark as read
+      // Mark as read (handled server-side when fetching conversation)
       await markAsRead(conversation.id);
     } catch (err: any) {
       console.error('Failed to load conversation:', err);
@@ -159,11 +223,40 @@ export default function MessagesPage() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, type: string = 'text', attachmentUrl?: string) => {
     if (!selectedConversation) return;
 
     try {
-      await sendMessage(selectedConversation.id, content);
+      // For image messages, we need to send via REST API if Socket.IO doesn't support attachments
+      if (type === 'image' && attachmentUrl) {
+        // Send image message via REST API
+        const response = await fetch(`/api/messages/conversations/${selectedConversation.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ content, type, attachmentUrl }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to send image message');
+        }
+
+        const result = await response.json();
+        if (result?.data) {
+          setConversationMessages((prev) => [...prev, result.data]);
+        }
+      } else {
+        // Send text message via Socket.IO or REST API
+        const result = await sendMessage(selectedConversation.id, content);
+
+        // When using REST API, add the message to the local state
+        if (!connected && result?.data) {
+          setConversationMessages((prev) => [...prev, result.data]);
+        }
+      }
     } catch (err: any) {
       console.error('Failed to send message:', err);
       setError(err.message);
@@ -211,12 +304,15 @@ export default function MessagesPage() {
     );
   }
 
+  // Check if real-time messaging is configured
+  const isRealtimeConfigured = typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_BACKEND_URL;
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Connection status */}
-      {!connected && (
+      {/* Connection status - only show if real-time is configured but failing */}
+      {isRealtimeConfigured && !connected && socketError && (
         <div className="absolute top-0 left-0 right-0 bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-sm text-yellow-800 text-center z-50">
-          {socketError ? `Connection error: ${socketError}` : 'Connecting to messaging server...'}
+          Real-time updates unavailable. Messages will sync on refresh.
         </div>
       )}
 
@@ -229,7 +325,6 @@ export default function MessagesPage() {
           selectedConversation={selectedConversation}
           onSelectConversation={handleSelectConversation}
           loading={loading}
-          onRefresh={loadConversations}
           currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
         />
       </div>
@@ -249,6 +344,7 @@ export default function MessagesPage() {
             connected={connected}
             currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
             onBack={() => setSelectedConversation(null)}
+            token={token || undefined}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

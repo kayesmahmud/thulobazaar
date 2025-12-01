@@ -3,24 +3,32 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '../lib/api';
 
+type LocationType = 'province' | 'district' | 'municipality' | 'area';
+
 interface Location {
   id: number;
   name: string;
-  type: 'province' | 'district' | 'municipality';
+  type: LocationType;
   parent_id?: number | null;
 }
 
 interface District extends Location {
   municipalities?: Municipality[];
+  children?: Municipality[]; // API returns 'children' instead of 'municipalities'
 }
 
 interface Municipality extends Location {}
 
 interface Province extends Location {
   districts?: District[];
+  children?: District[]; // API returns 'children' instead of 'districts'
 }
 
-interface SearchResult extends Location {
+interface SearchResult {
+  id: number;
+  name: string;
+  type: 'province' | 'district' | 'municipality';
+  parent_id?: number | null;
   hierarchy_info?: string;
 }
 
@@ -85,18 +93,30 @@ export default function LocationSelector({
       const response = await apiClient.getHierarchy(provinceId);
 
       if (response.success && response.data) {
-        // Update the provinces array with the nested data for this province
-        const updatedProvinces = provinces.map(province =>
-          province.id === provinceId
-            ? { ...province, districts: response.data.districts }
-            : province
-        );
-        setProvinces(updatedProvinces);
+        // API returns array with province object that has 'children' containing districts
+        const hierarchyData = response.data as any[];
+        const provinceData = hierarchyData.find((p: any) => p.id === provinceId);
 
-        // Also update selectedProvince to point to the updated province object
-        const updatedProvince = updatedProvinces.find(p => p.id === provinceId);
-        if (updatedProvince) {
-          setSelectedProvince(updatedProvince);
+        if (provinceData) {
+          // Extract districts from 'children' property and map their 'children' to 'municipalities'
+          const districts = (provinceData.children || []).map((district: any) => ({
+            ...district,
+            municipalities: district.children || []
+          }));
+
+          // Update the provinces array with the nested data for this province
+          const updatedProvinces = provinces.map(province =>
+            province.id === provinceId
+              ? { ...province, districts }
+              : province
+          );
+          setProvinces(updatedProvinces);
+
+          // Also update selectedProvince to point to the updated province object
+          const updatedProvince = updatedProvinces.find(p => p.id === provinceId);
+          if (updatedProvince) {
+            setSelectedProvince(updatedProvince);
+          }
         }
       }
     } catch (error) {
@@ -133,14 +153,14 @@ export default function LocationSelector({
       const response = await apiClient.searchAllLocations(query.trim());
 
       if (response.success && response.data) {
-        let results = response.data;
+        let results = response.data as SearchResult[];
 
         // Filter to only show municipalities for specific selection
         if (filterType === 'municipality') {
-          results = results.filter((item: SearchResult) => item.type === 'municipality');
+          results = results.filter(item => item.type === 'municipality');
         }
 
-        setSearchResults(results as SearchResult[]);
+        setSearchResults(results);
         setShowAutocomplete(true);
       }
     } catch (error) {

@@ -225,7 +225,7 @@ export default function ShopSidebar({
               onChange={(e) => setAboutText(e.target.value)}
               maxLength={500}
               placeholder="Describe your business..."
-              className="w-full min-h-[100px] sm:min-h-[120px] p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full min-h-[100px] sm:min-h-[120px] p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
             <div className="text-xs sm:text-sm text-gray-500 mt-2">
               {aboutText.length}/500 characters
@@ -234,7 +234,7 @@ export default function ShopSidebar({
               <button
                 onClick={handleSaveAbout}
                 disabled={aboutSaving}
-                className="flex-1 bg-primary hover:bg-primary-hover text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
+                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
               >
                 {aboutSaving ? 'Saving...' : 'Save'}
               </button>
@@ -282,7 +282,7 @@ export default function ShopSidebar({
                 value={contactData.businessPhone}
                 onChange={(e) => setContactData({ ...contactData, businessPhone: e.target.value })}
                 placeholder="+977 98XXXXXXXX"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
 
@@ -295,7 +295,7 @@ export default function ShopSidebar({
                 value={contactData.phone}
                 onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
                 placeholder="+977 98XXXXXXXX"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
 
@@ -308,7 +308,7 @@ export default function ShopSidebar({
                 value={contactData.businessWebsite}
                 onChange={(e) => setContactData({ ...contactData, businessWebsite: e.target.value })}
                 placeholder="https://example.com"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
 
@@ -321,7 +321,7 @@ export default function ShopSidebar({
                 value={contactData.googleMapsLink}
                 onChange={(e) => setContactData({ ...contactData, googleMapsLink: e.target.value })}
                 placeholder="https://maps.google.com/?q=..."
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
 
@@ -329,7 +329,7 @@ export default function ShopSidebar({
               <button
                 onClick={handleSaveContact}
                 disabled={contactSaving}
-                className="flex-1 bg-primary hover:bg-primary-hover text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
+                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
               >
                 {contactSaving ? 'Saving...' : 'Save'}
               </button>
@@ -379,7 +379,7 @@ export default function ShopSidebar({
                     href={contactData.businessWebsite}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline font-semibold text-sm sm:text-base break-all"
+                    className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
                   >
                     {contactData.businessWebsite}
                   </a>
@@ -395,7 +395,7 @@ export default function ShopSidebar({
                     href={contactData.googleMapsLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline font-semibold text-sm sm:text-base"
+                    className="text-rose-500 hover:underline font-semibold text-sm sm:text-base"
                   >
                     View on Google Maps
                   </a>
@@ -430,7 +430,7 @@ export default function ShopSidebar({
                 value={locationData.businessAddress}
                 onChange={(e) => setLocationData({ ...locationData, businessAddress: e.target.value })}
                 placeholder="Enter your shop address (e.g., Thamel, Kathmandu)"
-                className="w-full min-h-[80px] p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full min-h-[80px] p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
 
@@ -438,7 +438,7 @@ export default function ShopSidebar({
               <button
                 onClick={handleSaveLocation}
                 disabled={locationSaving}
-                className="flex-1 bg-primary hover:bg-primary-hover text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
+                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
               >
                 {locationSaving ? 'Saving...' : 'Save'}
               </button>

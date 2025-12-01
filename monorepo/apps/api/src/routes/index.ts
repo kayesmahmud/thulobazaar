@@ -1,0 +1,13 @@
+export { default as authRoutes } from './auth.routes.js';
+export { default as categoriesRoutes } from './categories.routes.js';
+export { default as locationsRoutes } from './locations.routes.js';
+export { default as adsRoutes } from './ads.routes.js';
+export { default as profileRoutes } from './profile.routes.js';
+export { default as shopRoutes } from './shop.routes.js';
+export { default as searchRoutes } from './search.routes.js';
+export { default as messagesRoutes } from './messages.routes.js';
+export { default as editorRoutes } from './editor.routes.js';
+export { default as verificationRoutes } from './verification.routes.js';
+export { default as areasRoutes } from './areas.routes.js';
+export { default as promotionRoutes } from './promotion.routes.js';
+export { default as mockPaymentRoutes } from './mockPayment.routes.js';

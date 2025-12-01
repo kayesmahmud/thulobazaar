@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ImageUpload from '@/components/ImageUpload';
 import DynamicFormFields from '@/components/post-ad/DynamicFormFields';
-import LocationHierarchySelector from '@/components/LocationHierarchySelector';
+import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import { useFormTemplate } from '@/hooks/useFormTemplate';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
@@ -24,13 +24,6 @@ interface Category {
   parent_id: number | null;
 }
 
-interface Location {
-  id: number;
-  name: string;
-  type: string;
-  parent_id: number | null;
-}
-
 export default function EditAdPage({ params }: EditAdPageProps) {
   const { lang, id } = use(params);
   const adId = parseInt(id);
@@ -44,8 +37,8 @@ export default function EditAdPage({ params }: EditAdPageProps) {
     price: '',
     categoryId: '',
     subcategoryId: '',
-    locationId: '',
-    locationType: '',
+    locationSlug: '',
+    locationName: '',
     condition: 'new',
     isNegotiable: false,
     status: 'active',
@@ -60,6 +53,8 @@ export default function EditAdPage({ params }: EditAdPageProps) {
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Flag to skip useEffect during initial load
+  const [lastCategoryId, setLastCategoryId] = useState<string>(''); // Track last category to detect manual changes
 
   // Dynamic form fields state
   const [customFields, setCustomFields] = useState<Record<string, any>>({});
@@ -89,22 +84,42 @@ export default function EditAdPage({ params }: EditAdPageProps) {
     }
   }, [status, router, lang, adId]);
 
-  // Load subcategories when category changes
+  // Load subcategories when category changes (only AFTER initial load is complete)
+  // During initial load, subcategories are already set by loadData()
   useEffect(() => {
+    // Skip this effect during initial page load - loadData() already sets subcategories
+    if (!initialLoadComplete) {
+      return;
+    }
+
+    // Only reload subcategories if the category actually CHANGED (user manually changed it)
+    // Skip if this is the first run after initialLoadComplete (category hasn't changed yet)
+    if (formData.categoryId === lastCategoryId) {
+      return;
+    }
+
+    // Update lastCategoryId to track changes
+    setLastCategoryId(formData.categoryId);
+
     if (formData.categoryId && formData.categoryId !== '') {
       loadSubcategories(parseInt(formData.categoryId));
     } else {
       setSubcategories([]);
     }
-  }, [formData.categoryId]);
+  }, [formData.categoryId, initialLoadComplete, lastCategoryId]);
 
-  // Initialize custom fields when template fields change (only if not already loaded from ad)
+  // Initialize custom fields when template fields change
+  // For edit page, we merge template defaults with loaded ad data (ad data takes priority)
   useEffect(() => {
-    // Only set default values if we don't have custom fields loaded from the ad
-    if (fields.length > 0 && getInitialValues && Object.keys(customFields).length === 0 && !loading) {
+    if (fields.length > 0 && getInitialValues && !loading) {
       const initialValues = getInitialValues();
-      // Merge with existing custom fields (in case some were set from ad data)
-      setCustomFields(prev => ({ ...initialValues, ...prev }));
+      // Merge: template defaults first, then existing customFields override
+      // This ensures ad data takes priority over template defaults
+      setCustomFields(prev => {
+        const merged = { ...initialValues, ...prev };
+        console.log('🔍 Merging custom fields:', { initialValues, prev, merged });
+        return merged;
+      });
     }
   }, [fields.length, loading]);
 
@@ -120,10 +135,31 @@ export default function EditAdPage({ params }: EditAdPageProps) {
       }
 
       const allCategories = allCategoriesRes.data;
+      console.log('🔍 All categories fetched:', allCategories.length, 'categories');
+      console.log('🔍 Sample category structure:', allCategories[0]);
 
-      // Separate parent categories for the main dropdown
-      const parentCategories = allCategories.filter(cat => (cat as any).parent_id === null || (cat as any).parentId === null);
-      setCategories(parentCategories as any);
+      // The API returns parent categories with subcategories nested in 'subcategories'
+      // (older responses used 'other_categories' - keep backward compatibility)
+      // We need to build a map of parent -> subcategories for easy lookup
+      const parentCategories: any[] = [];
+      const subcategoriesMap: Map<number, any[]> = new Map();
+
+      allCategories.forEach((cat: any) => {
+        const parentId = cat.parent_id ?? cat.parentId;
+        if (parentId === null || parentId === undefined) {
+          // This is a parent category
+          parentCategories.push(cat);
+
+          const nestedSubs = cat.subcategories || cat.other_categories || [];
+          if (Array.isArray(nestedSubs) && nestedSubs.length > 0) {
+            subcategoriesMap.set(cat.id, nestedSubs);
+            console.log(`🔍 Parent ${cat.id} (${cat.name}) has ${nestedSubs.length} subcategories:`, nestedSubs.map((s: any) => ({ id: s.id, name: s.name })));
+          }
+        }
+      });
+
+      console.log('🔍 Parent categories:', parentCategories.length, parentCategories.map((c: any) => ({ id: c.id, name: c.name })));
+      console.log('🔍 Subcategories map size:', subcategoriesMap.size);
 
       // Step 2: Load the ad data
       const adRes = await apiClient.getAdById(adId);
@@ -133,9 +169,15 @@ export default function EditAdPage({ params }: EditAdPageProps) {
       }
 
       const ad: any = adRes.data;
+      console.log('🔍 Full ad data:', ad);
 
-      // Check ownership
-      if ((ad as any).user_id !== parseInt(session?.user?.id || '0') && (ad as any).userId !== parseInt(session?.user?.id || '0')) {
+      // Check ownership - user is nested as ad.user.id in the API response
+      const adOwnerId = ad.user?.id || ad.user_id || ad.userId;
+      const currentUserId = parseInt(session?.user?.id || '0');
+
+      console.log('🔍 Ownership check:', { adOwnerId, currentUserId, adUser: ad.user });
+
+      if (adOwnerId !== currentUserId) {
         setError('You do not have permission to edit this ad');
         return;
       }
@@ -143,33 +185,50 @@ export default function EditAdPage({ params }: EditAdPageProps) {
       // Step 3: Determine category structure and load subcategories
       let parentCategoryId = '';
       let subcategoryId = '';
+      let loadedSubcategories: Category[] = [];
 
-      if (ad.category_id) {
-        const adCategory: any = allCategories.find(c => c.id === ad.category_id);
+      // The API returns category as an object with id, parentId, etc.
+      const adCategoryId = ad.category?.id || ad.category_id || ad.categoryId;
+      const adCategoryParentId = ad.category?.parentId || ad.category?.parent_id;
 
-        if (adCategory) {
-          if (adCategory.parent_id || adCategory.parentId) {
-            // This is a subcategory
-            parentCategoryId = adCategory.parent_id.toString();
-            subcategoryId = ad.category_id.toString();
+      console.log('🔍 Category data from ad:', { adCategoryId, adCategoryParentId, category: ad.category });
 
-            // Load and set subcategories for this parent IMMEDIATELY
-            const subs = allCategories.filter(cat => (cat as any).parent_id === adCategory.parent_id || (cat as any).parentId === adCategory.parentId);
-            setSubcategories(subs);
-          } else {
-            // This is a parent category (no subcategory)
-            parentCategoryId = ad.category_id.toString();
-            subcategoryId = '';
-          }
+      if (adCategoryId) {
+        if (adCategoryParentId) {
+          // This is a subcategory - parentId exists
+          parentCategoryId = String(adCategoryParentId);
+          subcategoryId = String(adCategoryId);
+
+          // Get subcategories for this parent from our map
+          const parentIdNum = Number(adCategoryParentId);
+          loadedSubcategories = subcategoriesMap.get(parentIdNum) || [];
+
+          console.log('🔍 Found subcategories for parent', parentIdNum, 'from map:', loadedSubcategories.length, loadedSubcategories.map((s: any) => ({ id: s.id, name: s.name })));
+        } else {
+          // This is a parent category (no subcategory)
+          parentCategoryId = String(adCategoryId);
+          subcategoryId = '';
+
+          // Also get subcategories in case user wants to select one
+          const parentIdNum = Number(adCategoryId);
+          loadedSubcategories = subcategoriesMap.get(parentIdNum) || [];
+          console.log('🔍 Parent category selected, available subcategories:', loadedSubcategories.length);
         }
       }
+
+      console.log('🔍 Final category IDs:', { parentCategoryId, subcategoryId });
 
       // Step 4: Extract ALL custom fields including condition
       let extractedCustomFields: Record<string, any> = {};
 
-      // First, get from custom_fields
-      if (ad.custom_fields && typeof ad.custom_fields === 'object') {
-        extractedCustomFields = { ...ad.custom_fields };
+      // API returns customFields (camelCase), also check snake_case for safety
+      const adCustomFields = ad.customFields || ad.custom_fields;
+
+      console.log('🔍 Custom fields data:', { customFields: ad.customFields, custom_fields: ad.custom_fields, attributes: ad.attributes });
+
+      // First, get from customFields
+      if (adCustomFields && typeof adCustomFields === 'object') {
+        extractedCustomFields = { ...adCustomFields };
       }
 
       // Then merge with attributes (this might have condition)
@@ -187,34 +246,63 @@ export default function EditAdPage({ params }: EditAdPageProps) {
         extractedCustomFields.condition = 'new';
       }
 
-      // Step 6: Get location ID (could be location_id or area_id)
-      const locationIdValue = ad.location_id || ad.area_id || ad.locationId || '';
+      console.log('🔍 Extracted custom fields:', extractedCustomFields);
 
-      // Step 7: Populate form with ALL existing data
+      // Step 6: Get location slug and name from the ad's location object
+      const locationSlug = ad.location?.slug || '';
+      const locationName = ad.location?.name || '';
+
+      // Step 7: Set ALL states together to avoid race conditions
+      // Set categories FIRST (before formData references them)
+      setCategories(parentCategories as Category[]);
+
+      // Set subcategories if we have them
+      if (loadedSubcategories.length > 0) {
+        console.log('🔍 Setting subcategories:', loadedSubcategories.length, loadedSubcategories);
+        setSubcategories(loadedSubcategories);
+      } else {
+        console.log('🔍 No subcategories found to set!');
+      }
+
+      console.log('🔍 Setting form data with:', { parentCategoryId, subcategoryId });
+
+      // Step 8: Populate form with ALL existing data
       setFormData({
         title: ad.title || '',
         description: ad.description || '',
         price: ad.price?.toString() || '',
         categoryId: parentCategoryId,
         subcategoryId: subcategoryId,
-        locationId: locationIdValue ? locationIdValue.toString() : '',
-        locationType: '', // Will be set by LocationSelector
+        locationSlug: locationSlug,
+        locationName: locationName,
         condition: 'new', // Condition is now in customFields, not formData
-        isNegotiable: (ad.custom_fields as any)?.isNegotiable ?? false,
+        isNegotiable: adCustomFields?.isNegotiable ?? ad.isNegotiable ?? false,
         status: ad.status || 'active',
       });
 
-      // Step 7: Set custom fields AFTER form data
+      // Set lastCategoryId to prevent useEffect from re-fetching subcategories on first run
+      setLastCategoryId(parentCategoryId);
+
+      // Step 9: Set custom fields AFTER form data
       if (Object.keys(extractedCustomFields).length > 0) {
         setCustomFields(extractedCustomFields);
       }
 
-      // Step 8: Set existing images - extract file_path from image objects
+      // Step 10: Set existing images - extract file_path/filePath and normalize
       if (ad.images && ad.images.length > 0) {
-        // If images is an array of objects with file_path, extract the paths
-        const imagePaths = ad.images.map((img: any) =>
-          typeof img === 'string' ? img : img.file_path || img
-        );
+        const normalizePath = (p: string) =>
+          p
+            .replace(/^https?:\/\/[^/]+\//, '') // drop domain if present
+            .replace(/^\/+/, ''); // drop leading slash
+
+        const imagePaths = ad.images
+          .map((img: any) => {
+            if (typeof img === 'string') return img;
+            return img.filePath || img.file_path || '';
+          })
+          .filter((p: string) => !!p)
+          .map(normalizePath);
+
         setExistingImages(imagePaths);
       }
 
@@ -223,6 +311,9 @@ export default function EditAdPage({ params }: EditAdPageProps) {
       setError('Failed to load ad data');
     } finally {
       setLoading(false);
+      // Mark initial load as complete - this allows the useEffect for subcategories
+      // to work normally when user manually changes category
+      setInitialLoadComplete(true);
     }
   };
 
@@ -232,8 +323,35 @@ export default function EditAdPage({ params }: EditAdPageProps) {
       const response = await apiClient.getCategories({ includeSubcategories: true });
 
       if (response.success && response.data) {
-        const subs = response.data.filter((cat) => cat.parent_id === parentId);
-        setSubcategories(subs);
+        // The API returns subcategories nested in 'subcategories' (keep fallback to other_categories)
+        // Find the parent category and get its subcategories
+        const parentCategory = response.data.find((cat: any) => cat.id === parentId);
+
+        const nestedSubs =
+          parentCategory?.subcategories ||
+          (parentCategory as any)?.other_categories ||
+          [];
+
+        if (parentCategory && Array.isArray(nestedSubs)) {
+          const subs = nestedSubs;
+          console.log('🔍 loadSubcategories found', subs.length, 'for parent', parentId);
+          setSubcategories(subs);
+        } else {
+          // Fallback: try to filter from flattened list
+          const flattenedSubs: any[] = [];
+          response.data.forEach((cat: any) => {
+            const nested = cat.subcategories || cat.other_categories;
+            if (nested && Array.isArray(nested)) {
+              nested.forEach((subcat: any) => {
+                if (Number(subcat.parent_id) === parentId) {
+                  flattenedSubs.push(subcat);
+                }
+              });
+            }
+          });
+          console.log('🔍 loadSubcategories (fallback) found', flattenedSubs.length, 'for parent', parentId);
+          setSubcategories(flattenedSubs);
+        }
       } else {
         setSubcategories([]);
       }
@@ -284,12 +402,14 @@ export default function EditAdPage({ params }: EditAdPageProps) {
     try {
       setSubmitting(true);
 
-      // Prepare location data
-      const locationData = formData.locationId
-        ? (formData.locationType === 'area'
-            ? { areaId: parseInt(formData.locationId) }
-            : { locationId: parseInt(formData.locationId) })
-        : {};
+      // Convert location slug to ID
+      let locationId: number | undefined = undefined;
+      if (formData.locationSlug) {
+        const locationResponse = await apiClient.getLocationBySlug(formData.locationSlug);
+        if (locationResponse.success && locationResponse.data) {
+          locationId = locationResponse.data.id;
+        }
+      }
 
       // Prepare update data
       const updateData = {
@@ -299,7 +419,7 @@ export default function EditAdPage({ params }: EditAdPageProps) {
         isNegotiable: formData.isNegotiable,
         categoryId: parseInt(formData.categoryId),
         subcategoryId: formData.subcategoryId ? parseInt(formData.subcategoryId) : undefined,
-        ...locationData,
+        locationId: locationId,
         status: formData.status,
         images: images.length > 0 ? images : undefined,
         existingImages: existingImages,
@@ -584,7 +704,7 @@ export default function EditAdPage({ params }: EditAdPageProps) {
               >
                 <option value="">-- Select Main Category --</option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
+                  <option key={cat.id} value={String(cat.id)}>
                     {cat.icon || '📦'} {cat.name}
                   </option>
                 ))}
@@ -621,7 +741,7 @@ export default function EditAdPage({ params }: EditAdPageProps) {
                     {loadingSubcategories ? 'Loading subcategories...' : '-- Select Subcategory --'}
                   </option>
                   {!loadingSubcategories && subcategories.map((sub) => (
-                    <option key={sub.id} value={sub.id}>
+                    <option key={sub.id} value={String(sub.id)}>
                       {sub.name}
                     </option>
                   ))}
@@ -668,19 +788,31 @@ export default function EditAdPage({ params }: EditAdPageProps) {
 
           {/* Location */}
           <div style={{ marginBottom: '2rem' }}>
-            <LocationHierarchySelector
-              onLocationSelect={(location) => {
-                setFormData({
-                  ...formData,
-                  locationId: location ? location.id.toString() : '',
-                  locationType: location ? location.type : ''
-                });
-              }}
-              selectedLocationId={formData.locationId ? parseInt(formData.locationId) : null}
-              label="Location"
-              placeholder="Search province, district, municipality..."
-              required
-            />
+            <div style={{
+              background: '#f9fafb',
+              borderRadius: '12px',
+              padding: '1rem'
+            }}>
+              <h3 style={{
+                margin: '0 0 0.75rem 0',
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#111827'
+              }}>
+                Location (Area/Place) *
+              </h3>
+              <CascadingLocationFilter
+                onLocationSelect={(locationSlug, locationName) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    locationSlug: locationSlug || '',
+                    locationName: locationName || ''
+                  }));
+                }}
+                selectedLocationSlug={formData.locationSlug || null}
+                selectedLocationName={formData.locationName || null}
+              />
+            </div>
           </div>
 
           {/* Submit */}

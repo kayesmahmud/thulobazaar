@@ -55,10 +55,11 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
     adsEditedToday: 0,
     businessVerificationsToday: 0,
     individualVerificationsToday: 0,
+    supportTicketsAssigned: 0,
   });
   const [lastLogin, setLastLogin] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [systemAlert, setSystemAlert] = useState<{ message: string; type: 'danger' | 'warning' | 'info' } | null>(null);
+  const [systemAlert, setSystemAlert] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const [userReportsTrendText, setUserReportsTrendText] = useState('No new reports');
   const [avgResponseTimeTrendText, setAvgResponseTimeTrendText] = useState('No change');
@@ -69,148 +70,46 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
   }, [logout, router, lang]);
 
   const loadDashboardData = useCallback(async () => {
-    try {
-      // Fetch dashboard stats from backend
-      const statsResponse = await getEditorStats();
-
-      // Fetch user reports count
-      const userReportsResponse = await getUserReportsCount();
-
-      // Fetch average response time
-      const avgResponseTimeResponse = await getAvgResponseTime();
-
-      // Fetch trends
-      const trendsResponse = await getTrends();
-
-      if (statsResponse.success) {
-        setStats({
-          ...statsResponse.data,
-          // Add UI-only fields - now all with real data!
-          userReports: userReportsResponse.success ? userReportsResponse.data.count : 0,
-          avgResponseTime: avgResponseTimeResponse.success ? avgResponseTimeResponse.data.avgResponseTime : 'N/A',
-          pendingChange: trendsResponse.success ? trendsResponse.data.pendingChange : '0%',
-          verificationsChange: trendsResponse.success ? trendsResponse.data.verificationsChange : '0%',
-        });
+    // Helper to safely call an API and return null on failure
+    const safeCall = async <T,>(fn: () => Promise<T>, name: string): Promise<T | null> => {
+      try {
+        return await fn();
+      } catch (error) {
+        console.warn(`[Dashboard] ${name} failed:`, error);
+        return null;
       }
+    };
 
-      // Fetch activity logs from backend
-      const activityResponse = await getActivityLogs(undefined, {
-        page: 1,
-        limit: 10,
-      });
-
-      if (activityResponse.success) {
-        // Transform backend activity logs to frontend format
-        const transformedActivities = activityResponse.data.map((log) => {
-          // Map action types to icons and types
-          let icon = '📝';
-          let type: 'success' | 'primary' | 'warning' | 'danger' = 'primary';
-          let title = log.action_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-
-          if (log.action_type.includes('approve')) {
-            icon = '✓';
-            type = 'success';
-          } else if (log.action_type.includes('reject')) {
-            icon = '🚫';
-            type = 'danger';
-          } else if (log.action_type.includes('suspend')) {
-            icon = '⚠️';
-            type = 'warning';
-          } else if (log.action_type.includes('verify')) {
-            icon = '✓';
-            type = 'success';
-          }
-
-          // Format relative time
-          const timeAgo = formatRelativeTime(new Date(log.created_at));
-
-          return {
-            icon,
-            title,
-            description: `${log.target_type} #${log.target_id} - ${log.admin_name}`,
-            time: timeAgo,
-            type,
-          };
-        });
-
-        setActivities(transformedActivities);
-      }
-
-      // Fetch verification counts for badges
-      const verificationsResponse = await getPendingVerifications();
-      if (verificationsResponse.success) {
-        const businessCount = verificationsResponse.data.filter(v => v.type === 'business').length;
-        const individualCount = verificationsResponse.data.filter(v => v.type === 'individual').length;
-
-        // Fetch support chat count
-        const supportChatResponse = await getSupportChatCount();
-
-        setBadgeCounts(prev => ({
-          ...prev,
-          pendingAds: statsResponse.data?.pendingAds || 0,
-          businessVerifications: businessCount,
-          individualVerifications: individualCount,
-          userReports: userReportsResponse.success ? userReportsResponse.data.count : 0,
-          supportChat: supportChatResponse.success ? supportChatResponse.data.count : 0,
-        }));
-      }
-
-      // Fetch reported ads count
-      const reportedAdsResponse = await getReportedAdsCount();
-      if (reportedAdsResponse.success) {
-        setBadgeCounts(prev => ({
-          ...prev,
-          reportedAds: reportedAdsResponse.data.count,
-        }));
-      }
-
-      // Fetch notifications count
-      const notificationsResponse = await getNotificationsCount();
-      if (notificationsResponse.success) {
-        setNotificationCount(notificationsResponse.data.count);
-      }
-
-      // Fetch system alerts
-      const systemAlertsResponse = await getSystemAlerts();
-      if (systemAlertsResponse.success && systemAlertsResponse.data) {
-        setSystemAlert(systemAlertsResponse.data);
-      }
-
-      // Fetch user reports trend
-      const userReportsTrendResponse = await getUserReportsTrend();
-      if (userReportsTrendResponse.success) {
-        setUserReportsTrendText(userReportsTrendResponse.data.formattedText);
-      }
-
-      // Fetch avg response time trend
-      const avgResponseTimeTrendResponse = await getAvgResponseTimeTrend();
-      if (avgResponseTimeTrendResponse.success) {
-        setAvgResponseTimeTrendText(avgResponseTimeTrendResponse.data.formattedText);
-      }
-
-      // Fetch "My Work Today" stats
-      const myWorkResponse = await getMyWorkToday();
-      if (myWorkResponse.success) {
-        setMyWorkToday(myWorkResponse.data);
-      }
-
-      // Fetch editor profile for avatar only
-      const profileResponse = await getEditorProfile();
-      if (profileResponse.success && profileResponse.data.avatar) {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    // CRITICAL: Fetch profile first for avatar - this should not be blocked by other API failures
+    const profileResponse = await safeCall(() => getEditorProfile(), 'getEditorProfile');
+    if (profileResponse?.success) {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      if (profileResponse.data.avatar) {
         setAvatarUrl(`${apiBase}/uploads/avatars/${profileResponse.data.avatar}`);
       }
+      const sessionLastLogin = (staff as any)?.lastLogin;
+      const profileLastLogin = profileResponse.data.lastLogin;
+      setLastLogin(sessionLastLogin || profileLastLogin || null);
+    } else if ((staff as any)?.lastLogin) {
+      setLastLogin((staff as any).lastLogin);
+    }
 
-      // Get lastLogin from NextAuth session (shows PREVIOUS login, not current)
-      // This is better than backend API because it shows when user logged in BEFORE this session
-      if (staff?.lastLogin) {
-        setLastLogin(staff.lastLogin);
-      }
+    // Fetch dashboard stats from backend
+    const statsResponse = await safeCall(() => getEditorStats(), 'getEditorStats');
+    const userReportsResponse = await safeCall(() => getUserReportsCount(), 'getUserReportsCount');
+    const avgResponseTimeResponse = await safeCall(() => getAvgResponseTime(), 'getAvgResponseTime');
+    const trendsResponse = await safeCall(() => getTrends(), 'getTrends');
 
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      // Fallback to mock data on error
+    if (statsResponse?.success) {
+      setStats({
+        ...statsResponse.data,
+        userReports: userReportsResponse?.success ? userReportsResponse.data.count : 0,
+        avgResponseTime: avgResponseTimeResponse?.success ? avgResponseTimeResponse.data.avgResponseTime : 'N/A',
+        pendingChange: trendsResponse?.success ? trendsResponse.data.pendingChange : '0%',
+        verificationsChange: trendsResponse?.success ? trendsResponse.data.verificationsChange : '0%',
+      });
+    } else {
+      // Set default stats if API fails
       setStats({
         totalAds: 0,
         pendingAds: 0,
@@ -222,8 +121,110 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
         pendingChange: '0%',
         verificationsChange: '0%',
       });
-      setLoading(false);
     }
+
+    // Fetch activity logs - wrapped to not break the page if it fails
+    const activityResponse = await safeCall(
+      () => getActivityLogs(undefined, { page: 1, limit: 10 }),
+      'getActivityLogs'
+    );
+
+    if (activityResponse?.success && activityResponse.data.length > 0) {
+      const transformedActivities = activityResponse.data.map((log) => {
+        let icon = '📝';
+        let type: 'success' | 'primary' | 'warning' | 'danger' = 'primary';
+        let title = log.action_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+
+        if (log.action_type.includes('approve')) {
+          icon = '✓';
+          type = 'success';
+        } else if (log.action_type.includes('reject')) {
+          icon = '🚫';
+          type = 'danger';
+        } else if (log.action_type.includes('suspend')) {
+          icon = '⚠️';
+          type = 'warning';
+        } else if (log.action_type.includes('verify')) {
+          icon = '✓';
+          type = 'success';
+        }
+
+        const timeAgo = formatRelativeTime(new Date(log.created_at));
+
+        return {
+          icon,
+          title,
+          description: `${log.target_type} #${log.target_id} - ${log.admin_name}`,
+          time: timeAgo,
+          type,
+        };
+      });
+
+      setActivities(transformedActivities);
+    }
+
+    // Fetch verification counts for badges
+    const verificationsResponse = await safeCall(() => getPendingVerifications(), 'getPendingVerifications');
+    const supportChatResponse = await safeCall(() => getSupportChatCount(), 'getSupportChatCount');
+
+    if (verificationsResponse?.success) {
+      const businessCount = verificationsResponse.data.filter(v => v.type === 'business').length;
+      const individualCount = verificationsResponse.data.filter(v => v.type === 'individual').length;
+
+      setBadgeCounts(prev => ({
+        ...prev,
+        pendingAds: statsResponse?.data?.pendingAds || 0,
+        businessVerifications: businessCount,
+        individualVerifications: individualCount,
+        userReports: userReportsResponse?.success ? userReportsResponse.data.count : 0,
+        supportChat: supportChatResponse?.success ? supportChatResponse.data.count : 0,
+      }));
+    }
+
+    // Fetch reported ads count
+    const reportedAdsResponse = await safeCall(() => getReportedAdsCount(), 'getReportedAdsCount');
+    if (reportedAdsResponse?.success) {
+      setBadgeCounts(prev => ({
+        ...prev,
+        reportedAds: reportedAdsResponse.data.count,
+      }));
+    }
+
+    // Fetch notifications count
+    const notificationsResponse = await safeCall(() => getNotificationsCount(), 'getNotificationsCount');
+    if (notificationsResponse?.success) {
+      setNotificationCount(notificationsResponse.data.count);
+    }
+
+    // Fetch system alerts
+    const systemAlertsResponse = await safeCall(() => getSystemAlerts(), 'getSystemAlerts');
+    if (systemAlertsResponse?.success && systemAlertsResponse.data) {
+      const alertData = systemAlertsResponse.data as any;
+      setSystemAlert({
+        message: alertData.message,
+        type: alertData.type === 'danger' ? 'error' : alertData.type,
+      });
+    }
+
+    // Fetch user reports trend
+    const userReportsTrendResponse = await safeCall(() => getUserReportsTrend(), 'getUserReportsTrend');
+    if (userReportsTrendResponse?.success) {
+      setUserReportsTrendText(userReportsTrendResponse.data.formattedText);
+    }
+
+    // Fetch avg response time trend
+    const avgResponseTimeTrendResponse = await safeCall(() => getAvgResponseTimeTrend(), 'getAvgResponseTimeTrend');
+    if (avgResponseTimeTrendResponse?.success) {
+      setAvgResponseTimeTrendText(avgResponseTimeTrendResponse.data.formattedText);
+    }
+
+    // Fetch "My Work Today" stats
+    const myWorkResponse = await safeCall(() => getMyWorkToday(), 'getMyWorkToday');
+    if (myWorkResponse?.success) {
+      setMyWorkToday(myWorkResponse.data);
+    }
+
+    setLoading(false);
   }, [staff]);
 
   // Helper function to format relative time
@@ -325,92 +326,71 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
       userName={staff?.fullName || 'Editor User'}
       userEmail={staff?.email || 'editor@thulobazaar.com'}
       navSections={getEditorNavSections(lang, badgeCounts)}
-      systemAlert={systemAlert}
+      systemAlert={systemAlert ?? undefined}
       notificationCount={notificationCount}
       theme="editor"
       onLogout={handleLogout}
+      lastLogin={lastLogin}
     >
       {/* Welcome Section with Profile */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr,2fr,1fr] gap-8 items-start">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
           {/* Left: Profile and Welcome */}
-          <div className="flex items-start gap-4">
+          <div className="flex items-center gap-4 flex-shrink-0">
             {/* Profile Picture */}
             <div className="relative flex-shrink-0">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={staff?.fullName || 'Profile'}
-                  className="w-32 h-32 rounded-full object-cover shadow-lg ring-4 ring-white"
+                  className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white"
                 />
               ) : (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-4xl font-bold shadow-lg ring-4 ring-white">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg ring-4 ring-white">
                   {staff?.fullName ? staff.fullName.charAt(0).toUpperCase() : 'T'}
                 </div>
               )}
-              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center">
-                <span className="text-white text-lg font-bold">✓</span>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="text-white text-xs font-bold">✓</span>
               </div>
             </div>
 
             {/* Welcome Text */}
-            <div className="flex flex-col pt-2">
-              <p className="text-gray-500 text-base font-medium mb-2">Welcome</p>
-              <h1 className="text-4xl font-bold text-gray-900">{staff?.fullName || 'Bikash Thapa'}</h1>
+            <div className="flex flex-col">
+              <p className="text-gray-500 text-sm font-medium">Welcome</p>
+              <h1 className="text-xl font-bold text-gray-900">{staff?.fullName || 'Bikash Thapa'}</h1>
             </div>
           </div>
 
-          {/* Middle: My Work Reports Today */}
-          <div className="flex justify-center">
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden w-full">
-              <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                <p className="text-base font-bold text-gray-700">My Work reports today:</p>
+          {/* Right: My Work Reports Today */}
+          <div className="flex-1 overflow-x-auto">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden min-w-fit">
+              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                <p className="text-sm font-bold text-gray-700">My Work reports today:</p>
               </div>
-              <table className="w-full table-fixed">
+              <table className="w-full">
                 <tbody className="divide-y divide-gray-200">
                   {/* Row 1: Ad Approved | Ad rejected | Business verification */}
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap w-[20%]">Ad Approved:</td>
-                    <td className="px-4 py-3 text-right text-xl font-bold text-gray-900 border-r border-gray-200 w-[10%]">{myWorkToday.adsApprovedToday}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap w-[20%]">Ad rejected:</td>
-                    <td className="px-4 py-3 text-right text-xl font-bold text-gray-900 border-r border-gray-200 w-[10%]">{myWorkToday.adsRejectedToday}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap w-[30%]">Business verification:</td>
-                    <td className="px-4 py-3 text-right text-xl font-bold text-gray-900 w-[10%]">{myWorkToday.businessVerificationsToday}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Ad Approved:</td>
+                    <td className="px-3 py-2 text-right text-lg font-bold text-gray-900 border-r border-gray-200">{myWorkToday.adsApprovedToday}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Ad rejected:</td>
+                    <td className="px-3 py-2 text-right text-lg font-bold text-gray-900 border-r border-gray-200">{myWorkToday.adsRejectedToday}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Business verification:</td>
+                    <td className="px-3 py-2 text-right text-lg font-bold text-gray-900">{myWorkToday.businessVerificationsToday}</td>
                   </tr>
-                  {/* Row 2: Ad Edited | (empty) | Individual verification */}
+                  {/* Row 2: Ad Edited | Support tickets | Individual verification */}
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Ad Edited:</td>
-                    <td className="px-4 py-3 text-right text-xl font-bold text-gray-900 border-r border-gray-200">{myWorkToday.adsEditedToday}</td>
-                    <td className="px-4 py-3 border-r border-gray-200" colSpan={2}></td>
-                    <td className="px-6 py-3 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Individual verification:</td>
-                    <td className="px-4 py-3 text-right text-xl font-bold text-gray-900">{myWorkToday.individualVerificationsToday}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Ad Edited:</td>
+                    <td className="px-3 py-2 text-right text-lg font-bold text-gray-900 border-r border-gray-200">{myWorkToday.adsEditedToday}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Support tickets:</td>
+                    <td className="px-3 py-2 text-right text-lg font-bold text-gray-900 border-r border-gray-200">{myWorkToday.supportTicketsAssigned}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">Individual verification:</td>
+                    <td className="px-3 py-2 text-right text-lg font-bold text-gray-900">{myWorkToday.individualVerificationsToday}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* Right: Last Login and Logout */}
-          <div className="flex flex-col items-end justify-start gap-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-500 mb-1">Last Login:</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {lastLogin
-                  ? new Date(lastLogin).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })
-                  : 'Never'}
-              </p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-8 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-lg transition-all duration-200"
-            >
-              Logout
-            </button>
           </div>
         </div>
       </div>

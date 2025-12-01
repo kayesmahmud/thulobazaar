@@ -1,46 +1,30 @@
-// @ts-nocheck
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
+import { useProfileData } from '@/hooks/useProfileData';
 
-interface ProfilePageProps {
-  params: Promise<{ lang: string }>;
-}
-
-interface ProfileData {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  locationId: number | null;
-  individualVerified: boolean;
-  businessVerificationStatus: string | null;
-  businessName: string | null;
-  verifiedSellerName: string | null;
-  accountType: string | null;
-  customShopSlug: string | null;
-  createdAt: string;
-}
-
-interface Location {
+interface LocationOption {
   id: number;
   name: string;
   type: string;
 }
 
-export default function ProfilePage({ params }: ProfilePageProps) {
-  const { lang } = use(params);
+export default function ProfilePage() {
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang || 'en';
   const { data: session, status, update } = useSession();
   const router = useRouter();
 
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading: profileLoading, error: profileError, refreshProfile } = useProfileData({
+    enabled: status === 'authenticated',
+  });
+  const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -57,6 +41,45 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [isEditingSlug, setIsEditingSlug] = useState(false);
   const [slugAvailability, setSlugAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [suggestedSlugs, setSuggestedSlugs] = useState<string[]>([]);
+  const isLoading = status === 'loading' || profileLoading || locationsLoading;
+
+  const displayName = useMemo(() => {
+    if (!profile) return '';
+    const businessVerified =
+      profile.businessVerificationStatus === 'approved' ||
+      profile.businessVerificationStatus === 'verified';
+    if (businessVerified && profile.businessName) {
+      return profile.businessName;
+    }
+    if (profile.individualVerified && profile.verifiedSellerName) {
+      return profile.verifiedSellerName;
+    }
+    return profile.fullName || '';
+  }, [profile]);
+
+  const fallbackShopSlug = useMemo(() => {
+    if (!profile) return '';
+    const baseName = (profile.businessName || displayName || 'shop')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-');
+    return `${baseName}-${profile.id}`;
+  }, [profile, displayName]);
+
+  const activeShopSlug = profile?.customShopSlug || fallbackShopSlug;
+
+  const fetchLocations = useCallback(async () => {
+    try {
+      setLocationsLoading(true);
+      const response = await apiClient.getLocations({ type: 'municipality' });
+      if (response.success && response.data) {
+        setLocations(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching locations:', err);
+    } finally {
+      setLocationsLoading(false);
+    }
+  }, []);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -66,77 +89,25 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
   }, [status, router, lang]);
 
-  // Fetch profile and locations
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      fetchProfileData();
+    if (status === 'authenticated') {
       fetchLocations();
     }
-  }, [status, session]);
+  }, [status, fetchLocations]);
 
-  const fetchProfileData = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.getMe();
-
-      if (response.success && response.data) {
-        const userData = response.data;
-
-        // Determine the display name based on verification status
-        let displayName = userData.fullName || '';
-        const isBusinessVerified = userData.businessVerificationStatus === 'approved' || userData.businessVerificationStatus === 'verified';
-        const isIndividualVerified = userData.individualVerified;
-
-        if (isBusinessVerified && userData.businessName) {
-          displayName = userData.businessName;
-        } else if (isIndividualVerified && userData.verifiedSellerName) {
-          displayName = userData.verifiedSellerName;
-        }
-
-        setProfile({
-          id: userData.id,
-          fullName: displayName,
-          email: userData.email || '',
-          phone: userData.phone || '',
-          locationId: userData.locationId || null,
-          individualVerified: isIndividualVerified,
-          businessVerificationStatus: userData.businessVerificationStatus || null,
-          businessName: userData.businessName || null,
-          verifiedSellerName: userData.verifiedSellerName || null,
-          accountType: userData.accountType || null,
-          customShopSlug: userData.customShopSlug || null,
-          createdAt: userData.createdAt || new Date().toISOString(),
-        });
-
-        // Initialize custom shop slug from profile data
-        if (userData.customShopSlug) {
-          setCustomShopSlug(userData.customShopSlug);
-        }
-
-        setFormData({
-          name: displayName,
-          phone: userData.phone || '',
-          locationId: userData.locationId ? String(userData.locationId) : '',
-        });
-      }
-    } catch (err: any) {
-      console.error('Error fetching profile:', err);
-      setError('Failed to load profile');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!profile) {
+      return;
     }
-  };
 
-  const fetchLocations = async () => {
-    try {
-      const response = await apiClient.getLocations({ type: 'municipality' });
-      if (response.success && response.data) {
-        setLocations(response.data);
-      }
-    } catch (err) {
-      console.error('Error fetching locations:', err);
-    }
-  };
+    setFormData({
+      name: displayName,
+      phone: profile.phone || '',
+      locationId: profile.locationId ? String(profile.locationId) : '',
+    });
+
+    setCustomShopSlug(profile.customShopSlug || fallbackShopSlug);
+  }, [profile, displayName, fallbackShopSlug]);
 
   // Check if shop slug is available
   const checkSlugAvailability = async (slug: string) => {
@@ -185,9 +156,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       if (response.success) {
         setSuccessMessage('Shop URL updated successfully!');
         setIsEditingSlug(false);
-        // Refresh profile to get updated slug
-        await fetchProfileData();
-        // Refresh NextAuth session to update header
+        await refreshProfile();
         await update();
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
@@ -214,33 +183,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
     try {
       const response = await apiClient.updateProfile({
-        name: formData.name,
-        phone: formData.phone || null,
-        location_id: formData.locationId ? parseInt(formData.locationId, 10) : null,
+        fullName: formData.name,
+        phone: formData.phone || undefined,
+        locationId: formData.locationId ? parseInt(formData.locationId, 10) : undefined,
       });
 
       if (response.success && response.data) {
         const updatedUser = response.data;
 
-        // Preserve verification data from current profile since API might not return it
-        setProfile(prev => ({
-          ...prev!,
-          fullName: updatedUser.fullName || prev!.fullName,
-          email: updatedUser.email || prev!.email,
-          phone: updatedUser.phone || prev!.phone,
-          locationId: updatedUser.locationId !== undefined ? updatedUser.locationId : prev!.locationId,
-        }));
-
         setFormData({
           name: updatedUser.fullName || formData.name,
           phone: updatedUser.phone || '',
-          locationId: updatedUser.locationId ? String(updatedUser.locationId) : '',
+          locationId: updatedUser.locationId ? String(updatedUser.locationId) : formData.locationId,
         });
 
         setUnsavedChanges(false);
         setSuccessMessage('Profile updated successfully!');
+        await refreshProfile();
 
-        // Update session with new data
         await update({
           ...session,
           user: {
@@ -250,7 +210,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           },
         });
 
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err: any) {
@@ -261,11 +220,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }
   };
 
-  if (status === 'loading' || loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">Loading your profile...</p>
         </div>
       </div>
@@ -277,10 +236,10 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">⚠️</div>
-          <p className="text-red-600 font-semibold">Failed to load profile</p>
+          <p className="text-red-600 font-semibold">{profileError || error || 'Failed to load profile'}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+            className="mt-4 px-6 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
           >
             Try Again
           </button>
@@ -299,7 +258,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           <div className="flex items-center justify-between">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm">
-              <Link href={`/${lang}`} className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1">
+              <Link href={`/${lang}`} className="text-gray-500 hover:text-rose-500 transition-colors flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
@@ -308,19 +267,19 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <Link href={`/${lang}/dashboard`} className="text-gray-500 hover:text-primary transition-colors">
+              <Link href={`/${lang}/dashboard`} className="text-gray-500 hover:text-rose-500 transition-colors">
                 Dashboard
               </Link>
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="text-primary font-medium">Profile Settings</span>
+              <span className="text-rose-500 font-medium">Profile Settings</span>
             </nav>
 
             {/* Quick Actions */}
             <Link
               href={`/${lang}/dashboard`}
-              className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center gap-2"
+              className="text-sm text-gray-600 hover:text-rose-500 transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -379,8 +338,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 {/* Avatar */}
                 <div className="relative -mt-12 mb-4">
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-pink-500 p-1 mx-auto">
-                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-4xl font-bold text-primary">
-                      {profile.fullName.charAt(0).toUpperCase()}
+                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-4xl font-bold text-rose-500">
+                      {displayName?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                   </div>
                   {/* Verification Badge */}
@@ -395,18 +354,18 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
                 {/* Name */}
                 <div className="text-center mb-4">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">{profile.fullName}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">{displayName}</h2>
                   <p className="text-sm text-gray-500">{profile.email}</p>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-100">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">#{profile.id}</div>
+                    <div className="text-2xl font-bold text-rose-500">#{profile.id}</div>
                     <div className="text-xs text-gray-500 mt-1">User ID</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-rose-500">
                       {profile.individualVerified || profile.businessVerificationStatus === 'approved' || profile.businessVerificationStatus === 'verified' ? '✓' : '○'}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">Verified</div>
@@ -429,7 +388,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 <div className="mt-4 text-center">
                   <p className="text-xs text-gray-500">Member since</p>
                   <p className="text-sm font-medium text-gray-700">
-                    {new Date(profile.createdAt).toLocaleDateString('en-US', {
+                    {new Date(profile.createdAt || Date.now()).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
@@ -485,7 +444,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       className={`w-full pl-12 pr-4 py-3 border rounded-xl text-sm transition-all ${
                         isNameLocked
                           ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'
-                          : 'bg-white border-gray-300 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20'
+                          : 'bg-white border-gray-300 hover:border-rose-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
                       }`}
                       placeholder="Enter your full name"
                     />
@@ -537,7 +496,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm hover:border-rose-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all"
                       placeholder="+977 98XXXXXXXX"
                     />
                   </div>
@@ -559,7 +518,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     <select
                       value={formData.locationId}
                       onChange={(e) => handleInputChange('locationId', e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none bg-white cursor-pointer"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm hover:border-rose-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all appearance-none bg-white cursor-pointer"
                     >
                       <option value="">Select your location</option>
                       {locations.map((location) => (
@@ -585,7 +544,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       </svg>
                       <div className="flex-1">
                         <h4 className="text-sm font-semibold text-amber-900">You have unsaved changes</h4>
-                        <p className="text-xs text-amber-700 mt-1">Don't forget to save your changes before leaving this page.</p>
+                        <p className="text-xs text-amber-700 mt-1">Don&apos;t forget to save your changes before leaving this page.</p>
                       </div>
                     </div>
                   </div>
@@ -649,7 +608,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           <button
                             onClick={() => {
                               setIsEditingSlug(true);
-                              setCustomShopSlug(profile.businessName?.toLowerCase().replace(/\s+/g, '-') || '');
+                              setCustomShopSlug(profile.customShopSlug || fallbackShopSlug);
                             }}
                             className="text-xs text-purple-600 hover:text-purple-800 font-semibold underline"
                           >
@@ -662,12 +621,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         /* Display Mode */
                         <div className="flex items-center gap-2">
                           <code className="flex-1 text-sm font-mono text-purple-900 bg-purple-100 px-3 py-1.5 rounded border border-purple-300">
-                            {typeof window !== 'undefined' ? window.location.origin : ''}/{lang}/shop/{profile.customShopSlug || `${profile.businessName?.toLowerCase().replace(/\s+/g, '-')}-${profile.id}`}
+                            {typeof window !== 'undefined' ? window.location.origin : ''}/{lang}/shop/{activeShopSlug}
                           </code>
                           <button
                             onClick={() => {
-                              const shopSlug = profile.customShopSlug || `${profile.businessName?.toLowerCase().replace(/\s+/g, '-')}-${profile.id}`;
-                              const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${lang}/shop/${shopSlug}`;
+                              const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${lang}/shop/${activeShopSlug}`;
                               navigator.clipboard.writeText(url);
                               alert('Shop URL copied to clipboard!');
                             }}
@@ -764,6 +722,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                 setIsEditingSlug(false);
                                 setSlugAvailability('idle');
                                 setSuggestedSlugs([]);
+                                setCustomShopSlug(activeShopSlug);
                               }}
                               className="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-300 transition-colors"
                             >
@@ -777,7 +736,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     {/* Action Buttons */}
                     <div className="flex gap-3">
                       <Link
-                        href={`/${lang}/shop/${profile.customShopSlug || `${profile.businessName.toLowerCase().replace(/\s+/g, '-')}-${profile.id}`}`}
+                        href={`/${lang}/shop/${activeShopSlug}`}
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -788,12 +747,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       </Link>
                       <button
                         onClick={() => {
-                          const shopSlug = profile.customShopSlug || `${profile.businessName.toLowerCase().replace(/\s+/g, '-')}-${profile.id}`;
-                          const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${lang}/shop/${shopSlug}`;
+                          const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${lang}/shop/${activeShopSlug}`;
                           if (navigator.share) {
                             navigator.share({
-                              title: `${profile.businessName} - Shop`,
-                              text: `Visit ${profile.businessName} on ThuLoBazaar`,
+                              title: `${displayName} - Shop`,
+                              text: `Visit ${displayName} on ThuLoBazaar`,
                               url: url,
                             }).catch(() => {});
                           } else {

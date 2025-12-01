@@ -27,7 +27,7 @@ export default function SortDropdown({ lang, currentSort }: SortDropdownProps) {
     <select
       id="sort"
       name="sortBy"
-      className="input py-2 text-sm"
+      className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
       value={currentSort}
       onChange={(e) => handleSortChange(e.target.value)}
     >

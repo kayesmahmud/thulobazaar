@@ -32,6 +32,9 @@ export function StaffAuthProvider({ children }: StaffAuthProviderProps) {
   const user: any = useMemo(() => {
     if (!session?.user) return null;
 
+    // Use session timestamps if available, otherwise use null (not new Date() which is impure)
+    const sessionTimestamp = session.user.createdAt || null;
+
     return {
       id: parseInt(session.user.id),
       email: session.user.email!,
@@ -40,8 +43,8 @@ export function StaffAuthProvider({ children }: StaffAuthProviderProps) {
       role: session.user.role as any,
       isActive: true,
       isVerified: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: sessionTimestamp,
+      updatedAt: sessionTimestamp,
       avatar: session.user.image || null, // Avatar from session.user.image
       accountType: session.user.accountType as any || 'individual',
       shopSlug: session.user.shopSlug || null,

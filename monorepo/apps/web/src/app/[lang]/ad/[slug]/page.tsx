@@ -192,10 +192,9 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
   const fullCategory = categoryParts.join(' › ');
 
   // Prepare images for client component (array of full URL strings)
-  // Images are served from the backend on port 5000
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  // Images are served from the public folder at /uploads/ads/...
   const images = ad.ad_images.map(img =>
-    `${BACKEND_URL}/${img.file_path}`
+    `/${img.file_path}`
   );
 
   // Build breadcrumb items
@@ -224,7 +223,7 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
       {/* Toast notification for successful promotion */}
       <PromotionSuccessToast promoted={search.promoted === 'true'} txnId={search.txnId} />
 
-      <div className="max-w-screen-desktop mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
           {/* Main Content */}
           <div>

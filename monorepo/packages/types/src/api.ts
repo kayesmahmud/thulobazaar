@@ -111,7 +111,7 @@ export interface CategoryWithSubcategories extends Category {
 // API LOCATION TYPES
 // ============================================
 
-export type LocationType = 'province' | 'district' | 'municipality' | 'area' | 'ward';
+export type LocationType = 'province' | 'district' | 'municipality' | 'area';
 
 export interface Location {
   id: number;
@@ -130,17 +130,12 @@ export interface LocationHierarchy extends Location {
 }
 
 // Areas hierarchy types (for cascading dropdowns)
-export interface Ward {
-  ward_number: number;
-  areas: Area[];
-}
-
 export interface Municipality {
   id: number;
   name: string;
   type: string;
   area_count: number;
-  wards: Ward[];
+  areas?: Area[];
 }
 
 export interface District {

@@ -3,7 +3,8 @@
  * REST API calls for message history and conversations
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+// Use same origin for Next.js API routes (no backend dependency)
+const API_BASE_URL = '';
 
 interface FetchOptions extends RequestInit {
   token?: string;
@@ -12,9 +13,9 @@ interface FetchOptions extends RequestInit {
 async function fetchApi(endpoint: string, options: FetchOptions = {}) {
   const { token, ...fetchOptions } = options;
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...fetchOptions.headers,
+    ...(fetchOptions.headers as Record<string, string>),
   };
 
   if (token) {

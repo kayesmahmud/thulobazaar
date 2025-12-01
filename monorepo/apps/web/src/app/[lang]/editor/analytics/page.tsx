@@ -234,7 +234,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
 
               acc.angle = endAngle;
               return acc;
-            }, { paths: [] as JSX.Element[], angle: 0 }).paths}
+            }, { paths: [] as React.JSX.Element[], angle: 0 }).paths}
           </svg>
         </div>
         <div className="ml-6 space-y-2">
@@ -445,7 +445,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
                   'bg-orange-500',
                   'bg-teal-500',
                   'bg-pink-500',
-                ][index],
+                ][index] || 'bg-gray-500',
               }))
             )}
           </div>

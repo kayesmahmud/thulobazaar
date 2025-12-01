@@ -8,15 +8,20 @@ import { getSession } from 'next-auth/react';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 /**
- * Get backend token from session
+ * Get backend token from session or localStorage
+ * Checks both NextAuth session (for users) and localStorage (for editors/admins)
  */
 async function getBackendToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
 
+  // First check localStorage for editor token (staff auth)
+  const editorToken = localStorage.getItem('editorToken');
+  if (editorToken) {
+    return editorToken;
+  }
+
+  // Fallback to NextAuth session (for regular users)
   const session = await getSession();
-  console.log('🔍 [getBackendToken] Session:', session);
-  console.log('🔍 [getBackendToken] User:', session?.user);
-  console.log('🔍 [getBackendToken] Backend Token:', session?.user?.backendToken);
   return session?.user?.backendToken || null;
 }
 
@@ -521,6 +526,7 @@ interface MyWorkToday {
   adsEditedToday: number;
   businessVerificationsToday: number;
   individualVerificationsToday: number;
+  supportTicketsAssigned: number;
 }
 
 /**
@@ -726,6 +732,7 @@ interface UpdateEditorData {
 
 /**
  * Update editor (Super Admin only)
+ * Supports avatar file uploads via FormData
  */
 export async function updateEditor(
   id: number,
@@ -735,16 +742,18 @@ export async function updateEditor(
   // Get token from session if not provided
   const authToken = token || await getBackendToken();
 
+  // Use FormData to support file uploads
   const formData = new FormData();
   formData.append('fullName', data.fullName);
   formData.append('email', data.email);
 
-  if (data.password) {
+  if (data.password && data.password.trim().length > 0) {
     formData.append('password', data.password);
   }
 
   if (data.avatar) {
     formData.append('avatar', data.avatar);
+    console.log('📷 Avatar file attached:', data.avatar.name);
   }
 
   const headers: HeadersInit = {};
@@ -752,6 +761,8 @@ export async function updateEditor(
   if (authToken) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
+
+  // Note: Don't set Content-Type header - browser will set it automatically with boundary for FormData
 
   const response = await fetch(`${API_BASE}/api/editor/editors/${id}`, {
     method: 'PUT',

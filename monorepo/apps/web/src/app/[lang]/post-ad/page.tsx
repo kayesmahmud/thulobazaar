@@ -21,7 +21,9 @@ interface Category {
   name: string;
   slug: string;
   icon: string | null;
-  parent_id: number | null;
+  parent_id?: number | null;
+  parentId?: number | null;
+  subcategories?: Category[];
 }
 
 interface Location {
@@ -46,6 +48,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     categoryId: '',
     subcategoryId: '',
     locationSlug: '',
+    locationName: '', // Track location name for display in input
     condition: 'new',
     isNegotiable: false,
   });
@@ -130,26 +133,15 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     try {
       setLoading(true);
 
-      const [categoriesRes, allCategoriesRes, locationsRes] = await Promise.all([
-        apiClient.getCategories(), // Parent categories only
-        apiClient.getCategories({ includeSubcategories: true }), // All categories (flat list)
+      const [categoriesRes, locationsRes] = await Promise.all([
+        apiClient.getCategories(), // Returns parent categories with nested subcategories
         apiClient.getLocations({ type: 'municipality' }),
       ]);
 
-      if (categoriesRes.success && categoriesRes.data && allCategoriesRes.success && allCategoriesRes.data) {
-        // Store parent categories
-        const parentCategories = categoriesRes.data;
-        // Store all categories (for subcategory lookup)
-        const allCategories = allCategoriesRes.data;
-
-        // Create nested structure: Add subcategories array to each parent
-        const categoriesWithSubcategories = parentCategories.map(parent => ({
-          ...parent,
-          subcategories: allCategories.filter(cat => cat.parent_id === parent.id)
-        }));
-
-        setCategories(categoriesWithSubcategories);
-        console.log('✅ Loaded', categoriesWithSubcategories.length, 'parent categories with subcategories');
+      if (categoriesRes.success && categoriesRes.data) {
+        // API already returns categories with subcategories nested
+        setCategories(categoriesRes.data);
+        console.log('✅ Loaded', categoriesRes.data.length, 'parent categories with subcategories');
       }
 
       if (locationsRes.success && locationsRes.data) {
@@ -582,14 +574,16 @@ export default function PostAdPage({ params }: PostAdPageProps) {
                 Location (Area/Place) *
               </h3>
               <CascadingLocationFilter
-                onLocationSelect={(locationSlug) => {
-                  console.log('📍 Location selected:', locationSlug);
+                onLocationSelect={(locationSlug, locationName) => {
+                  console.log('📍 Location selected:', locationSlug, locationName);
                   setFormData(prev => ({
                     ...prev,
-                    locationSlug: locationSlug || ''
+                    locationSlug: locationSlug || '',
+                    locationName: locationName || ''
                   }));
                 }}
                 selectedLocationSlug={formData.locationSlug || null}
+                selectedLocationName={formData.locationName || null}
               />
               <small style={{
                 display: 'block',

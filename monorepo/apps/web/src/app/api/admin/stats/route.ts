@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
       prisma.ads.groupBy({
         by: ['category_id'],
         where: { deleted_at: null, category_id: { not: null } },
-        _count: { _all: true },
-        orderBy: { _count: { _all: 'desc' } },
+        _count: true,
+        orderBy: { _count: { category_id: 'desc' } },
         take: 5,
       }),
       prisma.business_verification_requests.count({ where: { status: 'pending' } }),
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const topCategories = topCategoryGroups.map((group) => ({
       categoryId: group.category_id,
       name: categoryNameMap.get(group.category_id ?? 0) || 'Uncategorized',
-      totalAds: group._count?._all ?? 0,
+      totalAds: typeof group._count === 'number' ? group._count : 0,
     }));
 
     return NextResponse.json(

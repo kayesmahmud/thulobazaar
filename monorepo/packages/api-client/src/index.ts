@@ -297,13 +297,16 @@ export class ApiClient {
     return response.data;
   }
 
-  async getHierarchy(): Promise<ApiResponse<LocationHierarchy[]>> {
-    const response = await this.client.get('/api/locations/hierarchy');
+  async getHierarchy(provinceId?: number): Promise<ApiResponse<LocationHierarchy[]>> {
+    const url = provinceId
+      ? `/api/locations/hierarchy?provinceId=${provinceId}`
+      : '/api/locations/hierarchy';
+    const response = await this.client.get(url);
     return response.data;
   }
 
   async searchAllLocations(query: string, limit?: number): Promise<ApiResponse<Location[]>> {
-    const response = await this.client.get('/api/locations/search-all', {
+    const response = await this.client.get('/api/locations/search', {
       params: { q: query, limit },
     });
     return response.data;
@@ -394,7 +397,7 @@ export class ApiClient {
   // ============================================
 
   async submitBusinessVerification(
-    data: Partial<BusinessVerificationRequest>
+    data: Partial<BusinessVerificationRequest> | FormData
   ): Promise<ApiResponse<BusinessVerificationRequest>> {
     const response = await this.client.post('/api/verification/business', data);
     return response.data;

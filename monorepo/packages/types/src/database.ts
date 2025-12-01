@@ -112,7 +112,7 @@ export interface DbCategory {
 // DATABASE LOCATION TYPE
 // ============================================
 
-export type DbLocationType = 'province' | 'district' | 'municipality' | 'area' | 'ward';
+export type DbLocationType = 'province' | 'district' | 'municipality' | 'area';
 
 export interface DbLocation {
   id: number;

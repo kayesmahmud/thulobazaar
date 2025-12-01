@@ -84,26 +84,26 @@ export default function Header({ lang }: HeaderProps) {
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-screen-desktop mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link
             href={`/${lang}`}
             className="no-underline flex items-center hover:opacity-80 transition-opacity"
           >
-            <span className="text-2xl font-bold text-primary">
+            <span className="text-2xl font-bold text-rose-500">
               Thulobazaar
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden tablet:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6">
             {!isStaff && (
               <>
                 <Link
                   href={`/${lang}/all-ads`}
                   className={`no-underline font-medium text-sm ${
-                    pathname?.includes('/all-ads') ? 'text-primary' : 'text-gray-600 hover:text-primary'
+                    pathname?.includes('/all-ads') ? 'text-rose-500' : 'text-gray-600 hover:text-rose-500'
                   } transition-colors`}
                 >
                   All Ads
@@ -112,7 +112,7 @@ export default function Header({ lang }: HeaderProps) {
                 <Link
                   href={`/${lang}/search`}
                   className={`no-underline font-medium text-sm ${
-                    pathname?.includes('/search') ? 'text-primary' : 'text-gray-600 hover:text-primary'
+                    pathname?.includes('/search') ? 'text-rose-500' : 'text-gray-600 hover:text-rose-500'
                   } transition-colors`}
                 >
                   Search
@@ -124,19 +124,19 @@ export default function Header({ lang }: HeaderProps) {
               <>
                 <Link
                   href={`/${lang}/auth/signin`}
-                  className="btn-outline-primary text-sm"
+                  className="px-4 py-2 rounded-lg font-semibold border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors text-sm"
                 >
                   Sign In
                 </Link>
                 <Link
                   href={`/${lang}/auth/register`}
-                  className="btn-primary text-sm"
+                  className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors text-sm"
                 >
                   Sign Up
                 </Link>
                 <Link
                   href={`/${lang}/post-ad`}
-                  className="bg-success hover:bg-success-hover text-white px-6 py-2.5 rounded-lg no-underline font-semibold text-sm transition-colors"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg no-underline font-semibold text-sm transition-colors"
                 >
                   + POST FREE AD
                 </Link>
@@ -169,7 +169,7 @@ export default function Header({ lang }: HeaderProps) {
                     {/* Regular User Interface with Avatar Dropdown */}
                     <Link
                       href={`/${lang}/post-ad`}
-                      className="bg-success hover:bg-success-hover text-white px-6 py-2.5 rounded-lg no-underline font-semibold text-sm transition-colors"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg no-underline font-semibold text-sm transition-colors"
                     >
                       + POST FREE AD
                     </Link>
@@ -178,7 +178,7 @@ export default function Header({ lang }: HeaderProps) {
                     <div ref={dropdownRef} className="relative">
                       <button
                         onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                        className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-primary transition-colors cursor-pointer p-0"
+                        className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-rose-500 transition-colors cursor-pointer p-0"
                         aria-label="Profile menu"
                         aria-expanded={profileDropdownOpen}
                         aria-haspopup="true"
@@ -190,7 +190,7 @@ export default function Header({ lang }: HeaderProps) {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-primary text-white font-bold text-sm">
+                          <div className="w-full h-full flex items-center justify-center bg-rose-500 text-white font-bold text-sm">
                             {getInitials(user?.fullName)}
                           </div>
                         )}
@@ -266,7 +266,7 @@ export default function Header({ lang }: HeaderProps) {
 
           {/* Mobile Menu Button */}
           <button
-            className="tablet:hidden p-2 text-gray-600 hover:text-primary"
+            className="md:hidden p-2 text-gray-600 hover:text-rose-500"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle mobile menu"
             aria-expanded={mobileMenuOpen}
@@ -279,14 +279,14 @@ export default function Header({ lang }: HeaderProps) {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="tablet:hidden py-4 border-t border-gray-200">
+          <div className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col gap-3">
               {!isStaff && (
                 <>
-                  <Link href={`/${lang}/all-ads`} className="text-gray-600 hover:text-primary py-2">
+                  <Link href={`/${lang}/all-ads`} className="text-gray-600 hover:text-rose-500 py-2">
                     All Ads
                   </Link>
-                  <Link href={`/${lang}/search`} className="text-gray-600 hover:text-primary py-2">
+                  <Link href={`/${lang}/search`} className="text-gray-600 hover:text-rose-500 py-2">
                     Search
                   </Link>
                 </>
@@ -294,20 +294,20 @@ export default function Header({ lang }: HeaderProps) {
 
               {!isAuthenticated ? (
                 <>
-                  <Link href={`/${lang}/auth/signin`} className="btn-outline-primary w-full text-center">
+                  <Link href={`/${lang}/auth/signin`} className="px-4 py-2 rounded-lg font-semibold border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors w-full text-center">
                     Sign In
                   </Link>
-                  <Link href={`/${lang}/auth/register`} className="btn-primary w-full text-center">
+                  <Link href={`/${lang}/auth/register`} className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors w-full text-center">
                     Sign Up
                   </Link>
-                  <Link href={`/${lang}/post-ad`} className="bg-success text-white py-3 rounded-lg text-center font-semibold">
+                  <Link href={`/${lang}/post-ad`} className="bg-emerald-500 text-white py-3 rounded-lg text-center font-semibold">
                     + POST FREE AD
                   </Link>
                 </>
               ) : (
                 <>
                   {currentUser?.role === 'super_admin' ? (
-                    <Link href={`/${lang}/super-admin/dashboard`} className="btn-primary w-full text-center">
+                    <Link href={`/${lang}/super-admin/dashboard`} className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors w-full text-center">
                       🛡️ Super Admin Panel
                     </Link>
                   ) : currentUser?.role === 'editor' ? (
@@ -316,10 +316,10 @@ export default function Header({ lang }: HeaderProps) {
                     </Link>
                   ) : (
                     <>
-                      <Link href={`/${lang}/profile`} className="text-gray-600 hover:text-primary py-2">
+                      <Link href={`/${lang}/profile`} className="text-gray-600 hover:text-rose-500 py-2">
                         👤 My Profile
                       </Link>
-                      <Link href={`/${lang}/dashboard`} className="text-gray-600 hover:text-primary py-2">
+                      <Link href={`/${lang}/dashboard`} className="text-gray-600 hover:text-rose-500 py-2">
                         📊 Dashboard
                       </Link>
 
@@ -347,7 +347,7 @@ export default function Header({ lang }: HeaderProps) {
 
                   {/* Only show Post Ad for regular users in mobile */}
                   {!isStaff && (
-                    <Link href={`/${lang}/post-ad`} className="bg-success text-white py-3 rounded-lg text-center font-semibold">
+                    <Link href={`/${lang}/post-ad`} className="bg-emerald-500 text-white py-3 rounded-lg text-center font-semibold">
                       + POST FREE AD
                     </Link>
                   )}

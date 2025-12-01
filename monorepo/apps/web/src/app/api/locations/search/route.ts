@@ -8,7 +8,7 @@ import { getLocationBreadcrumb } from '@/lib/locationHierarchy';
  *
  * Query params:
  * - q: string (required) - Search query
- * - type: 'province' | 'district' | 'municipality' | 'ward' (optional)
+ * - type: 'province' | 'district' | 'municipality' | 'area' (optional)
  * - limit: number (optional, default: 20)
  */
 export async function GET(request: NextRequest) {

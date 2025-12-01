@@ -13,12 +13,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary-hover disabled:bg-gray-300 disabled:text-gray-500',
+  primary: 'bg-rose-500 text-white hover:bg-rose-600 disabled:bg-gray-300 disabled:text-gray-500',
   secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400',
-  outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-white disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent',
-  ghost: 'text-primary hover:bg-primary/10 disabled:text-gray-400 disabled:hover:bg-transparent',
+  outline: 'border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent',
+  ghost: 'text-rose-500 hover:bg-rose-500/10 disabled:text-gray-400 disabled:hover:bg-transparent',
   danger: 'bg-red-500 text-white hover:bg-red-600 disabled:bg-gray-300 disabled:text-gray-500',
-  success: 'bg-success text-white hover:bg-success-hover disabled:bg-gray-300 disabled:text-gray-500',
+  success: 'bg-emerald-500 text-white hover:bg-emerald-600 disabled:bg-gray-300 disabled:text-gray-500',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -39,7 +39,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseClasses =
-    'font-semibold rounded-lg transition-all duration-200 inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2';
+    'font-semibold rounded-lg transition-all duration-200 inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2';
 
   const isDisabled = disabled || loading;
 

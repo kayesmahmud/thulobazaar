@@ -20,24 +20,24 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
         {/* Color Palette */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-4">Color Palette</h2>
-          <div className="grid grid-cols-2 laptop:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="card text-center">
-              <div className="w-full h-20 bg-primary rounded-lg mb-3"></div>
+              <div className="w-full h-20 bg-rose-500 rounded-lg mb-3"></div>
               <p className="font-medium">Primary</p>
               <p className="text-xs text-muted">#dc1e4a</p>
             </div>
             <div className="card text-center">
-              <div className="w-full h-20 bg-secondary rounded-lg mb-3"></div>
+              <div className="w-full h-20 bg-blue-500 rounded-lg mb-3"></div>
               <p className="font-medium">Secondary</p>
               <p className="text-xs text-muted">#3b82f6</p>
             </div>
             <div className="card text-center">
-              <div className="w-full h-20 bg-success rounded-lg mb-3"></div>
+              <div className="w-full h-20 bg-emerald-500 rounded-lg mb-3"></div>
               <p className="font-medium">Success</p>
               <p className="text-xs text-muted">#10b981</p>
             </div>
             <div className="card text-center">
-              <div className="w-full h-20 bg-warning rounded-lg mb-3"></div>
+              <div className="w-full h-20 bg-amber-500 rounded-lg mb-3"></div>
               <p className="font-medium">Warning</p>
               <p className="text-xs text-muted">#f59e0b</p>
             </div>
@@ -64,7 +64,7 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
         {/* Cards */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-4">Cards</h2>
-          <div className="grid grid-cols-1 laptop:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="card">
               <h3 className="text-lg font-semibold mb-2">Default Card</h3>
               <p className="text-muted">This is a default card with standard shadow.</p>
@@ -123,7 +123,7 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
                   className="input-error"
                   placeholder="Invalid input"
                 />
-                <p className="text-danger text-sm mt-1">This field has an error</p>
+                <p className="text-red-600 text-sm mt-1">This field has an error</p>
               </div>
             </div>
           </div>
@@ -158,23 +158,23 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-32 text-sm text-muted">p-xs (4px)</div>
-                <div className="p-xs bg-primary-light border border-primary rounded">Content</div>
+                <div className="p-xs bg-rose-50 border border-rose-500 rounded">Content</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-32 text-sm text-muted">p-sm (8px)</div>
-                <div className="p-sm bg-primary-light border border-primary rounded">Content</div>
+                <div className="p-sm bg-rose-50 border border-rose-500 rounded">Content</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-32 text-sm text-muted">p-md (12px)</div>
-                <div className="p-md bg-primary-light border border-primary rounded">Content</div>
+                <div className="p-md bg-rose-50 border border-rose-500 rounded">Content</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-32 text-sm text-muted">p-lg (16px)</div>
-                <div className="p-lg bg-primary-light border border-primary rounded">Content</div>
+                <div className="p-lg bg-rose-50 border border-rose-500 rounded">Content</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-32 text-sm text-muted">p-xl (24px)</div>
-                <div className="p-xl bg-primary-light border border-primary rounded">Content</div>
+                <div className="p-xl bg-rose-50 border border-rose-500 rounded">Content</div>
               </div>
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
           <h2 className="text-2xl font-semibold mb-4">Loading States</h2>
           <div className="card">
             <div className="flex items-center gap-4 mb-4">
-              <div className="spinner text-primary"></div>
+              <div className="spinner text-rose-500"></div>
               <span>Primary spinner</span>
             </div>
             <div className="space-y-2">
@@ -199,7 +199,7 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
         {/* Responsive Grid */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-4">Responsive Grid</h2>
-          <div className="grid grid-cols-1 tablet:grid-cols-2 laptop:grid-cols-3 desktop:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
               <div key={num} className="card text-center">
                 <div className="text-4xl mb-2">📦</div>
@@ -210,11 +210,11 @@ export default function TailwindDemoPage({ params }: TailwindDemoPageProps) {
         </section>
 
         {/* Success Message */}
-        <div className="bg-success-light border border-success rounded-lg p-lg">
+        <div className="bg-emerald-50 border border-emerald-500 rounded-lg p-lg">
           <div className="flex items-start gap-3">
             <div className="text-2xl">✅</div>
             <div>
-              <h3 className="font-semibold text-success mb-1">
+              <h3 className="font-semibold text-emerald-600 mb-1">
                 Tailwind CSS Setup Complete!
               </h3>
               <p className="text-sm text-gray-700">

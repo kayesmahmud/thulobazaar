@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       ad: {
         id: msg.ads.id,
         title: msg.ads.title,
-        price: parseFloat(msg.ads.price.toString()),
+        price: msg.ads.price ? parseFloat(msg.ads.price.toString()) : null,
         status: msg.ads.status,
         slug: msg.ads.slug,
         primaryImage: msg.ads.ad_images[0]?.file_path || null,
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
       data: {
         ad_id: ad.id,
         buyer_id: userId,
-        seller_id: ad.user_id,
+        seller_id: ad.user_id!,
         buyer_name: buyer.full_name,
         buyer_email: buyer.email,
         buyer_phone: buyerPhone || buyer.phone || '',

@@ -58,10 +58,10 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
         limit: 10,
         sortBy: 'created_at',
         sortOrder: 'DESC',
-      });
+      } as any);
 
       if (response.success && Array.isArray(response.data)) {
-        setAds(response.data);
+        setAds(response.data as any);
         // Calculate total pages (if backend doesn't provide it)
         setTotalPages(Math.max(1, Math.ceil(response.data.length / 10)));
       } else {

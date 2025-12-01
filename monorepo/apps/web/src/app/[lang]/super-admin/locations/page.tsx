@@ -78,7 +78,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations`, {
+      const response = await fetch('/api/admin/locations', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -186,8 +186,8 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
       };
 
       const url = editingLocation
-        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations/${editingLocation.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations`;
+        ? `/api/admin/locations/${editingLocation.id}`
+        : `/api/admin/locations`;
 
       const method = editingLocation ? 'PUT' : 'POST';
 
@@ -230,7 +230,7 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/editor/locations/${location.id}`, {
+      const response = await fetch(`/api/admin/locations/${location.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -307,7 +307,6 @@ export default function LocationsManagementPage({ params: paramsPromise }: { par
       case 'province': return 'bg-purple-100 text-purple-700';
       case 'district': return 'bg-blue-100 text-blue-700';
       case 'municipality': return 'bg-green-100 text-green-700';
-      case 'ward': return 'bg-yellow-100 text-yellow-700';
       case 'area': return 'bg-pink-100 text-pink-700';
       default: return 'bg-gray-100 text-gray-700';
     }

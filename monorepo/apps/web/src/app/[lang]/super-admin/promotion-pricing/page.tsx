@@ -198,7 +198,7 @@ export default function PromotionPricingPage({ params: paramsPromise }: { params
     if (!acc[pricing.promotion_type]) {
       acc[pricing.promotion_type] = [];
     }
-    acc[pricing.promotion_type].push(pricing);
+    acc[pricing.promotion_type]!.push(pricing);
     return acc;
   }, {} as Record<string, PromotionPricing[]>);
 

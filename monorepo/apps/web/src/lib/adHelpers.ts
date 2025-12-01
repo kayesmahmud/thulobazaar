@@ -57,6 +57,7 @@ export async function saveAdImages(
 ): Promise<void> {
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    if (!file) continue;
     await prisma.ad_images.create({
       data: {
         ad_id: adId,

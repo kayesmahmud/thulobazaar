@@ -4,6 +4,12 @@
   "private": true,
   "description": "ThuluBazaar - Monorepo for Web, iOS, and Android apps",
   "packageManager": "npm@10.0.0",
+  "overrides": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -19,11 +25,14 @@
     "dev:mobile": "turbo run dev --filter=mobile"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
+    "turbo": "^2.6.1",
     "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }

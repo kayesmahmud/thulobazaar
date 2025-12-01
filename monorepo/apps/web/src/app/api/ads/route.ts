@@ -148,13 +148,7 @@ export async function GET(request: NextRequest) {
             slug: true,
           },
         },
-        areas: {
-          select: {
-            id: true,
-            name: true,
-            ward_number: true,
-          },
-        },
+        // Note: 'areas' relation removed - doesn't exist in schema
         users_ads_user_idTousers: {
           select: {
             id: true,
@@ -216,13 +210,7 @@ export async function GET(request: NextRequest) {
             slug: ad.locations.slug,
           }
         : null,
-      area: ad.areas
-        ? {
-            id: ad.areas.id,
-            name: ad.areas.name,
-            wardNumber: ad.areas.ward_number,
-          }
-        : null,
+      // Note: 'area' removed - relation doesn't exist in schema
       user: ad.users_ads_user_idTousers
         ? {
             id: ad.users_ads_user_idTousers.id,
@@ -462,7 +450,7 @@ export async function POST(request: NextRequest) {
           ad_id: ad.id,
           filename: img.filename,
           file_path: img.filePath,
-          original_name: images[index].name,
+          original_name: images[index]?.name || img.filename,
           file_size: img.fileSize,
           mime_type: img.mimeType,
           is_primary: index === 0, // First image is primary

@@ -121,7 +121,7 @@ export default function ImageUpload({
         onClick={handleButtonClick}
         className={`
           border-2 rounded-xl p-8 text-center cursor-pointer transition-all duration-200
-          ${dragActive ? 'border-primary bg-primary-light' : 'border-dashed border-gray-300 bg-white'}
+          ${dragActive ? 'border-rose-500 bg-rose-500-light' : 'border-dashed border-gray-300 bg-white'}
           ${images.length > 0 ? 'mb-6' : ''}
         `}
       >
@@ -146,7 +146,7 @@ export default function ImageUpload({
           PNG, JPG, GIF up to {maxSizeMB}MB (Max {maxImages} images)
         </p>
 
-        <p className="text-sm text-primary mt-2 font-medium">
+        <p className="text-sm text-rose-500 mt-2 font-medium">
           {existingImages.length + images.length}/{maxImages} images total
           {existingImages.length > 0 && ` (${existingImages.length} saved, ${images.length} new)`}
         </p>
@@ -246,7 +246,7 @@ export default function ImageUpload({
 
                 {/* First Image Badge - only show if no existing images */}
                 {index === 0 && existingImages.length === 0 && (
-                  <div className="absolute top-2 left-2 bg-primary text-white px-2 py-1 rounded text-xs font-semibold">
+                  <div className="absolute top-2 left-2 bg-rose-500 text-white px-2 py-1 rounded text-xs font-semibold">
                     Main
                   </div>
                 )}

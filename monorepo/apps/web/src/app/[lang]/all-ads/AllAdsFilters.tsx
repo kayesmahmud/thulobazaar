@@ -93,7 +93,7 @@ export default function AllAdsFilters({
         <h3 className="text-lg font-semibold flex items-center gap-2">
           Filters
           {totalActiveFilters > 0 && (
-            <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+            <span className="bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
               {totalActiveFilters}
             </span>
           )}
@@ -101,7 +101,7 @@ export default function AllAdsFilters({
         {totalActiveFilters > 0 && (
           <button
             onClick={clearAllFilters}
-            className="text-primary text-sm font-semibold cursor-pointer border-none bg-transparent hover:text-primary-dark transition-colors"
+            className="text-rose-500 text-sm font-semibold cursor-pointer border-none bg-transparent hover:text-rose-500-dark transition-colors"
           >
             Clear All
           </button>
@@ -143,7 +143,7 @@ export default function AllAdsFilters({
                     category.subcategories && category.subcategories.length > 0 ? 'pl-0' : 'pl-2.5'
                   } ${
                     selectedCategory === category.slug
-                      ? 'bg-indigo-50 text-primary font-semibold'
+                      ? 'bg-indigo-50 text-rose-500 font-semibold'
                       : 'bg-transparent text-gray-800 font-medium hover:bg-gray-50'
                   }`}
                 >
@@ -165,7 +165,7 @@ export default function AllAdsFilters({
                       }}
                       className={`w-full flex items-center gap-2 py-2 px-2 pl-10 border-none border-t border-gray-100 cursor-pointer text-[0.8125rem] text-left transition-all ${
                         selectedCategory === subcategory.slug
-                          ? 'bg-indigo-50 text-primary font-semibold'
+                          ? 'bg-indigo-50 text-rose-500 font-semibold'
                           : 'bg-transparent text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-800'
                       }`}
                     >
@@ -187,7 +187,7 @@ export default function AllAdsFilters({
         onToggle={() => toggleSection('location')}
       >
         <CascadingLocationFilter
-          onLocationSelect={(locationSlug) => {
+          onLocationSelect={(locationSlug, _locationName) => {
             updateFilters({ location: locationSlug || undefined });
           }}
           selectedLocationSlug={selectedLocation || null}
@@ -208,7 +208,7 @@ export default function AllAdsFilters({
             placeholder="Min"
             defaultValue={minPrice}
             onBlur={(e) => updateFilters({ minPrice: e.target.value || undefined })}
-            className="flex-1 px-2 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="flex-1 px-2 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
           />
           <span className="text-gray-500">-</span>
           <input
@@ -216,7 +216,7 @@ export default function AllAdsFilters({
             placeholder="Max"
             defaultValue={maxPrice}
             onBlur={(e) => updateFilters({ maxPrice: e.target.value || undefined })}
-            className="flex-1 px-2 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="flex-1 px-2 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
           />
         </div>
       </FilterSection>

@@ -80,7 +80,7 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
   useEffect(() => {
     if (authLoading) return;
 
-    if (!staff || !isEditor()) {
+    if (!staff || !(isEditor as unknown as () => boolean)()) {
       router.push(`/${params.lang}/editor/login`);
       return;
     }

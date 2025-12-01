@@ -272,7 +272,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
                   <div className="text-4xl mb-3 animate-bounce">⏳</div>
                   <div className="text-amber-900 font-bold text-lg mb-2">Under Review</div>
                   <div className="text-amber-800 text-sm">
-                    We're reviewing your verification. This usually takes 24-48 hours. You'll receive an email notification once completed.
+                    We&apos;re reviewing your verification. This usually takes 24-48 hours. You&apos;ll receive an email notification once completed.
                   </div>
                 </div>
               )}
@@ -411,7 +411,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
                   <div className="text-4xl mb-3 animate-bounce">⏳</div>
                   <div className="text-amber-900 font-bold text-lg mb-2">Under Review</div>
                   <div className="text-amber-800 text-sm">
-                    We're reviewing your verification. This usually takes 24-48 hours. You'll receive an email notification once completed.
+                    We&apos;re reviewing your verification. This usually takes 24-48 hours. You&apos;ll receive an email notification once completed.
                   </div>
                 </div>
               )}
@@ -446,7 +446,7 @@ export default function VerificationPage({ params }: VerificationPageProps) {
                 How long does verification take?
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                Most verifications are reviewed within 24-48 hours. You'll receive an email notification once your verification is processed.
+                Most verifications are reviewed within 24-48 hours. You&apos;ll receive an email notification once your verification is processed.
               </p>
             </div>
 
@@ -474,10 +474,10 @@ export default function VerificationPage({ params }: VerificationPageProps) {
             <div className="bg-gradient-to-br from-rose-50 to-red-50 rounded-2xl p-6 hover:shadow-lg transition-shadow">
               <h3 className="font-bold text-gray-900 text-lg mb-3 flex items-center gap-2">
                 <span className="text-rose-600">🔄</span>
-                What if I'm rejected?
+                What if I&apos;m rejected?
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                You'll receive detailed feedback on why your application was rejected. You can then reapply with corrected information at no additional cost.
+                You&apos;ll receive detailed feedback on why your application was rejected. You can then reapply with corrected information at no additional cost.
               </p>
             </div>
           </div>

@@ -11,21 +11,24 @@
     "./services": "./src/services/index.ts",
     "./hooks": "./src/hooks/index.ts"
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "socket.io-client": "^4.7.2",
-    "date-fns": "^2.30.0"
+    "date-fns": "^4.1.0",
+    "socket.io-client": "^4.7.2"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
+    "@types/node": "^24.10.1",
     "typescript": "^5.3.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0 || ^19.0.0"
   }
 }

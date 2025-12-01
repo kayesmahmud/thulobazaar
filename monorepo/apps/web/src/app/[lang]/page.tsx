@@ -117,11 +117,11 @@ export default async function HomePage({ params }: HomePageProps) {
         </div>
 
         {/* Content */}
-        <div className="relative max-w-screen-desktop mx-auto px-4 py-16 tablet:py-24 text-center text-white">
-          <h1 className="text-4xl tablet:text-5xl desktop:text-6xl font-bold mb-4 animate-fade-in-up">
+        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24 text-center text-white">
+          <h1 className="text-4xl md:text-5xl xl:text-6xl font-bold mb-4 animate-fade-in-up">
             Buy, Sell, and Rent Across Nepal
           </h1>
-          <p className="text-lg tablet:text-xl opacity-90 mb-8">
+          <p className="text-lg md:text-xl opacity-90 mb-8">
             Nepal&apos;s Leading Classifieds Marketplace
           </p>
 
@@ -129,7 +129,7 @@ export default async function HomePage({ params }: HomePageProps) {
           <HeroSearch lang={lang} />
 
           {/* CTA Buttons */}
-          <div className="flex flex-col mobile:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href={`/${lang}/post-ad`}
               className="px-8 py-4 bg-white text-indigo-600 rounded-xl font-bold hover:bg-gray-50 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 inline-flex items-center justify-center gap-2 no-underline"
@@ -147,7 +147,7 @@ export default async function HomePage({ params }: HomePageProps) {
       </div>
 
       {/* Categories Section */}
-      <div className="max-w-screen-desktop mx-auto py-16 px-4">
+      <div className="max-w-7xl mx-auto py-16 px-4">
         <div className="flex justify-between items-end mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -159,7 +159,7 @@ export default async function HomePage({ params }: HomePageProps) {
           </div>
           <Link
             href={`/${lang}/all-ads`}
-            className="text-primary hover:text-primary-hover font-semibold flex items-center gap-1 no-underline transition-colors"
+            className="text-rose-500 hover:text-rose-600 font-semibold flex items-center gap-1 no-underline transition-colors"
           >
             View All
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,17 +168,17 @@ export default async function HomePage({ params }: HomePageProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 mobile:grid-cols-3 tablet:grid-cols-4 desktop:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/${lang}/ads/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, '-')}`}
-              className="group bg-white rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-primary transition-all duration-300 hover:shadow-lg hover:-translate-y-1 no-underline"
+              className="group bg-white rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-rose-500 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 no-underline"
             >
               <div className="text-5xl mb-3 transition-transform duration-300 group-hover:scale-110">
                 {category.icon || '📁'}
               </div>
-              <div className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
+              <div className="font-semibold text-gray-900 group-hover:text-rose-500 transition-colors">
                 {category.name}
               </div>
             </Link>
@@ -187,14 +187,14 @@ export default async function HomePage({ params }: HomePageProps) {
       </div>
 
       {/* Latest Ads Section */}
-      <div className="max-w-screen-desktop mx-auto py-12 px-4 mb-12">
+      <div className="max-w-7xl mx-auto py-12 px-4 mb-12">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900">
             Latest Ads
           </h2>
           <Link
             href={`/${lang}/all-ads`}
-            className="text-primary hover:text-primary-hover font-semibold flex items-center gap-1 no-underline transition-colors"
+            className="text-rose-500 hover:text-rose-600 font-semibold flex items-center gap-1 no-underline transition-colors"
           >
             View All Ads
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,13 +214,13 @@ export default async function HomePage({ params }: HomePageProps) {
             </p>
             <Link
               href={`/${lang}/post-ad`}
-              className="inline-block px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors no-underline"
+              className="inline-block px-6 py-3 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-600 transition-colors no-underline"
             >
               Post Free Ad
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 mobile:grid-cols-2 tablet:grid-cols-3 desktop:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {latestAds.map((ad) => (
               <AdCard
                 key={ad.id}
@@ -252,7 +252,7 @@ export default async function HomePage({ params }: HomePageProps) {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8 text-center">
-        <div className="max-w-screen-desktop mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <p className="text-gray-300">&copy; 2025 Thulobazaar. All rights reserved.</p>
           <p className="text-sm mt-2 text-gray-400">
             Built with Next.js 15 + TypeScript + Tailwind CSS

@@ -37,8 +37,13 @@ export function useSocket({ token, autoConnect = true }: UseSocketOptions) {
       return;
     }
 
-    // Create socket instance with JWT authentication
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    // Require explicit backend URL to avoid spamming localhost:5000 when backend isn't running
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl) {
+      console.warn('⚠️ [useSocket] No NEXT_PUBLIC_BACKEND_URL set, skipping socket connection');
+      return;
+    }
+
     console.log('🔌 [useSocket] Connecting to:', backendUrl);
 
     const socket = io(backendUrl, {

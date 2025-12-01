@@ -1,12 +1,11 @@
-// @ts-nocheck
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@thulobazaar/database';
-import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import Link from 'next/link';
 import ShopProfileClient from './ShopProfileClient';
 import ShopSidebar from './ShopSidebar';
 import AdCard from '@/components/AdCard';
+import { getShopProfile, buildShopMetadata } from '@/lib/shops';
 
 interface ShopProfilePageProps {
   params: Promise<{ lang: string; shopSlug: string }>;
@@ -16,35 +15,9 @@ export async function generateMetadata({ params }: ShopProfilePageProps): Promis
   const { shopSlug } = await params;
 
   try {
-    // Extract user ID from slug (format: business-name-{userId})
-    const parts = shopSlug.split('-');
-    const lastPart = parts[parts.length - 1] || '';
-    const userId = parseInt(lastPart);
-
-    // Only query if we have a valid user ID
-    if (!isNaN(userId) && userId > 0) {
-      const shop = await prisma.users.findFirst({
-        where: {
-          id: userId,
-          business_verification_status: { in: ['approved', 'verified'] },
-        },
-        select: {
-          full_name: true,
-          business_name: true,
-          business_description: true,
-          bio: true,
-        },
-      });
-
-      if (shop) {
-        const displayName = shop.business_name || shop.full_name;
-        const description = shop.business_description || shop.bio;
-
-        return {
-          title: `${displayName} - Shop | Thulobazaar`,
-          description: description?.substring(0, 160) || `Shop profile for ${displayName}. Browse products and contact the seller.`,
-        };
-      }
+    const shop = await getShopProfile(shopSlug);
+    if (shop) {
+      return buildShopMetadata(shop);
     }
   } catch (error) {
     console.error('Error fetching shop metadata:', error);
@@ -59,92 +32,7 @@ export async function generateMetadata({ params }: ShopProfilePageProps): Promis
 export default async function ShopProfilePage({ params }: ShopProfilePageProps) {
   const { lang, shopSlug } = await params;
 
-  // First, try to find by shop_slug (auto-generated) or custom_shop_slug (user-defined)
-  let shop = await prisma.users.findFirst({
-    where: {
-      OR: [
-        { shop_slug: shopSlug },
-        { custom_shop_slug: shopSlug },
-      ],
-      business_verification_status: { in: ['approved', 'verified'] },
-    },
-    select: {
-      id: true,
-      email: true,
-      full_name: true,
-      phone: true,
-      avatar: true,
-      cover_photo: true,
-      bio: true,
-      account_type: true,
-      shop_slug: true,
-      seller_slug: true,
-      business_name: true,
-      business_category: true,
-      business_description: true,
-      business_website: true,
-      business_phone: true,
-      business_address: true,
-      google_maps_link: true,
-      business_verification_status: true,
-      individual_verified: true,
-      created_at: true,
-      locations: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-    },
-  });
-
-  // If not found by custom slug, try extracting user ID from slug (format: business-name-{userId})
-  if (!shop) {
-    const parts = shopSlug.split('-');
-    const lastPart = parts[parts.length - 1] || '';
-    const userId = parseInt(lastPart);
-
-    // Only query if we have a valid user ID
-    if (!isNaN(userId) && userId > 0) {
-      shop = await prisma.users.findFirst({
-        where: {
-          id: userId,
-          business_verification_status: { in: ['approved', 'verified'] },
-        },
-      select: {
-        id: true,
-        email: true,
-        full_name: true,
-        phone: true,
-        avatar: true,
-        cover_photo: true,
-        bio: true,
-        account_type: true,
-        shop_slug: true,
-        seller_slug: true,
-        business_name: true,
-        business_category: true,
-        business_description: true,
-        business_website: true,
-        business_phone: true,
-        business_address: true,
-        google_maps_link: true,
-        business_verification_status: true,
-        individual_verified: true,
-        created_at: true,
-        locations: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-      },
-      });
-    }
-  }
-
+  const shop = await getShopProfile(shopSlug);
   if (!shop) {
     notFound();
   }
@@ -184,42 +72,42 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
 
   // Calculate stats
   const stats = {
-    total_ads: ads.length,
-    total_views: ads.reduce((sum, ad) => sum + (ad.view_count || 0), 0),
-    featured_ads: ads.filter(ad => ad.is_featured).length,
+    totalAds: ads.length,
+    totalViews: ads.reduce((sum, ad) => sum + (ad.view_count || 0), 0),
+    featuredAds: ads.filter(ad => ad.is_featured).length,
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-screen-desktop mx-auto px-3 sm:px-4 py-2 sm:py-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
-            <Link href={`/${lang}`} className="text-primary hover:underline">
+            <Link href={`/${lang}`} className="text-rose-500 hover:underline">
               Home
             </Link>
             <span>/</span>
-            <span className="text-gray-900 truncate">{shop.business_name || shop.full_name}</span>
+            <span className="text-gray-900 truncate">{shop.businessName || shop.fullName}</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-screen-desktop mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         {/* Cover Photo & Avatar - Rendered by Client Component */}
         <ShopProfileClient
           shopId={shop.id}
           shopSlug={shopSlug}
           lang={lang}
           initialAvatar={shop.avatar}
-          initialCover={shop.cover_photo}
-          shopName={shop.business_name || shop.full_name}
-          businessVerificationStatus={shop.business_verification_status}
-          individualVerified={shop.individual_verified}
-          accountType={shop.account_type}
+          initialCover={shop.coverPhoto}
+          shopName={shop.businessName || shop.fullName}
+          businessVerificationStatus={shop.businessVerificationStatus}
+          individualVerified={shop.individualVerified}
+          accountType={shop.accountType}
           stats={{
-            total_ads: stats.total_ads,
-            total_views: stats.total_views,
-            member_since: new Date(shop.created_at || '').toLocaleDateString('en-US', {
+            total_ads: stats.totalAds,
+            total_views: stats.totalViews,
+            member_since: new Date(shop.createdAt || '').toLocaleDateString('en-US', {
               month: 'short',
               year: 'numeric',
             }),
@@ -235,22 +123,22 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
             lang={lang}
             isOwner={false} // Will be determined on client side
             bio={shop.bio}
-            businessDescription={shop.business_description}
-            businessPhone={shop.business_phone}
+            businessDescription={shop.businessDescription}
+            businessPhone={shop.businessPhone}
             phone={shop.phone}
-            businessWebsite={shop.business_website}
-            googleMapsLink={shop.google_maps_link}
-            businessAddress={shop.business_address}
-            locationName={shop.locations?.name || null}
-            accountType={shop.account_type}
-            businessVerificationStatus={shop.business_verification_status}
-            individualVerified={shop.individual_verified}
+            businessWebsite={shop.businessWebsite}
+            googleMapsLink={shop.googleMapsLink}
+            businessAddress={shop.businessAddress}
+            locationName={shop.location?.name ?? ''}
+            accountType={shop.accountType || 'individual'}
+            businessVerificationStatus={shop.businessVerificationStatus}
+            individualVerified={shop.individualVerified}
           />
 
           {/* Right Side - Ads Grid */}
           <div>
             <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-4 sm:mb-5 md:mb-6">
-              Ads from {shop.business_name || shop.full_name} ({stats.total_ads})
+              Ads from {shop.businessName || shop.fullName} ({stats.totalAds})
             </h2>
 
             {ads.length === 0 ? (
@@ -274,14 +162,14 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
                       categoryName: ad.categories?.name || null,
                       categoryIcon: ad.categories?.icon || null,
                       createdAt: ad.created_at || new Date(),
-                      sellerName: shop.business_name || shop.full_name,
+                      sellerName: shop.businessName || shop.fullName,
                       isFeatured: ad.is_featured || false,
                       isUrgent: ad.is_urgent || false,
                       condition: ad.condition || null,
                       slug: ad.slug || undefined,
-                      accountType: shop.account_type || undefined,
-                      businessVerificationStatus: shop.business_verification_status || undefined,
-                      individualVerified: shop.individual_verified || false,
+                      accountType: shop.accountType || undefined,
+                      businessVerificationStatus: shop.businessVerificationStatus || undefined,
+                      individualVerified: shop.individualVerified || false,
                     }}
                   />
                 ))}

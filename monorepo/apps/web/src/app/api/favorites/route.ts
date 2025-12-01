@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         id: fav.ads.id,
         title: fav.ads.title,
         description: fav.ads.description,
-        price: parseFloat(fav.ads.price.toString()),
+        price: fav.ads.price ? parseFloat(fav.ads.price.toString()) : null,
         condition: fav.ads.condition,
         status: fav.ads.status,
         slug: fav.ads.slug,
@@ -91,16 +91,20 @@ export async function GET(request: NextRequest) {
         isFeatured: fav.ads.is_featured,
         isUrgent: fav.ads.is_urgent,
         createdAt: fav.ads.created_at,
-        category: {
-          id: fav.ads.categories.id,
-          name: fav.ads.categories.name,
-          slug: fav.ads.categories.slug,
-        },
-        location: {
-          id: fav.ads.locations.id,
-          name: fav.ads.locations.name,
-          type: fav.ads.locations.type,
-        },
+        category: fav.ads.categories
+          ? {
+              id: fav.ads.categories.id,
+              name: fav.ads.categories.name,
+              slug: fav.ads.categories.slug,
+            }
+          : null,
+        location: fav.ads.locations
+          ? {
+              id: fav.ads.locations.id,
+              name: fav.ads.locations.name,
+              type: fav.ads.locations.type,
+            }
+          : null,
         primaryImage: fav.ads.ad_images[0]?.file_path || null,
       },
     }));

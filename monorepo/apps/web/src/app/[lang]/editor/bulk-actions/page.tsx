@@ -25,53 +25,56 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
   const { staff, isLoading: authLoading, isEditor, logout } = useStaffAuth();
 
   const [actionMode, setActionMode] = useState<ActionMode>('ads');
-  const [items, setItems] = useState<BulkItem[]>([
-    {
-      id: 1,
-      type: 'ad',
-      title: 'iPhone 13 Pro Max for Sale',
-      subtitle: 'Electronics • NPR 95,000',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      metadata: { category: 'Electronics', userId: 123 },
-    },
-    {
-      id: 2,
-      type: 'ad',
-      title: 'Toyota Corolla 2020 Model',
-      subtitle: 'Vehicles • NPR 3,200,000',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-      metadata: { category: 'Vehicles', userId: 124 },
-    },
-    {
-      id: 3,
-      type: 'ad',
-      title: 'Apartment for Rent in Kathmandu',
-      subtitle: 'Real Estate • NPR 25,000/month',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      metadata: { category: 'Real Estate', userId: 125 },
-    },
-    {
-      id: 4,
-      type: 'ad',
-      title: 'Samsung Galaxy S23 Ultra',
-      subtitle: 'Electronics • NPR 145,000',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      metadata: { category: 'Electronics', userId: 126 },
-    },
-    {
-      id: 5,
-      type: 'ad',
-      title: 'MacBook Pro M2 2023',
-      subtitle: 'Electronics • NPR 250,000',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      metadata: { category: 'Electronics', userId: 127 },
-    },
-  ]);
+  const [items, setItems] = useState<BulkItem[]>(() => {
+    const now = Date.now();
+    return [
+      {
+        id: 1,
+        type: 'ad',
+        title: 'iPhone 13 Pro Max for Sale',
+        subtitle: 'Electronics • NPR 95,000',
+        status: 'pending',
+        createdAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+        metadata: { category: 'Electronics', userId: 123 },
+      },
+      {
+        id: 2,
+        type: 'ad',
+        title: 'Toyota Corolla 2020 Model',
+        subtitle: 'Vehicles • NPR 3,200,000',
+        status: 'pending',
+        createdAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
+        metadata: { category: 'Vehicles', userId: 124 },
+      },
+      {
+        id: 3,
+        type: 'ad',
+        title: 'Apartment for Rent in Kathmandu',
+        subtitle: 'Real Estate • NPR 25,000/month',
+        status: 'pending',
+        createdAt: new Date(now - 1 * 60 * 60 * 1000).toISOString(),
+        metadata: { category: 'Real Estate', userId: 125 },
+      },
+      {
+        id: 4,
+        type: 'ad',
+        title: 'Samsung Galaxy S23 Ultra',
+        subtitle: 'Electronics • NPR 145,000',
+        status: 'pending',
+        createdAt: new Date(now - 4 * 60 * 60 * 1000).toISOString(),
+        metadata: { category: 'Electronics', userId: 126 },
+      },
+      {
+        id: 5,
+        type: 'ad',
+        title: 'MacBook Pro M2 2023',
+        subtitle: 'Electronics • NPR 250,000',
+        status: 'pending',
+        createdAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
+        metadata: { category: 'Electronics', userId: 127 },
+      },
+    ];
+  });
 
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -96,6 +99,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
   // Clear selections when switching modes
   useEffect(() => {
     setSelectedItems(new Set());
+    const now = Date.now();
     // In a real app, fetch items based on actionMode
     if (actionMode === 'users') {
       setItems([
@@ -105,7 +109,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'john.doe@example.com',
           subtitle: 'Active • 12 ads posted',
           status: 'active',
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
           metadata: { adCount: 12 },
         },
         {
@@ -114,7 +118,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'jane.smith@example.com',
           subtitle: 'Active • 8 ads posted',
           status: 'active',
-          createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 48 * 60 * 60 * 1000).toISOString(),
           metadata: { adCount: 8 },
         },
         {
@@ -123,7 +127,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'spam.user@example.com',
           subtitle: 'Flagged • 45 ads posted',
           status: 'flagged',
-          createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 12 * 60 * 60 * 1000).toISOString(),
           metadata: { adCount: 45 },
         },
       ]);
@@ -135,7 +139,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'ABC Electronics Pvt Ltd',
           subtitle: 'Business Verification • Pending',
           status: 'pending',
-          createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 72 * 60 * 60 * 1000).toISOString(),
           metadata: { businessType: 'Electronics' },
         },
         {
@@ -144,7 +148,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'XYZ Trading Company',
           subtitle: 'Business Verification • Pending',
           status: 'pending',
-          createdAt: new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 96 * 60 * 60 * 1000).toISOString(),
           metadata: { businessType: 'Trading' },
         },
       ]);
@@ -156,7 +160,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'iPhone 13 Pro Max for Sale',
           subtitle: 'Electronics • NPR 95,000',
           status: 'pending',
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
           metadata: { category: 'Electronics', userId: 123 },
         },
         {
@@ -165,7 +169,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'Toyota Corolla 2020 Model',
           subtitle: 'Vehicles • NPR 3,200,000',
           status: 'pending',
-          createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
           metadata: { category: 'Vehicles', userId: 124 },
         },
         {
@@ -174,7 +178,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'Apartment for Rent in Kathmandu',
           subtitle: 'Real Estate • NPR 25,000/month',
           status: 'pending',
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 1 * 60 * 60 * 1000).toISOString(),
           metadata: { category: 'Real Estate', userId: 125 },
         },
         {
@@ -183,7 +187,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'Samsung Galaxy S23 Ultra',
           subtitle: 'Electronics • NPR 145,000',
           status: 'pending',
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 4 * 60 * 60 * 1000).toISOString(),
           metadata: { category: 'Electronics', userId: 126 },
         },
         {
@@ -192,7 +196,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           title: 'MacBook Pro M2 2023',
           subtitle: 'Electronics • NPR 250,000',
           status: 'pending',
-          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          createdAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
           metadata: { category: 'Electronics', userId: 127 },
         },
       ]);
@@ -513,7 +517,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
           <div className="space-y-2 text-sm text-blue-800">
             <p>1. Select the type of items you want to work with (Ads, Users, or Verifications)</p>
             <p>2. Use the search box to filter items if needed</p>
-            <p>3. Check the boxes next to items you want to include, or use "Select All"</p>
+            <p>3. Check the boxes next to items you want to include, or use &quot;Select All&quot;</p>
             <p>4. Click the appropriate action button (Approve, Reject, Delete, etc.)</p>
             <p>5. Confirm your action and provide a reason if required</p>
           </div>
@@ -561,7 +565,7 @@ export default function BulkActionsPage({ params: paramsPromise }: { params: Pro
               </button>
               <button
                 onClick={confirmBulkOperation}
-                disabled={needsReason && !operationReason.trim()}
+                disabled={Boolean(needsReason) && !operationReason.trim()}
                 className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm Action

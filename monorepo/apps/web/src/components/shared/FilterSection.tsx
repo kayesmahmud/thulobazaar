@@ -22,7 +22,7 @@ export default function FilterSection({ title, count, isExpanded, onToggle, chil
         <span className="font-semibold flex items-center gap-2">
           {title}
           {count > 0 && (
-            <span className="bg-primary text-white rounded-full px-2 py-0.5 text-xs font-bold">
+            <span className="bg-rose-500 text-white rounded-full px-2 py-0.5 text-xs font-bold">
               {count}
             </span>
           )}

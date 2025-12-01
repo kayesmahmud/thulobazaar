@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
         area_id as id,
         area_name as name,
         area_name_np as name_np,
-        ward_number,
         municipality_name,
         municipality_id,
         district_name,

@@ -1,34 +1,53 @@
 import { NextRequest } from 'next/server';
 import { jwtVerify, SignJWT } from 'jose';
+import { getToken as getNextAuthToken } from 'next-auth/jwt';
 
 // Get JWT secret from environment
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
 );
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || '';
 
 export interface JWTPayload {
   userId: number;
   email: string;
   role: string;
+  [key: string]: unknown;  // Index signature for jose compatibility
 }
 
 /**
  * Verify JWT token from Authorization header
  */
 export async function verifyToken(request: NextRequest): Promise<JWTPayload | null> {
+  // First, check Authorization header (used by backend-issued JWT)
   const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const verified = await jwtVerify(token, JWT_SECRET);
+      return verified.payload as unknown as JWTPayload;
+    } catch (error) {
+      console.error('JWT verification error:', error);
+    }
   }
 
-  const token = authHeader.substring(7);
-  try {
-    const verified = await jwtVerify(token, JWT_SECRET);
-    return verified.payload as JWTPayload;
-  } catch (error) {
-    console.error('JWT verification error:', error);
-    return null;
+  // Fallback: try NextAuth JWT from cookies (browser session)
+  if (NEXTAUTH_SECRET) {
+    try {
+      const nextAuthToken = await getNextAuthToken({ req: request as any, secret: NEXTAUTH_SECRET });
+      if (nextAuthToken?.id) {
+        return {
+          userId: parseInt(nextAuthToken.id as string, 10),
+          email: (nextAuthToken.email as string) || '',
+          role: (nextAuthToken.role as string) || 'user',
+        };
+      }
+    } catch (error) {
+      console.error('NextAuth token verification error:', error);
+    }
   }
+
+  return null;
 }
 
 /**

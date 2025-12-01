@@ -76,15 +76,7 @@ export async function GET(
             parent_id: true,
           },
         },
-        areas: {
-          select: {
-            id: true,
-            name: true,
-            name_np: true,
-            ward_number: true,
-            municipality_id: true,
-          },
-        },
+        // Note: 'areas' relation doesn't exist in schema - removed
         users_ads_user_idTousers: {
           select: {
             id: true,
@@ -182,15 +174,7 @@ export async function GET(
           }
         : null,
       locationHierarchy,
-      area: ad.areas
-        ? {
-            id: ad.areas.id,
-            name: ad.areas.name,
-            nameNp: ad.areas.name_np,
-            wardNumber: ad.areas.ward_number,
-            municipalityId: ad.areas.municipality_id,
-          }
-        : null,
+      // Note: 'area' removed - relation doesn't exist in schema
       user: ad.users_ads_user_idTousers
         ? {
             id: ad.users_ads_user_idTousers.id,
@@ -459,7 +443,7 @@ export async function PUT(
           ad_id: adId,
           filename: img.filename,
           file_path: img.filePath,
-          original_name: newImages[index].name,
+          original_name: newImages[index]?.name || img.filename,
           file_size: img.fileSize,
           mime_type: img.mimeType,
           is_primary: remainingImageCount === 0 && index === 0, // First is primary if no existing images
@@ -511,7 +495,7 @@ export async function PUT(
         data: {
           id: updatedAd.id,
           title: updatedAd.title,
-          price: parseFloat(updatedAd.price.toString()),
+          price: updatedAd.price ? parseFloat(updatedAd.price.toString()) : null,
           updatedAt: updatedAd.updated_at,
           newImageCount: processedImages.length,
         },

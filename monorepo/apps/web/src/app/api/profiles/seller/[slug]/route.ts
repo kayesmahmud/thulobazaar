@@ -102,7 +102,7 @@ export async function GET(
     // Calculate stats
     const totalAds = ads.length;
     const featuredAds = ads.filter((ad) => ad.is_featured).length;
-    const totalViews = ads.reduce((sum, ad) => sum + ad.view_count, 0);
+    const totalViews = ads.reduce((sum, ad) => sum + (ad.view_count || 0), 0);
 
     // Transform
     const transformedAds = ads.map((ad) => ({

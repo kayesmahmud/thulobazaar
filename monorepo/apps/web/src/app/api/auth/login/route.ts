@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const token = await createToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role || 'user',
     });
 
     // Prepare user response (camelCase for frontend)

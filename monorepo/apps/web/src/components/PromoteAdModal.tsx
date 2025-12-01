@@ -259,8 +259,8 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
                   onClick={() => setSelectedDuration(days as 3 | 7 | 15)}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     selectedDuration === days
-                      ? 'border-primary bg-primary text-white shadow-lg'
-                      : 'border-gray-200 hover:border-primary hover:shadow-md'
+                      ? 'border-rose-500 bg-rose-500 text-white shadow-lg'
+                      : 'border-gray-200 hover:border-rose-500 hover:shadow-md'
                   }`}
                 >
                   <div className="text-2xl font-bold">{days}</div>
@@ -286,7 +286,7 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
                   <span>- NPR {savings.toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-2xl font-bold text-primary border-t-2 pt-3">
+              <div className="flex justify-between items-center text-2xl font-bold text-rose-500 border-t-2 pt-3">
                 <span>Total:</span>
                 <span>NPR {currentPrice.toLocaleString()}</span>
               </div>

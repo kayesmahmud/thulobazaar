@@ -46,7 +46,7 @@ export default function SendMessageButton({ sellerId, adId, adTitle, lang }: Sen
     }
 
     // Check if trying to message yourself
-    if (currentUserId === sellerId) {
+    if (String(currentUserId) === String(sellerId)) {
       setError('You cannot send a message to yourself');
       setTimeout(() => setError(null), 3000);
       return;

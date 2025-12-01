@@ -24,7 +24,7 @@ export default function Breadcrumb({ items = [], className = '' }: BreadcrumbPro
 
   return (
     <div className={`py-5 px-4 bg-gray-50 border-b border-gray-200 ${className}`}>
-      <div className="max-w-screen-desktop mx-auto">
+      <div className="max-w-7xl mx-auto">
         <nav className="flex items-center gap-2 text-sm text-gray-500">
           {items.map((item, index) => (
             <span key={index} className="flex items-center gap-2">
@@ -33,7 +33,7 @@ export default function Breadcrumb({ items = [], className = '' }: BreadcrumbPro
                 <span className="text-gray-900 font-medium">{item.label}</span>
               ) : (
                 <span
-                  className="text-blue-500 hover:text-blue-600 hover:underline cursor-pointer transition-colors duration-fast"
+                  className="text-blue-500 hover:text-blue-600 hover:underline cursor-pointer transition-colors duration-200"
                   onClick={() => handleItemClick(item)}
                 >
                   {item.label}

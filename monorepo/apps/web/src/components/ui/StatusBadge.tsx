@@ -84,15 +84,15 @@ export function StatusBadge({
   className = ''
 }: StatusBadgeProps) {
   const normalizedStatus = status.toLowerCase();
-  const config = statusConfig[normalizedStatus] || statusConfig.unverified;
+  const config = statusConfig[normalizedStatus] || statusConfig.unverified || { bg: 'bg-gray-100', text: 'text-gray-600', icon: '' };
 
   const label = customLabel || status.charAt(0).toUpperCase() + status.slice(1);
 
   return (
     <span
-      className={`${config.bg} ${config.text} ${sizeClasses[size]} rounded font-medium inline-flex items-center gap-1 ${className}`}
+      className={`${config?.bg || ''} ${config?.text || ''} ${sizeClasses[size]} rounded font-medium inline-flex items-center gap-1 ${className}`}
     >
-      {showIcon && <span>{config.icon}</span>}
+      {showIcon && config?.icon && <span>{config.icon}</span>}
       {label}
     </span>
   );

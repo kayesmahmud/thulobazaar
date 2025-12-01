@@ -11,12 +11,15 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx src/seed.ts"
   },
-  "dependencies": {
-    "@prisma/client": "^5.22.0"
-  },
   "devDependencies": {
-    "prisma": "^5.22.0",
+    "@prisma/client": "^7.0.1",
+    "@types/pg": "^8.15.6",
+    "prisma": "^7.0.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.0.1",
+    "pg": "^8.16.3"
   }
 }

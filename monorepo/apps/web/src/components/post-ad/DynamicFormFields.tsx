@@ -32,7 +32,7 @@ export default function DynamicFormFields({
     const inputClass = `w-full px-4 py-2.5 border-2 rounded-lg text-base transition-colors ${
       error
         ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-        : 'border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20'
+        : 'border-gray-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
     } focus:outline-none`;
 
     const labelClass = 'block mb-2 text-sm font-medium text-gray-700';
@@ -123,7 +123,7 @@ export default function DynamicFormFields({
                           : currentValues.filter(v => v !== option);
                         onChange(field.name, newValues);
                       }}
-                      className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary"
+                      className="w-4 h-4 text-rose-500 border-gray-300 rounded focus:ring-2 focus:ring-rose-500"
                     />
                     <span className="text-sm text-gray-700">{option}</span>
                   </label>
@@ -142,7 +142,7 @@ export default function DynamicFormFields({
                 type="checkbox"
                 checked={value === true}
                 onChange={(e) => onChange(field.name, e.target.checked)}
-                className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary"
+                className="w-5 h-5 text-rose-500 border-gray-300 rounded focus:ring-2 focus:ring-rose-500"
               />
               <span className="text-sm font-medium text-gray-700">
                 {field.label}

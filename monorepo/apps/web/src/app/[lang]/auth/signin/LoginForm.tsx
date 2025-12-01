@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui';
 
 interface LoginFormProps {
   lang: string;
@@ -45,11 +44,11 @@ export default function LoginForm({ lang }: LoginFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Error Message */}
       {error && (
-        <div className="bg-danger-light border border-danger text-danger px-4 py-3 rounded-lg">
-          <p className="text-sm">{error}</p>
+        <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
         </div>
       )}
 
@@ -62,7 +61,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
           id="email"
           type="email"
           required
-          className="input w-full"
+          className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
           placeholder="your@email.com"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -79,7 +78,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
           id="password"
           type="password"
           required
-          className="input w-full"
+          className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
           placeholder="Enter your password"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -93,29 +92,31 @@ export default function LoginForm({ lang }: LoginFormProps) {
           <input
             id="remember"
             type="checkbox"
-            className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+            className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500"
           />
           <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
             Remember me
           </label>
         </div>
-        <div className="text-sm">
-          <a href="#" className="link">
-            Forgot password?
-          </a>
-        </div>
+        <a href="#" className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
+          Forgot password?
+        </a>
       </div>
 
       {/* Submit Button */}
-      <Button
+      <button
         type="submit"
-        variant="primary"
-        fullWidth
-        loading={isLoading}
         disabled={isLoading}
+        className="w-full flex justify-center items-center gap-2 py-3 px-4 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
       >
+        {isLoading && (
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        )}
         {isLoading ? 'Logging in...' : 'Login'}
-      </Button>
+      </button>
     </form>
   );
 }

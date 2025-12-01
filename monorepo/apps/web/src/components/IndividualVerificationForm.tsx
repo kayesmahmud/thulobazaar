@@ -132,7 +132,7 @@ export default function IndividualVerificationForm({
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <h2 className="text-2xl font-bold text-primary mb-6">
+          <h2 className="text-2xl font-bold text-rose-500 mb-6">
             Individual Seller Verification
           </h2>
 
@@ -159,7 +159,7 @@ export default function IndividualVerificationForm({
               onChange={handleInputChange}
               placeholder="Enter your full name exactly as shown on ID"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
             <p className="text-sm text-gray-500 mt-1">
               This name will be verified against your ID document and displayed with blue badge
@@ -188,7 +188,7 @@ export default function IndividualVerificationForm({
               name="idType"
               value={formData.idType}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             >
               <option value="citizenship">Citizenship</option>
               <option value="passport">Passport</option>
@@ -212,7 +212,7 @@ export default function IndividualVerificationForm({
               onChange={handleInputChange}
               placeholder="Enter your ID number"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
           </div>
 
@@ -231,7 +231,7 @@ export default function IndividualVerificationForm({
               accept="image/*,.pdf"
               onChange={handleFileChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
             <p className="text-sm text-gray-500 mt-1">
               Upload clear photo of front side (Max 5MB)
@@ -253,7 +253,7 @@ export default function IndividualVerificationForm({
               accept="image/*,.pdf"
               onChange={handleFileChange}
               required={formData.idType !== 'passport'}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
             <p className="text-sm text-gray-500 mt-1">
               {formData.idType === 'passport'
@@ -277,7 +277,7 @@ export default function IndividualVerificationForm({
               accept="image/*"
               onChange={handleFileChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
             <p className="text-sm text-gray-500 mt-1">
               Take a clear selfie holding your ID document next to your face (Max 5MB)

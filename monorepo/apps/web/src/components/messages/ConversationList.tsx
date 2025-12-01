@@ -12,8 +12,7 @@ interface ConversationListProps {
   selectedConversation: any | null;
   onSelectConversation: (conversation: any) => void;
   loading: boolean;
-  onRefresh: () => void;
-  onNewMessage?: () => void; // NEW: Callback to open new message modal
+  onNewMessage?: () => void; // Callback to open new message modal
   currentUserId?: number; // Current logged-in user ID
 }
 
@@ -22,7 +21,6 @@ export default function ConversationList({
   selectedConversation,
   onSelectConversation,
   loading,
-  onRefresh,
   onNewMessage,
   currentUserId,
 }: ConversationListProps) {
@@ -43,40 +41,23 @@ export default function ConversationList({
       <div className="p-4 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">Messages</h2>
-          <div className="flex items-center space-x-2">
-            {/* New Message Button */}
-            {onNewMessage && (
-              <button
-                onClick={onNewMessage}
-                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition"
-                title="New Message"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </button>
-            )}
-            {/* Refresh Button */}
+          {/* New Message Button */}
+          {onNewMessage && (
             <button
-              onClick={onRefresh}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
-              title="Refresh"
+              onClick={onNewMessage}
+              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition"
+              title="New Message"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  d="M12 4v16m8-8H4"
                 />
               </svg>
             </button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -104,7 +85,7 @@ export default function ConversationList({
           <ul className="divide-y divide-gray-200">
             {conversations.map((conversation) => {
               const isSelected = selectedConversation?.id === conversation.id;
-              const hasUnread = conversation.unread_count > 0;
+              const hasUnread = (conversation.unreadCount || conversation.unread_count || 0) > 0;
 
               // Get other participants (not current user)
               // Filter out current user from participants list
@@ -148,9 +129,9 @@ export default function ConversationList({
                         <p className={`text-sm font-medium text-gray-900 truncate ${hasUnread ? 'font-bold' : ''}`}>
                           {conversation.title || otherParticipant?.fullName || 'Unknown User'}
                         </p>
-                        {conversation.last_message?.createdAt && (
+                        {(conversation.lastMessage?.createdAt || conversation.last_message?.createdAt) && (
                           <p className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(conversation.last_message.createdAt), {
+                            {formatDistanceToNow(new Date(conversation.lastMessage?.createdAt || conversation.last_message?.createdAt), {
                               addSuffix: true,
                             })}
                           </p>
@@ -158,10 +139,10 @@ export default function ConversationList({
                       </div>
 
                       {/* Last message preview */}
-                      {conversation.last_message && (
+                      {(conversation.lastMessage || conversation.last_message) && (
                         <p className={`mt-1 text-sm text-gray-600 line-clamp-2 ${hasUnread ? 'font-semibold' : ''}`}>
-                          {conversation.last_message.type === 'text'
-                            ? conversation.last_message.content
+                          {(conversation.lastMessage?.type || conversation.last_message?.type) === 'text'
+                            ? (conversation.lastMessage?.content || conversation.last_message?.content)
                             : '📎 Attachment'}
                         </p>
                       )}
@@ -169,17 +150,17 @@ export default function ConversationList({
                       {/* Unread count */}
                       {hasUnread && (
                         <span className="mt-1 inline-block bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                          {conversation.unread_count}
+                          {conversation.unreadCount || conversation.unread_count}
                         </span>
                       )}
 
                       {/* Ad link if exists */}
-                      {conversation.ad_info && (
+                      {(conversation.ad || conversation.ad_info) && (
                         <div className="mt-1 flex items-center text-xs text-gray-500">
                           <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                           </svg>
-                          <span className="truncate">{conversation.ad_info.title}</span>
+                          <span className="truncate">{conversation.ad?.title || conversation.ad_info?.title}</span>
                         </div>
                       )}
                     </div>

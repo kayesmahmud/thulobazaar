@@ -165,7 +165,7 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
         avatar: editorInfo.avatar,
         status: editorInfo.is_active ? 'active' : 'suspended',
         createdAt: editorInfo.created_at,
-        lastLogin: editorInfo.last_login || null,
+        lastLogin: (editorInfo as any).last_login || null,
         stats,
         activities,
         adWork,
@@ -194,7 +194,7 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
   }, [authLoading, staff, isSuperAdmin, lang, router, loadEditorData]);
 
   const navSections = getSuperAdminNavSections(lang, {
-    ads: 23,
+    pendingAds: 23,
     editors: 5,
     verifications: 15,
   });
@@ -295,7 +295,7 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
         <div className="text-center py-12">
           <div className="text-6xl mb-4">😔</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Editor Not Found</h2>
-          <p className="text-gray-600 mb-6">The editor you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-6">The editor you&apos;re looking for doesn&apos;t exist.</p>
           <button
             onClick={() => router.push(`/${lang}/super-admin/editors`)}
             className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"

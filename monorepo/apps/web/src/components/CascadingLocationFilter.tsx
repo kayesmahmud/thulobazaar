@@ -73,14 +73,16 @@ interface SearchResult {
 }
 
 interface CascadingLocationFilterProps {
-  onLocationSelect: (locationSlug: string | null) => void;
+  onLocationSelect: (locationSlug: string | null, locationName?: string | null) => void;
   selectedLocationSlug?: string | null;
+  selectedLocationName?: string | null;
   initialProvinces?: Province[];
 }
 
 export default function CascadingLocationFilter({
   onLocationSelect,
   selectedLocationSlug,
+  selectedLocationName,
   initialProvinces,
 }: CascadingLocationFilterProps) {
   const [provinces, setProvinces] = useState<Province[]>(initialProvinces || []);
@@ -92,13 +94,23 @@ export default function CascadingLocationFilter({
   const [areasCache, setAreasCache] = useState<Record<number, Area[]>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Search states
-  const [searchTerm, setSearchTerm] = useState('');
+  // Search states - initialize with selected location name if provided
+  const [searchTerm, setSearchTerm] = useState(selectedLocationName || '');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLDivElement>(null);
+
+  // Update search term when selected location name changes (e.g., on navigation)
+  useEffect(() => {
+    if (selectedLocationName) {
+      setSearchTerm(selectedLocationName);
+    } else if (!selectedLocationSlug) {
+      // Clear search term when no location is selected
+      setSearchTerm('');
+    }
+  }, [selectedLocationName, selectedLocationSlug]);
 
   const hydrateCachesFromHierarchy = useCallback((hierarchy: Province[]) => {
     if (!hierarchy || hierarchy.length === 0) {
@@ -164,7 +176,7 @@ export default function CascadingLocationFilter({
       setIsLoading(true);
       const response = await apiClient.getHierarchy();
       if (response.success && response.data) {
-        const fetched = response.data as Province[];
+        const fetched = response.data as unknown as Province[];
         setProvinces(fetched);
         hydrateCachesFromHierarchy(fetched);
       }
@@ -184,7 +196,7 @@ export default function CascadingLocationFilter({
       if (response.success && response.data) {
         setDistrictsCache(prev => ({
           ...prev,
-          [provinceId]: response.data as District[]
+          [provinceId]: response.data as unknown as District[]
         }));
       }
     } catch (error) {
@@ -203,7 +215,7 @@ export default function CascadingLocationFilter({
       if (response.success && response.data) {
         setMunicipalitiesCache(prev => ({
           ...prev,
-          [districtId]: response.data as Municipality[]
+          [districtId]: response.data as unknown as Municipality[]
         }));
       }
     } catch (error) {
@@ -222,7 +234,7 @@ export default function CascadingLocationFilter({
       if (response.success && response.data) {
         setAreasCache(prev => ({
           ...prev,
-          [municipalityId]: response.data as Area[]
+          [municipalityId]: response.data as unknown as Area[]
         }));
       }
     } catch (error) {
@@ -318,7 +330,7 @@ export default function CascadingLocationFilter({
   const handleAutocompleteSelect = (result: SearchResult) => {
     setSearchTerm(result.name);
     setShowAutocomplete(false);
-    onLocationSelect(result.slug);
+    onLocationSelect(result.slug, result.name);
   };
 
   // Close autocomplete when clicking outside
@@ -377,7 +389,11 @@ export default function CascadingLocationFilter({
           value={searchTerm}
           onChange={handleSearchChange}
           placeholder="Search location..."
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent ${
+            selectedLocationSlug
+              ? 'border-rose-500 text-rose-600 font-semibold bg-rose-50'
+              : 'border-gray-300'
+          }`}
           aria-label="Search location"
           aria-autocomplete="list"
           aria-controls="location-autocomplete"
@@ -409,7 +425,7 @@ export default function CascadingLocationFilter({
                   aria-selected={selectedLocationSlug === result.slug}
                   onClick={() => handleAutocompleteSelect(result)}
                   className={`w-full px-3 py-2 text-left border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${
-                    selectedLocationSlug === result.slug ? 'bg-indigo-50 text-primary font-semibold' : 'text-gray-800'
+                    selectedLocationSlug === result.slug ? 'bg-indigo-50 text-rose-500 font-semibold' : 'text-gray-800'
                   }`}
                 >
                   <div className="text-sm font-medium">{result.name}</div>
@@ -435,6 +451,7 @@ export default function CascadingLocationFilter({
           <div className="flex items-center">
             {/* Expand/Collapse Arrow */}
             <button
+              type="button"
               onClick={() => toggleProvince(province.id)}
               className="p-2.5 border-none bg-transparent cursor-pointer flex items-center justify-center text-gray-500 transition-transform"
             >
@@ -445,12 +462,14 @@ export default function CascadingLocationFilter({
 
             {/* Province Name */}
             <button
+              type="button"
               onClick={() => {
-                onLocationSelect(province.slug);
+                setSearchTerm(province.name);
+                onLocationSelect(province.slug, province.name);
               }}
               className={`flex-1 flex items-center gap-2 py-2.5 px-2 pl-0 border-none cursor-pointer text-sm text-left transition-all ${
                 selectedLocationSlug === province.slug
-                  ? 'bg-indigo-50 text-primary font-semibold'
+                  ? 'bg-indigo-50 text-rose-500 font-semibold'
                   : 'bg-transparent text-gray-800 font-medium hover:bg-gray-50'
               }`}
             >
@@ -461,12 +480,13 @@ export default function CascadingLocationFilter({
           {/* Districts - Collapsible */}
           {expandedProvinces.has(province.id) && districtsCache[province.id] && (
             <div>
-              {districtsCache[province.id].map((district) => (
+              {(districtsCache[province.id] || []).map((district) => (
                 <div key={district.id}>
                   {/* District */}
                   <div className="flex items-center border-t border-gray-100">
                     {/* Expand/Collapse Arrow */}
                     <button
+                      type="button"
                       onClick={() => toggleDistrict(district.id)}
                       className="p-2.5 pl-6 border-none bg-transparent cursor-pointer flex items-center justify-center text-gray-500 transition-transform"
                     >
@@ -477,12 +497,14 @@ export default function CascadingLocationFilter({
 
                     {/* District Name */}
                     <button
+                      type="button"
                       onClick={() => {
-                        onLocationSelect(district.slug);
+                        setSearchTerm(district.name);
+                        onLocationSelect(district.slug, district.name);
                       }}
                       className={`flex-1 flex items-center gap-2 py-2 px-2 pl-0 border-none cursor-pointer text-[0.8125rem] text-left transition-all ${
                         selectedLocationSlug === district.slug
-                          ? 'bg-indigo-50 text-primary font-semibold'
+                          ? 'bg-indigo-50 text-rose-500 font-semibold'
                           : 'bg-transparent text-gray-600 font-normal hover:bg-gray-50 hover:text-gray-800'
                       }`}
                     >
@@ -493,12 +515,13 @@ export default function CascadingLocationFilter({
                   {/* Municipalities - Collapsible */}
                   {expandedDistricts.has(district.id) && municipalitiesCache[district.id] && (
                     <div>
-                      {municipalitiesCache[district.id].map((municipality) => (
+                      {(municipalitiesCache[district.id] || []).map((municipality) => (
                         <div key={municipality.id}>
                           {/* Municipality */}
                           <div className="flex items-center border-t border-gray-100">
                             {/* Expand/Collapse Arrow - Always show for all municipalities */}
                             <button
+                              type="button"
                               onClick={async () => {
                                 // Fetch areas if not already fetched
                                 if (!areasCache[municipality.id]) {
@@ -516,12 +539,14 @@ export default function CascadingLocationFilter({
 
                             {/* Municipality Name */}
                             <button
+                              type="button"
                               onClick={() => {
-                                onLocationSelect(municipality.slug);
+                                setSearchTerm(municipality.name);
+                                onLocationSelect(municipality.slug, municipality.name);
                               }}
                               className={`flex-1 flex items-center gap-2 py-2 px-2 pl-0 border-none cursor-pointer text-[0.8125rem] text-left transition-all ${
                                 selectedLocationSlug === municipality.slug
-                                  ? 'bg-indigo-50 text-primary font-semibold'
+                                  ? 'bg-indigo-50 text-rose-500 font-semibold'
                                   : 'bg-transparent text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-800'
                               }`}
                             >
@@ -530,17 +555,19 @@ export default function CascadingLocationFilter({
                           </div>
 
                           {/* Areas - Collapsible */}
-                          {expandedMunicipalities.has(municipality.id) && areasCache[municipality.id] && areasCache[municipality.id].length > 0 && (
+                          {expandedMunicipalities.has(municipality.id) && areasCache[municipality.id] && areasCache[municipality.id]!.length > 0 && (
                             <div className="max-h-64 overflow-y-auto overflow-x-hidden">
-                              {areasCache[municipality.id].map((area) => (
+                              {(areasCache[municipality.id] || []).map((area) => (
                                 <button
+                                  type="button"
                                   key={area.id}
                                   onClick={() => {
-                                    onLocationSelect(area.slug);
+                                    setSearchTerm(area.name);
+                                    onLocationSelect(area.slug, area.name);
                                   }}
                                   className={`w-full flex items-center gap-2 py-2 px-2 pl-20 border-none border-t border-gray-100 cursor-pointer text-[0.8125rem] text-left transition-all ${
                                     selectedLocationSlug === area.slug
-                                      ? 'bg-indigo-50 text-primary font-semibold'
+                                      ? 'bg-indigo-50 text-rose-500 font-semibold'
                                       : 'bg-transparent text-gray-400 font-normal hover:bg-gray-50 hover:text-gray-800'
                                   }`}
                                 >

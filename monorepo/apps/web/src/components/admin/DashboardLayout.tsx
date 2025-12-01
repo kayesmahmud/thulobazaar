@@ -32,6 +32,7 @@ interface DashboardLayoutProps {
   notificationCount?: number;
   theme?: AdminTheme;
   onLogout?: () => void | Promise<void>;
+  lastLogin?: string | null;
 }
 
 export function DashboardLayout({
@@ -46,6 +47,7 @@ export function DashboardLayout({
   notificationCount,
   theme = 'superadmin',
   onLogout,
+  lastLogin,
 }: DashboardLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const themeColors = getThemeColors(theme);
@@ -95,6 +97,7 @@ export function DashboardLayout({
           onLogout={onLogout}
           theme={theme}
           showDashboardButton={theme === 'editor'}
+          lastLogin={lastLogin}
         />
 
         {/* Content Area */}

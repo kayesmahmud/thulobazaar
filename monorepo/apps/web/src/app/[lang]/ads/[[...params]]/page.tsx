@@ -3,11 +3,8 @@ import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
 import AdsFilter from '@/components/AdsFilter';
 import AdCard from '@/components/AdCard';
-import {
-  parseAdUrlParams,
-  getFilterIds,
-  generateAdListingMetadata,
-} from '@/lib/urlParser';
+import { parseAdUrlParams, getFilterIds } from '@/lib/urlParser';
+import { generateAdListingMetadata } from '@/lib/urlBuilder';
 import { getLocationHierarchy } from '@/lib/locationHierarchy';
 import { getRootCategoriesWithChildren } from '@/lib/categories';
 import { buildAdsWhereClause, buildAdsOrderBy, standardAdInclude } from '@/lib/adsQueryBuilder';
@@ -139,12 +136,12 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
     <div className="min-h-screen bg-gray-50">
       <div className="container-custom py-6">
         {/* Breadcrumb */}
-        <div className="mb-4 text-sm text-muted">
+        <div className="mb-4 text-sm text-gray-500">
           {breadcrumbs.map((crumb, index) => (
             <span key={index}>
               {index < breadcrumbs.length - 1 ? (
                 <>
-                  <Link href={crumb.href} className="link">
+                  <Link href={crumb.href} className="text-rose-500 hover:text-rose-600 transition-colors">
                     {crumb.label}
                   </Link>
                   <span className="mx-2">/</span>
@@ -159,21 +156,22 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
-          <p className="text-muted">
+          <p className="text-gray-500">
             Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
             {hasActiveFilters && ' matching your filters'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 laptop:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filters Sidebar */}
-          <aside className="laptop:col-span-1">
+          <aside className="lg:col-span-1">
             <AdsFilter
               lang={lang}
               categories={categories}
               locationHierarchy={locationHierarchy}
               selectedCategorySlug={parsed.categorySlug || undefined}
               selectedLocationSlug={parsed.locationSlug || undefined}
+              selectedLocationName={parsed.locationName || undefined}
               minPrice={minPrice?.toString() || ''}
               maxPrice={maxPrice?.toString() || ''}
               condition={condition}
@@ -183,10 +181,10 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
           </aside>
 
           {/* Results */}
-          <main className="laptop:col-span-3">
+          <main className="lg:col-span-3">
             {/* Sort & View Options */}
             <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
-              <div className="text-sm text-muted">
+              <div className="text-sm text-gray-500">
                 {totalAds > 0 && (
                   <>
                     Showing {offset + 1}-{Math.min(offset + adsPerPage, totalAds)} of {totalAds} ads
@@ -200,11 +198,11 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
               <div className="card text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="text-xl font-semibold mb-2">No ads found</h3>
-                <p className="text-muted mb-4">
+                <p className="text-gray-500 mb-4">
                   Try adjusting your filters or browse other categories
                 </p>
                 {hasActiveFilters && (
-                  <Link href={`/${lang}/ads`} className="btn-primary inline-block">
+                  <Link href={`/${lang}/ads`} className="px-6 py-3 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors inline-block">
                     View All Ads
                   </Link>
                 )}
@@ -214,7 +212,7 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
             {/* Results Grid */}
             {ads.length > 0 && (
               <>
-                <div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
                   {ads.map((ad) => (
                     <AdCard
                       key={ad.id}
@@ -253,7 +251,7 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
                         Previous
                       </Link>
                     )}
-                    <span className="px-4 py-2 bg-primary text-white rounded-lg">
+                    <span className="px-4 py-2 bg-rose-500 text-white rounded-lg">
                       {page}
                     </span>
                     {page < totalPages && (

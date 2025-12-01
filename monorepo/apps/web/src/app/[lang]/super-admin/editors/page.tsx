@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { CreateEditorModal } from '@/components/admin/editors/CreateEditorModal';
@@ -41,18 +41,7 @@ export default function EditorsManagementPage({ params: paramsPromise }: { param
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEditor, setSelectedEditor] = useState<Editor | null>(null);
 
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!staff || !isSuperAdmin) {
-      router.push(`/${params.lang}/super-admin/login`);
-      return;
-    }
-
-    loadEditors();
-  }, [authLoading, staff, isSuperAdmin, params.lang, router]);
-
-  const loadEditors = async () => {
+  const loadEditors = useCallback(async () => {
     try {
       const response = await apiClient.getEditors();
 
@@ -86,7 +75,18 @@ export default function EditorsManagementPage({ params: paramsPromise }: { param
       console.error('Error loading editors:', error);
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!staff || !isSuperAdmin) {
+      router.push(`/${params.lang}/super-admin/login`);
+      return;
+    }
+
+    loadEditors();
+  }, [authLoading, staff, isSuperAdmin, params.lang, router, loadEditors]);
 
   const handleLogout = async () => {
     await logout();

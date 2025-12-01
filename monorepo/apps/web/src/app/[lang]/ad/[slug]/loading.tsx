@@ -5,12 +5,12 @@ export default function AdDetailLoading() {
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb Skeleton */}
       <div className="py-5 px-4 bg-white border-b border-gray-200">
-        <div className="max-w-screen-desktop mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="h-5 bg-gray-200 rounded w-64 animate-pulse"></div>
         </div>
       </div>
 
-      <div className="max-w-screen-desktop mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
           {/* Main Content */}
           <div>

@@ -76,7 +76,7 @@ export default function SearchPagination({
       )}
 
       {/* Page Numbers */}
-      <div className="hidden tablet:flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-2">
         {pages.map((page, index) => {
           if (page === '...') {
             return (
@@ -95,7 +95,7 @@ export default function SearchPagination({
               href={buildPageUrl(pageNum)}
               className={`min-w-[40px] h-10 flex items-center justify-center rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-primary text-white font-semibold'
+                  ? 'bg-rose-500 text-white font-semibold'
                   : 'border border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -106,7 +106,7 @@ export default function SearchPagination({
       </div>
 
       {/* Mobile Page Indicator */}
-      <div className="tablet:hidden px-4 py-2 border border-gray-300 rounded-lg bg-white">
+      <div className="md:hidden px-4 py-2 border border-gray-300 rounded-lg bg-white">
         <span className="text-sm font-medium">
           Page {currentPage} of {totalPages}
         </span>

@@ -11,16 +11,19 @@ export type {
   ad_promotions,
   ad_reports,
   admin_activity_logs,
-  admins,
-  areas,
   business_subscriptions,
   business_verification_requests,
-  editors,
+  contact_messages,
+  conversation_participants,
+  conversations,
+  editor_permissions,
   individual_verification_requests,
+  message_read_receipts,
   messages,
   payment_transactions,
   promotion_pricing,
-  user_profiles,
+  typing_indicators,
+  user_favorites,
 } from '@prisma/client';
 
 // Export Prisma namespace for advanced types

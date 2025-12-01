@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       where: {
         promotion_type: promotionType,
         duration_days: parseInt(durationDays),
-        account_type: accountType,
+        account_type: accountType || undefined,
         is_active: true,
       },
       select: { price: true },
@@ -241,9 +241,9 @@ export async function POST(request: NextRequest) {
         promotion_type: promotionType,
         duration_days: parseInt(durationDays),
         price_paid: price,
-        account_type: accountType,
-        payment_reference: paymentReference || null,
-        payment_method: paymentMethod || null,
+        account_type: accountType || 'individual',
+        payment_reference: paymentReference || '',
+        payment_method: paymentMethod || 'unknown',
         expires_at: expiresAt,
       },
     });

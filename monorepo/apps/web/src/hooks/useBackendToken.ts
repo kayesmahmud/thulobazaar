@@ -39,8 +39,19 @@ export function useBackendToken() {
       if (session?.user?.email) {
         console.log('🔄 [useBackendToken] Fetching fresh token from backend...');
 
+        // Always try same-origin API route first to avoid cross-origin failures
+        const refreshUrl = '/api/auth/refresh-token';
+        // Optional fallback to explicit backend base if provided
+        const backendBase =
+          process.env.NEXT_PUBLIC_API_URL ||
+          process.env.API_URL ||
+          '';
+        const fallbackUrl = backendBase
+          ? `${backendBase}/api/auth/refresh-token`
+          : null;
+
         try {
-          const response = await fetch('http://localhost:5000/api/auth/refresh-token', {
+          const response = await fetch(refreshUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -58,16 +69,37 @@ export function useBackendToken() {
               console.log('✅ [useBackendToken] Fresh token fetched successfully');
               setBackendToken(token);
               localStorage.setItem('backend_jwt_token', token);
+              setError(null);
               setLoading(false);
               return;
             }
-          } else {
-            const errorText = await response.text();
-            console.error('❌ [useBackendToken] Failed to fetch token:', response.status, errorText);
-            setError(`Failed to fetch token: ${response.status}`);
+          } else if (fallbackUrl) {
+            // Try fallback backend (legacy Express) if provided
+            const fallbackResponse = await fetch(fallbackUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: session.user.email }),
+            });
+
+            if (fallbackResponse.ok) {
+              const data = await fallbackResponse.json();
+              const token = data.data?.token || data.token;
+              if (token) {
+                console.log('✅ [useBackendToken] Fresh token fetched via fallback backend');
+                setBackendToken(token);
+                localStorage.setItem('backend_jwt_token', token);
+                setError(null);
+                setLoading(false);
+                return;
+              }
+            } else {
+              const errorText = await fallbackResponse.text();
+              console.warn('⚠️ [useBackendToken] Failed to fetch token from fallback:', fallbackResponse.status, errorText);
+              setError(`Failed to fetch token: ${fallbackResponse.status}`);
+            }
           }
         } catch (err: any) {
-          console.error('❌ [useBackendToken] Error fetching token:', err);
+          console.warn('⚠️ [useBackendToken] Error fetching token:', err);
           setError(err.message);
         }
       }
