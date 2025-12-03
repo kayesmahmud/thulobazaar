@@ -22,6 +22,19 @@ interface IndividualVerification {
   status: string;
   submittedAt: string;
   type: string;
+  // Shop slug for viewing user's shop
+  shopSlug?: string;
+  // Payment and duration fields
+  durationDays?: number;
+  paymentAmount?: number;
+  paymentReference?: string;
+  paymentStatus?: string;
+  // Document fields
+  idDocumentType?: string;
+  idDocumentNumber?: string;
+  idDocumentFront?: string;
+  idDocumentBack?: string;
+  selfieWithId?: string;
 }
 
 export default function IndividualVerificationPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
@@ -50,11 +63,35 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
       const response = await getPendingVerifications();
 
       if (response.success && Array.isArray(response.data)) {
-        // Filter only individual verifications
-        const individualVerifications = response.data.filter(
-          (v: any) => v.type === 'individual'
-        );
-        setVerifications(individualVerifications as any);
+        // Filter only individual verifications and transform snake_case to camelCase
+        const individualVerifications = response.data
+          .filter((v: any) => v.type === 'individual')
+          .map((v: any) => ({
+            id: v.id,
+            userId: v.user_id,
+            email: v.email || '',
+            fullName: v.full_name || '',
+            verifiedSellerName: v.verified_seller_name,
+            phone: v.phone,
+            location: v.location,
+            status: v.status,
+            submittedAt: v.created_at,
+            type: v.type,
+            // Shop slug for viewing user's shop
+            shopSlug: v.shop_slug,
+            // Payment and duration fields
+            durationDays: v.duration_days,
+            paymentAmount: v.payment_amount,
+            paymentReference: v.payment_reference,
+            paymentStatus: v.payment_status,
+            // Document fields
+            idDocumentType: v.id_document_type,
+            idDocumentNumber: v.id_document_number,
+            idDocumentFront: v.id_document_front,
+            idDocumentBack: v.id_document_back,
+            selfieWithId: v.selfie_with_id,
+          }));
+        setVerifications(individualVerifications);
       } else {
         setVerifications([]);
       }
@@ -296,6 +333,157 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
                         </div>
                       </div>
 
+                      {/* Payment & Duration Info */}
+                      {(verification.durationDays || verification.paymentAmount !== undefined) && (
+                        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {verification.durationDays && (
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="text-xs text-blue-600 font-medium mb-1">Duration</div>
+                              <div className="text-lg font-bold text-blue-900">
+                                {verification.durationDays === 30 ? '1 Month' :
+                                 verification.durationDays === 90 ? '3 Months' :
+                                 verification.durationDays === 180 ? '6 Months' :
+                                 verification.durationDays === 365 ? '1 Year' :
+                                 `${verification.durationDays} Days`}
+                              </div>
+                            </div>
+                          )}
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="text-xs text-green-600 font-medium mb-1">Payment</div>
+                            <div className="text-lg font-bold text-green-900">
+                              {verification.paymentStatus === 'free' ? (
+                                <span className="flex items-center gap-1">
+                                  <span>FREE</span>
+                                  <span className="text-xs font-normal">(Promo)</span>
+                                </span>
+                              ) : verification.paymentAmount !== undefined ? (
+                                `NPR ${verification.paymentAmount}`
+                              ) : (
+                                'N/A'
+                              )}
+                            </div>
+                          </div>
+                          {verification.paymentReference && (
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                              <div className="text-xs text-gray-600 font-medium mb-1">Reference</div>
+                              <div className="text-sm font-mono text-gray-900 truncate" title={verification.paymentReference}>
+                                {verification.paymentReference.substring(0, 20)}...
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ID Document Info */}
+                      {(verification.idDocumentType || verification.idDocumentNumber) && (
+                        <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <span>ID Document Information</span>
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {verification.idDocumentType && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Document Type</div>
+                                <div className="font-medium text-gray-900 capitalize">
+                                  {verification.idDocumentType.replace(/_/g, ' ')}
+                                </div>
+                              </div>
+                            )}
+                            {verification.idDocumentNumber && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Document Number</div>
+                                <div className="font-medium text-gray-900 font-mono">
+                                  {verification.idDocumentNumber}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Document Images */}
+                      {(verification.idDocumentFront || verification.idDocumentBack || verification.selfieWithId) && (
+                        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="text-sm font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                            <span>Uploaded Documents</span>
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {verification.idDocumentFront && (
+                              <div>
+                                <div className="text-xs text-blue-600 mb-2 font-medium">ID Front</div>
+                                <a
+                                  href={`/uploads/individual_verification/${verification.idDocumentFront}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block group"
+                                >
+                                  <div className="relative aspect-[4/3] bg-white border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-colors">
+                                    <img
+                                      src={`/uploads/individual_verification/${verification.idDocumentFront}`}
+                                      alt="ID Document Front"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm bg-black/50 px-2 py-1 rounded">
+                                        Click to view
+                                      </span>
+                                    </div>
+                                  </div>
+                                </a>
+                              </div>
+                            )}
+                            {verification.idDocumentBack && (
+                              <div>
+                                <div className="text-xs text-blue-600 mb-2 font-medium">ID Back</div>
+                                <a
+                                  href={`/uploads/individual_verification/${verification.idDocumentBack}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block group"
+                                >
+                                  <div className="relative aspect-[4/3] bg-white border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-colors">
+                                    <img
+                                      src={`/uploads/individual_verification/${verification.idDocumentBack}`}
+                                      alt="ID Document Back"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm bg-black/50 px-2 py-1 rounded">
+                                        Click to view
+                                      </span>
+                                    </div>
+                                  </div>
+                                </a>
+                              </div>
+                            )}
+                            {verification.selfieWithId && (
+                              <div>
+                                <div className="text-xs text-blue-600 mb-2 font-medium">Selfie with ID</div>
+                                <a
+                                  href={`/uploads/individual_verification/${verification.selfieWithId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block group"
+                                >
+                                  <div className="relative aspect-[4/3] bg-white border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-colors">
+                                    <img
+                                      src={`/uploads/individual_verification/${verification.selfieWithId}`}
+                                      alt="Selfie with ID"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm bg-black/50 px-2 py-1 rounded">
+                                        Click to view
+                                      </span>
+                                    </div>
+                                  </div>
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Info Note */}
                       <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-900">
                         <span className="font-medium">Note:</span> Individual verification allows
@@ -322,11 +510,19 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
                           ✗ Reject
                         </button>
                         <button
-                          onClick={() => window.open(`/${params.lang}/profile/${verification.userId}`, '_blank')}
+                          onClick={() => window.open(`/${params.lang}/ads?userId=${verification.userId}`, '_blank')}
                           className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                         >
-                          👁️ View Profile
+                          📋 View User Ads
                         </button>
+                        {verification.shopSlug && (
+                          <button
+                            onClick={() => window.open(`/${params.lang}/shop/${verification.shopSlug}`, '_blank')}
+                            className="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                          >
+                            🏪 View Shop
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

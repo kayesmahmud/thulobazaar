@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 interface HeroSearchProps {
   lang: string;
@@ -10,15 +9,21 @@ interface HeroSearchProps {
 
 export default function HeroSearch({ lang }: HeroSearchProps) {
   const [query, setQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      router.push(`/${lang}/search?q=${encodeURIComponent(query.trim())}`);
-    } else {
-      router.push(`/${lang}/search`);
-    }
+    setIsSearching(true);
+
+    // Small delay to show animation before navigation
+    setTimeout(() => {
+      if (query.trim()) {
+        router.push(`/${lang}/search?q=${encodeURIComponent(query.trim())}`);
+      } else {
+        router.push(`/${lang}/search`);
+      }
+    }, 400);
   };
 
   return (
@@ -34,17 +39,45 @@ export default function HeroSearch({ lang }: HeroSearchProps) {
         />
         <button
           type="submit"
-          className="text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2"
-          style={{ backgroundColor: 'var(--color-success)' }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-success-hover)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-success)'}
+          disabled={isSearching}
+          className="group text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          Search
+          {/* Animated Magnifying Glass */}
+          <div className={`relative ${isSearching ? 'animate-search-wobble' : ''}`}>
+            <svg
+              className={`w-5 h-5 transition-transform duration-300 ${
+                isSearching
+                  ? 'animate-spin'
+                  : 'group-hover:rotate-12 group-hover:scale-110'
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <span>{isSearching ? 'Searching...' : 'Search'}</span>
         </button>
       </div>
+
+      {/* Custom CSS Animation for search wobble */}
+      <style jsx>{`
+        @keyframes search-wobble {
+          0%, 100% { transform: rotate(-15deg) scale(1.1); }
+          25% { transform: rotate(15deg) scale(1.2); }
+          50% { transform: rotate(-15deg) scale(1.1); }
+          75% { transform: rotate(15deg) scale(1.2); }
+        }
+        .animate-search-wobble {
+          animation: search-wobble 0.5s ease-in-out infinite;
+        }
+      `}</style>
     </form>
   );
 }

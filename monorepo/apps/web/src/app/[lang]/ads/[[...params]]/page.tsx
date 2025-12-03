@@ -1,8 +1,10 @@
+import * as React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
 import AdsFilter from '@/components/AdsFilter';
 import AdCard from '@/components/AdCard';
+import AdBanner from '@/components/ads/AdBanner';
 import { parseAdUrlParams, getFilterIds } from '@/lib/urlParser';
 import { generateAdListingMetadata } from '@/lib/urlBuilder';
 import { getLocationHierarchy } from '@/lib/locationHierarchy';
@@ -18,6 +20,7 @@ interface AdsPageProps {
     maxPrice?: string;
     condition?: 'new' | 'used';
     sortBy?: 'newest' | 'oldest' | 'price_asc' | 'price_desc';
+    userId?: string;
   }>;
 }
 
@@ -61,6 +64,7 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
   const maxPrice = search.maxPrice ? parseFloat(search.maxPrice) : undefined;
   const condition = search.condition;
   const sortBy = search.sortBy || 'newest';
+  const userId = search.userId ? parseInt(search.userId) : undefined;
   const adsPerPage = 20;
   const offset = (page - 1) * adsPerPage;
 
@@ -73,6 +77,7 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
     condition,
     searchQuery,
     status: 'approved',
+    userId,
   });
 
   // Build order by clause using shared helper
@@ -153,13 +158,24 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
           ))}
         </div>
 
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
-          <p className="text-gray-500">
-            Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
-            {hasActiveFilters && ' matching your filters'}
-          </p>
+        {/* Page Header with Top Banner inline on desktop */}
+        <div className="mb-6 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
+            <p className="text-gray-500">
+              Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
+              {hasActiveFilters && ' matching your filters'}
+            </p>
+          </div>
+          {/* Top Banner - 728x90 desktop inline / 320x100 mobile below */}
+          <div className="flex-shrink-0">
+            <div className="flex lg:hidden">
+              <AdBanner slot="adsListingTopMobile" size="mobileBanner" autoExpand />
+            </div>
+            <div className="hidden lg:flex">
+              <AdBanner slot="adsListingTop" size="leaderboard" autoExpand />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -178,6 +194,11 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
               sortBy={sortBy}
               searchQuery={searchQuery}
             />
+
+            {/* Sidebar Ad - 300x250 below filters */}
+            <div className="mt-6 hidden lg:flex justify-center">
+              <AdBanner slot="adsListingSidebar" size="mediumRectangle" autoExpand />
+            </div>
           </aside>
 
           {/* Results */}
@@ -213,30 +234,37 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
             {ads.length > 0 && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                  {ads.map((ad) => (
-                    <AdCard
-                      key={ad.id}
-                      lang={lang}
-                      ad={{
-                        id: ad.id,
-                        title: ad.title,
-                        price: ad.price ? parseFloat(ad.price.toString()) : 0,
-                        primaryImage: ad.ad_images && ad.ad_images.length > 0
-                          ? ad.ad_images[0]?.file_path || null
-                          : null,
-                        categoryName: ad.categories?.name || null,
-                        categoryIcon: ad.categories?.icon || null,
-                        createdAt: ad.created_at || new Date(),
-                        sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
-                        isFeatured: ad.is_featured || false,
-                        isUrgent: ad.is_urgent || false,
-                        condition: ad.condition || null,
-                        slug: ad.slug || undefined,
-                        accountType: ad.users_ads_user_idTousers?.account_type || undefined,
-                        businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
-                        individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
-                      }}
-                    />
+                  {ads.map((ad, index) => (
+                    <React.Fragment key={ad.id}>
+                      <AdCard
+                        lang={lang}
+                        ad={{
+                          id: ad.id,
+                          title: ad.title,
+                          price: ad.price ? parseFloat(ad.price.toString()) : 0,
+                          primaryImage: ad.ad_images && ad.ad_images.length > 0
+                            ? ad.ad_images[0]?.file_path || null
+                            : null,
+                          categoryName: ad.categories?.name || null,
+                          categoryIcon: ad.categories?.icon || null,
+                          createdAt: ad.created_at || new Date(),
+                          sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
+                          isFeatured: ad.is_featured || false,
+                          isUrgent: ad.is_urgent || false,
+                          condition: ad.condition || null,
+                          slug: ad.slug || undefined,
+                          accountType: ad.users_ads_user_idTousers?.account_type || undefined,
+                          businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
+                          individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
+                        }}
+                      />
+                      {/* In-Feed Ad after every 6th card */}
+                      {(index + 1) % 6 === 0 && index < ads.length - 1 && (
+                        <div className="flex justify-center items-center bg-gray-50 rounded-xl p-4">
+                          <AdBanner slot="adsListingInFeed" size="mediumRectangle" autoExpand />
+                        </div>
+                      )}
+                    </React.Fragment>
                   ))}
                 </div>
 
@@ -264,6 +292,11 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
                     )}
                   </div>
                 )}
+
+                {/* Bottom Banner - 336x280 */}
+                <div className="flex justify-center mt-8">
+                  <AdBanner slot="adsListingBottom" size="largeRectangle" autoExpand />
+                </div>
               </>
             )}
           </main>

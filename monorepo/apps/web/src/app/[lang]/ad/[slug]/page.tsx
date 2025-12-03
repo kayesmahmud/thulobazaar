@@ -10,6 +10,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import PromotionSuccessToast from './PromotionSuccessToast';
 import SendMessageButton from '@/components/messages/SendMessageButton';
 import { generateProductStructuredData, generateBreadcrumbStructuredData } from '@/lib/structuredData';
+import AdBanner from '@/components/ads/AdBanner';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
@@ -223,10 +224,27 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
       {/* Toast notification for successful promotion */}
       <PromotionSuccessToast promoted={search.promoted === 'true'} txnId={search.txnId} />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+      <div className="max-w-[1440px] mx-auto px-4 py-8">
+        {/* 4-column grid: Left Banner | Main Content | Sidebar | Right Banner */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] xl:grid-cols-[160px_1fr_350px_160px] gap-6">
+          {/* Left Vertical Banner (160x600) - Hidden on smaller screens, positioned 200px down */}
+          <div className="hidden xl:flex xl:flex-col xl:items-center self-start" style={{ marginTop: '200px' }}>
+            <div className="sticky top-4">
+              <AdBanner slot="adDetailLeft" size="skyscraper" />
+            </div>
+          </div>
+
           {/* Main Content */}
           <div>
+            {/* Horizontal Banner - Above Images */}
+            {/* Mobile: 320x100, Desktop: 728x90 */}
+            <div className="flex sm:hidden justify-center mb-6">
+              <AdBanner slot="adDetailTopMobile" size="mobileBanner" />
+            </div>
+            <div className="hidden sm:flex justify-center mb-6">
+              <AdBanner slot="adDetailTop" size="leaderboard" />
+            </div>
+
             {/* Image Gallery - Client component for interactivity */}
             <AdDetailClient images={images} lang={lang} />
 
@@ -441,6 +459,11 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 </div>
               )}
             </div>
+
+            {/* Bottom Banner (336x280) - Large Rectangle - After Location */}
+            <div className="flex justify-center mt-8">
+              <AdBanner slot="adDetailBottom" size="largeRectangle" />
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -632,6 +655,13 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 <li>Never pay in advance</li>
                 <li>Beware of unrealistic offers</li>
               </ul>
+            </div>
+          </div>
+
+          {/* Right Vertical Banner (160x600) - Hidden on smaller screens, positioned 200px down */}
+          <div className="hidden xl:flex xl:flex-col xl:items-center self-start" style={{ marginTop: '200px' }}>
+            <div className="sticky top-4">
+              <AdBanner slot="adDetailRight" size="skyscraper" />
             </div>
           </div>
         </div>

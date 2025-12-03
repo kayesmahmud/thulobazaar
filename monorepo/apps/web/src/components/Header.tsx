@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
@@ -91,9 +92,15 @@ export default function Header({ lang }: HeaderProps) {
             href={`/${lang}`}
             className="no-underline flex items-center hover:opacity-80 transition-opacity"
           >
-            <span className="text-2xl font-bold text-rose-500">
-              Thulobazaar
-            </span>
+            <Image
+              src="/logo.png"
+              alt="Thulobazaar"
+              width={84}
+              height={40}
+              className="h-10 w-auto object-contain"
+              priority
+              unoptimized
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -136,9 +143,20 @@ export default function Header({ lang }: HeaderProps) {
                 </Link>
                 <Link
                   href={`/${lang}/post-ad`}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg no-underline font-semibold text-sm transition-colors"
+                  className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-green-500 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-green-500/50 hover:scale-105"
                 >
-                  + POST FREE AD
+                  {/* Glow Effect */}
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-300"></div>
+                  {/* Button Content */}
+                  <div className="relative flex items-center gap-2">
+                    <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <span>POST FREE AD</span>
+                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
+                  </div>
                 </Link>
               </>
             ) : (
@@ -169,9 +187,20 @@ export default function Header({ lang }: HeaderProps) {
                     {/* Regular User Interface with Avatar Dropdown */}
                     <Link
                       href={`/${lang}/post-ad`}
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg no-underline font-semibold text-sm transition-colors"
+                      className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-green-500 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-green-500/50 hover:scale-105"
                     >
-                      + POST FREE AD
+                      {/* Glow Effect */}
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-300"></div>
+                      {/* Button Content */}
+                      <div className="relative flex items-center gap-2">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </div>
+                        <span>POST FREE AD</span>
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
+                      </div>
                     </Link>
 
                     {/* Profile Avatar Dropdown */}
@@ -227,20 +256,33 @@ export default function Header({ lang }: HeaderProps) {
                               📊 My Dashboard
                             </Link>
 
-                            {/* View My Shop - for business verified users */}
-                            {user && (user?.businessVerificationStatus === 'approved' || user?.businessVerificationStatus === 'verified') && user?.businessName && (
+                            {/* View My Shop - for all users with shop slug */}
+                            {user && (user.customShopSlug || user.shopSlug) && (
                               <Link
-                                href={`/${lang}/shop/${user.customShopSlug || `${user.businessName.toLowerCase().replace(/\s+/g, '-')}-${user.id}`}`}
+                                href={`/${lang}/shop/${user.customShopSlug || user.shopSlug}`}
                                 onClick={() => setProfileDropdownOpen(false)}
-                                className="block w-full px-4 py-2.5 text-left text-sm font-medium no-underline transition-colors bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 hover:from-purple-100 hover:to-pink-100 border-l-4 border-purple-500"
+                                className={`block w-full px-4 py-2.5 text-left text-sm font-medium no-underline transition-colors ${
+                                  (user.businessVerificationStatus === 'approved' || user.businessVerificationStatus === 'verified')
+                                    ? 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 hover:from-purple-100 hover:to-pink-100 border-l-4 border-purple-500'
+                                    : user.individualVerified
+                                    ? 'bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 border-l-4 border-blue-500'
+                                    : 'text-gray-700 hover:bg-gray-50'
+                                }`}
                               >
                                 <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-2">
                                     🏪 My Shop
                                   </span>
-                                  <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-0.5 rounded-full font-bold">
-                                    ⭐ VERIFIED
-                                  </span>
+                                  {(user.businessVerificationStatus === 'approved' || user.businessVerificationStatus === 'verified') && (
+                                    <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-0.5 rounded-full font-bold">
+                                      ⭐ VERIFIED
+                                    </span>
+                                  )}
+                                  {user.individualVerified && !(user.businessVerificationStatus === 'approved' || user.businessVerificationStatus === 'verified') && (
+                                    <span className="text-xs bg-gradient-to-r from-blue-400 to-cyan-400 text-white px-2 py-0.5 rounded-full font-bold">
+                                      ✓ VERIFIED
+                                    </span>
+                                  )}
                                 </div>
                               </Link>
                             )}
@@ -300,8 +342,20 @@ export default function Header({ lang }: HeaderProps) {
                   <Link href={`/${lang}/auth/register`} className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors w-full text-center">
                     Sign Up
                   </Link>
-                  <Link href={`/${lang}/post-ad`} className="bg-emerald-500 text-white py-3 rounded-lg text-center font-semibold">
-                    + POST FREE AD
+                  <Link
+                    href={`/${lang}/post-ad`}
+                    className="group relative inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white py-3 rounded-xl font-bold text-sm w-full hover:from-green-500 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg"
+                  >
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-300"></div>
+                    <div className="relative flex items-center gap-2">
+                      <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                      <span>POST FREE AD</span>
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
+                    </div>
                   </Link>
                 </>
               ) : (
@@ -323,16 +377,29 @@ export default function Header({ lang }: HeaderProps) {
                         📊 Dashboard
                       </Link>
 
-                      {/* My Shop - for business verified users */}
-                      {user && (user?.businessVerificationStatus === 'approved' || user?.businessVerificationStatus === 'verified') && user?.businessName && (
+                      {/* My Shop - for all users with shop slug */}
+                      {user && (user.customShopSlug || user.shopSlug) && (
                         <Link
-                          href={`/${lang}/shop/${user.customShopSlug || `${user.businessName.toLowerCase().replace(/\s+/g, '-')}-${user.id}`}`}
-                          className="text-purple-600 hover:text-purple-700 py-2 font-medium flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 px-3 rounded-lg border-l-4 border-purple-500"
+                          href={`/${lang}/shop/${user.customShopSlug || user.shopSlug}`}
+                          className={`py-2 font-medium flex items-center justify-between px-3 rounded-lg ${
+                            (user.businessVerificationStatus === 'approved' || user.businessVerificationStatus === 'verified')
+                              ? 'text-purple-600 hover:text-purple-700 bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500'
+                              : user.individualVerified
+                              ? 'text-blue-600 hover:text-blue-700 bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-blue-500'
+                              : 'text-gray-600 hover:text-rose-500'
+                          }`}
                         >
                           <span>🏪 My Shop</span>
-                          <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-0.5 rounded-full font-bold">
-                            ⭐ VERIFIED
-                          </span>
+                          {(user.businessVerificationStatus === 'approved' || user.businessVerificationStatus === 'verified') && (
+                            <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2 py-0.5 rounded-full font-bold">
+                              ⭐ VERIFIED
+                            </span>
+                          )}
+                          {user.individualVerified && !(user.businessVerificationStatus === 'approved' || user.businessVerificationStatus === 'verified') && (
+                            <span className="text-xs bg-gradient-to-r from-blue-400 to-cyan-400 text-white px-2 py-0.5 rounded-full font-bold">
+                              ✓ VERIFIED
+                            </span>
+                          )}
                         </Link>
                       )}
                     </>
@@ -347,8 +414,20 @@ export default function Header({ lang }: HeaderProps) {
 
                   {/* Only show Post Ad for regular users in mobile */}
                   {!isStaff && (
-                    <Link href={`/${lang}/post-ad`} className="bg-emerald-500 text-white py-3 rounded-lg text-center font-semibold">
-                      + POST FREE AD
+                    <Link
+                      href={`/${lang}/post-ad`}
+                      className="group relative inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white py-3 rounded-xl font-bold text-sm w-full hover:from-green-500 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg"
+                    >
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-300"></div>
+                      <div className="relative flex items-center gap-2">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </div>
+                        <span>POST FREE AD</span>
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
+                      </div>
                     </Link>
                   )}
                 </>

@@ -184,6 +184,8 @@ model business_verification_requests {
   business_address                                        String?
   payment_reference                                       String?   @db.VarChar(255)
   payment_amount                                          Decimal?  @db.Decimal(10, 2)
+  duration_days                                           Int?      @default(365)
+  payment_status                                          String?   @default("pending") @db.VarChar(20)
   status                                                  String?   @default("pending") @db.VarChar(20)
   reviewed_by                                             Int?
   reviewed_at                                             DateTime? @db.Timestamp(6)
@@ -196,6 +198,7 @@ model business_verification_requests {
   @@index([created_at(sort: Desc)], map: "idx_business_requests_created_at")
   @@index([status], map: "idx_business_requests_status")
   @@index([user_id], map: "idx_business_requests_user_id")
+  @@index([payment_status], map: "idx_business_verification_payment")
 }
 
 model categories {
@@ -268,12 +271,17 @@ model individual_verification_requests {
   created_at                                                DateTime? @default(now()) @db.Timestamp(6)
   updated_at                                                DateTime? @default(now()) @db.Timestamp(6)
   full_name                                                 String?   @db.VarChar(255)
+  duration_days                                             Int?      @default(365)
+  payment_amount                                            Decimal?  @db.Decimal(10, 2)
+  payment_reference                                         String?   @db.VarChar(255)
+  payment_status                                            String?   @default("pending") @db.VarChar(20)
   users_individual_verification_requests_reviewed_byTousers users?    @relation("individual_verification_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_individual_verification_requests_user_idTousers     users     @relation("individual_verification_requests_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, status], map: "unique_user_pending_request")
   @@index([status], map: "idx_individual_verification_status")
   @@index([user_id], map: "idx_individual_verification_user_id")
+  @@index([payment_status], map: "idx_individual_verification_payment")
 }
 
 model locations {
@@ -616,4 +624,29 @@ model support_messages {
   @@index([ticket_id], map: "idx_support_messages_ticket_id")
   @@index([sender_id], map: "idx_support_messages_sender_id")
   @@index([created_at(sort: Desc)], map: "idx_support_messages_created_at")
+}
+
+/// Verification pricing for individual and business verification
+model verification_pricing {
+  id                  Int       @id @default(autoincrement())
+  verification_type   String    @db.VarChar(20)
+  duration_days       Int
+  price               Decimal   @db.Decimal(10, 2)
+  discount_percentage Int?      @default(0)
+  is_active           Boolean?  @default(true)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([verification_type, duration_days])
+  @@index([verification_type], map: "idx_verification_pricing_type")
+}
+
+model site_settings {
+  id            Int       @id @default(autoincrement())
+  setting_key   String    @unique @db.VarChar(100)
+  setting_value String?   @db.Text
+  setting_type  String?   @default("string") @db.VarChar(50)
+  description   String?   @db.Text
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
 }

@@ -4,12 +4,40 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Middleware to handle:
- * 1. URL redirects for backward compatibility (old /all-ads and /search URLs)
- * 2. Authentication for protected routes
+ * 1. eSewa payment callback redirects (when old cached code sent wrong success_url)
+ * 2. URL redirects for backward compatibility (old /all-ads and /search URLs)
+ * 3. Authentication for protected routes
  */
 export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const searchParams = req.nextUrl.searchParams;
+
+  // ===== ESEWA CALLBACK REDIRECT =====
+  // Handle eSewa callbacks that land on wrong URLs (due to old cached code)
+  // eSewa returns with ?data= param containing base64 encoded response
+  const esewaData = searchParams.get('data');
+  if (esewaData && !pathname.includes('/api/payments/callback')) {
+    try {
+      // Decode and parse the eSewa response to verify it's valid
+      const decoded = Buffer.from(esewaData, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+
+      // Check if this is a valid eSewa response (has transaction_uuid and status)
+      if (parsed.transaction_uuid && parsed.status) {
+        console.log(`🔄 eSewa callback detected on ${pathname}, redirecting to callback API...`);
+
+        // Redirect to proper callback handler with the data
+        const callbackUrl = new URL('/api/payments/callback', req.url);
+        callbackUrl.searchParams.set('gateway', 'esewa');
+        callbackUrl.searchParams.set('orderId', parsed.transaction_uuid);
+        callbackUrl.searchParams.set('data', esewaData);
+
+        return NextResponse.redirect(callbackUrl);
+      }
+    } catch {
+      // Not a valid eSewa response, continue with normal processing
+    }
+  }
 
   // ===== URL REDIRECTS FOR BACKWARD COMPATIBILITY =====
 
@@ -115,5 +143,7 @@ export const config = {
     // Redirect routes
     '/:lang/all-ads',
     '/:lang/search',
+    // Ad pages (for eSewa callback handling)
+    '/:lang/ad/:slug*',
   ],
 };

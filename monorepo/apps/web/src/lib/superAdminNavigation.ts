@@ -74,6 +74,11 @@ export function getSuperAdminNavSections(
           label: 'Verifications',
           badge: badges?.verifications,
         },
+        {
+          href: `/${lang}/super-admin/verification-pricing`,
+          icon: '💰',
+          label: 'Verification Pricing',
+        },
       ],
     },
     {

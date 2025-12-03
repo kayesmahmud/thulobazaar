@@ -24,6 +24,8 @@ interface BusinessVerification {
   businessAddress?: string;
   paymentReference?: string;
   paymentAmount?: number;
+  paymentStatus?: string;
+  durationDays?: number;
   status: string;
   submittedAt: string;
   type: string;
@@ -71,6 +73,8 @@ export default function BusinessVerificationPage({ params: paramsPromise }: { pa
             businessAddress: v.business_address,
             paymentReference: v.payment_reference,
             paymentAmount: v.payment_amount,
+            paymentStatus: v.payment_status,
+            durationDays: v.duration_days,
             status: v.status,
             submittedAt: v.created_at,
             type: v.type,
@@ -437,35 +441,46 @@ export default function BusinessVerificationPage({ params: paramsPromise }: { pa
                         </div>
                       )}
 
-                      {/* Payment Information */}
-                      {(verification.paymentReference || verification.paymentAmount) && (
-                        <div className="mb-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-2xl">💳</span>
-                            <div className="text-sm font-bold text-green-800">Payment Information</div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            {verification.paymentReference && (
-                              <div>
-                                <div className="text-xs font-medium text-green-700 mb-1">
-                                  Payment Reference
-                                </div>
-                                <div className="text-sm font-mono text-gray-900 bg-white px-2 py-1 rounded border border-green-200">
-                                  {verification.paymentReference}
-                                </div>
+                      {/* Payment & Duration Information */}
+                      {(verification.durationDays || verification.paymentAmount !== undefined) && (
+                        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {verification.durationDays && (
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="text-xs text-blue-600 font-medium mb-1">Duration</div>
+                              <div className="text-lg font-bold text-blue-900">
+                                {verification.durationDays === 30 ? '1 Month' :
+                                 verification.durationDays === 90 ? '3 Months' :
+                                 verification.durationDays === 180 ? '6 Months' :
+                                 verification.durationDays === 365 ? '1 Year' :
+                                 `${verification.durationDays} Days`}
                               </div>
-                            )}
-                            {verification.paymentAmount && (
-                              <div>
-                                <div className="text-xs font-medium text-green-700 mb-1">
-                                  Amount Paid
-                                </div>
-                                <div className="text-sm font-bold text-green-900">
-                                  NPR {verification.paymentAmount.toLocaleString()}
-                                </div>
-                              </div>
-                            )}
+                            </div>
+                          )}
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="text-xs text-green-600 font-medium mb-1">Payment</div>
+                            <div className="text-lg font-bold text-green-900">
+                              {verification.paymentStatus === 'free' ? (
+                                <span className="flex items-center gap-1">
+                                  <span>FREE</span>
+                                  <span className="text-xs font-normal">(Promo)</span>
+                                </span>
+                              ) : verification.paymentAmount !== undefined ? (
+                                `NPR ${verification.paymentAmount.toLocaleString()}`
+                              ) : (
+                                'N/A'
+                              )}
+                            </div>
                           </div>
+                          {verification.paymentReference && (
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                              <div className="text-xs text-gray-600 font-medium mb-1">Reference</div>
+                              <div className="text-sm font-mono text-gray-900 truncate" title={verification.paymentReference}>
+                                {verification.paymentReference.length > 20
+                                  ? `${verification.paymentReference.substring(0, 20)}...`
+                                  : verification.paymentReference}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 

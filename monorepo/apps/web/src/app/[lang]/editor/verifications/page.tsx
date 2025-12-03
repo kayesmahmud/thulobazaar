@@ -24,6 +24,10 @@ interface Verification {
   // Individual fields
   idDocumentType?: string;
   idDocumentNumber?: string;
+  // Payment and duration fields
+  durationDays?: number;
+  paymentAmount?: number;
+  paymentStatus?: string;
 }
 
 export default function AllVerificationsPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
@@ -66,6 +70,10 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
           reviewedAt: v.reviewed_at,
           rejectionReason: v.rejection_reason,
           type: v.type,
+          // Payment and duration fields
+          durationDays: v.duration_days,
+          paymentAmount: v.payment_amount,
+          paymentStatus: v.payment_status,
         }));
 
         setVerifications(allVerifications);
@@ -80,7 +88,7 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
   useEffect(() => {
     if (authLoading) return;
 
-    if (!staff || !(isEditor as unknown as () => boolean)()) {
+    if (!staff || !isEditor) {
       router.push(`/${params.lang}/editor/login`);
       return;
     }
@@ -218,7 +226,10 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
                       User / Business
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-emerald-900 uppercase tracking-wider">
-                      Email
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                      Payment
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-emerald-900 uppercase tracking-wider">
                       Status
@@ -247,12 +258,33 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
                         <div className="text-sm font-medium text-gray-900">
                           {verification.type === 'business' ? verification.businessName : verification.fullName}
                         </div>
-                        {verification.type === 'individual' && verification.fullName && (
-                          <div className="text-xs text-gray-500">{verification.fullName}</div>
+                        <div className="text-xs text-gray-500">{verification.email}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {verification.durationDays ? (
+                          <span className="text-sm font-medium text-blue-700">
+                            {verification.durationDays === 30 ? '1 Mo' :
+                             verification.durationDays === 90 ? '3 Mo' :
+                             verification.durationDays === 180 ? '6 Mo' :
+                             verification.durationDays === 365 ? '1 Yr' :
+                             `${verification.durationDays}d`}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{verification.email}</div>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {verification.paymentStatus === 'free' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                            FREE
+                          </span>
+                        ) : verification.paymentAmount !== undefined && verification.paymentAmount > 0 ? (
+                          <span className="text-sm font-medium text-green-700">
+                            NPR {verification.paymentAmount.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${

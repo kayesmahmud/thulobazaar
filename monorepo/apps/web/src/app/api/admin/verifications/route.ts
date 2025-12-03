@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
         business_address: true,
         status: true,
         created_at: true,
+        duration_days: true,
+        payment_amount: true,
+        payment_reference: true,
+        payment_status: true,
         users_business_verification_requests_user_idTousers: {
           select: {
             email: true,
@@ -51,6 +55,10 @@ export async function GET(request: NextRequest) {
         selfie_with_id: true,
         status: true,
         created_at: true,
+        duration_days: true,
+        payment_amount: true,
+        payment_reference: true,
+        payment_status: true,
         users_individual_verification_requests_user_idTousers: {
           select: {
             email: true,
@@ -73,6 +81,10 @@ export async function GET(request: NextRequest) {
       businessAddress: bv.business_address,
       status: bv.status,
       createdAt: bv.created_at,
+      durationDays: bv.duration_days,
+      paymentAmount: bv.payment_amount ? parseFloat(bv.payment_amount.toString()) : null,
+      paymentReference: bv.payment_reference,
+      paymentStatus: bv.payment_status,
       email: bv.users_business_verification_requests_user_idTousers.email,
       fullName: bv.users_business_verification_requests_user_idTousers.full_name,
       type: 'business',
@@ -90,6 +102,10 @@ export async function GET(request: NextRequest) {
       selfieWithId: iv.selfie_with_id,
       status: iv.status,
       createdAt: iv.created_at,
+      durationDays: iv.duration_days,
+      paymentAmount: iv.payment_amount ? parseFloat(iv.payment_amount.toString()) : null,
+      paymentReference: iv.payment_reference,
+      paymentStatus: iv.payment_status,
       email: iv.users_individual_verification_requests_user_idTousers.email,
       type: 'individual',
     }));

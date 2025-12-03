@@ -77,6 +77,11 @@ interface Verification {
   selfie_with_id?: string;
   // Common fields
   email: string;
+  // Payment and duration fields
+  duration_days?: number;
+  payment_amount?: number;
+  payment_reference?: string;
+  payment_status?: string; // 'free' | 'paid' | 'pending'
 }
 
 interface Ad {

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { requireAuth } from '@/lib/jwt';
+import {
+  isIndividualVerificationActive,
+  isBusinessVerificationActive,
+  getDaysUntilExpiry,
+  isVerificationExpiringSoon,
+} from '@/lib/verificationUtils';
 
 /**
  * GET /api/verification/status
@@ -17,7 +23,9 @@ export async function GET(request: NextRequest) {
       select: {
         account_type: true,
         business_verification_status: true,
+        business_verification_expires_at: true,
         individual_verified: true,
+        individual_verification_expires_at: true,
         business_name: true,
         full_name: true,
       },
@@ -30,6 +38,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check active status considering expiry
+    const businessActive = isBusinessVerificationActive(user);
+    const individualActive = isIndividualVerificationActive(user);
+
     // Initialize response
     const response: any = {
       success: true,
@@ -38,11 +50,19 @@ export async function GET(request: NextRequest) {
         businessVerification: {
           status: user.business_verification_status || 'none',
           verified: user.business_verification_status === 'approved',
+          isActive: businessActive,
           businessName: user.business_name || null,
+          expiresAt: user.business_verification_expires_at || null,
+          daysRemaining: getDaysUntilExpiry(user, 'business'),
+          isExpiringSoon: isVerificationExpiringSoon(user, 'business'),
         },
         individualVerification: {
           verified: user.individual_verified || false,
+          isActive: individualActive,
           fullName: user.full_name || null,
+          expiresAt: user.individual_verification_expires_at || null,
+          daysRemaining: getDaysUntilExpiry(user, 'individual'),
+          isExpiringSoon: isVerificationExpiringSoon(user, 'individual'),
         },
       },
     };

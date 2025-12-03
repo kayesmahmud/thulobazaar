@@ -1103,6 +1103,7 @@ router.get(
 /**
  * GET /api/editor/verifications
  * Get pending verifications (both business and individual)
+ * Queries from the separate verification_requests tables which store payment info
  */
 router.get(
   '/verifications',
@@ -1110,98 +1111,108 @@ router.get(
   catchAsync(async (req: Request, res: Response) => {
     const { type = 'all', status = 'pending' } = req.query;
 
-    // Get business verifications
+    // Get business verification requests from dedicated table
     const businessWhere: any = {};
     if (status === 'pending') {
-      businessWhere.business_verification_status = 'pending';
-    } else if (status === 'all') {
-      businessWhere.business_verification_status = { not: null };
+      businessWhere.status = 'pending';
+    } else if (status !== 'all') {
+      businessWhere.status = status;
     }
 
-    const businessVerifications = type === 'individual' ? [] : await prisma.users.findMany({
-      where: {
-        ...businessWhere,
-        account_type: 'business',
-      },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        phone: true,
-        business_name: true,
-        business_registration_number: true,
-        business_type: true,
-        business_verification_status: true,
-        business_documents: true,
-        avatar: true,
-        created_at: true,
-        updated_at: true,
+    const businessVerifications = type === 'individual' ? [] : await prisma.business_verification_requests.findMany({
+      where: businessWhere,
+      include: {
+        users_business_verification_requests_user_idTousers: {
+          select: {
+            email: true,
+            phone: true,
+            avatar: true,
+            full_name: true,
+          },
+        },
       },
       orderBy: { created_at: 'desc' },
     });
 
-    // Get individual verifications (users who requested but aren't verified yet)
-    const individualWhere: any = {
-      individual_verified: false,
-      // Users who have submitted documents for individual verification
-      OR: [
-        { id_document_type: { not: null } },
-        { id_document_number: { not: null } },
-      ],
-    };
+    // Get individual verification requests from dedicated table
+    const individualWhere: any = {};
+    if (status === 'pending') {
+      individualWhere.status = 'pending';
+    } else if (status !== 'all') {
+      individualWhere.status = status;
+    }
 
-    const individualVerifications = type === 'business' ? [] : await prisma.users.findMany({
+    const individualVerifications = type === 'business' ? [] : await prisma.individual_verification_requests.findMany({
       where: individualWhere,
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        phone: true,
-        id_document_type: true,
-        id_document_number: true,
-        id_document_front: true,
-        id_document_back: true,
-        selfie_with_id: true,
-        individual_verified: true,
-        avatar: true,
-        created_at: true,
-        updated_at: true,
+      include: {
+        users_individual_verification_requests_user_idTousers: {
+          select: {
+            email: true,
+            phone: true,
+            avatar: true,
+            full_name: true,
+            shop_slug: true,
+            custom_shop_slug: true,
+          },
+        },
       },
       orderBy: { created_at: 'desc' },
     });
 
-    // Transform and combine results
+    // Transform and combine results - using snake_case for frontend compatibility
     const verifications = [
       ...businessVerifications.map((v) => ({
         id: v.id,
+        user_id: v.user_id,
         type: 'business' as const,
-        fullName: v.full_name,
-        email: v.email,
-        phone: v.phone,
-        businessName: v.business_name,
-        registrationNumber: v.business_registration_number,
-        businessType: v.business_type,
-        status: v.business_verification_status,
-        documents: v.business_documents,
-        avatar: v.avatar,
-        createdAt: v.created_at,
-        updatedAt: v.updated_at,
+        full_name: v.users_business_verification_requests_user_idTousers?.full_name || null,
+        email: v.users_business_verification_requests_user_idTousers?.email || '',
+        phone: v.users_business_verification_requests_user_idTousers?.phone || null,
+        business_name: v.business_name,
+        business_license_document: v.business_license_document,
+        business_category: v.business_category,
+        business_description: v.business_description,
+        business_website: v.business_website,
+        business_phone: v.business_phone,
+        business_address: v.business_address,
+        status: v.status,
+        rejection_reason: v.rejection_reason,
+        avatar: v.users_business_verification_requests_user_idTousers?.avatar || null,
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+        reviewed_at: v.reviewed_at,
+        // Payment and duration fields
+        duration_days: v.duration_days,
+        payment_amount: v.payment_amount ? Number(v.payment_amount) : null,
+        payment_reference: v.payment_reference,
+        payment_status: v.payment_status,
       })),
       ...individualVerifications.map((v) => ({
         id: v.id,
+        user_id: v.user_id,
         type: 'individual' as const,
-        fullName: v.full_name,
-        email: v.email,
-        phone: v.phone,
-        documentType: v.id_document_type,
-        documentNumber: v.id_document_number,
-        documentFront: v.id_document_front,
-        documentBack: v.id_document_back,
-        selfieWithId: v.selfie_with_id,
-        status: v.individual_verified ? 'approved' : 'pending',
-        avatar: v.avatar,
-        createdAt: v.created_at,
-        updatedAt: v.updated_at,
+        full_name: v.full_name || v.users_individual_verification_requests_user_idTousers?.full_name || '',
+        email: v.users_individual_verification_requests_user_idTousers?.email || '',
+        phone: v.users_individual_verification_requests_user_idTousers?.phone || null,
+        // Shop slug fields for viewing user's shop
+        shop_slug: v.users_individual_verification_requests_user_idTousers?.custom_shop_slug ||
+                   v.users_individual_verification_requests_user_idTousers?.shop_slug || null,
+        id_document_type: v.id_document_type,
+        id_document_number: v.id_document_number,
+        id_document_front: v.id_document_front,
+        id_document_back: v.id_document_back,
+        selfie_with_id: v.selfie_with_id,
+        status: v.status,
+        rejection_reason: v.rejection_reason,
+        avatar: v.users_individual_verification_requests_user_idTousers?.avatar || null,
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+        reviewed_at: v.reviewed_at,
+        // Payment and duration fields
+        duration_days: v.duration_days,
+        payment_amount: v.payment_amount ? Number(v.payment_amount) : null,
+        payment_reference: v.payment_reference,
+        payment_status: v.payment_status,
       })),
     ];
 
@@ -1222,26 +1233,63 @@ router.post(
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { type } = req.body; // 'business' or 'individual'
+    const reviewerId = req.user!.userId;
 
     if (type === 'business') {
-      await prisma.users.update({
+      // Update the verification request
+      const request = await prisma.business_verification_requests.update({
         where: { id: parseInt(id) },
+        data: {
+          status: 'approved',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+        },
+      });
+
+      // Also update the user's status
+      await prisma.users.update({
+        where: { id: request.user_id },
         data: {
           business_verification_status: 'approved',
           business_verified_at: new Date(),
+          business_verified_by: reviewerId,
+          business_name: request.business_name,
+          // Set expiration based on duration_days
+          business_verification_expires_at: request.duration_days
+            ? new Date(Date.now() + request.duration_days * 24 * 60 * 60 * 1000)
+            : null,
         },
       });
+
+      console.log(`✅ Business verification approved for request ${id} (user ${request.user_id})`);
     } else {
-      await prisma.users.update({
+      // Update the verification request
+      const request = await prisma.individual_verification_requests.update({
         where: { id: parseInt(id) },
+        data: {
+          status: 'approved',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+        },
+      });
+
+      // Also update the user's status
+      await prisma.users.update({
+        where: { id: request.user_id },
         data: {
           individual_verified: true,
           individual_verified_at: new Date(),
+          individual_verified_by: reviewerId,
+          verified_seller_name: request.full_name,
+          // Set expiration based on duration_days
+          individual_verification_expires_at: request.duration_days
+            ? new Date(Date.now() + request.duration_days * 24 * 60 * 60 * 1000)
+            : null,
         },
       });
-    }
 
-    console.log(`✅ ${type} verification approved for user ${id}`);
+      console.log(`✅ Individual verification approved for request ${id} (user ${request.user_id})`);
+    }
 
     res.json({
       success: true,
@@ -1260,31 +1308,52 @@ router.post(
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { type, reason } = req.body;
+    const reviewerId = req.user!.userId;
 
     if (type === 'business') {
-      await prisma.users.update({
+      // Update the verification request
+      const request = await prisma.business_verification_requests.update({
         where: { id: parseInt(id) },
+        data: {
+          status: 'rejected',
+          rejection_reason: reason || 'Verification rejected by admin',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+        },
+      });
+
+      // Also update the user's status
+      await prisma.users.update({
+        where: { id: request.user_id },
         data: {
           business_verification_status: 'rejected',
           business_rejection_reason: reason || 'Verification rejected by admin',
         },
       });
+
+      console.log(`❌ Business verification rejected for request ${id} (user ${request.user_id})`);
     } else {
-      await prisma.users.update({
+      // Update the verification request
+      const request = await prisma.individual_verification_requests.update({
         where: { id: parseInt(id) },
         data: {
-          individual_verified: false,
-          // Clear the submitted documents
-          id_document_type: null,
-          id_document_number: null,
-          id_document_front: null,
-          id_document_back: null,
-          selfie_with_id: null,
+          status: 'rejected',
+          rejection_reason: reason || 'Verification rejected by admin',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
         },
       });
-    }
 
-    console.log(`❌ ${type} verification rejected for user ${id}`);
+      // Also update the user's status (keep individual_verified as false)
+      await prisma.users.update({
+        where: { id: request.user_id },
+        data: {
+          individual_verified: false,
+        },
+      });
+
+      console.log(`❌ Individual verification rejected for request ${id} (user ${request.user_id})`);
+    }
 
     res.json({
       success: true,

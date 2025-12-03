@@ -72,6 +72,8 @@ export async function POST(
         user_id: true,
         business_name: true,
         status: true,
+        duration_days: true,
+        payment_status: true,
       },
     });
 
@@ -103,6 +105,10 @@ export async function POST(
         shopSlug = `${baseSlug}-${counter}`;
       }
 
+      // Calculate expiry date based on duration_days
+      const durationDays = verificationRequest.duration_days || 365; // Default to 1 year
+      const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+
       // Update user to business account
       await prisma.users.update({
         where: { id: verificationRequest.user_id },
@@ -110,6 +116,7 @@ export async function POST(
           account_type: 'business',
           business_verification_status: 'approved',
           business_verified_at: new Date(),
+          business_verification_expires_at: expiresAt,
           business_name: verificationRequest.business_name,
           shop_slug: shopSlug,
           full_name: verificationRequest.business_name,
@@ -120,6 +127,8 @@ export async function POST(
         `✅ Business verification approved: ${verificationRequest.business_name} (ID: ${requestId})`
       );
       console.log(`   Shop URL: /shop/${shopSlug}`);
+      console.log(`   Duration: ${durationDays} days (expires: ${expiresAt.toISOString()})`);
+      console.log(`   Payment Status: ${verificationRequest.payment_status || 'N/A'}`);
       console.log(`   Profile name updated and locked to: ${verificationRequest.business_name}`);
     } else {
       console.log(

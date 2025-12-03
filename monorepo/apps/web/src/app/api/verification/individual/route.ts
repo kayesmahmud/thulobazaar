@@ -17,6 +17,9 @@ import path from 'path';
  * - full_name (required)
  * - id_document_type (required) - 'citizenship' | 'passport' | 'driving_license'
  * - id_document_number (optional)
+ * - duration_days (required) - 30 | 90 | 180 | 365
+ * - payment_amount (required) - price from verification_pricing table
+ * - payment_reference (required) - mock payment reference number
  */
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +32,9 @@ export async function POST(request: NextRequest) {
     const fullName = formData.get('full_name')?.toString();
     const idDocumentType = formData.get('id_document_type')?.toString();
     const idDocumentNumber = formData.get('id_document_number')?.toString();
+    const durationDays = parseInt(formData.get('duration_days')?.toString() || '365');
+    const paymentAmount = parseFloat(formData.get('payment_amount')?.toString() || '0');
+    const paymentReference = formData.get('payment_reference')?.toString();
 
     // Extract files
     const idDocumentFront = formData.get('id_document_front') as File | null;
@@ -62,16 +68,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for pending requests
+    // Check for pending requests (allow pending_payment to be resubmitted)
     const pendingRequest = await prisma.individual_verification_requests.findFirst({
       where: {
         user_id: userId,
-        status: 'pending',
+        status: { in: ['pending', 'pending_payment'] },
       },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
-    if (pendingRequest) {
+    if (pendingRequest && pendingRequest.status === 'pending') {
       return NextResponse.json(
         {
           success: false,
@@ -79,6 +85,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // If there's a pending_payment request, delete it so user can start fresh
+    if (pendingRequest && pendingRequest.status === 'pending_payment') {
+      await prisma.individual_verification_requests.delete({
+        where: { id: pendingRequest.id },
+      });
     }
 
     // Validate required files
@@ -110,6 +123,103 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message: `Document type must be one of: ${validDocTypes.join(', ')}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate duration
+    const validDurations = [30, 90, 180, 365];
+    if (!validDurations.includes(durationDays)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Duration must be one of: ${validDurations.join(', ')} days`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate payment reference
+    if (!paymentReference || paymentReference.trim() === '') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Payment reference is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Get payment status to check if it's free verification
+    const paymentStatusCheck = formData.get('payment_status')?.toString();
+    const isFreeCheck = paymentStatusCheck === 'free';
+
+    // Validate payment amount (allow 0 for free verifications)
+    if (!isFreeCheck && paymentAmount <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Payment amount is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate pricing matches database (with discount applied)
+    const pricing = await prisma.verification_pricing.findFirst({
+      where: {
+        verification_type: 'individual',
+        duration_days: durationDays,
+        is_active: true,
+      },
+      select: { price: true, discount_percentage: true },
+    });
+
+    if (!pricing) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid verification duration selected',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Calculate expected price with discount
+    const basePrice = parseFloat(pricing.price.toString());
+    const discountPercent = pricing.discount_percentage ? parseFloat(pricing.discount_percentage.toString()) : 0;
+    const expectedPrice = Math.round(basePrice * (1 - discountPercent / 100));
+
+    // Check for free verification promotion
+    const paymentStatus = formData.get('payment_status')?.toString();
+    const isFreeVerification = paymentStatus === 'free';
+
+    // If it's a free verification, payment amount should be 0
+    if (isFreeVerification) {
+      // Verify free verification is actually enabled
+      const freeVerificationSetting = await prisma.site_settings.findUnique({
+        where: { setting_key: 'free_verification_enabled' },
+      });
+
+      const freeVerificationEnabled = freeVerificationSetting?.setting_value === 'true';
+
+      if (!freeVerificationEnabled) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Free verification promotion is not currently available',
+          },
+          { status: 400 }
+        );
+      }
+      // Free verification is valid, skip price check
+    } else if (Math.abs(paymentAmount - expectedPrice) > 1) {
+      // Allow for small rounding differences for paid verification
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Payment amount does not match expected price (NPR ${expectedPrice})`,
         },
         { status: 400 }
       );
@@ -211,7 +321,12 @@ export async function POST(request: NextRequest) {
       await writeFile(backPath, backBuffer);
     }
 
-    // Create verification request
+    // Determine status based on payment
+    // - 'pending' for free verifications (ready for review)
+    // - 'pending_payment' for paid verifications (waiting for payment)
+    const verificationStatus = isFreeVerification ? 'pending' : 'pending_payment';
+
+    // Create verification request with payment info
     const verificationRequest = await prisma.individual_verification_requests.create({
       data: {
         user_id: userId,
@@ -221,20 +336,28 @@ export async function POST(request: NextRequest) {
         id_document_front: frontFilename,
         id_document_back: backFilename,
         selfie_with_id: selfieFilename,
-        status: 'pending',
+        status: verificationStatus,
+        duration_days: durationDays,
+        payment_amount: paymentAmount,
+        payment_reference: paymentReference.trim(),
+        payment_status: isFreeVerification ? 'free' : 'pending', // 'pending' until payment confirmed
       },
     });
 
     console.log(
       `✅ Individual verification request submitted by user ${userId}, request ID: ${verificationRequest.id}`
     );
+    console.log(`   Status: ${verificationStatus}, Duration: ${durationDays} days, Payment: NPR ${paymentAmount} (Ref: ${paymentReference})`);
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Verification request submitted successfully. Our team will review it shortly.',
+        message: isFreeVerification
+          ? 'Verification request submitted successfully. Our team will review it shortly.'
+          : 'Verification request submitted. Please complete payment to proceed.',
         data: {
           requestId: verificationRequest.id,
+          status: verificationStatus,
         },
       },
       { status: 201 }

@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import type { Metadata } from 'next';
 import Header from '../../components/Header';
 import { Providers } from '@/components/Providers';
+import GoogleAdSense from '@/components/ads/GoogleAdSense';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -46,6 +47,9 @@ export default async function LanguageLayout({
 
   return (
     <html lang={lang}>
+      <head>
+        <GoogleAdSense />
+      </head>
       <body className={inter.className}>
         <Providers>
           <Header lang={lang} />

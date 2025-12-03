@@ -72,6 +72,9 @@ export async function POST(
         user_id: true,
         full_name: true,
         status: true,
+        duration_days: true,
+        payment_amount: true,
+        payment_reference: true,
       },
     });
 
@@ -103,12 +106,17 @@ export async function POST(
         shopSlug = `${baseSlug}-${counter}`;
       }
 
+      // Calculate expiry date based on duration_days
+      const durationDays = verificationRequest.duration_days || 365; // Default to 1 year
+      const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+
       // Update user
       await prisma.users.update({
         where: { id: verificationRequest.user_id },
         data: {
           individual_verified: true,
           individual_verified_at: new Date(),
+          individual_verification_expires_at: expiresAt,
           full_name: verificationRequest.full_name,
           seller_slug: shopSlug,
           shop_slug: shopSlug,
@@ -119,6 +127,8 @@ export async function POST(
         `✅ Individual verification approved: ${verificationRequest.full_name} (ID: ${requestId})`
       );
       console.log(`   Shop URL: /shop/${shopSlug}`);
+      console.log(`   Duration: ${durationDays} days (expires: ${expiresAt.toISOString()})`);
+      console.log(`   Payment: NPR ${verificationRequest.payment_amount || 'N/A'} (Ref: ${verificationRequest.payment_reference || 'N/A'})`);
       console.log(`   Profile name updated and locked to: ${verificationRequest.full_name}`);
     } else {
       console.log(

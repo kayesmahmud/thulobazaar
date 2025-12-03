@@ -1,6 +1,6 @@
 import { prisma } from '@thulobazaar/database';
 
-const VERIFIED_STATUSES = ['approved', 'verified'];
+const VERIFIED_BUSINESS_STATUSES = ['approved', 'verified'];
 
 const SHOP_SELECT = {
   id: true,
@@ -130,10 +130,15 @@ const parseUserIdFromSlug = (slug: string): number | null => {
 };
 
 export async function getShopProfile(shopSlug: string): Promise<ShopProfile | null> {
+  // Everyone gets a shop page - no restrictions on verification status
+  // Badges are visual only (gold for verified business, blue for verified individual)
   const shopBySlug = await prisma.users.findFirst({
     where: {
-      OR: [{ shop_slug: shopSlug }, { custom_shop_slug: shopSlug }],
-      business_verification_status: { in: VERIFIED_STATUSES },
+      OR: [
+        { shop_slug: shopSlug },
+        { custom_shop_slug: shopSlug },
+        { seller_slug: shopSlug },
+      ],
     },
     select: SHOP_SELECT,
   });
@@ -142,6 +147,7 @@ export async function getShopProfile(shopSlug: string): Promise<ShopProfile | nu
     return transformShop(shopBySlug);
   }
 
+  // Fallback: try to parse user ID from slug (e.g., "shop-name-123")
   const userId = parseUserIdFromSlug(shopSlug);
 
   if (!userId) {
@@ -149,10 +155,7 @@ export async function getShopProfile(shopSlug: string): Promise<ShopProfile | nu
   }
 
   const shopById = await prisma.users.findFirst({
-    where: {
-      id: userId,
-      business_verification_status: { in: VERIFIED_STATUSES },
-    },
+    where: { id: userId },
     select: SHOP_SELECT,
   });
 

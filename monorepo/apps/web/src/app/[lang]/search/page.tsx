@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
@@ -6,6 +7,7 @@ import SearchPagination from './SearchPagination';
 import SortDropdown from './SortDropdown';
 import SearchBar from './SearchBar';
 import AdCard from '@/components/AdCard';
+import AdBanner from '@/components/ads/AdBanner';
 import Breadcrumb from '@/components/Breadcrumb';
 import { getFilterIds } from '@/lib/urlParser';
 import { getLocationHierarchy } from '@/lib/locationHierarchy';
@@ -153,23 +155,39 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
               maxPrice={maxPrice?.toString() || ''}
               condition={condition}
             />
+
+            {/* Sidebar Ad - 300x250 below filters */}
+            <div className="mt-6 hidden lg:flex justify-center">
+              <AdBanner slot="searchSidebar" size="mediumRectangle" autoExpand />
+            </div>
           </aside>
 
           {/* Results */}
           <main className="lg:col-span-3">
+            {/* Page Header with Top Banner inline on desktop */}
+            <div className="mb-6 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {query ? `Search results for "${query}"` : 'All Ads'}
+                </h1>
+                <p className="text-gray-500">
+                  Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
+                  {hasActiveFilters && ' matching your filters'}
+                </p>
+              </div>
+              {/* Top Banner - 728x90 desktop inline / 320x100 mobile below */}
+              <div className="flex-shrink-0">
+                <div className="flex lg:hidden">
+                  <AdBanner slot="searchTopMobile" size="mobileBanner" autoExpand />
+                </div>
+                <div className="hidden lg:flex">
+                  <AdBanner slot="searchTop" size="leaderboard" autoExpand />
+                </div>
+              </div>
+            </div>
+
             {/* Search Bar */}
             <SearchBar lang={lang} initialQuery={query} />
-
-            {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {query ? `Search results for "${query}"` : 'All Ads'}
-              </h1>
-              <p className="text-gray-500">
-                Found <span className="font-semibold text-gray-900">{totalAds.toLocaleString()}</span> ads
-                {hasActiveFilters && ' matching your filters'}
-              </p>
-            </div>
             {/* Sort & View Options */}
             <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
               <div className="text-sm text-gray-500">
@@ -207,30 +225,37 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
             {ads.length > 0 && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                  {ads.map((ad) => (
-                    <AdCard
-                      key={ad.id}
-                      lang={lang}
-                      ad={{
-                        id: ad.id,
-                        title: ad.title,
-                        price: ad.price ? parseFloat(ad.price.toString()) : 0,
-                        primaryImage: ad.ad_images && ad.ad_images.length > 0
-                          ? ad.ad_images[0]?.file_path || null
-                          : null,
-                        categoryName: ad.categories?.name || null,
-                        categoryIcon: ad.categories?.icon || null,
-                        createdAt: ad.created_at || new Date(),
-                        sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
-                        isFeatured: ad.is_featured || false,
-                        isUrgent: ad.is_urgent || false,
-                        condition: ad.condition || null,
-                        slug: ad.slug || undefined,
-                        accountType: ad.users_ads_user_idTousers?.account_type || undefined,
-                        businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
-                        individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
-                      }}
-                    />
+                  {ads.map((ad, index) => (
+                    <React.Fragment key={ad.id}>
+                      <AdCard
+                        lang={lang}
+                        ad={{
+                          id: ad.id,
+                          title: ad.title,
+                          price: ad.price ? parseFloat(ad.price.toString()) : 0,
+                          primaryImage: ad.ad_images && ad.ad_images.length > 0
+                            ? ad.ad_images[0]?.file_path || null
+                            : null,
+                          categoryName: ad.categories?.name || null,
+                          categoryIcon: ad.categories?.icon || null,
+                          createdAt: ad.created_at || new Date(),
+                          sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
+                          isFeatured: ad.is_featured || false,
+                          isUrgent: ad.is_urgent || false,
+                          condition: ad.condition || null,
+                          slug: ad.slug || undefined,
+                          accountType: ad.users_ads_user_idTousers?.account_type || undefined,
+                          businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
+                          individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
+                        }}
+                      />
+                      {/* In-Feed Ad after every 6th card */}
+                      {(index + 1) % 6 === 0 && index < ads.length - 1 && (
+                        <div className="flex justify-center items-center bg-gray-50 rounded-xl p-4">
+                          <AdBanner slot="searchInResults" size="mediumRectangle" autoExpand />
+                        </div>
+                      )}
+                    </React.Fragment>
                   ))}
                 </div>
 
@@ -243,6 +268,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                     searchParams={search}
                   />
                 )}
+
+                {/* Bottom Banner - 336x280 */}
+                <div className="flex justify-center mt-8">
+                  <AdBanner slot="searchBottom" size="largeRectangle" autoExpand />
+                </div>
               </>
             )}
           </main>
