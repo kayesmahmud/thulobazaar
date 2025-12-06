@@ -109,3 +109,8 @@ uploads/
 backend/typesense-server
 backend/typesense-server-*.tar.gz
 backend/typesense-data/
+
+# Local folders (not for GitHub)
+Ads-img/
+Reference/
+backups/
