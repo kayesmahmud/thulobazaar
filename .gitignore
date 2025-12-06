@@ -114,6 +114,8 @@ backend/typesense-data/
 Ads-img/
 Reference/
 backups/
+monorepo-backup/
+monorepo-for-github/
 
 # Markdown files (documentation)
 *.md
