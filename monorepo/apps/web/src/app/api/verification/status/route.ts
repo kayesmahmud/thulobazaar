@@ -67,40 +67,48 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Get pending business verification requests (if business account)
-    if (user.account_type === 'business') {
-      const businessRequest = await prisma.business_verification_requests.findFirst({
-        where: {
-          user_id: userId,
-          status: {
-            in: ['pending', 'rejected'],
-          },
+    // Get pending/rejected business verification requests
+    const businessRequest = await prisma.business_verification_requests.findFirst({
+      where: {
+        user_id: userId,
+        status: {
+          in: ['pending', 'rejected'],
         },
-        select: {
-          id: true,
-          status: true,
-          business_name: true,
-          created_at: true,
-          rejection_reason: true,
-        },
-        orderBy: { created_at: 'desc' },
-      });
+      },
+      select: {
+        id: true,
+        status: true,
+        business_name: true,
+        created_at: true,
+        rejection_reason: true,
+        // Include payment info for resubmission without paying again
+        payment_status: true,
+        payment_amount: true,
+        duration_days: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
 
-      if (businessRequest) {
-        response.data.businessVerification.hasRequest = true;
-        response.data.businessVerification.request = {
-          id: businessRequest.id,
-          status: businessRequest.status,
-          businessName: businessRequest.business_name,
-          createdAt: businessRequest.created_at,
-          rejectionReason: businessRequest.rejection_reason,
-        };
-      } else {
-        response.data.businessVerification.hasRequest = false;
-      }
+    if (businessRequest) {
+      response.data.businessVerification.hasRequest = true;
+      response.data.businessVerification.request = {
+        id: businessRequest.id,
+        status: businessRequest.status,
+        businessName: businessRequest.business_name,
+        createdAt: businessRequest.created_at,
+        rejectionReason: businessRequest.rejection_reason,
+        // Payment info - allows resubmission without paying again if already paid
+        paymentStatus: businessRequest.payment_status,
+        paymentAmount: businessRequest.payment_amount ? Number(businessRequest.payment_amount) : null,
+        durationDays: businessRequest.duration_days,
+        canResubmitFree: businessRequest.status === 'rejected' &&
+          (businessRequest.payment_status === 'paid' || businessRequest.payment_status === 'free'),
+      };
+    } else {
+      response.data.businessVerification.hasRequest = false;
     }
 
-    // Get pending individual verification requests
+    // Get pending/rejected individual verification requests
     const individualRequest = await prisma.individual_verification_requests.findFirst({
       where: {
         user_id: userId,
@@ -115,6 +123,10 @@ export async function GET(request: NextRequest) {
         id_document_type: true,
         created_at: true,
         rejection_reason: true,
+        // Include payment info for resubmission without paying again
+        payment_status: true,
+        payment_amount: true,
+        duration_days: true,
       },
       orderBy: { created_at: 'desc' },
     });
@@ -128,6 +140,12 @@ export async function GET(request: NextRequest) {
         idDocumentType: individualRequest.id_document_type,
         createdAt: individualRequest.created_at,
         rejectionReason: individualRequest.rejection_reason,
+        // Payment info - allows resubmission without paying again if already paid
+        paymentStatus: individualRequest.payment_status,
+        paymentAmount: individualRequest.payment_amount ? Number(individualRequest.payment_amount) : null,
+        durationDays: individualRequest.duration_days,
+        canResubmitFree: individualRequest.status === 'rejected' &&
+          (individualRequest.payment_status === 'paid' || individualRequest.payment_status === 'free'),
       };
     } else {
       response.data.individualVerification.hasRequest = false;

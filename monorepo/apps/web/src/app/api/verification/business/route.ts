@@ -69,16 +69,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for pending requests (allow pending_payment to be resubmitted)
-    const pendingRequest = await prisma.business_verification_requests.findFirst({
+    // Check for existing requests
+    const existingRequest = await prisma.business_verification_requests.findFirst({
       where: {
         user_id: userId,
-        status: { in: ['pending', 'pending_payment'] },
+        status: { in: ['pending', 'pending_payment', 'rejected'] },
       },
-      select: { id: true, status: true },
+      select: { id: true, status: true, payment_amount: true, duration_days: true },
     });
 
-    if (pendingRequest && pendingRequest.status === 'pending') {
+    if (existingRequest && existingRequest.status === 'pending') {
       return NextResponse.json(
         {
           success: false,
@@ -89,11 +89,14 @@ export async function POST(request: NextRequest) {
     }
 
     // If there's a pending_payment request, delete it so user can start fresh
-    if (pendingRequest && pendingRequest.status === 'pending_payment') {
+    if (existingRequest && existingRequest.status === 'pending_payment') {
       await prisma.business_verification_requests.delete({
-        where: { id: pendingRequest.id },
+        where: { id: existingRequest.id },
       });
     }
+
+    // Check if this is a resubmission of a rejected request
+    const isResubmission = existingRequest && existingRequest.status === 'rejected';
 
     // Validate required file
     if (!businessLicenseDoc) {
@@ -186,23 +189,26 @@ export async function POST(request: NextRequest) {
 
     // If it's a free verification, payment amount should be 0
     if (isFreeVerification) {
-      // Verify free verification is actually enabled
-      const freeVerificationSetting = await prisma.site_settings.findUnique({
-        where: { setting_key: 'free_verification_enabled' },
-      });
+      // For resubmissions, skip free verification check (user already paid previously)
+      if (!isResubmission) {
+        // Verify free verification is actually enabled
+        const freeVerificationSetting = await prisma.site_settings.findUnique({
+          where: { setting_key: 'free_verification_enabled' },
+        });
 
-      const freeVerificationEnabled = freeVerificationSetting?.setting_value === 'true';
+        const freeVerificationEnabled = freeVerificationSetting?.setting_value === 'true';
 
-      if (!freeVerificationEnabled) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Free verification promotion is not currently available',
-          },
-          { status: 400 }
-        );
+        if (!freeVerificationEnabled) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Free verification promotion is not currently available',
+            },
+            { status: 400 }
+          );
+        }
       }
-      // Free verification is valid, skip price check
+      // Free verification or resubmission is valid, skip price check
     } else if (Math.abs(paymentAmount - expectedPrice) > 1) {
       // Allow for small rounding differences for paid verification
       return NextResponse.json(
@@ -257,46 +263,76 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Determine status based on payment
-    // - 'pending' for free verifications (ready for review)
+    // - 'pending' for free verifications or resubmissions (ready for review)
     // - 'pending_payment' for paid verifications (waiting for payment)
-    const verificationStatus = isFreeVerification ? 'pending' : 'pending_payment';
+    const verificationStatus = (isFreeVerification || isResubmission) ? 'pending' : 'pending_payment';
 
-    // Create verification request with payment info
-    const verificationRequest = await prisma.business_verification_requests.create({
-      data: {
-        user_id: userId,
-        business_name: businessName.trim(),
-        business_license_document: filename,
-        business_category: businessCategory || null,
-        business_description: businessDescription || null,
-        business_website: businessWebsite || null,
-        business_phone: businessPhone || null,
-        business_address: businessAddress || null,
-        status: verificationStatus,
-        duration_days: durationDays,
-        payment_amount: paymentAmount,
-        payment_reference: paymentReference.trim(),
-        payment_status: isFreeVerification ? 'free' : 'pending', // 'pending' until payment confirmed
-      },
-    });
+    let verificationRequest;
 
-    console.log(
-      `✅ Business verification request submitted by user ${userId}, request ID: ${verificationRequest.id}`
-    );
-    console.log(`   Status: ${verificationStatus}, Duration: ${durationDays} days, Payment: NPR ${paymentAmount} (Ref: ${paymentReference})`);
+    if (isResubmission && existingRequest) {
+      // Update the existing rejected request with new data
+      verificationRequest = await prisma.business_verification_requests.update({
+        where: { id: existingRequest.id },
+        data: {
+          business_name: businessName.trim(),
+          business_license_document: filename,
+          business_category: businessCategory || null,
+          business_description: businessDescription || null,
+          business_website: businessWebsite || null,
+          business_phone: businessPhone || null,
+          business_address: businessAddress || null,
+          status: verificationStatus,
+          // Keep the original payment info for resubmissions
+          rejection_reason: null, // Clear rejection reason
+          updated_at: new Date(),
+        },
+      });
+
+      console.log(
+        `🔄 Business verification RESUBMITTED by user ${userId}, request ID: ${verificationRequest.id}`
+      );
+      console.log(`   Status: ${verificationStatus}, Original Duration: ${existingRequest.duration_days} days`);
+    } else {
+      // Create new verification request with payment info
+      verificationRequest = await prisma.business_verification_requests.create({
+        data: {
+          user_id: userId,
+          business_name: businessName.trim(),
+          business_license_document: filename,
+          business_category: businessCategory || null,
+          business_description: businessDescription || null,
+          business_website: businessWebsite || null,
+          business_phone: businessPhone || null,
+          business_address: businessAddress || null,
+          status: verificationStatus,
+          duration_days: durationDays,
+          payment_amount: paymentAmount,
+          payment_reference: paymentReference.trim(),
+          payment_status: isFreeVerification ? 'free' : 'pending', // 'pending' until payment confirmed
+        },
+      });
+
+      console.log(
+        `✅ Business verification request submitted by user ${userId}, request ID: ${verificationRequest.id}`
+      );
+      console.log(`   Status: ${verificationStatus}, Duration: ${durationDays} days, Payment: NPR ${paymentAmount} (Ref: ${paymentReference})`);
+    }
 
     return NextResponse.json(
       {
         success: true,
-        message: isFreeVerification
-          ? 'Business verification request submitted successfully. Our team will review it shortly.'
-          : 'Business verification request submitted. Please complete payment to proceed.',
+        message: isResubmission
+          ? 'Business verification resubmitted successfully. Our team will review it shortly.'
+          : isFreeVerification
+            ? 'Business verification request submitted successfully. Our team will review it shortly.'
+            : 'Business verification request submitted. Please complete payment to proceed.',
         data: {
           requestId: verificationRequest.id,
           status: verificationStatus,
+          isResubmission,
         },
       },
-      { status: 201 }
+      { status: isResubmission ? 200 : 201 }
     );
   } catch (error: any) {
     console.error('Business verification error:', error);

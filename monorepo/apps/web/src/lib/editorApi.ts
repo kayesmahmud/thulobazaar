@@ -174,9 +174,18 @@ export async function getActivityLogs(
 }
 
 /**
- * Get all pending verifications
+ * Get verifications with optional filters
+ * Uses Next.js API routes (relative URL) instead of Express backend
+ *
+ * @param status - 'pending' | 'rejected' | 'approved' | 'all' (default: 'pending')
+ * @param type - 'individual' | 'business' | 'all' (default: 'all')
+ * @param token - Optional auth token
  */
-export async function getPendingVerifications(token?: string): Promise<ApiResponse<Verification[]>> {
+export async function getVerifications(
+  status: 'pending' | 'rejected' | 'approved' | 'all' = 'pending',
+  type: 'individual' | 'business' | 'all' = 'all',
+  token?: string
+): Promise<ApiResponse<Verification[]>> {
   // Get token from session if not provided
   const authToken = token || await getBackendToken();
 
@@ -188,7 +197,12 @@ export async function getPendingVerifications(token?: string): Promise<ApiRespon
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE}/api/editor/verifications`, {
+  // Use relative URL for Next.js API routes with query params
+  const params = new URLSearchParams();
+  params.set('status', status);
+  params.set('type', type);
+
+  const response = await fetch(`/api/admin/verifications?${params.toString()}`, {
     headers,
   });
 
@@ -200,40 +214,28 @@ export async function getPendingVerifications(token?: string): Promise<ApiRespon
 }
 
 /**
- * Approve business verification
+ * Get all pending verifications (legacy function for backwards compatibility)
+ * Uses Next.js API routes (relative URL) instead of Express backend
  */
-export async function approveBusinessVerification(
-  userId: number,
-  token?: string
-): Promise<ApiResponse<any>> {
-  const authToken = token || await getBackendToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch(`${API_BASE}/api/editor/verifications/business/${userId}/approve`, {
-    method: 'POST',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to approve business verification');
-  }
-
-  return response.json();
+export async function getPendingVerifications(token?: string): Promise<ApiResponse<Verification[]>> {
+  return getVerifications('pending', 'all', token);
 }
 
 /**
- * Reject business verification
+ * Generic verification action handler
+ * Consolidates approve/reject logic for both business and individual verifications
+ *
+ * @param type - 'business' | 'individual'
+ * @param verificationId - The verification request ID
+ * @param action - 'approve' | 'reject'
+ * @param reason - Required for reject action
+ * @param token - Optional auth token
  */
-export async function rejectBusinessVerification(
-  userId: number,
-  reason: string,
+export async function handleVerificationAction(
+  type: 'business' | 'individual',
+  verificationId: number,
+  action: 'approve' | 'reject',
+  reason?: string,
   token?: string
 ): Promise<ApiResponse<any>> {
   const authToken = token || await getBackendToken();
@@ -246,78 +248,34 @@ export async function rejectBusinessVerification(
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE}/api/editor/verifications/business/${userId}/reject`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ reason }),
-  });
+  const response = await fetch(
+    `/api/admin/verifications/${type}/${verificationId}/${action}`,
+    {
+      method: 'POST',
+      headers,
+      body: action === 'reject' ? JSON.stringify({ reason }) : undefined,
+    }
+  );
 
   if (!response.ok) {
-    throw new Error('Failed to reject business verification');
+    throw new Error(`Failed to ${action} ${type} verification`);
   }
 
   return response.json();
 }
 
-/**
- * Approve individual verification
- */
-export async function approveIndividualVerification(
-  userId: number,
-  token?: string
-): Promise<ApiResponse<any>> {
-  const authToken = token || await getBackendToken();
+// Backwards-compatible wrapper functions
+export const approveBusinessVerification = (verificationId: number, token?: string) =>
+  handleVerificationAction('business', verificationId, 'approve', undefined, token);
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+export const rejectBusinessVerification = (verificationId: number, reason: string, token?: string) =>
+  handleVerificationAction('business', verificationId, 'reject', reason, token);
 
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
+export const approveIndividualVerification = (verificationId: number, token?: string) =>
+  handleVerificationAction('individual', verificationId, 'approve', undefined, token);
 
-  const response = await fetch(`${API_BASE}/api/editor/verifications/individual/${userId}/approve`, {
-    method: 'POST',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to approve individual verification');
-  }
-
-  return response.json();
-}
-
-/**
- * Reject individual verification
- */
-export async function rejectIndividualVerification(
-  userId: number,
-  reason: string,
-  token?: string
-): Promise<ApiResponse<any>> {
-  const authToken = token || await getBackendToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch(`${API_BASE}/api/editor/verifications/individual/${userId}/reject`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ reason }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to reject individual verification');
-  }
-
-  return response.json();
-}
+export const rejectIndividualVerification = (verificationId: number, reason: string, token?: string) =>
+  handleVerificationAction('individual', verificationId, 'reject', reason, token);
 
 /**
  * Get ads with filters
@@ -453,77 +411,20 @@ export async function deleteAd(
   return response.json();
 }
 
-/**
- * Review business verification
- */
-export async function reviewBusinessVerification(
+// Legacy wrapper functions - use handleVerificationAction directly for new code
+export const reviewBusinessVerification = (
   verificationId: number,
   action: 'approve' | 'reject',
   reason?: string,
   token?: string
-): Promise<ApiResponse<any>> {
-  // Get token from session if not provided
-  const authToken = token || await getBackendToken();
+) => handleVerificationAction('business', verificationId, action, reason, token);
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch(
-    `${API_BASE}/api/editor/verifications/business/${verificationId}/${action}`,
-    {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ reason }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to ${action} business verification`);
-  }
-
-  return response.json();
-}
-
-/**
- * Review individual verification
- */
-export async function reviewIndividualVerification(
+export const reviewIndividualVerification = (
   verificationId: number,
   action: 'approve' | 'reject',
   reason?: string,
   token?: string
-): Promise<ApiResponse<any>> {
-  // Get token from session if not provided
-  const authToken = token || await getBackendToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch(
-    `${API_BASE}/api/editor/verifications/individual/${verificationId}/${action}`,
-    {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ reason }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to ${action} individual verification`);
-  }
-
-  return response.json();
-}
+) => handleVerificationAction('individual', verificationId, action, reason, token);
 
 interface MyWorkToday {
   adsApprovedToday: number;

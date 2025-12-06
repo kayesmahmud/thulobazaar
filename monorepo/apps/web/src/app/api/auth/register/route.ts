@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { generateUniqueShopSlug } from '@/lib/slug';
 
 // Validation schema
 const registerSchema = z.object({
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
+    // Generate unique shop slug from full name
+    const shop_slug = await generateUniqueShopSlug(fullName);
+
     // Create user
     const user = await prisma.users.create({
       data: {
@@ -57,6 +61,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         role: 'user',
         is_active: true,
+        shop_slug,
       },
       select: {
         id: true,
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest) {
         full_name: true,
         phone: true,
         role: true,
+        shop_slug: true,
         created_at: true,
       },
     });
@@ -78,6 +84,7 @@ export async function POST(request: NextRequest) {
           fullName: user.full_name,
           phone: user.phone,
           role: user.role,
+          shopSlug: user.shop_slug,
           createdAt: user.created_at,
         },
       },

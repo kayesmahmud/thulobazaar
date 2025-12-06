@@ -10,9 +10,12 @@ import { useSession, signOut } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { useMessages } from '@/hooks/useSocket';
 import { useBackendToken } from '@/hooks/useBackendToken';
-import { messagingApi } from '@/lib/messagingApi';
+import { messagingApi, announcementsApi } from '@/lib/messagingApi';
+import { formatFullDate } from '@/types/messaging';
+import type { Announcement } from '@/types/messaging';
 import ConversationList from './ConversationList';
 import ChatWindow from './ChatWindow';
+import AnnouncementsList from './AnnouncementsList';
 
 export default function MessagesPage() {
   const { data: session } = useSession();
@@ -33,6 +36,11 @@ export default function MessagesPage() {
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Tab state for switching between conversations and announcements
+  const [activeTab, setActiveTab] = useState<'conversations' | 'announcements'>('conversations');
+  const [announcementUnreadCount, setAnnouncementUnreadCount] = useState(0);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
   // ✅ 2025 Best Practice: Store conversation messages separately
   // Combines API-loaded history with real-time Socket.IO messages
@@ -79,6 +87,24 @@ export default function MessagesPage() {
     if (!token) return;
 
     loadConversations();
+  }, [token]);
+
+  // Load announcement unread count on mount (so badge shows immediately)
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchAnnouncementUnreadCount = async () => {
+      try {
+        const result = await announcementsApi.getUnreadCount(token);
+        if (result.success) {
+          setAnnouncementUnreadCount(result.unreadCount);
+        }
+      } catch (err) {
+        console.error('Failed to fetch announcement unread count:', err);
+      }
+    };
+
+    fetchAnnouncementUnreadCount();
   }, [token]);
 
   // Auto-select conversation from URL query parameter
@@ -316,22 +342,68 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* Conversation List Sidebar - Responsive */}
+      {/* Sidebar - Responsive */}
       <div className={`${
-        selectedConversation ? 'hidden md:flex' : 'flex'
-      } w-full md:w-1/3 lg:w-1/4 xl:w-1/5 border-r border-gray-200 bg-white flex-shrink-0`}>
-        <ConversationList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          onSelectConversation={handleSelectConversation}
-          loading={loading}
-          currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
-        />
+        selectedConversation || selectedAnnouncement ? 'hidden md:flex' : 'flex'
+      } w-full md:w-1/3 lg:w-1/4 xl:w-1/5 border-r border-gray-200 bg-white flex-shrink-0 flex-col`}>
+        {/* Tab Buttons */}
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('conversations')}
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+              activeTab === 'conversations'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Chats
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('announcements');
+              setSelectedConversation(null);
+            }}
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors relative ${
+              activeTab === 'announcements'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Announcements
+            {announcementUnreadCount > 0 && (
+              <span className="absolute top-2 right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                {announcementUnreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'conversations' ? (
+            <ConversationList
+              conversations={conversations}
+              selectedConversation={selectedConversation}
+              onSelectConversation={handleSelectConversation}
+              loading={loading}
+              currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
+            />
+          ) : (
+            <div className="h-full overflow-y-auto">
+              <AnnouncementsList
+                token={token}
+                onUnreadCountChange={setAnnouncementUnreadCount}
+                onSelectAnnouncement={setSelectedAnnouncement}
+                selectedAnnouncementId={selectedAnnouncement?.id}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Chat Window - Responsive */}
+      {/* Chat Window / Announcement Detail - Responsive */}
       <div className={`${
-        selectedConversation ? 'flex' : 'hidden md:flex'
+        selectedConversation || selectedAnnouncement ? 'flex' : 'hidden md:flex'
       } flex-1 flex-col min-w-0`}>
         {selectedConversation ? (
           <ChatWindow
@@ -346,6 +418,87 @@ export default function MessagesPage() {
             onBack={() => setSelectedConversation(null)}
             token={token || undefined}
           />
+        ) : selectedAnnouncement ? (
+          /* Announcement Detail View */
+          <div className="flex flex-col h-full bg-white">
+            {/* Header */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-white">
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-full"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-semibold text-gray-900 truncate">
+                  {selectedAnnouncement.title}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  ThuluBazaar Announcement
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="max-w-2xl mx-auto">
+                {/* Announcement Card */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 shadow-sm border border-blue-100">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {selectedAnnouncement.title}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {new Date(selectedAnnouncement.createdAt).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {selectedAnnouncement.content}
+                    </p>
+                  </div>
+
+                  {selectedAnnouncement.isRead && selectedAnnouncement.readAt && (
+                    <div className="mt-4 pt-4 border-t border-blue-200">
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Read on {new Date(selectedAnnouncement.readAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-500">
@@ -362,8 +515,14 @@ export default function MessagesPage() {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              <p className="mt-4 text-lg font-medium">Select a conversation</p>
-              <p className="mt-1 text-sm">Choose a conversation from the list to start messaging</p>
+              <p className="mt-4 text-lg font-medium">
+                {activeTab === 'announcements' ? 'Select an announcement' : 'Select a conversation'}
+              </p>
+              <p className="mt-1 text-sm">
+                {activeTab === 'announcements'
+                  ? 'Choose an announcement from the list to view details'
+                  : 'Choose a conversation from the list to start messaging'}
+              </p>
             </div>
           </div>
         )}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import {
-  getPendingVerifications,
+  getVerifications,
   approveIndividualVerification,
   rejectIndividualVerification,
 } from '@/lib/editorApi';
@@ -35,6 +35,8 @@ interface IndividualVerification {
   idDocumentFront?: string;
   idDocumentBack?: string;
   selfieWithId?: string;
+  // Rejection reason
+  rejectionReason?: string;
 }
 
 export default function IndividualVerificationPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
@@ -51,6 +53,7 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'pending' | 'rejected' | 'approved'>('pending');
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -60,36 +63,38 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
   const loadVerifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getPendingVerifications();
+      // Use getVerifications with the active tab status and filter by individual type
+      const response = await getVerifications(activeTab, 'individual');
 
       if (response.success && Array.isArray(response.data)) {
-        // Filter only individual verifications and transform snake_case to camelCase
+        // API already returns camelCase, so use camelCase field names
         const individualVerifications = response.data
-          .filter((v: any) => v.type === 'individual')
           .map((v: any) => ({
             id: v.id,
-            userId: v.user_id,
+            userId: v.userId,
             email: v.email || '',
-            fullName: v.full_name || '',
-            verifiedSellerName: v.verified_seller_name,
+            fullName: v.fullName || '',
+            verifiedSellerName: v.verifiedSellerName,
             phone: v.phone,
             location: v.location,
             status: v.status,
-            submittedAt: v.created_at,
+            submittedAt: v.createdAt,
             type: v.type,
             // Shop slug for viewing user's shop
-            shopSlug: v.shop_slug,
+            shopSlug: v.shopSlug,
             // Payment and duration fields
-            durationDays: v.duration_days,
-            paymentAmount: v.payment_amount,
-            paymentReference: v.payment_reference,
-            paymentStatus: v.payment_status,
+            durationDays: v.durationDays,
+            paymentAmount: v.paymentAmount,
+            paymentReference: v.paymentReference,
+            paymentStatus: v.paymentStatus,
             // Document fields
-            idDocumentType: v.id_document_type,
-            idDocumentNumber: v.id_document_number,
-            idDocumentFront: v.id_document_front,
-            idDocumentBack: v.id_document_back,
-            selfieWithId: v.selfie_with_id,
+            idDocumentType: v.idDocumentType,
+            idDocumentNumber: v.idDocumentNumber,
+            idDocumentFront: v.idDocumentFront,
+            idDocumentBack: v.idDocumentBack,
+            selfieWithId: v.selfieWithId,
+            // Rejection reason
+            rejectionReason: v.rejectionReason,
           }));
         setVerifications(individualVerifications);
       } else {
@@ -101,7 +106,7 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -112,12 +117,12 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
     loadVerifications();
   }, [authLoading, staff, isEditor, params.lang, router, loadVerifications]);
 
-  const handleApprove = async (userId: number) => {
+  const handleApprove = async (verificationId: number) => {
     if (!confirm('Are you sure you want to approve this individual verification?')) return;
 
     try {
       setActionLoading(true);
-      const response = await approveIndividualVerification(userId);
+      const response = await approveIndividualVerification(verificationId);
 
       if (response.success) {
         alert('Individual verification approved successfully!');
@@ -143,7 +148,7 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
     try {
       setActionLoading(true);
       const response = await rejectIndividualVerification(
-        selectedVerification.userId,
+        selectedVerification.id,  // Use verification request ID, not userId
         rejectReason
       );
 
@@ -216,25 +221,90 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'pending'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <span>Pending</span>
+                {activeTab === 'pending' && <span className="bg-white/20 px-2 py-0.5 rounded text-sm">{verifications.length}</span>}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('rejected')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'rejected'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <span>Rejected</span>
+                {activeTab === 'rejected' && <span className="bg-white/20 px-2 py-0.5 rounded text-sm">{verifications.length}</span>}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('approved')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'approved'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <span>Verified</span>
+                {activeTab === 'approved' && <span className="bg-white/20 px-2 py-0.5 rounded text-sm">{verifications.length}</span>}
+              </span>
+            </button>
+          </div>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-6">
+          <div className={`bg-gradient-to-br ${
+            activeTab === 'pending' ? 'from-purple-50 to-purple-100 border-purple-200' :
+            activeTab === 'rejected' ? 'from-red-50 to-red-100 border-red-200' :
+            'from-green-50 to-green-100 border-green-200'
+          } border-2 rounded-xl p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-purple-700 mb-1">Total Pending</div>
-                <div className="text-3xl font-bold text-purple-900">
+                <div className={`text-sm font-medium mb-1 ${
+                  activeTab === 'pending' ? 'text-purple-700' :
+                  activeTab === 'rejected' ? 'text-red-700' :
+                  'text-green-700'
+                }`}>
+                  {activeTab === 'pending' ? 'Total Pending' :
+                   activeTab === 'rejected' ? 'Total Rejected' :
+                   'Total Verified'}
+                </div>
+                <div className={`text-3xl font-bold ${
+                  activeTab === 'pending' ? 'text-purple-900' :
+                  activeTab === 'rejected' ? 'text-red-900' :
+                  'text-green-900'
+                }`}>
                   {filteredVerifications.length}
                 </div>
               </div>
-              <div className="text-4xl">🪪</div>
+              <div className="text-4xl">
+                {activeTab === 'pending' ? '🪪' :
+                 activeTab === 'rejected' ? '❌' :
+                 '✅'}
+              </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-green-700 mb-1">With Phone</div>
-                <div className="text-3xl font-bold text-green-900">
+                <div className="text-sm font-medium text-blue-700 mb-1">With Phone</div>
+                <div className="text-3xl font-bold text-blue-900">
                   {filteredVerifications.filter((v) => v.phone).length}
                 </div>
               </div>
@@ -245,10 +315,14 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
           <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-amber-700 mb-1">Avg. Wait Time</div>
-                <div className="text-3xl font-bold text-amber-900">1.5d</div>
+                <div className="text-sm font-medium text-amber-700 mb-1">
+                  {activeTab === 'rejected' ? 'Recent Rejections' : 'Processing Time'}
+                </div>
+                <div className="text-3xl font-bold text-amber-900">
+                  {activeTab === 'rejected' ? filteredVerifications.length : '1-2d'}
+                </div>
               </div>
-              <div className="text-4xl">⏱️</div>
+              <div className="text-4xl">{activeTab === 'rejected' ? '📋' : '⏱️'}</div>
             </div>
           </div>
         </div>
@@ -268,12 +342,20 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
         <div className="space-y-4">
           {filteredVerifications.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <div className="text-6xl mb-4">🪪</div>
+              <div className="text-6xl mb-4">
+                {activeTab === 'pending' ? '🪪' :
+                 activeTab === 'rejected' ? '📋' :
+                 '✅'}
+              </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No pending verifications
+                {activeTab === 'pending' ? 'No pending verifications' :
+                 activeTab === 'rejected' ? 'No rejected verifications' :
+                 'No verified users yet'}
               </h3>
               <p className="text-gray-600">
-                All individual verification requests have been processed
+                {activeTab === 'pending' ? 'All individual verification requests have been processed' :
+                 activeTab === 'rejected' ? 'No individual verification applications have been rejected' :
+                 'No users have been verified through individual verification'}
               </p>
             </div>
           ) : (
@@ -484,31 +566,64 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
                         </div>
                       )}
 
+                      {/* Rejection Reason (for rejected tab) */}
+                      {activeTab === 'rejected' && verification.rejectionReason && (
+                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-red-500 text-xl mt-0.5">⚠️</span>
+                            <div>
+                              <div className="text-sm font-semibold text-red-700 mb-1">Rejection Reason</div>
+                              <div className="text-red-900">{verification.rejectionReason}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Info Note */}
-                      <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-900">
-                        <span className="font-medium">Note:</span> Individual verification allows
-                        users to display a verified badge and build trust with buyers.
+                      <div className={`mb-4 p-3 rounded-lg text-sm ${
+                        activeTab === 'pending' ? 'bg-purple-50 border border-purple-200 text-purple-900' :
+                        activeTab === 'rejected' ? 'bg-red-50 border border-red-200 text-red-900' :
+                        'bg-green-50 border border-green-200 text-green-900'
+                      }`}>
+                        <span className="font-medium">Note:</span>{' '}
+                        {activeTab === 'pending' ? 'Individual verification allows users to display a verified badge and build trust with buyers.' :
+                         activeTab === 'rejected' ? 'This user can resubmit their verification with corrected information. They will appear in the Pending tab once resubmitted.' :
+                         'This user has been verified and can display the verified badge on their profile and listings.'}
                       </div>
 
                       {/* Action Buttons */}
                       <div className="flex gap-3">
-                        <button
-                          onClick={() => handleApprove(verification.userId)}
-                          disabled={actionLoading}
-                          className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          ✓ Approve Verification
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedVerification(verification);
-                            setShowRejectModal(true);
-                          }}
-                          disabled={actionLoading}
-                          className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          ✗ Reject
-                        </button>
+                        {activeTab === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(verification.id)}
+                              disabled={actionLoading}
+                              className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              ✓ Approve Verification
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedVerification(verification);
+                                setShowRejectModal(true);
+                              }}
+                              disabled={actionLoading}
+                              className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              ✗ Reject
+                            </button>
+                          </>
+                        )}
+                        {activeTab === 'rejected' && (
+                          <div className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg">
+                            Awaiting user resubmission
+                          </div>
+                        )}
+                        {activeTab === 'approved' && (
+                          <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg flex items-center gap-2">
+                            <span>✅</span> Verified User
+                          </div>
+                        )}
                         <button
                           onClick={() => window.open(`/${params.lang}/ads?userId=${verification.userId}`, '_blank')}
                           className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"

@@ -33,6 +33,11 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/react-fontawesome": "^3.1.1",
+    "@untitledui-pro/icons": "^0.0.2",
     "dotenv": "^17.2.3"
   }
 }

@@ -13,6 +13,16 @@ interface VerificationPageProps {
   params: Promise<{ lang: string }>;
 }
 
+interface VerificationRequest {
+  id: number;
+  status: string;
+  rejectionReason?: string;
+  paymentStatus?: string;
+  paymentAmount?: number;
+  durationDays?: number;
+  canResubmitFree?: boolean;
+}
+
 interface VerificationStatus {
   business?: {
     status: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -20,6 +30,7 @@ interface VerificationStatus {
     expiresAt?: string;
     daysRemaining?: number;
     isExpiringSoon?: boolean;
+    request?: VerificationRequest;
   };
   individual?: {
     status: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -27,6 +38,7 @@ interface VerificationStatus {
     expiresAt?: string;
     daysRemaining?: number;
     isExpiringSoon?: boolean;
+    request?: VerificationRequest;
   };
 }
 
@@ -64,6 +76,8 @@ export default function VerificationPage({ params }: VerificationPageProps) {
   const [selectedType, setSelectedType] = useState<'individual' | 'business' | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<PricingOption | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [isResubmission, setIsResubmission] = useState(false);
+  const [resubmissionDuration, setResubmissionDuration] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -108,6 +122,20 @@ export default function VerificationPage({ params }: VerificationPageProps) {
     setSelectedType(type);
     setSelectedDuration(null);
     setShowForm(false);
+    setIsResubmission(false);
+    setResubmissionDuration(null);
+
+    // Check if this is a resubmission (rejected with payment already made)
+    const verificationData = type === 'business'
+      ? verificationStatus?.business
+      : verificationStatus?.individual;
+
+    if (verificationData?.request?.canResubmitFree && verificationData.request.durationDays) {
+      // User can resubmit for free - skip duration selection
+      setIsResubmission(true);
+      setResubmissionDuration(verificationData.request.durationDays);
+      setShowForm(true);
+    }
   };
 
   const handleDurationSelect = (option: PricingOption) => {
@@ -610,24 +638,26 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       </div>
 
       {/* Business Verification Form Modal */}
-      {showForm && selectedType === 'business' && selectedDuration && (
+      {showForm && selectedType === 'business' && (selectedDuration || isResubmission) && (
         <BusinessVerificationForm
           onSuccess={handleFormSuccess}
           onCancel={handleFormCancel}
-          durationDays={selectedDuration.durationDays}
-          price={isFreeVerification ? 0 : selectedDuration.finalPrice}
-          isFreeVerification={isFreeVerification || false}
+          durationDays={isResubmission && resubmissionDuration ? resubmissionDuration : selectedDuration!.durationDays}
+          price={isResubmission ? 0 : (isFreeVerification ? 0 : selectedDuration!.finalPrice)}
+          isFreeVerification={isResubmission || isFreeVerification || false}
+          isResubmission={isResubmission}
         />
       )}
 
       {/* Individual Verification Form Modal */}
-      {showForm && selectedType === 'individual' && selectedDuration && (
+      {showForm && selectedType === 'individual' && (selectedDuration || isResubmission) && (
         <IndividualVerificationForm
           onSuccess={handleFormSuccess}
           onCancel={handleFormCancel}
-          durationDays={selectedDuration.durationDays}
-          price={isFreeVerification ? 0 : selectedDuration.finalPrice}
-          isFreeVerification={isFreeVerification || false}
+          durationDays={isResubmission && resubmissionDuration ? resubmissionDuration : selectedDuration!.durationDays}
+          price={isResubmission ? 0 : (isFreeVerification ? 0 : selectedDuration!.finalPrice)}
+          isFreeVerification={isResubmission || isFreeVerification || false}
+          isResubmission={isResubmission}
         />
       )}
     </div>

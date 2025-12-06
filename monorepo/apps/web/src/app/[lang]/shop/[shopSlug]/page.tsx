@@ -4,6 +4,7 @@ import { prisma } from '@thulobazaar/database';
 import Link from 'next/link';
 import ShopProfileClient from './ShopProfileClient';
 import ShopSidebar from './ShopSidebar';
+import ShopEmptyState from './ShopEmptyState';
 import AdCard from '@/components/AdCard';
 import { getShopProfile, buildShopMetadata } from '@/lib/shops';
 
@@ -79,18 +80,21 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
-            <Link href={`/${lang}`} className="text-rose-500 hover:underline">
-              Home
+      {/* Breadcrumb - Hidden visually but kept for SEO */}
+      <nav aria-label="Breadcrumb" className="sr-only">
+        <ol itemScope itemType="https://schema.org/BreadcrumbList">
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+            <Link href={`/${lang}`} itemProp="item">
+              <span itemProp="name">Home</span>
             </Link>
-            <span>/</span>
-            <span className="text-gray-900 truncate">{shop.businessName || shop.fullName}</span>
-          </div>
-        </div>
-      </div>
+            <meta itemProp="position" content="1" />
+          </li>
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+            <span itemProp="name">{shop.businessName || shop.fullName}</span>
+            <meta itemProp="position" content="2" />
+          </li>
+        </ol>
+      </nav>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         {/* Cover Photo & Avatar - Rendered by Client Component */}
@@ -120,19 +124,15 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
           <ShopSidebar
             shopId={shop.id}
             shopSlug={shopSlug}
-            lang={lang}
-            isOwner={false} // Will be determined on client side
             bio={shop.bio}
             businessDescription={shop.businessDescription}
             businessPhone={shop.businessPhone}
             phone={shop.phone}
             businessWebsite={shop.businessWebsite}
             googleMapsLink={shop.googleMapsLink}
-            businessAddress={shop.businessAddress}
             locationName={shop.location?.name ?? ''}
-            accountType={shop.accountType || 'individual'}
-            businessVerificationStatus={shop.businessVerificationStatus}
-            individualVerified={shop.individualVerified}
+            locationSlug={shop.location?.slug ?? ''}
+            locationFullPath={shop.locationFullPath ?? ''}
           />
 
           {/* Right Side - Ads Grid */}
@@ -145,6 +145,8 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
               <div className="card text-center py-16">
                 <div className="text-6xl mb-4">📦</div>
                 <p className="text-gray-600 mb-6">No active ads at the moment</p>
+                {/* POST FREE AD button - ShopEmptyState handles owner check on client side */}
+                <ShopEmptyState shopId={shop.id} lang={lang} />
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">

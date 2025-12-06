@@ -4,69 +4,98 @@ import { requireEditor } from '@/lib/jwt';
 
 /**
  * GET /api/admin/verifications
- * Get all pending verification requests (business + individual)
+ * Get verification requests (business + individual)
  * Requires: Editor or Super Admin role
+ *
+ * Query params:
+ * - status: 'pending' | 'rejected' | 'approved' | 'all' (default: 'pending')
+ * - type: 'individual' | 'business' | 'all' (default: 'all')
  */
 export async function GET(request: NextRequest) {
   try {
     // Authenticate admin/editor
     await requireEditor(request);
 
-    // Get pending business verifications
-    const businessVerifications = await prisma.business_verification_requests.findMany({
-      where: { status: 'pending' },
-      select: {
-        id: true,
-        user_id: true,
-        business_name: true,
-        business_license_document: true,
-        business_category: true,
-        business_description: true,
-        business_website: true,
-        business_phone: true,
-        business_address: true,
-        status: true,
-        created_at: true,
-        duration_days: true,
-        payment_amount: true,
-        payment_reference: true,
-        payment_status: true,
-        users_business_verification_requests_user_idTousers: {
-          select: {
-            email: true,
-            full_name: true,
-          },
-        },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const statusParam = searchParams.get('status') || 'pending';
+    const typeParam = searchParams.get('type') || 'all';
 
-    // Get pending individual verifications
-    const individualVerifications = await prisma.individual_verification_requests.findMany({
-      where: { status: 'pending' },
-      select: {
-        id: true,
-        user_id: true,
-        full_name: true,
-        id_document_type: true,
-        id_document_number: true,
-        id_document_front: true,
-        id_document_back: true,
-        selfie_with_id: true,
-        status: true,
-        created_at: true,
-        duration_days: true,
-        payment_amount: true,
-        payment_reference: true,
-        payment_status: true,
-        users_individual_verification_requests_user_idTousers: {
-          select: {
-            email: true,
+    // Build status filter
+    let statusFilter: any = {};
+    if (statusParam === 'all') {
+      statusFilter = {}; // No filter, get all
+    } else if (statusParam === 'approved') {
+      statusFilter = { status: 'approved' };
+    } else if (statusParam === 'rejected') {
+      statusFilter = { status: 'rejected' };
+    } else {
+      statusFilter = { status: 'pending' };
+    }
+
+    // Get business verifications (if requested)
+    let businessVerifications: any[] = [];
+    if (typeParam === 'all' || typeParam === 'business') {
+      businessVerifications = await prisma.business_verification_requests.findMany({
+        where: statusFilter,
+        select: {
+          id: true,
+          user_id: true,
+          business_name: true,
+          business_license_document: true,
+          business_category: true,
+          business_description: true,
+          business_website: true,
+          business_phone: true,
+          business_address: true,
+          status: true,
+          created_at: true,
+          duration_days: true,
+          payment_amount: true,
+          payment_reference: true,
+          payment_status: true,
+          rejection_reason: true,
+          users_business_verification_requests_user_idTousers: {
+            select: {
+              email: true,
+              full_name: true,
+            },
           },
         },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+        orderBy: { created_at: 'desc' },
+      });
+    }
+
+    // Get individual verifications (if requested)
+    let individualVerifications: any[] = [];
+    if (typeParam === 'all' || typeParam === 'individual') {
+      individualVerifications = await prisma.individual_verification_requests.findMany({
+        where: statusFilter,
+        select: {
+          id: true,
+          user_id: true,
+          full_name: true,
+          id_document_type: true,
+          id_document_number: true,
+          id_document_front: true,
+          id_document_back: true,
+          selfie_with_id: true,
+          status: true,
+          created_at: true,
+          duration_days: true,
+          payment_amount: true,
+          payment_reference: true,
+          payment_status: true,
+          rejection_reason: true,
+          users_individual_verification_requests_user_idTousers: {
+            select: {
+              email: true,
+            },
+          },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    }
 
     // Transform business verifications
     const businessData = businessVerifications.map((bv) => ({
@@ -85,8 +114,9 @@ export async function GET(request: NextRequest) {
       paymentAmount: bv.payment_amount ? parseFloat(bv.payment_amount.toString()) : null,
       paymentReference: bv.payment_reference,
       paymentStatus: bv.payment_status,
-      email: bv.users_business_verification_requests_user_idTousers.email,
-      fullName: bv.users_business_verification_requests_user_idTousers.full_name,
+      rejectionReason: bv.rejection_reason,
+      email: bv.users_business_verification_requests_user_idTousers?.email,
+      fullName: bv.users_business_verification_requests_user_idTousers?.full_name,
       type: 'business',
     }));
 
@@ -106,7 +136,8 @@ export async function GET(request: NextRequest) {
       paymentAmount: iv.payment_amount ? parseFloat(iv.payment_amount.toString()) : null,
       paymentReference: iv.payment_reference,
       paymentStatus: iv.payment_status,
-      email: iv.users_individual_verification_requests_user_idTousers.email,
+      rejectionReason: iv.rejection_reason,
+      email: iv.users_individual_verification_requests_user_idTousers?.email,
       type: 'individual',
     }));
 

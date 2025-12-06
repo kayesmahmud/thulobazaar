@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { formatDurationLabel } from '@/lib/verificationUtils';
 
 /**
  * GET /api/verification/pricing
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       .map((p) => ({
         id: p.id,
         durationDays: p.duration_days,
-        durationLabel: getDurationLabel(p.duration_days),
+        durationLabel: formatDurationLabel(p.duration_days),
         price: parseFloat(p.price.toString()),
         discountPercentage: p.discount_percentage || 0,
         finalPrice: calculateFinalPrice(parseFloat(p.price.toString()), p.discount_percentage || 0),
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
       .map((p) => ({
         id: p.id,
         durationDays: p.duration_days,
-        durationLabel: getDurationLabel(p.duration_days),
+        durationLabel: formatDurationLabel(p.duration_days),
         price: parseFloat(p.price.toString()),
         discountPercentage: p.discount_percentage || 0,
         finalPrice: calculateFinalPrice(parseFloat(p.price.toString()), p.discount_percentage || 0),
@@ -117,13 +118,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getDurationLabel(days: number): string {
-  if (days === 30) return '1 Month';
-  if (days === 90) return '3 Months';
-  if (days === 180) return '6 Months';
-  if (days === 365) return '1 Year';
-  return `${days} Days`;
-}
 
 function calculateFinalPrice(price: number, discountPercentage: number): number {
   if (discountPercentage <= 0) return price;

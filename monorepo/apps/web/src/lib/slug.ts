@@ -85,3 +85,47 @@ export function generateSeoSlug(
   // Return slug with ID at the end: title-area-district--id
   return `${slugPart}--${adId}`;
 }
+
+/**
+ * Generate a unique shop slug from user's full name
+ * Checks for duplicates and appends incremental counter if necessary
+ * Examples: "Rohit Thapa" -> "rohit-thapa", "rohit-thapa-1", "rohit-thapa-2", etc.
+ *
+ * @param fullName - The user's full name
+ * @param userId - The user ID (for updates, to exclude self from duplicate check)
+ * @returns Unique shop slug
+ */
+export async function generateUniqueShopSlug(
+  fullName: string,
+  userId?: number
+): Promise<string> {
+  const baseSlug = slugify(fullName);
+
+  // Handle empty or invalid names
+  if (!baseSlug) {
+    return `user-${Date.now()}`;
+  }
+
+  let slug = baseSlug;
+  let counter = 0;
+
+  while (true) {
+    // Check if slug exists in shop_slug or custom_shop_slug (excluding current user if updating)
+    const existingUser = await prisma.users.findFirst({
+      where: {
+        OR: [{ shop_slug: slug }, { custom_shop_slug: slug }],
+        ...(userId ? { NOT: { id: userId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    // If slug doesn't exist, it's unique!
+    if (!existingUser) {
+      return slug;
+    }
+
+    // Slug exists, try with counter
+    counter++;
+    slug = `${baseSlug}-${counter}`;
+  }
+}

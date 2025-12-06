@@ -70,10 +70,12 @@ interface SearchResult {
   type: 'province' | 'district' | 'municipality' | 'area';
   parent_id?: number | null;
   hierarchy_info?: string;
+  fullPath?: string; // Full hierarchy path like "Bagmati Province → Kathmandu → Kathmandu Metropolitan City → Thamel"
+  hierarchy?: Array<{ id: number; name: string; type: string }>; // Array of hierarchy items
 }
 
 interface CascadingLocationFilterProps {
-  onLocationSelect: (locationSlug: string | null, locationName?: string | null) => void;
+  onLocationSelect: (locationSlug: string | null, locationName?: string | null, fullPath?: string | null) => void;
   selectedLocationSlug?: string | null;
   selectedLocationName?: string | null;
   initialProvinces?: Province[];
@@ -330,7 +332,15 @@ export default function CascadingLocationFilter({
   const handleAutocompleteSelect = (result: SearchResult) => {
     setSearchTerm(result.name);
     setShowAutocomplete(false);
-    onLocationSelect(result.slug, result.name);
+    // Build reversed path (most specific to least): "Thamel, Kathmandu Metro, Kathmandu, Bagmati"
+    let reversedPath: string | null = null;
+    if (result.hierarchy && result.hierarchy.length > 0) {
+      reversedPath = result.hierarchy.map(h => h.name).reverse().join(', ');
+    } else if (result.fullPath) {
+      // fullPath is in format "Bagmati → Kathmandu → ... → Thamel", reverse it
+      reversedPath = result.fullPath.split(' → ').reverse().join(', ');
+    }
+    onLocationSelect(result.slug, result.name, reversedPath);
   };
 
   // Close autocomplete when clicking outside
@@ -378,6 +388,21 @@ export default function CascadingLocationFilter({
       await fetchAreas(municipalityId);
     }
     setExpandedMunicipalities(newExpanded);
+  };
+
+  // Helper to build full path for hierarchy selection (from most specific to least specific)
+  const buildFullPath = (
+    provinceName: string,
+    districtName?: string,
+    municipalityName?: string,
+    areaName?: string
+  ): string => {
+    const parts: string[] = [];
+    if (areaName) parts.push(areaName);
+    if (municipalityName) parts.push(municipalityName);
+    if (districtName) parts.push(districtName);
+    parts.push(provinceName);
+    return parts.join(', ');
   };
 
   return (
@@ -465,7 +490,7 @@ export default function CascadingLocationFilter({
               type="button"
               onClick={() => {
                 setSearchTerm(province.name);
-                onLocationSelect(province.slug, province.name);
+                onLocationSelect(province.slug, province.name, buildFullPath(province.name));
               }}
               className={`flex-1 flex items-center gap-2 py-2.5 px-2 pl-0 border-none cursor-pointer text-sm text-left transition-all ${
                 selectedLocationSlug === province.slug
@@ -500,7 +525,7 @@ export default function CascadingLocationFilter({
                       type="button"
                       onClick={() => {
                         setSearchTerm(district.name);
-                        onLocationSelect(district.slug, district.name);
+                        onLocationSelect(district.slug, district.name, buildFullPath(province.name, district.name));
                       }}
                       className={`flex-1 flex items-center gap-2 py-2 px-2 pl-0 border-none cursor-pointer text-[0.8125rem] text-left transition-all ${
                         selectedLocationSlug === district.slug
@@ -542,7 +567,7 @@ export default function CascadingLocationFilter({
                               type="button"
                               onClick={() => {
                                 setSearchTerm(municipality.name);
-                                onLocationSelect(municipality.slug, municipality.name);
+                                onLocationSelect(municipality.slug, municipality.name, buildFullPath(province.name, district.name, municipality.name));
                               }}
                               className={`flex-1 flex items-center gap-2 py-2 px-2 pl-0 border-none cursor-pointer text-[0.8125rem] text-left transition-all ${
                                 selectedLocationSlug === municipality.slug
@@ -563,7 +588,7 @@ export default function CascadingLocationFilter({
                                   key={area.id}
                                   onClick={() => {
                                     setSearchTerm(area.name);
-                                    onLocationSelect(area.slug, area.name);
+                                    onLocationSelect(area.slug, area.name, buildFullPath(province.name, district.name, municipality.name, area.name));
                                   }}
                                   className={`w-full flex items-center gap-2 py-2 px-2 pl-20 border-none border-t border-gray-100 cursor-pointer text-[0.8125rem] text-left transition-all ${
                                     selectedLocationSlug === area.slug

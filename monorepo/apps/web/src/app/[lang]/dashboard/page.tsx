@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -13,6 +13,8 @@ import { EmptyAds } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/ui';
 import { useBackendToken } from '@/hooks/useBackendToken';
 import { useMessages } from '@/hooks/useSocket';
+import IndividualVerificationForm from '@/components/IndividualVerificationForm';
+import BusinessVerificationForm from '@/components/BusinessVerificationForm';
 
 interface Ad {
   id: number;
@@ -64,7 +66,7 @@ interface VerificationStatus {
 export default function DashboardPage() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || 'en';
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const { success, error: showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'sold'>('active');
@@ -80,6 +82,13 @@ export default function DashboardPage() {
 
   // Verification state
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
+
+  // Resubmission modal state
+  const [showResubmitModal, setShowResubmitModal] = useState(false);
+  const [resubmitType, setResubmitType] = useState<'individual' | 'business' | null>(null);
+
+  // Track if session has been refreshed to prevent infinite loops
+  const sessionRefreshed = useRef(false);
 
   // Get backend token for Socket.IO connection
   const { backendToken, loading: tokenLoading } = useBackendToken();
@@ -144,6 +153,15 @@ export default function DashboardPage() {
       if (verificationResponse.success && verificationResponse.data) {
         console.log('🔍 Verification Response:', verificationResponse.data);
         setVerificationStatus(verificationResponse.data as any);
+
+        // Refresh session to get updated shop_slug and verification status (only once)
+        // This ensures the Header's "My Shop" link uses the correct slug
+        const data = verificationResponse.data as any;
+        if (!sessionRefreshed.current && (data.businessVerification?.verified || data.individualVerification?.verified)) {
+          console.log('🔄 User is verified, refreshing session to update shop slug...');
+          sessionRefreshed.current = true;
+          await updateSession();
+        }
       }
     } catch (err: any) {
       console.error('Error loading user data:', err);
@@ -392,6 +410,11 @@ export default function DashboardPage() {
           const isBusinessRejected = verificationStatus?.businessVerification?.request?.status === 'rejected';
           const isIndividualRejected = verificationStatus?.individualVerification?.request?.status === 'rejected';
 
+          // Check for pending applications
+          const isBusinessPending = verificationStatus?.businessVerification?.request?.status === 'pending';
+          const isIndividualPending = verificationStatus?.individualVerification?.request?.status === 'pending';
+          const hasAnyPending = isBusinessPending || isIndividualPending;
+
           // If user is verified, show success state
           if (hasAnyVerification) {
             return (
@@ -480,6 +503,246 @@ export default function DashboardPage() {
             );
           }
 
+          // If user has pending verification application, show pending state
+          if (hasAnyPending) {
+            return (
+              <div className="relative bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 rounded-3xl p-8 mb-12 shadow-2xl text-white overflow-hidden group hover:shadow-3xl transition-shadow duration-300">
+                {/* Decorative Background Elements */}
+                <div className="absolute inset-0 overflow-hidden opacity-20">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-300 rounded-full blur-3xl transform -translate-x-32 translate-y-32"></div>
+                </div>
+
+                <div className="relative z-10 flex items-center justify-between flex-wrap gap-6">
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        {/* Animated Clock Icon */}
+                        <svg className="w-10 h-10 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-3xl font-bold mb-1">Verification Pending</h2>
+                        <p className="text-white/90 text-sm">We're reviewing your application</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {isBusinessPending && (
+                        <div className="flex items-center gap-3 bg-white/95 px-5 py-3 rounded-xl shadow-lg">
+                          <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white animate-spin" style={{ animationDuration: '3s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-900 font-bold text-lg">
+                                {verificationStatus?.businessVerification?.request?.businessName || 'Business Verification'}
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                                PENDING
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm">
+                              Business/Shop verification under review
+                              {verificationStatus?.businessVerification?.request?.createdAt && (
+                                <span className="text-gray-400 ml-2">
+                                  • Submitted {new Date(verificationStatus.businessVerification.request.createdAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {isIndividualPending && (
+                        <div className="flex items-center gap-3 bg-white/95 px-5 py-3 rounded-xl shadow-lg">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white animate-spin" style={{ animationDuration: '3s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-900 font-bold text-lg">
+                                {verificationStatus?.individualVerification?.request?.fullName || 'Individual Verification'}
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                                PENDING
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm">
+                              Individual ID verification under review
+                              {verificationStatus?.individualVerification?.request?.createdAt && (
+                                <span className="text-gray-400 ml-2">
+                                  • Submitted {new Date(verificationStatus.individualVerification.request.createdAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="mt-4 text-white/80 text-sm flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Our team typically reviews applications within 24-48 hours
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Check if any verification was rejected
+          const hasAnyRejected = isBusinessRejected || isIndividualRejected;
+
+          // If user has rejected verification, show rejected state with reason
+          if (hasAnyRejected) {
+            return (
+              <div className="relative bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 rounded-3xl p-8 mb-12 shadow-2xl text-white overflow-hidden group hover:shadow-3xl transition-shadow duration-300">
+                {/* Decorative Background Elements */}
+                <div className="absolute inset-0 overflow-hidden opacity-20">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-300 rounded-full blur-3xl transform -translate-x-32 translate-y-32"></div>
+                </div>
+
+                <div className="relative z-10 flex items-center justify-between flex-wrap gap-6">
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-3xl font-bold mb-1">Verification Rejected</h2>
+                        <p className="text-white/90 text-sm">Your application was not approved</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {isBusinessRejected && (
+                        <div className="bg-white/95 px-5 py-4 rounded-xl shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-rose-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-gray-900 font-bold text-lg">Business Verification</span>
+                                <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">
+                                  REJECTED
+                                </span>
+                              </div>
+                              {verificationStatus?.businessVerification?.request?.rejectionReason && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                  <div className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    Reason for rejection:
+                                  </div>
+                                  <p className="text-red-800 text-sm">
+                                    {verificationStatus.businessVerification.request.rejectionReason}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {isIndividualRejected && (
+                        <div className="bg-white/95 px-5 py-4 rounded-xl shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-rose-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-gray-900 font-bold text-lg">Individual Verification</span>
+                                <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">
+                                  REJECTED
+                                </span>
+                              </div>
+                              {verificationStatus?.individualVerification?.request?.rejectionReason && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                  <div className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    Reason for rejection:
+                                  </div>
+                                  <p className="text-red-800 text-sm">
+                                    {verificationStatus.individualVerification.request.rejectionReason}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="mt-4 text-white/80 text-sm flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please fix the issues mentioned above and resubmit your application
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-2">
+                    {isIndividualRejected && (
+                      <button
+                        onClick={() => {
+                          setResubmitType('individual');
+                          setShowResubmitModal(true);
+                        }}
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-white text-red-600 font-bold rounded-2xl hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 cursor-pointer border-none"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Resubmit Individual
+                      </button>
+                    )}
+                    {isBusinessRejected && (
+                      <button
+                        onClick={() => {
+                          setResubmitType('business');
+                          setShowResubmitModal(true);
+                        }}
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-white text-red-600 font-bold rounded-2xl hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 cursor-pointer border-none"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Resubmit Business
+                      </button>
+                    )}
+                    <span className="text-white/70 text-xs font-medium">No additional payment required</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
           // If user is not verified, show CTA
           return (
             <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl p-8 mb-12 shadow-2xl text-white overflow-hidden group hover:shadow-3xl transition-shadow duration-300">
@@ -503,30 +766,12 @@ export default function DashboardPage() {
                     Build trust with buyers, unlock premium features, and boost your visibility
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    {isBusinessRejected && (
-                      <div className="flex items-center gap-2 bg-red-500/90 px-4 py-2 rounded-full backdrop-blur-sm border border-red-400 shadow-lg">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-semibold">Business Rejected - Reapply</span>
-                      </div>
-                    )}
-                    {isIndividualRejected && (
-                      <div className="flex items-center gap-2 bg-red-500/90 px-4 py-2 rounded-full backdrop-blur-sm border border-red-400 shadow-lg">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-semibold">Individual Rejected - Reapply</span>
-                      </div>
-                    )}
-                    {!isBusinessRejected && !isIndividualRejected && (
-                      <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm border border-white/30">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                        </svg>
-                        <span className="font-medium">Not Verified Yet</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm border border-white/30">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                      </svg>
+                      <span className="font-medium">Not Verified Yet</span>
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -534,21 +779,10 @@ export default function DashboardPage() {
                     href={`/${lang}/verification`}
                     className="inline-flex items-center gap-3 px-8 py-4 bg-white text-purple-600 font-bold rounded-2xl hover:bg-gray-100 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105"
                   >
-                    {(isBusinessRejected || isIndividualRejected) ? (
-                      <>
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Manage Verifications
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Get Verified Now
-                      </>
-                    )}
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Get Verified Now
                   </Link>
                 </div>
               </div>
@@ -731,6 +965,45 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Resubmission Modal */}
+      {showResubmitModal && resubmitType && (
+        resubmitType === 'individual' ? (
+          <IndividualVerificationForm
+            onSuccess={() => {
+              setShowResubmitModal(false);
+              setResubmitType(null);
+              success('Verification resubmitted successfully! We will review your application.');
+              loadUserData(); // Refresh verification status
+            }}
+            onCancel={() => {
+              setShowResubmitModal(false);
+              setResubmitType(null);
+            }}
+            durationDays={verificationStatus?.individualVerification?.request?.durationDays || 365}
+            price={0}
+            isFreeVerification={true}
+            isResubmission={true}
+          />
+        ) : (
+          <BusinessVerificationForm
+            onSuccess={() => {
+              setShowResubmitModal(false);
+              setResubmitType(null);
+              success('Verification resubmitted successfully! We will review your application.');
+              loadUserData(); // Refresh verification status
+            }}
+            onCancel={() => {
+              setShowResubmitModal(false);
+              setResubmitType(null);
+            }}
+            durationDays={verificationStatus?.businessVerification?.request?.durationDays || 365}
+            price={0}
+            isFreeVerification={true}
+            isResubmission={true}
+          />
+        )
+      )}
     </div>
   );
 }

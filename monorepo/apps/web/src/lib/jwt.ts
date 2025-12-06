@@ -106,6 +106,15 @@ export async function requireEditor(request: NextRequest): Promise<JWTPayload> {
 }
 
 /**
+ * Check if user is super_admin only
+ * Returns user ID for convenience
+ */
+export async function requireSuperAdmin(request: NextRequest): Promise<number> {
+  const payload = await requireRole(request, ['super_admin']);
+  return payload.userId;
+}
+
+/**
  * Optional auth - returns user ID if authenticated, null otherwise
  * Does not throw error
  */

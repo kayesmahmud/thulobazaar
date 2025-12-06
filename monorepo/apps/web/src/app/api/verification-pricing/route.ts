@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { formatDurationLabel } from '@/lib/verificationUtils';
 
 /**
  * GET /api/verification-pricing
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       id: p.id,
       verificationType: p.verification_type,
       durationDays: p.duration_days,
-      durationLabel: getDurationLabel(p.duration_days),
+      durationLabel: formatDurationLabel(p.duration_days),
       price: parseFloat(p.price.toString()),
       discountPercentage: p.discount_percentage || 0,
       originalPrice: calculateOriginalPrice(
@@ -65,20 +66,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getDurationLabel(days: number): string {
-  switch (days) {
-    case 30:
-      return '1 Month';
-    case 90:
-      return '3 Months';
-    case 180:
-      return '6 Months';
-    case 365:
-      return '1 Year';
-    default:
-      return `${days} Days`;
-  }
-}
 
 function calculateOriginalPrice(
   discountedPrice: number,

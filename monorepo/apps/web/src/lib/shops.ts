@@ -1,4 +1,5 @@
 import { prisma } from '@thulobazaar/database';
+import { getLocationBreadcrumb } from '@/lib/locationHierarchy';
 
 const VERIFIED_BUSINESS_STATUSES = ['approved', 'verified'];
 
@@ -89,38 +90,54 @@ export interface ShopProfile {
     name: string;
     slug: string | null;
   } | null;
+  locationFullPath: string | null; // Full hierarchy path like "Thamel, Kathmandu Metropolitan City, Kathmandu, Bagmati Province"
 }
 
-const transformShop = (shop: RawShopRow): ShopProfile => ({
-  id: shop.id,
-  email: shop.email,
-  fullName: shop.full_name || '',
-  phone: shop.phone,
-  avatar: shop.avatar,
-  coverPhoto: shop.cover_photo,
-  bio: shop.bio,
-  accountType: shop.account_type,
-  shopSlug: shop.shop_slug,
-  customShopSlug: shop.custom_shop_slug,
-  sellerSlug: shop.seller_slug,
-  businessName: shop.business_name,
-  businessCategory: shop.business_category,
-  businessDescription: shop.business_description,
-  businessWebsite: shop.business_website,
-  businessPhone: shop.business_phone,
-  businessAddress: shop.business_address,
-  googleMapsLink: shop.google_maps_link,
-  businessVerificationStatus: shop.business_verification_status,
-  individualVerified: shop.individual_verified || false,
-  createdAt: shop.created_at,
-  location: shop.locations
-    ? {
-        id: shop.locations.id,
-        name: shop.locations.name,
-        slug: shop.locations.slug,
-      }
-    : null,
-});
+const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
+  // Get full location hierarchy path if location exists
+  let locationFullPath: string | null = null;
+  if (shop.locations) {
+    try {
+      const hierarchy = await getLocationBreadcrumb(shop.locations.id);
+      // Reverse to show from most specific to most general: "Thamel, Kathmandu Metro, Kathmandu, Bagmati"
+      locationFullPath = hierarchy.map(h => h.name).reverse().join(', ');
+    } catch (error) {
+      console.error('Error fetching location hierarchy:', error);
+    }
+  }
+
+  return {
+    id: shop.id,
+    email: shop.email,
+    fullName: shop.full_name || '',
+    phone: shop.phone,
+    avatar: shop.avatar,
+    coverPhoto: shop.cover_photo,
+    bio: shop.bio,
+    accountType: shop.account_type,
+    shopSlug: shop.shop_slug,
+    customShopSlug: shop.custom_shop_slug,
+    sellerSlug: shop.seller_slug,
+    businessName: shop.business_name,
+    businessCategory: shop.business_category,
+    businessDescription: shop.business_description,
+    businessWebsite: shop.business_website,
+    businessPhone: shop.business_phone,
+    businessAddress: shop.business_address,
+    googleMapsLink: shop.google_maps_link,
+    businessVerificationStatus: shop.business_verification_status,
+    individualVerified: shop.individual_verified || false,
+    createdAt: shop.created_at,
+    location: shop.locations
+      ? {
+          id: shop.locations.id,
+          name: shop.locations.name,
+          slug: shop.locations.slug,
+        }
+      : null,
+    locationFullPath,
+  };
+};
 
 const parseUserIdFromSlug = (slug: string): number | null => {
   const parts = slug.split('-');
@@ -144,7 +161,7 @@ export async function getShopProfile(shopSlug: string): Promise<ShopProfile | nu
   });
 
   if (shopBySlug) {
-    return transformShop(shopBySlug);
+    return await transformShop(shopBySlug);
   }
 
   // Fallback: try to parse user ID from slug (e.g., "shop-name-123")
@@ -159,7 +176,7 @@ export async function getShopProfile(shopSlug: string): Promise<ShopProfile | nu
     select: SHOP_SELECT,
   });
 
-  return shopById ? transformShop(shopById) : null;
+  return shopById ? await transformShop(shopById) : null;
 }
 
 export function buildShopMetadata(shop: ShopProfile) {

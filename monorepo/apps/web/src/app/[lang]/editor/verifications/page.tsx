@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { getPendingVerifications } from '@/lib/editorApi';
+import { getVerifications } from '@/lib/editorApi';
 import { getEditorNavSections } from '@/lib/editorNavigation';
 
 interface Verification {
@@ -50,30 +50,30 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
     try {
       setLoading(true);
 
-      // Note: This endpoint currently only returns pending verifications
-      // In production, you'd want a separate endpoint that returns all verifications
-      const response = await getPendingVerifications();
+      // Fetch ALL verifications (pending, approved, rejected)
+      const response = await getVerifications('all', 'all');
 
       if (response.success && response.data) {
+        // API returns camelCase, map to our interface
         const allVerifications = response.data.map((v: any) => ({
           id: v.id,
-          userId: v.user_id,
+          userId: v.userId,
           email: v.email,
-          fullName: v.full_name,
-          businessName: v.business_name,
-          businessLicense: v.business_license_document,
-          businessCategory: v.business_category,
-          idDocumentType: v.id_document_type,
-          idDocumentNumber: v.id_document_number,
+          fullName: v.fullName,
+          businessName: v.businessName,
+          businessLicense: v.businessLicenseDocument,
+          businessCategory: v.businessCategory,
+          idDocumentType: v.idDocumentType,
+          idDocumentNumber: v.idDocumentNumber,
           status: v.status,
-          submittedAt: v.created_at,
-          reviewedAt: v.reviewed_at,
-          rejectionReason: v.rejection_reason,
+          submittedAt: v.createdAt,
+          reviewedAt: v.reviewedAt,
+          rejectionReason: v.rejectionReason,
           type: v.type,
           // Payment and duration fields
-          durationDays: v.duration_days,
-          paymentAmount: v.payment_amount,
-          paymentStatus: v.payment_status,
+          durationDays: v.durationDays,
+          paymentAmount: v.paymentAmount,
+          paymentStatus: v.paymentStatus,
         }));
 
         setVerifications(allVerifications);

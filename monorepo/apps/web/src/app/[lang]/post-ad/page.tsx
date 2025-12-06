@@ -62,6 +62,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [userHasDefaultLocation, setUserHasDefaultLocation] = useState(false);
 
   // Debug: Log current state
   console.log('📊 Current State:', {
@@ -146,6 +147,35 @@ export default function PostAdPage({ params }: PostAdPageProps) {
 
       if (locationsRes.success && locationsRes.data) {
         setLocations(locationsRes.data);
+      }
+
+      // Fetch user's default location and pre-select it
+      try {
+        const token = (session as any)?.backendToken;
+        if (token) {
+          const userLocationRes = await fetch('/api/user/location', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          const userLocationData = await userLocationRes.json();
+
+          if (userLocationData.success && userLocationData.data?.location) {
+            const userLocation = userLocationData.data.location;
+            console.log('📍 Pre-selecting user default location:', userLocation.name);
+            setFormData(prev => ({
+              ...prev,
+              locationSlug: userLocation.slug || '',
+              locationName: userLocation.name || '',
+            }));
+            setUserHasDefaultLocation(true);
+          } else {
+            setUserHasDefaultLocation(false);
+          }
+        }
+      } catch (locationErr) {
+        console.log('Could not fetch user default location:', locationErr);
+        // Non-critical error, continue without pre-selection
       }
     } catch (err: any) {
       console.error('Error loading form data:', err);
@@ -241,6 +271,27 @@ export default function PostAdPage({ params }: PostAdPageProps) {
       const response = await apiClient.createAd(adData);
 
       if (response.success && response.data) {
+        // If user didn't have a default location and they selected one, save it as default
+        if (!userHasDefaultLocation && formData.locationSlug) {
+          try {
+            const token = (session as any)?.backendToken;
+            if (token) {
+              await fetch('/api/user/location', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ locationSlug: formData.locationSlug }),
+              });
+              console.log('📍 Saved first ad location as user default');
+            }
+          } catch (saveLocationErr) {
+            console.log('Could not save default location:', saveLocationErr);
+            // Non-critical error, continue with redirect
+          }
+        }
+
         // Success! Redirect to the new ad or dashboard
         router.push(`/${lang}/dashboard`);
       }

@@ -1,43 +1,44 @@
-// @ts-nocheck
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
+import { Phone01, Globe01, MarkerPin01, MarkerPin02 } from '@untitledui-pro/icons/line';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSquareWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import CascadingLocationFilter from '@/components/CascadingLocationFilter';
+
+// Extended user type with backendToken (added by UserAuthContext from NextAuth session)
+type UserWithToken = {
+  id: number;
+  backendToken?: string | null;
+};
 
 interface ShopSidebarProps {
   shopId: number;
   shopSlug: string;
-  lang: string;
-  isOwner: boolean; // Placeholder, will be determined on client
   bio: string | null;
   businessDescription: string | null;
   businessPhone: string | null;
   phone: string | null;
   businessWebsite: string | null;
   googleMapsLink: string | null;
-  businessAddress: string | null;
   locationName: string | null;
-  accountType: string;
-  businessVerificationStatus: string | null;
-  individualVerified: boolean;
+  locationSlug: string | null;
+  locationFullPath: string | null;
 }
 
 export default function ShopSidebar({
   shopId,
   shopSlug,
-  lang,
-  isOwner: _,
   bio,
   businessDescription: initialDescription,
   businessPhone: initialBusinessPhone,
   phone: initialPhone,
   businessWebsite: initialWebsite,
   googleMapsLink: initialGoogleMaps,
-  businessAddress,
-  locationName,
-  accountType,
-  businessVerificationStatus,
-  individualVerified,
+  locationName: initialLocationName,
+  locationSlug: initialLocationSlug,
+  locationFullPath: initialLocationFullPath,
 }: ShopSidebarProps) {
   const { user, isAuthenticated } = useUserAuth();
   const [isOwner, setIsOwner] = useState(false);
@@ -45,7 +46,6 @@ export default function ShopSidebar({
   // Determine if current user is the shop owner
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('🏪 ShopSidebar - User ID:', user.id, 'Shop ID:', shopId);
       setIsOwner(user.id === shopId);
     }
   }, [user, isAuthenticated, shopId]);
@@ -67,21 +67,16 @@ export default function ShopSidebar({
 
   // Location section states
   const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [locationData, setLocationData] = useState({
-    businessAddress: businessAddress || '',
-    locationName: locationName || '',
-  });
+  const [locationSlug, setLocationSlug] = useState(initialLocationSlug || '');
+  const [locationName, setLocationName] = useState(initialLocationName || '');
+  const [locationFullPath, setLocationFullPath] = useState(initialLocationFullPath || '');
   const [locationSaving, setLocationSaving] = useState(false);
 
   const handleSaveAbout = async () => {
     try {
       setAboutSaving(true);
 
-      // Get token from session storage (set by NextAuth)
-      const token = user?.backendToken;
-
-      console.log('🔐 [ShopSidebar] Save About - User:', user);
-      console.log('🔐 [ShopSidebar] Save About - Token:', token);
+      const token = (user as UserWithToken | null)?.backendToken;
 
       if (!token) {
         alert('You must be logged in to update this section. Please refresh the page and try again.');
@@ -119,11 +114,7 @@ export default function ShopSidebar({
     try {
       setContactSaving(true);
 
-      // Get token from session storage (set by NextAuth)
-      const token = user?.backendToken;
-
-      console.log('🔐 [ShopSidebar] Save Contact - User:', user);
-      console.log('🔐 [ShopSidebar] Save Contact - Token:', token);
+      const token = (user as UserWithToken | null)?.backendToken;
 
       if (!token) {
         alert('You must be logged in to update this section. Please refresh the page and try again.');
@@ -166,7 +157,7 @@ export default function ShopSidebar({
     try {
       setLocationSaving(true);
 
-      const token = user?.backendToken;
+      const token = (user as UserWithToken | null)?.backendToken;
 
       if (!token) {
         alert('You must be logged in to update this section. Please refresh the page and try again.');
@@ -174,14 +165,14 @@ export default function ShopSidebar({
         return;
       }
 
-      const response = await fetch(`/api/shop/${shopSlug}/location`, {
+      const response = await fetch(`/api/user/location`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          business_address: locationData.businessAddress,
+          locationSlug: locationSlug || null,
         }),
       });
 
@@ -192,14 +183,20 @@ export default function ShopSidebar({
         // Refresh the page to show updated data
         window.location.reload();
       } else {
-        alert(data.message || 'Failed to update location information');
+        alert(data.message || 'Failed to update location');
       }
     } catch (err) {
       console.error('Error updating location:', err);
-      alert('Failed to update location information');
+      alert('Failed to update location');
     } finally {
       setLocationSaving(false);
     }
+  };
+
+  const handleLocationSelect = (slug: string | null, name?: string | null, fullPath?: string | null) => {
+    setLocationSlug(slug || '');
+    setLocationName(name || '');
+    setLocationFullPath(fullPath || name || '');
   };
 
   return (
@@ -354,7 +351,7 @@ export default function ShopSidebar({
           <div className="space-y-3 sm:space-y-4">
             {contactData.businessPhone && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl flex-shrink-0">💬</span>
+                <FontAwesomeIcon icon={faSquareWhatsapp} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-green-500 flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">WhatsApp</div>
                   <div className="font-semibold text-sm sm:text-base break-all">{contactData.businessPhone}</div>
@@ -363,7 +360,7 @@ export default function ShopSidebar({
             )}
             {contactData.phone && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl flex-shrink-0">📱</span>
+                <Phone01 className="w-5 h-5 sm:w-[30px] sm:h-[30px] text-blue-500 flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Mobile</div>
                   <div className="font-semibold text-sm sm:text-base break-all">{contactData.phone}</div>
@@ -372,7 +369,7 @@ export default function ShopSidebar({
             )}
             {contactData.businessWebsite && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl flex-shrink-0">🌐</span>
+                <Globe01 className="w-5 h-5 sm:w-[30px] sm:h-[30px] text-purple-500 flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Website</div>
                   <a
@@ -388,7 +385,7 @@ export default function ShopSidebar({
             )}
             {contactData.googleMapsLink && (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl flex-shrink-0">📍</span>
+                <MarkerPin01 className="w-5 h-5 sm:w-[30px] sm:h-[30px] text-red-500 flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Location</div>
                   <a
@@ -402,11 +399,16 @@ export default function ShopSidebar({
                 </div>
               </div>
             )}
+            {!contactData.businessPhone && !contactData.phone && !contactData.businessWebsite && !contactData.googleMapsLink && (
+              <p className="text-sm sm:text-base text-gray-500 italic">
+                No contact information available. {isOwner && 'Click Edit to add your contact details.'}
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {/* Location Information - Editable for all users */}
+      {/* Default Location - Using centralized location system */}
       <div className="card">
         <div className="flex justify-between items-center mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl font-semibold">Location</h2>
@@ -424,14 +426,18 @@ export default function ShopSidebar({
           <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                Business Address
+                Select Your Location
               </label>
-              <textarea
-                value={locationData.businessAddress}
-                onChange={(e) => setLocationData({ ...locationData, businessAddress: e.target.value })}
-                placeholder="Enter your shop address (e.g., Thamel, Kathmandu)"
-                className="w-full min-h-[80px] p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
+              <p className="text-xs text-gray-500 mb-3">
+                This will be pre-selected when you post new ads.
+              </p>
+              <div className="max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-3">
+                <CascadingLocationFilter
+                  onLocationSelect={handleLocationSelect}
+                  selectedLocationSlug={locationSlug || null}
+                  selectedLocationName={locationName || null}
+                />
+              </div>
             </div>
 
             <div className="flex gap-2 mt-3 sm:mt-4">
@@ -445,10 +451,9 @@ export default function ShopSidebar({
               <button
                 onClick={() => {
                   setIsEditingLocation(false);
-                  setLocationData({
-                    businessAddress: businessAddress || '',
-                    locationName: locationName || '',
-                  });
+                  setLocationSlug(initialLocationSlug || '');
+                  setLocationName(initialLocationName || '');
+                  setLocationFullPath(initialLocationFullPath || '');
                 }}
                 disabled={locationSaving}
                 className="flex-1 border border-gray-300 px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg hover:bg-gray-50 transition-colors"
@@ -459,27 +464,20 @@ export default function ShopSidebar({
           </div>
         ) : (
           <div className="space-y-3 sm:space-y-4">
-            {locationData.businessAddress ? (
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl flex-shrink-0">📍</span>
+            {locationName ? (
+              <div className="flex items-start gap-2 sm:gap-3">
+                <MarkerPin02 className="w-5 h-5 sm:w-[30px] sm:h-[30px] text-teal-500 flex-shrink-0 mt-0.5" />
                 <div className="min-w-0">
-                  <div className="text-xs sm:text-sm text-gray-600">Address</div>
-                  <div className="font-semibold text-sm sm:text-base whitespace-pre-wrap">{locationData.businessAddress}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Your Location</div>
+                  <div className="font-semibold text-sm sm:text-base">
+                    {/* Show full path if available, otherwise just the location name */}
+                    {locationFullPath || locationName}
+                  </div>
                 </div>
               </div>
-            ) : null}
-            {locationData.locationName ? (
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl flex-shrink-0">🗺️</span>
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-sm text-gray-600">City/Area</div>
-                  <div className="font-semibold text-sm sm:text-base">{locationData.locationName}</div>
-                </div>
-              </div>
-            ) : null}
-            {!locationData.businessAddress && !locationData.locationName && (
+            ) : (
               <p className="text-sm sm:text-base text-gray-500 italic">
-                No location information available yet. {isOwner && 'Click Edit to add your location.'}
+                No default location set. {isOwner && 'Click Edit to set your location for easier ad posting.'}
               </p>
             )}
           </div>

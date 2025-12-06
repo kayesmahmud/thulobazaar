@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import Cropper from 'react-easy-crop';
 import { Point, Area } from 'react-easy-crop/types';
 import { Button } from '@/components/ui';
@@ -344,7 +344,7 @@ export default function ShopProfileClient({
           <div className="relative -mt-[40px] sm:-mt-[45px] flex-shrink-0 w-[100px] sm:w-[120px] md:w-[150px]">
             {initialAvatar ? (
               <div className="relative">
-                <Image
+                <NextImage
                   src={`/uploads/avatars/${initialAvatar}`}
                   alt={shopName}
                   width={150}
@@ -404,13 +404,13 @@ export default function ShopProfileClient({
           </div>
 
           {/* Shop Info */}
-          <div className="flex-1 pb-2 md:pb-4">
+          <div className="flex-1 pt-2 pb-2 md:pb-4">
             {/* Name and Badge */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-1 sm:mb-2">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 break-words">{shopName}</h1>
               {/* Golden Badge for Business Verified */}
               {(businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved') && (
-                <Image
+                <NextImage
                   src="/golden-badge.png"
                   alt="Verified Business"
                   title="Verified Business Account"
@@ -421,7 +421,7 @@ export default function ShopProfileClient({
               )}
               {/* Blue Badge for Individual Verified (but not business verified) */}
               {individualVerified && businessVerificationStatus !== 'verified' && businessVerificationStatus !== 'approved' && (
-                <Image
+                <NextImage
                   src="/blue-badge.png"
                   alt="Verified Seller"
                   title="Verified Individual Seller"

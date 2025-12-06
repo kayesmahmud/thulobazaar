@@ -436,6 +436,8 @@ model users {
   support_tickets_support_tickets_user_idTousers                                       support_tickets[]                  @relation("support_tickets_user_idTousers")
   support_tickets_support_tickets_assigned_toTousers                                   support_tickets[]                  @relation("support_tickets_assigned_toTousers")
   support_messages                                                                     support_messages[]
+  announcements                                                                        announcements[]
+  announcement_read_receipts                                                           announcement_read_receipts[]
 
   @@index([latitude, longitude], map: "idx_users_coordinates")
   @@index([location_id], map: "idx_users_location_id")
@@ -649,4 +651,48 @@ model site_settings {
   description   String?   @db.Text
   created_at    DateTime? @default(now()) @db.Timestamp(6)
   updated_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// Announcement target audience types
+enum announcement_audience {
+  all_users
+  new_users
+  business_verified
+  individual_verified
+}
+
+/// System announcements for broadcasting messages to users
+model announcements {
+  id                           Int                            @id @default(autoincrement())
+  title                        String                         @db.VarChar(255)
+  content                      String                         @db.Text
+  target_audience              announcement_audience          @default(all_users)
+  created_by                   Int
+  created_at                   DateTime?                      @default(now()) @db.Timestamp(6)
+  expires_at                   DateTime?                      @db.Timestamp(6)
+  is_active                    Boolean?                       @default(true)
+
+  // Relations
+  users                        users                          @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  announcement_read_receipts   announcement_read_receipts[]
+
+  @@index([is_active, target_audience], map: "idx_announcements_active_audience")
+  @@index([created_at(sort: Desc)], map: "idx_announcements_created_at")
+  @@index([created_by], map: "idx_announcements_created_by")
+}
+
+/// Tracks which users have read which announcements
+model announcement_read_receipts {
+  id              Int           @id @default(autoincrement())
+  announcement_id Int
+  user_id         Int
+  read_at         DateTime?     @default(now()) @db.Timestamp(6)
+
+  // Relations
+  announcements   announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcement_id, user_id])
+  @@index([user_id], map: "idx_announcement_receipts_user")
+  @@index([announcement_id], map: "idx_announcement_receipts_announcement")
 }

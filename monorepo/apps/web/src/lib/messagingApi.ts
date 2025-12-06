@@ -3,6 +3,11 @@
  * REST API calls for message history and conversations
  */
 
+import type {
+  AnnouncementsResponse,
+  AnnouncementMarkReadResponse,
+} from '@/types/messaging';
+
 // Use same origin for Next.js API routes (no backend dependency)
 const API_BASE_URL = '';
 
@@ -35,6 +40,52 @@ async function fetchApi(endpoint: string, options: FetchOptions = {}) {
 
   return data;
 }
+
+/**
+ * Announcements API - For broadcast messages from ThuluBazaar
+ * Mobile-app compatible (uses standard fetch)
+ */
+export const announcementsApi = {
+  /**
+   * Get announcements for the authenticated user
+   */
+  getAnnouncements: async (
+    token: string,
+    params?: { includeRead?: boolean }
+  ): Promise<AnnouncementsResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params?.includeRead !== undefined) {
+      queryParams.set('includeRead', params.includeRead.toString());
+    }
+
+    const endpoint = `/api/announcements${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return fetchApi(endpoint, { token });
+  },
+
+  /**
+   * Mark an announcement as read
+   */
+  markAsRead: async (
+    token: string,
+    announcementId: number
+  ): Promise<AnnouncementMarkReadResponse> => {
+    return fetchApi(`/api/announcements/${announcementId}/read`, {
+      method: 'POST',
+      token,
+    });
+  },
+
+  /**
+   * Get only the unread count (lightweight)
+   */
+  getUnreadCount: async (token: string): Promise<{ success: boolean; unreadCount: number }> => {
+    const response = await fetchApi('/api/announcements?includeRead=true', { token });
+    return {
+      success: response.success,
+      unreadCount: response.unreadCount || 0,
+    };
+  },
+};
 
 export const messagingApi = {
   /**
