@@ -114,3 +114,6 @@ backend/typesense-data/
 Ads-img/
 Reference/
 backups/
+
+# Markdown files (documentation)
+*.md
