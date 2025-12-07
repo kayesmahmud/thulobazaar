@@ -1,6 +1,8 @@
 // @ts-nocheck
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
+import FacebookProvider from 'next-auth/providers/facebook';
 import { prisma } from '@thulobazaar/database';
 import bcrypt from 'bcryptjs';
 
@@ -12,6 +14,14 @@ export const authOptions: NextAuthOptions = {
     debug: () => {}, // Suppress debug logs
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID || '',
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -201,8 +211,112 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user, trigger }) {
-      // Add user data to token on sign in
+    async signIn({ user, account, profile }) {
+      // Handle OAuth sign-in (Google/Facebook)
+      if (account?.provider === 'google' || account?.provider === 'facebook') {
+        try {
+          const email = user.email;
+          if (!email) {
+            console.error('🔐 [OAuth] No email provided');
+            return false;
+          }
+
+          // Check if user exists
+          let dbUser = await prisma.users.findUnique({
+            where: { email },
+          });
+
+          if (dbUser) {
+            // Update last login and oauth provider
+            await prisma.users.update({
+              where: { id: dbUser.id },
+              data: {
+                last_login: new Date(),
+                oauth_provider: account.provider,
+                avatar: dbUser.avatar || user.image || null, // Keep existing avatar or use OAuth avatar
+              },
+            });
+            console.log(`🔐 [OAuth] Existing user logged in via ${account.provider}:`, email);
+          } else {
+            // Create new user from OAuth
+            const fullName = user.name || profile?.name || email.split('@')[0];
+            dbUser = await prisma.users.create({
+              data: {
+                email,
+                full_name: fullName,
+                password_hash: '', // No password for OAuth users
+                oauth_provider: account.provider,
+                avatar: user.image || null,
+                is_active: true,
+                role: 'user',
+                last_login: new Date(),
+              },
+            });
+            console.log(`🔐 [OAuth] New user created via ${account.provider}:`, email);
+          }
+
+          // Store db user info for jwt callback
+          (user as any).dbId = dbUser.id.toString();
+          (user as any).dbRole = dbUser.role;
+          (user as any).oauthProvider = account.provider;
+
+          return true;
+        } catch (error) {
+          console.error('🔐 [OAuth] Error:', error);
+          return false;
+        }
+      }
+
+      return true;
+    },
+
+    async jwt({ token, user, account, trigger }) {
+      // Handle OAuth sign-in - fetch full user data from database
+      if (account?.provider === 'google' || account?.provider === 'facebook') {
+        const dbId = (user as any).dbId;
+        if (dbId) {
+          const dbUser = await prisma.users.findUnique({
+            where: { id: parseInt(dbId) },
+            select: {
+              id: true,
+              email: true,
+              full_name: true,
+              phone: true,
+              role: true,
+              avatar: true,
+              account_type: true,
+              shop_slug: true,
+              seller_slug: true,
+              custom_shop_slug: true,
+              business_name: true,
+              business_verification_status: true,
+              individual_verified: true,
+              oauth_provider: true,
+            },
+          });
+
+          if (dbUser) {
+            token.id = dbUser.id.toString();
+            token.name = dbUser.full_name;
+            token.email = dbUser.email;
+            token.image = dbUser.avatar || user.image;
+            token.role = dbUser.role;
+            token.phone = dbUser.phone;
+            token.accountType = dbUser.account_type;
+            token.shopSlug = dbUser.shop_slug;
+            token.sellerSlug = dbUser.seller_slug;
+            token.customShopSlug = dbUser.custom_shop_slug;
+            token.businessName = dbUser.business_name;
+            token.businessVerificationStatus = dbUser.business_verification_status;
+            token.individualVerified = dbUser.individual_verified;
+            token.oauthProvider = dbUser.oauth_provider;
+            token.iat = Math.floor(Date.now() / 1000);
+            return token;
+          }
+        }
+      }
+
+      // Add user data to token on sign in (credentials provider)
       if (user) {
         token.id = user.id;
         token.name = user.name;
@@ -219,6 +333,7 @@ export const authOptions: NextAuthOptions = {
         token.individualVerified = user.individualVerified;
         token.lastLogin = user.lastLogin;
         token.backendToken = user.backendToken;
+        token.oauthProvider = user.oauthProvider;
         // Store token creation time
         token.iat = Math.floor(Date.now() / 1000);
       }
@@ -299,6 +414,7 @@ export const authOptions: NextAuthOptions = {
         session.user.individualVerified = token.individualVerified as boolean | null;
         session.user.lastLogin = token.lastLogin as string | null;
         session.user.backendToken = token.backendToken as string | null;
+        session.user.oauthProvider = token.oauthProvider as string | null;
       }
 
       // CRITICAL: Add backendToken at session root level for easier access

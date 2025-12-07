@@ -4,14 +4,31 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
 import { useProfileData } from '@/hooks/useProfileData';
+import { formatPrice } from '@thulobazaar/utils';
 
 interface LocationOption {
   id: number;
   name: string;
   type: string;
+}
+
+interface FavoriteAd {
+  id: number;
+  adId: number;
+  createdAt: string;
+  ad: {
+    id: number;
+    title: string;
+    slug: string;
+    price: number | null;
+    primaryImage: string | null;
+    category: { name: string } | null;
+    location: { name: string } | null;
+  };
 }
 
 export default function ProfilePage() {
@@ -41,6 +58,11 @@ export default function ProfilePage() {
   const [isEditingSlug, setIsEditingSlug] = useState(false);
   const [slugAvailability, setSlugAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [suggestedSlugs, setSuggestedSlugs] = useState<string[]>([]);
+
+  // Saved Ads (Favorites) state
+  const [favorites, setFavorites] = useState<FavoriteAd[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
+
   const isLoading = status === 'loading' || profileLoading || locationsLoading;
 
   const displayName = useMemo(() => {
@@ -81,6 +103,38 @@ export default function ProfilePage() {
     }
   }, []);
 
+  const fetchFavorites = useCallback(async () => {
+    try {
+      setFavoritesLoading(true);
+      const response = await fetch('/api/favorites', {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setFavorites(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching favorites:', err);
+    } finally {
+      setFavoritesLoading(false);
+    }
+  }, []);
+
+  const removeFavorite = async (adId: number) => {
+    try {
+      const response = await fetch(`/api/favorites/${adId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFavorites(prev => prev.filter(f => f.adId !== adId));
+      }
+    } catch (err) {
+      console.error('Error removing favorite:', err);
+    }
+  };
+
   // Redirect if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -92,8 +146,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'authenticated') {
       fetchLocations();
+      fetchFavorites();
     }
-  }, [status, fetchLocations]);
+  }, [status, fetchLocations, fetchFavorites]);
 
   useEffect(() => {
     if (!profile) {
@@ -790,6 +845,132 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Saved Ads Section */}
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden mt-6">
+              {/* Card Header */}
+              <div className="bg-gradient-to-r from-rose-500 to-pink-600 px-6 py-4">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                  </svg>
+                  Saved Ads
+                </h2>
+                <p className="text-sm text-white/80 mt-1">Your bookmarked listings ({favorites.length})</p>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-6">
+                {favoritesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-8 h-8 border-3 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : favorites.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No saved ads yet</h3>
+                    <p className="text-sm text-gray-500 mb-4">Save ads you like by clicking the heart icon on ad pages</p>
+                    <Link
+                      href={`/${lang}/search`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors text-sm font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Browse Ads
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {favorites.map((fav) => (
+                      <div
+                        key={fav.id}
+                        className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group"
+                      >
+                        {/* Thumbnail */}
+                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
+                          {fav.ad.primaryImage ? (
+                            <Image
+                              src={`/${fav.ad.primaryImage}`}
+                              alt={fav.ad.title}
+                              fill
+                              className="object-cover"
+                              sizes="80px"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Ad Info */}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/${lang}/ad/${fav.ad.slug}`}
+                            className="text-gray-900 font-semibold hover:text-rose-600 transition-colors line-clamp-1 block"
+                          >
+                            {fav.ad.title}
+                          </Link>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                            {fav.ad.category && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                {fav.ad.category.name}
+                              </span>
+                            )}
+                            {fav.ad.location && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                </svg>
+                                {fav.ad.location.name}
+                              </span>
+                            )}
+                          </div>
+                          {fav.ad.price && (
+                            <div className="text-lg font-bold text-green-600 mt-1">
+                              {formatPrice(fav.ad.price)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/${lang}/ad/${fav.ad.slug}`}
+                            className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                            title="View Ad"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </Link>
+                          <button
+                            onClick={() => removeFavorite(fav.adId)}
+                            className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors"
+                            title="Remove from saved"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

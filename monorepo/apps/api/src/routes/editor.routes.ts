@@ -1539,6 +1539,127 @@ router.put(
 );
 
 /**
+ * DELETE /api/editor/ads/:id
+ * Soft delete an ad (set deleted_at timestamp)
+ */
+router.delete(
+  '/ads/:id',
+  authenticateToken,
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    // Check if ad exists
+    const ad = await prisma.ads.findUnique({
+      where: { id: parseInt(id) },
+      select: { id: true, title: true, status: true, deleted_at: true },
+    });
+
+    if (!ad) {
+      throw new NotFoundError('Ad not found');
+    }
+
+    if (ad.deleted_at) {
+      throw new ValidationError('Ad is already deleted');
+    }
+
+    // Soft delete the ad
+    const deletedAd = await prisma.ads.update({
+      where: { id: parseInt(id) },
+      data: {
+        deleted_at: new Date(),
+        status: 'deleted',
+      },
+    });
+
+    // Also update any pending reports for this ad to 'resolved'
+    await prisma.ad_reports.updateMany({
+      where: {
+        ad_id: parseInt(id),
+        status: 'pending',
+      },
+      data: {
+        status: 'resolved',
+        admin_notes: reason || 'Ad deleted by editor',
+        updated_at: new Date(),
+      },
+    });
+
+    console.log(`✅ Ad soft-deleted: ID ${id} - ${ad.title}`);
+
+    res.json({
+      success: true,
+      message: 'Ad deleted successfully',
+      data: {
+        id: deletedAd.id,
+        title: deletedAd.title,
+        deletedAt: deletedAd.deleted_at,
+      },
+    });
+  })
+);
+
+/**
+ * POST /api/editor/ads/:id/restore
+ * Restore a soft-deleted ad
+ */
+router.post(
+  '/ads/:id/restore',
+  authenticateToken,
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    // Check if ad exists and is deleted
+    const ad = await prisma.ads.findUnique({
+      where: { id: parseInt(id) },
+      select: { id: true, title: true, status: true, deleted_at: true },
+    });
+
+    if (!ad) {
+      throw new NotFoundError('Ad not found');
+    }
+
+    if (!ad.deleted_at) {
+      throw new ValidationError('Ad is not deleted');
+    }
+
+    // Restore the ad (clear deleted_at, set status back to approved)
+    const restoredAd = await prisma.ads.update({
+      where: { id: parseInt(id) },
+      data: {
+        deleted_at: null,
+        status: 'approved',
+      },
+    });
+
+    // Update related reports back to pending so editors can re-review if needed
+    await prisma.ad_reports.updateMany({
+      where: {
+        ad_id: parseInt(id),
+        status: 'resolved',
+      },
+      data: {
+        status: 'pending',
+        admin_notes: 'Ad restored by editor - report re-opened for review',
+        updated_at: new Date(),
+      },
+    });
+
+    console.log(`✅ Ad restored: ID ${id} - ${ad.title}`);
+
+    res.json({
+      success: true,
+      message: 'Ad restored successfully',
+      data: {
+        id: restoredAd.id,
+        title: restoredAd.title,
+        status: restoredAd.status,
+      },
+    });
+  })
+);
+
+/**
  * DELETE /api/editor/editors/:id
  * Delete an editor (super admin only)
  */
@@ -1599,6 +1720,165 @@ router.put(
       success: true,
       message: `Editor ${suspend ? 'suspended' : 'activated'} successfully`,
       data: updatedEditor,
+    });
+  })
+);
+
+/**
+ * GET /api/editor/reported-ads
+ * Get all reported ads for editor review
+ * Query params:
+ * - status: 'pending' | 'reviewed' | 'resolved' | 'dismissed' (optional)
+ * - limit: number (default: 10)
+ * - page: number (default: 1)
+ */
+router.get(
+  '/reported-ads',
+  authenticateToken,
+  catchAsync(async (req: Request, res: Response) => {
+    const { status, limit = '10', page = '1' } = req.query;
+    const pageNum = Math.max(parseInt(page as string), 1);
+    const limitNum = Math.min(parseInt(limit as string), 100);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Build where clause
+    const where: any = {};
+    if (status) {
+      where.status = status;
+    }
+
+    // Get total count
+    const total = await prisma.ad_reports.count({ where });
+
+    // Fetch reports with relations
+    const reports = await prisma.ad_reports.findMany({
+      where,
+      select: {
+        id: true,
+        ad_id: true,
+        reporter_id: true,
+        reason: true,
+        details: true,
+        status: true,
+        admin_notes: true,
+        created_at: true,
+        updated_at: true,
+        ads: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            price: true,
+            status: true,
+            slug: true,
+            user_id: true,
+            ad_images: {
+              where: { is_primary: true },
+              select: { file_path: true },
+              take: 1,
+            },
+            users_ads_user_idTousers: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        users: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+      skip: offset,
+      take: limitNum,
+    });
+
+    // Transform to camelCase format expected by frontend
+    const transformedReports = reports.map((report) => ({
+      reportId: report.id,
+      adId: report.ad_id,
+      adSlug: report.ads?.slug || '',
+      adTitle: report.ads?.title || 'Unknown',
+      adDescription: report.ads?.description || '',
+      price: report.ads?.price ? parseFloat(report.ads.price.toString()) : 0,
+      adStatus: report.ads?.status || 'unknown',
+      reason: report.reason,
+      description: report.details,
+      status: report.status,
+      reportedAt: report.created_at?.toISOString(),
+      reporterId: report.reporter_id,
+      reporterName: report.users?.full_name || 'Unknown',
+      reporterEmail: report.users?.email || '',
+      sellerName: report.ads?.users_ads_user_idTousers?.full_name || 'Unknown',
+      sellerEmail: report.ads?.users_ads_user_idTousers?.email || '',
+      primaryImage: report.ads?.ad_images?.[0]?.file_path || null,
+    }));
+
+    res.json({
+      success: true,
+      data: transformedReports,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  })
+);
+
+/**
+ * POST /api/editor/reports/:id/dismiss
+ * Dismiss a report (mark as false report)
+ */
+router.post(
+  '/reports/:id/dismiss',
+  authenticateToken,
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const reviewerId = req.user!.userId;
+
+    // Check if report exists
+    const report = await prisma.ad_reports.findUnique({
+      where: { id: parseInt(id) },
+      select: { id: true, status: true, ad_id: true },
+    });
+
+    if (!report) {
+      throw new NotFoundError('Report not found');
+    }
+
+    if (report.status !== 'pending') {
+      throw new ValidationError('Only pending reports can be dismissed');
+    }
+
+    // Update report status to dismissed
+    const dismissedReport = await prisma.ad_reports.update({
+      where: { id: parseInt(id) },
+      data: {
+        status: 'dismissed',
+        admin_notes: reason || `Report dismissed after review by admin (ID: ${reviewerId}) - no violation found`,
+        updated_at: new Date(),
+      },
+    });
+
+    console.log(`✅ Report dismissed: ID ${id} (ad ${report.ad_id})`);
+
+    res.json({
+      success: true,
+      message: 'Report dismissed successfully',
+      data: {
+        reportId: dismissedReport.id,
+        status: dismissedReport.status,
+        adminNotes: dismissedReport.admin_notes,
+      },
     });
   })
 );

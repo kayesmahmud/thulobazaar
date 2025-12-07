@@ -136,7 +136,7 @@ export default function Header({ lang }: HeaderProps) {
                   Sign In
                 </Link>
                 <Link
-                  href={`/${lang}/auth/register`}
+                  href={`/${lang}/auth/signup`}
                   className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors text-sm"
                 >
                   Sign Up
@@ -214,7 +214,7 @@ export default function Header({ lang }: HeaderProps) {
                       >
                         {user?.avatar ? (
                           <img
-                            src={`/uploads/avatars/${user.avatar}`}
+                            src={user.avatar.startsWith('http') ? user.avatar : `/uploads/avatars/${user.avatar}`}
                             alt={user?.fullName || 'User'}
                             className="w-full h-full object-cover"
                           />
@@ -339,7 +339,7 @@ export default function Header({ lang }: HeaderProps) {
                   <Link href={`/${lang}/auth/signin`} className="px-4 py-2 rounded-lg font-semibold border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors w-full text-center">
                     Sign In
                   </Link>
-                  <Link href={`/${lang}/auth/register`} className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors w-full text-center">
+                  <Link href={`/${lang}/auth/signup`} className="px-4 py-2 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors w-full text-center">
                     Sign Up
                   </Link>
                   <Link

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import RegisterForm from './RegisterForm';
 
 export const metadata: Metadata = {
-  title: 'Register - Thulobazaar',
+  title: 'Sign Up - Thulobazaar',
   description: 'Create your Thulobazaar account',
 };
 
@@ -46,7 +46,7 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
               href={`/${lang}/auth/signin`}
               className="inline-block w-full px-4 py-2 rounded-lg font-semibold border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
             >
-              Login instead
+              Sign in instead
             </Link>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { Phone01, Globe01, MarkerPin01, MarkerPin02 } from '@untitledui-pro/icon
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSquareWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
+import ReportShopButton from './ReportShopButton';
 
 // Extended user type with backendToken (added by UserAuthContext from NextAuth session)
 type UserWithToken = {
@@ -16,6 +17,8 @@ type UserWithToken = {
 interface ShopSidebarProps {
   shopId: number;
   shopSlug: string;
+  shopName: string;
+  lang: string;
   bio: string | null;
   businessDescription: string | null;
   businessPhone: string | null;
@@ -30,6 +33,8 @@ interface ShopSidebarProps {
 export default function ShopSidebar({
   shopId,
   shopSlug,
+  shopName,
+  lang,
   bio,
   businessDescription: initialDescription,
   businessPhone: initialBusinessPhone,
@@ -483,6 +488,17 @@ export default function ShopSidebar({
           </div>
         )}
       </div>
+
+      {/* Report Shop Button - Only show for non-owners */}
+      {!isOwner && (
+        <div className="card flex justify-center">
+          <ReportShopButton
+            shopId={shopId}
+            shopName={shopName}
+            lang={lang}
+          />
+        </div>
+      )}
     </div>
   );
 }

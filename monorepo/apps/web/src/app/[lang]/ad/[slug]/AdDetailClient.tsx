@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface AdDetailClientProps {
   images: string[];
@@ -9,6 +10,7 @@ interface AdDetailClientProps {
 
 export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Fallback if no images
   const displayImages = images.length > 0 ? images : ['/placeholder-ad.png'];
@@ -17,80 +19,109 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
-        setSelectedImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
+        handleImageChange((selectedImageIndex === 0 ? displayImages.length - 1 : selectedImageIndex - 1));
       } else if (e.key === 'ArrowRight') {
-        setSelectedImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
+        handleImageChange((selectedImageIndex === displayImages.length - 1 ? 0 : selectedImageIndex + 1));
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [displayImages.length]);
+  }, [displayImages.length, selectedImageIndex]);
+
+  // Smooth transition handler
+  const handleImageChange = (newIndex: number) => {
+    if (newIndex === selectedImageIndex) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedImageIndex(newIndex);
+      setIsTransitioning(false);
+    }, 150);
+  };
+
+  const goToPrevious = () => {
+    handleImageChange(selectedImageIndex === 0 ? displayImages.length - 1 : selectedImageIndex - 1);
+  };
+
+  const goToNext = () => {
+    handleImageChange(selectedImageIndex === displayImages.length - 1 ? 0 : selectedImageIndex + 1);
+  };
 
   return (
-    <div className="bg-white rounded-xl p-4 mb-6 shadow-sm">
-      {/* Main Image */}
-      <div className="bg-gray-100 h-[400px] rounded-lg flex items-center justify-center mb-4 overflow-hidden relative">
-        {displayImages[selectedImageIndex] === '/placeholder-ad.png' ? (
-          <span className="text-6xl text-gray-400">📷</span>
-        ) : (
-          <img
-            src={displayImages[selectedImageIndex] || '/placeholder-ad.png'}
-            alt={`Image ${selectedImageIndex + 1}`}
-            className="w-full h-full object-contain"
-          />
-        )}
+    <div className="bg-white rounded-2xl p-5 mb-6 shadow-sm">
+      {/* Main Image Container */}
+      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden mb-4">
+        {/* Main Image */}
+        <div className="relative h-[450px] sm:h-[500px] flex items-center justify-center">
+          {displayImages[selectedImageIndex] === '/placeholder-ad.png' ? (
+            <div className="flex flex-col items-center justify-center text-gray-400">
+              <svg className="w-24 h-24 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm">No image available</span>
+            </div>
+          ) : (
+            <img
+              src={displayImages[selectedImageIndex] || '/placeholder-ad.png'}
+              alt={`Image ${selectedImageIndex + 1}`}
+              className={`max-w-full max-h-full object-contain transition-opacity duration-150 ${
+                isTransitioning ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
+          )}
+        </div>
 
         {/* Navigation Arrows */}
         {displayImages.length > 1 && (
           <>
             <button
-              onClick={() => setSelectedImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1))}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-200"
+              onClick={goToPrevious}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border-none rounded-full w-11 h-11 cursor-pointer flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
               aria-label="Previous image"
             >
-              ‹
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
             <button
-              onClick={() => setSelectedImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1))}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white border-none rounded-full w-10 h-10 cursor-pointer text-2xl flex items-center justify-center p-0 hover:bg-black/70 transition-colors duration-200"
+              onClick={goToNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border-none rounded-full w-11 h-11 cursor-pointer flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
               aria-label="Next image"
             >
-              ›
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </>
         )}
 
-        {/* Image Counter */}
+        {/* Image Counter Badge */}
         {displayImages.length > 1 && (
-          <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
+          <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
             {selectedImageIndex + 1} / {displayImages.length}
-          </div>
-        )}
-
-        {/* Keyboard Navigation Hint */}
-        {displayImages.length > 1 && (
-          <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-xs">
-            Use ← → arrow keys
           </div>
         )}
       </div>
 
-      {/* Thumbnail Gallery */}
+      {/* Thumbnail Gallery - Bottom */}
       {displayImages.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto p-2 -mx-2 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           {displayImages.map((image, index) => (
-            <div
+            <button
               key={index}
-              onClick={() => setSelectedImageIndex(index)}
-              className={`bg-gray-100 min-w-[80px] w-20 h-20 rounded-lg flex items-center justify-center cursor-pointer border overflow-hidden snap-start transition-all ${
+              onClick={() => handleImageChange(index)}
+              className={`relative flex-shrink-0 w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden cursor-pointer border-2 transition-all duration-200 snap-start ${
                 selectedImageIndex === index
-                  ? 'border-rose-400 shadow-[0_0_0_2px_rgba(244,63,94,0.12)]'
-                  : 'border-transparent hover:border-gray-300'
+                  ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-lg scale-105'
+                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
               }`}
             >
               {image === '/placeholder-ad.png' ? (
-                <span className="text-3xl">📷</span>
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
               ) : (
                 <img
                   src={image}
@@ -98,7 +129,12 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
                   className="w-full h-full object-cover"
                 />
               )}
-            </div>
+
+              {/* Active indicator overlay */}
+              {selectedImageIndex === index && (
+                <div className="absolute inset-0 bg-rose-500/10 pointer-events-none" />
+              )}
+            </button>
           ))}
         </div>
       )}

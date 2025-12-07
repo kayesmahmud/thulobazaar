@@ -42,7 +42,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
 
           {/* Register Link */}
           <Link
-            href={`/${lang}/auth/register`}
+            href={`/${lang}/auth/signup`}
             className="block w-full py-3 px-4 text-center rounded-lg font-semibold border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors duration-200"
           >
             Create an account

@@ -124,6 +124,8 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
           <ShopSidebar
             shopId={shop.id}
             shopSlug={shopSlug}
+            shopName={shop.businessName || shop.fullName}
+            lang={lang}
             bio={shop.bio}
             businessDescription={shop.businessDescription}
             businessPhone={shop.businessPhone}

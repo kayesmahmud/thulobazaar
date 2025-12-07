@@ -390,12 +390,15 @@ export async function deleteAd(
   reason?: string,
   token?: string
 ): Promise<ApiResponse<Ad>> {
+  // Get token from session if not provided
+  const authToken = token || await getBackendToken();
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
 
   const response = await fetch(`${API_BASE}/api/editor/ads/${adId}`, {
@@ -406,6 +409,67 @@ export async function deleteAd(
 
   if (!response.ok) {
     throw new Error('Failed to delete ad');
+  }
+
+  return response.json();
+}
+
+/**
+ * Restore a soft-deleted ad
+ */
+export async function restoreAd(
+  adId: number,
+  token?: string
+): Promise<ApiResponse<Ad>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/restore`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to restore ad');
+  }
+
+  return response.json();
+}
+
+/**
+ * Dismiss a report (mark as false/invalid)
+ */
+export async function dismissReport(
+  reportId: number,
+  reason?: string,
+  token?: string
+): Promise<ApiResponse<any>> {
+  // Get token from session if not provided
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/editor/reports/${reportId}/dismiss`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to dismiss report');
   }
 
   return response.json();
@@ -1092,6 +1156,139 @@ export async function getUserReportsList(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to fetch user reports list');
+  }
+
+  return response.json();
+}
+
+/**
+ * Get reported shops for editor dashboard
+ */
+export async function getReportedShops(
+  token?: string,
+  params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<ApiResponse<any[]>> {
+  const authToken = token || await getBackendToken();
+
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const url = `/api/editor/reported-shops${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+
+  const response = await fetch(url, {
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch reported shops');
+  }
+
+  return response.json();
+}
+
+/**
+ * Dismiss a shop report (mark as false/invalid)
+ */
+export async function dismissShopReport(
+  reportId: number,
+  reason?: string,
+  token?: string
+): Promise<ApiResponse<any>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`/api/editor/reported-shops/${reportId}/dismiss`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to dismiss shop report');
+  }
+
+  return response.json();
+}
+
+/**
+ * Suspend a shop based on a report
+ */
+export async function suspendShopFromReport(
+  shopId: number,
+  reportId: number,
+  reason: string,
+  token?: string
+): Promise<ApiResponse<any>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`/api/editor/reported-shops/${reportId}/suspend`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ shopId, reason }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to suspend shop');
+  }
+
+  return response.json();
+}
+
+/**
+ * Restore/unsuspend a shop that was previously suspended
+ */
+export async function unsuspendShopFromReport(
+  shopId: number,
+  reportId: number,
+  token?: string
+): Promise<ApiResponse<any>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`/api/editor/reported-shops/${reportId}/unsuspend`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ shopId }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to restore shop');
   }
 
   return response.json();

@@ -11,6 +11,8 @@ import PromotionSuccessToast from './PromotionSuccessToast';
 import SendMessageButton from '@/components/messages/SendMessageButton';
 import { generateProductStructuredData, generateBreadcrumbStructuredData } from '@/lib/structuredData';
 import AdBanner from '@/components/ads/AdBanner';
+import AdActions from './AdActions';
+import ReportAdButton from './ReportAdButton';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
@@ -582,15 +584,28 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 </div>
               </div>
 
+              {/* 1. WhatsApp Button */}
+              <AdActions
+                adId={ad.id}
+                adTitle={ad.title}
+                adSlug={slug}
+                lang={lang}
+                whatsappNumber={ad.users_ads_user_idTousers?.phone || null}
+                phoneNumber={ad.users_ads_user_idTousers?.phone || null}
+                showWhatsAppOnly={true}
+              />
+
+              {/* 2. Phone Number Button */}
               {ad.users_ads_user_idTousers?.phone && (
                 <a
                   href={`tel:${ad.users_ads_user_idTousers.phone}`}
-                  className="block w-full px-3 py-3 bg-green-600 text-white rounded-lg font-semibold mb-3 text-center no-underline transition-all duration-200 hover:bg-green-700 hover:-translate-y-0.5 active:translate-y-0"
+                  className="block w-full px-3 py-3 bg-emerald-500 text-white rounded-lg font-semibold mb-3 text-center no-underline transition-all duration-200 hover:bg-emerald-600 hover:-translate-y-0.5 active:translate-y-0"
                 >
                   📞 {ad.users_ads_user_idTousers.phone}
                 </a>
               )}
 
+              {/* 3. Send Message Button */}
               {ad.user_id && (
                 <SendMessageButton
                   sellerId={ad.user_id}
@@ -600,19 +615,28 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 />
               )}
 
+              {/* 4. Share and Bookmark actions */}
+              <AdActions
+                adId={ad.id}
+                adTitle={ad.title}
+                adSlug={slug}
+                lang={lang}
+                whatsappNumber={ad.users_ads_user_idTousers?.phone || null}
+                phoneNumber={ad.users_ads_user_idTousers?.phone || null}
+                showShareFavoriteOnly={true}
+              />
+
               <div style={{
                 marginTop: '1.5rem',
                 paddingTop: '1.5rem',
                 borderTop: '1px solid #e5e7eb',
                 textAlign: 'center'
               }}>
-                <div style={{
-                  color: '#6b7280',
-                  fontSize: '0.875rem',
-                  cursor: 'pointer'
-                }}>
-                  🚩 Report this ad
-                </div>
+                <ReportAdButton
+                  adId={ad.id}
+                  adTitle={ad.title}
+                  lang={lang}
+                />
               </div>
             </div>
 
