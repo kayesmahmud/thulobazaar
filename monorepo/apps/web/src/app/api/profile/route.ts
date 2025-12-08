@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
         business_verification_expires_at: true,
         verified_seller_name: true,
         oauth_provider: true,
+        password_hash: true,
         latitude: true,
         longitude: true,
         formatted_address: true,
@@ -116,7 +117,10 @@ export async function GET(request: NextRequest) {
       createdAt: user.created_at,
       updatedAt: user.updated_at,
       oauthProvider: user.oauth_provider,
+      hasPassword: !!user.password_hash,
     };
+
+    console.log(`🔍 Profile API - User ${user.id}: hasPassword=${!!user.password_hash}, oauthProvider=${user.oauth_provider}`);
 
     return NextResponse.json(
       {

@@ -27,6 +27,8 @@ export interface User {
   locationId?: number;
   createdAt: Date;
   updatedAt: Date;
+  hasPassword?: boolean;
+  oauthProvider?: string;
 }
 
 export interface UserProfile extends User {

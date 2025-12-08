@@ -18,6 +18,7 @@ export interface ProfileData {
   createdAt?: string | Date;
   avatar?: string | null;
   oauthProvider?: string | null;
+  hasPassword?: boolean;
 }
 
 interface UseProfileDataOptions {
