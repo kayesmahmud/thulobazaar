@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
 import AdCard from '@/components/AdCard';
 import HeroSearch from './HeroSearch';
@@ -43,13 +42,16 @@ export default async function HomePage({ params }: HomePageProps) {
       },
       // Get all 16 categories instead of limiting to 8
     }),
-    // Get latest 6 approved ads with images
+    // Get latest 6 approved ads with images (exclude ads from suspended users)
     prisma.ads.findMany({
       where: {
         status: 'approved',
         deleted_at: null,
         ad_images: {
           some: {}, // Only show ads with at least one image
+        },
+        users_ads_user_idTousers: {
+          is_active: true, // Only show ads from active users
         },
       },
       include: {
@@ -107,6 +109,29 @@ export default async function HomePage({ params }: HomePageProps) {
       take: 6,
     }),
   ]);
+
+  const normalizedCategories = categories.map((category) => ({
+    ...category,
+    slug: category.slug || category.name.toLowerCase().replace(/\s+/g, '-'),
+  }));
+
+  const latestAdCards = latestAds.map((ad) => ({
+    id: ad.id,
+    title: ad.title,
+    price: ad.price ? parseFloat(ad.price.toString()) : 0,
+    primaryImage: ad.ad_images && ad.ad_images.length > 0 ? ad.ad_images[0]?.file_path || null : null,
+    categoryName: ad.categories?.name || null,
+    categoryIcon: ad.categories?.icon || null,
+    createdAt: ad.created_at || new Date(),
+    sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
+    isFeatured: ad.is_featured || false,
+    isUrgent: ad.is_urgent || false,
+    condition: ad.condition || null,
+    slug: ad.slug || undefined,
+    accountType: ad.users_ads_user_idTousers?.account_type || undefined,
+    businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
+    individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
+  }));
 
   return (
     <div className="min-h-screen">
@@ -212,10 +237,10 @@ export default async function HomePage({ params }: HomePageProps) {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                {categories.map((category) => (
+                {normalizedCategories.map((category) => (
                   <Link
                     key={category.id}
-                    href={`/${lang}/ads/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    href={`/${lang}/ads/category/${category.slug}`}
                     className="group bg-white rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-rose-500 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 no-underline"
                   >
                     <div className="text-5xl mb-3 transition-transform duration-300 group-hover:scale-110">
@@ -264,29 +289,11 @@ export default async function HomePage({ params }: HomePageProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  {latestAds.map((ad, index) => (
+                  {latestAdCards.map((ad, index) => (
                     <React.Fragment key={ad.id}>
                       <AdCard
                         lang={lang}
-                        ad={{
-                          id: ad.id,
-                          title: ad.title,
-                          price: ad.price ? parseFloat(ad.price.toString()) : 0,
-                          primaryImage: ad.ad_images && ad.ad_images.length > 0
-                            ? ad.ad_images[0]?.file_path || null
-                            : null,
-                          categoryName: ad.categories?.name || null,
-                          categoryIcon: ad.categories?.icon || null,
-                          createdAt: ad.created_at || new Date(),
-                          sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
-                          isFeatured: ad.is_featured || false,
-                          isUrgent: ad.is_urgent || false,
-                          condition: ad.condition || null,
-                          slug: ad.slug || undefined,
-                          accountType: ad.users_ads_user_idTousers?.account_type || undefined,
-                          businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
-                          individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
-                        }}
+                        ad={ad}
                       />
                       {/* In-Feed Ad after 3rd card */}
                       {index === 2 && (

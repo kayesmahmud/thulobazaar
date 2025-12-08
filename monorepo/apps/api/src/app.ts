@@ -2,7 +2,9 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import session from 'express-session';
 import config from './config/index.js';
+import passport from './config/passport.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 // Import routes (will be added as we migrate them)
@@ -53,6 +55,24 @@ export function createApp(): Express {
       credentials: true,
     })
   );
+
+  // Session middleware for Passport
+  app.use(
+    session({
+      secret: config.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: config.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24, // 24 hours
+      },
+    })
+  );
+
+  // Initialize Passport
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   // Body parsing middleware
   app.use(express.json());

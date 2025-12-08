@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatPrice, formatDateTime, formatRelativeTime } from '@thulobazaar/utils';
+import { cache } from 'react';
+import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
 import { notFound } from 'next/navigation';
 import AdDetailClient from './AdDetailClient';
@@ -9,86 +10,17 @@ import PromoteSection from './PromoteSection';
 import Breadcrumb from '@/components/Breadcrumb';
 import PromotionSuccessToast from './PromotionSuccessToast';
 import SendMessageButton from '@/components/messages/SendMessageButton';
-import { generateProductStructuredData, generateBreadcrumbStructuredData } from '@/lib/structuredData';
 import AdBanner from '@/components/ads/AdBanner';
 import AdActions from './AdActions';
 import ReportAdButton from './ReportAdButton';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
+  searchParams?: Promise<{ promoted?: string; txnId?: string }>;
 }
 
-export async function generateMetadata({ params }: AdDetailPageProps): Promise<Metadata> {
-  const { slug, lang } = await params;
-  const baseUrl = 'https://thulobazaar.com'; // TODO: Use env variable
-
-  try {
-    const ad = await prisma.ads.findFirst({
-      where: { slug, status: 'approved', deleted_at: null },
-      select: {
-        title: true,
-        description: true,
-        price: true,
-        ad_images: {
-          where: { is_primary: true },
-          take: 1,
-          select: { file_path: true },
-        },
-      },
-    });
-
-    if (ad) {
-      const imageUrl = ad.ad_images && ad.ad_images.length > 0
-        ? ad.ad_images[0]?.file_path || `${baseUrl}/placeholder-ad.png`
-        : `${baseUrl}/placeholder-ad.png`;
-
-      const description = ad.description?.substring(0, 160) || `View details for ${ad.title}`;
-      const priceText = ad.price ? `Rs. ${parseFloat(ad.price.toString()).toLocaleString()}` : 'Price on request';
-
-      return {
-        title: `${ad.title} | ${priceText} - Thulobazaar`,
-        description,
-        openGraph: {
-          title: ad.title,
-          description,
-          url: `${baseUrl}/${lang}/ad/${slug}`,
-          siteName: 'Thulobazaar',
-          images: [
-            {
-              url: imageUrl,
-              width: 800,
-              height: 600,
-              alt: ad.title,
-            },
-          ],
-          locale: lang === 'en' ? 'en_US' : 'ne_NP',
-          type: 'website',
-        },
-        twitter: {
-          card: 'summary_large_image',
-          title: ad.title,
-          description,
-          images: [imageUrl],
-        },
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching ad metadata:', error);
-  }
-
-  const title = slug.replace(/-/g, ' ');
-  return {
-    title: `${title} - Thulobazaar`,
-    description: `View details for ${title}. Contact seller, check price, and more.`,
-  };
-}
-
-export default async function AdDetailPage({ params, searchParams }: AdDetailPageProps & { searchParams?: Promise<{ promoted?: string; txnId?: string }> }) {
-  const { lang, slug } = await params;
-  const search = searchParams ? await searchParams : {};
-
-  // Fetch ad data with Prisma
-  const ad = await prisma.ads.findFirst({
+const getAdBySlug = cache(async (slug: string) => {
+  return prisma.ads.findFirst({
     where: {
       slug,
       status: 'approved',
@@ -148,7 +80,6 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
           full_name: true,
           phone: true,
           avatar: true,
-          seller_slug: true,
           shop_slug: true,
           account_type: true,
           business_name: true,
@@ -159,6 +90,72 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
       },
     },
   });
+});
+
+export async function generateMetadata({ params }: AdDetailPageProps): Promise<Metadata> {
+  const { slug, lang } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://thulobazaar.com';
+
+  try {
+    const ad = await getAdBySlug(slug);
+
+    if (ad) {
+      const imagePath = ad.ad_images?.[0]?.file_path;
+      const imageUrl = imagePath
+        ? imagePath.startsWith('http')
+          ? imagePath
+          : `${baseUrl}/${imagePath}`
+        : `${baseUrl}/placeholder-ad.png`;
+
+      const description = ad.description?.substring(0, 160) || `View details for ${ad.title}`;
+      const priceText = ad.price ? `Rs. ${parseFloat(ad.price.toString()).toLocaleString()}` : 'Price on request';
+
+      return {
+        title: `${ad.title} | ${priceText} - Thulobazaar`,
+        description,
+        openGraph: {
+          title: ad.title,
+          description,
+          url: `${baseUrl}/${lang}/ad/${slug}`,
+          siteName: 'Thulobazaar',
+          images: [
+            {
+              url: imageUrl,
+              width: 800,
+              height: 600,
+              alt: ad.title,
+            },
+          ],
+          locale: lang === 'en' ? 'en_US' : 'ne_NP',
+          type: 'website',
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: ad.title,
+          description,
+          images: [imageUrl],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching ad metadata:', error);
+  }
+
+  const title = slug.replace(/-/g, ' ');
+  return {
+    title: `${title} - Thulobazaar`,
+    description: `View details for ${title}. Contact seller, check price, and more.`,
+  };
+}
+
+export default async function AdDetailPage({
+  params,
+  searchParams,
+}: AdDetailPageProps) {
+  const { lang, slug } = await params;
+  const search = (await searchParams) || {};
+
+  const ad = await getAdBySlug(slug);
 
   if (!ad) {
     notFound();
@@ -344,8 +341,9 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(() => {
+                      const filteredKeys = ['isNegotiable', 'amenities', 'condition'];
                       const entries = Object.entries(ad.custom_fields as Record<string, any>)
-                        .filter(([key]) => key !== 'isNegotiable' && key !== 'amenities');
+                        .filter(([key]) => !filteredKeys.includes(key));
 
                       // Check if this is a property-related ad (has totalArea field)
                       const hasAreaFields = entries.some(([key]) => key === 'totalArea' || key === 'areaUnit');

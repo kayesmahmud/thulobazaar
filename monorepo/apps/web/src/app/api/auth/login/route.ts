@@ -47,7 +47,6 @@ export async function POST(request: NextRequest) {
         business_verification_status: true,
         individual_verified: true,
         shop_slug: true,
-        seller_slug: true,
       },
     });
 
@@ -115,7 +114,6 @@ export async function POST(request: NextRequest) {
       businessVerificationStatus: user.business_verification_status,
       individualVerified: user.individual_verified,
       shopSlug: user.shop_slug,
-      sellerSlug: user.seller_slug,
     };
 
     return NextResponse.json(

@@ -2,22 +2,96 @@
 
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface LoginFormProps {
   lang: string;
 }
 
+type LoginTab = 'email' | 'phone';
+
+// OAuth error messages
+const oauthErrorMessages: Record<string, string> = {
+  OAuthCallback: 'OAuth login failed. Please clear your browser cookies and try again. If the issue persists, the session may have expired.',
+  OAuthSignin: 'Error starting OAuth sign-in. Please try again.',
+  OAuthCreateAccount: 'Could not create account with OAuth provider.',
+  AccessDenied: 'Access denied. Your Google account may not be authorized. Please contact support or try a different account.',
+  Callback: 'Error in OAuth callback. Please try again.',
+  google: 'Google login failed. Please try again or use email/phone login.',
+  Default: 'Authentication failed. Please try again.',
+};
+
 export default function LoginForm({ lang }: LoginFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const [formData, setFormData] = useState({
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<LoginTab>('email');
+
+  // Email login state
+  const [emailFormData, setEmailFormData] = useState({
     email: '',
     password: '',
   });
+
+  // Phone login state
+  const [phoneFormData, setPhoneFormData] = useState({
+    phone: '',
+    password: '',
+  });
+
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+
+  // Check for OAuth errors in URL
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      setError(oauthErrorMessages[urlError] || oauthErrorMessages.Default);
+    }
+  }, [searchParams]);
+
+  const Spinner = ({ className = 'h-5 w-5' }: { className?: string }) => (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  );
+
+  const RememberRow = ({ id }: { id: string }) => (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center">
+        <input
+          id={id}
+          type="checkbox"
+          className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500"
+        />
+        <label htmlFor={id} className="ml-2 block text-sm text-gray-700">
+          Remember me
+        </label>
+      </div>
+      <a href="#" className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
+        Forgot password?
+      </a>
+    </div>
+  );
+
+  const SubmitButton = ({ disabled, loading }: { disabled: boolean; loading: boolean }) => (
+    <button
+      type="submit"
+      disabled={disabled}
+      className="w-full flex justify-center items-center gap-2 py-3 px-4 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+    >
+      {loading && <Spinner className="h-5 w-5" />}
+      {loading ? 'Signing in...' : 'Sign In'}
+    </button>
+  );
 
   // Redirect if already logged in
   useEffect(() => {
@@ -45,14 +119,14 @@ export default function LoginForm({ lang }: LoginFormProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">You're already logged in!</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">You&apos;re already logged in!</h3>
         <p className="text-gray-500 text-sm mb-4">Redirecting you to the homepage...</p>
         <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -60,8 +134,8 @@ export default function LoginForm({ lang }: LoginFormProps) {
     try {
       const result = await signIn('credentials', {
         redirect: false,
-        email: formData.email,
-        password: formData.password,
+        email: emailFormData.email,
+        password: emailFormData.password,
       });
 
       if (result?.error) {
@@ -78,11 +152,46 @@ export default function LoginForm({ lang }: LoginFormProps) {
     }
   };
 
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Use NextAuth signIn directly with phone credentials
+      const result = await signIn('credentials', {
+        redirect: false,
+        phone: phoneFormData.phone,
+        password: phoneFormData.password,
+        loginType: 'phone',
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else if (result?.ok) {
+        router.push(`/${lang}`);
+        router.refresh();
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+      console.error('Phone login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     setSocialLoading(provider);
     setError('');
     try {
-      await signIn(provider, { callbackUrl: `/${lang}` });
+      if (provider === 'google') {
+        // Use backend Passport.js OAuth instead of NextAuth
+        // The backend will handle the OAuth flow and redirect back with a token
+        window.location.href = 'http://localhost:5000/api/auth/google';
+      } else {
+        // Facebook still uses NextAuth
+        await signIn(provider, { callbackUrl: `/${lang}` });
+      }
     } catch (err) {
       setError('Failed to connect. Please try again.');
       setSocialLoading(null);
@@ -91,7 +200,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
 
   return (
     <div className="space-y-5">
-      {/* Social Login Buttons */}
+      {/* Social Login Buttons - Top */}
       <div className="space-y-3">
         {/* Google Button */}
         <button
@@ -101,10 +210,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
           className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {socialLoading === 'google' ? (
-            <svg className="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
+            <Spinner className="h-5 w-5 text-gray-500" />
           ) : (
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -124,10 +230,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
           className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {socialLoading === 'facebook' ? (
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
+            <Spinner />
           ) : (
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -143,84 +246,149 @@ export default function LoginForm({ lang }: LoginFormProps) {
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">or sign in with email</span>
+          <span className="px-4 bg-white text-gray-500">
+            or sign in with {activeTab === 'email' ? 'email' : 'phone'}
+          </span>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Email address
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
-            placeholder="your@email.com"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Password */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
-            placeholder="Enter your password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Remember me & Forgot password */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember"
-              type="checkbox"
-              className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500"
-            />
-            <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
-              Remember me
-            </label>
-          </div>
-          <a href="#" className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
-            Forgot password?
-          </a>
-        </div>
-
-        {/* Submit Button */}
+      {/* Tab Switcher */}
+      <div className="flex rounded-lg bg-gray-100 p-1">
         <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full flex justify-center items-center gap-2 py-3 px-4 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+          type="button"
+          onClick={() => {
+            setActiveTab('email');
+            setError('');
+          }}
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all ${
+            activeTab === 'email'
+              ? 'bg-white text-rose-500 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
         >
-          {isLoading && (
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          )}
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          Email
         </button>
-      </form>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('phone');
+            setError('');
+          }}
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all ${
+            activeTab === 'phone'
+              ? 'bg-white text-rose-500 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Phone
+        </button>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Email Login Form */}
+      {activeTab === 'email' && (
+        <form onSubmit={handleEmailSubmit} className="space-y-5">
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email address
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
+              placeholder="your@email.com"
+              value={emailFormData.email}
+              onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="email-password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              id="email-password"
+              type="password"
+              required
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
+              placeholder="Enter your password"
+              value={emailFormData.password}
+              onChange={(e) => setEmailFormData({ ...emailFormData, password: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Remember me & Forgot password */}
+          <RememberRow id="remember-email" />
+
+          {/* Submit Button */}
+          <SubmitButton disabled={isLoading} loading={isLoading} />
+        </form>
+      )}
+
+      {/* Phone Login Form */}
+      {activeTab === 'phone' && (
+        <form onSubmit={handlePhoneSubmit} className="space-y-5">
+          {/* Phone Number */}
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              Phone Number
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <span className="text-gray-500 text-sm">+977</span>
+              </div>
+              <input
+                id="phone"
+                type="tel"
+                required
+                className="block w-full pl-14 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
+                placeholder="98XXXXXXXX"
+                value={phoneFormData.phone}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setPhoneFormData({ ...phoneFormData, phone: value });
+                }}
+                disabled={isLoading}
+                maxLength={10}
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="phone-password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              id="phone-password"
+              type="password"
+              required
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
+              placeholder="Enter your password"
+              value={phoneFormData.password}
+              onChange={(e) => setPhoneFormData({ ...phoneFormData, password: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Remember me & Forgot password */}
+          <RememberRow id="remember-phone" />
+
+          {/* Submit Button */}
+          <SubmitButton disabled={isLoading || phoneFormData.phone.length !== 10} loading={isLoading} />
+        </form>
+      )}
     </div>
   );
 }

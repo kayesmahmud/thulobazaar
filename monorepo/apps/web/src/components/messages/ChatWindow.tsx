@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 // Constants for image upload
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -225,19 +226,12 @@ export default function ChatWindow({
             )}
 
             {/* Avatar */}
-            {otherParticipant?.avatar ? (
-              <img
-                src={otherParticipant.avatar.startsWith('http') ? otherParticipant.avatar : `/uploads/avatars/${otherParticipant.avatar}`}
-                alt={otherParticipant.fullName}
-                className="h-10 w-10 rounded-full object-cover"
-              />
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                <span className="text-gray-600 font-medium">
-                  {otherParticipant?.fullName?.[0]?.toUpperCase() || '?'}
-                </span>
-              </div>
-            )}
+            <UserAvatar
+              src={otherParticipant?.avatar}
+              name={otherParticipant?.fullName}
+              size="md"
+              showBorder={false}
+            />
 
             {/* Name and status */}
             <div>
@@ -304,22 +298,12 @@ export default function ChatWindow({
                   {/* Avatar for receiver (left side) */}
                   {showAvatar && !isOwnMessage && (
                     <div className="flex-shrink-0 mr-3">
-                      {message.sender?.avatar ? (
-                        <img
-                          src={message.sender.avatar.startsWith('http') ? message.sender.avatar : `/uploads/avatars/${message.sender.avatar}`}
-                          alt={message.sender.fullName}
-                          className="h-8 w-8 rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                          }}
-                        />
-                      ) : null}
-                      <div className={`h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center ${message.sender?.avatar ? 'hidden' : ''}`}>
-                        <span className="text-gray-600 font-medium text-sm">
-                          {message.sender?.fullName?.[0]?.toUpperCase() || 'U'}
-                        </span>
-                      </div>
+                      <UserAvatar
+                        src={message.sender?.avatar}
+                        name={message.sender?.fullName}
+                        size="sm"
+                        showBorder={false}
+                      />
                     </div>
                   )}
                   {!showAvatar && !isOwnMessage && <div className="w-11 flex-shrink-0 mr-3"></div>}

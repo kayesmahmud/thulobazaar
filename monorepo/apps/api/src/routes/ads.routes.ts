@@ -223,7 +223,6 @@ router.get(
             business_verification_status: true,
             individual_verified: true,
             shop_slug: true,
-            seller_slug: true,
           },
         },
         ad_images: {

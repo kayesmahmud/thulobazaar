@@ -16,13 +16,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const userId = await requireAuth(request);
     const { shopSlug } = await context.params;
 
-    // Get the user by shop_slug, custom_shop_slug, or seller_slug
+    // Get the user by shop_slug or custom_shop_slug
     const shop = await prisma.users.findFirst({
       where: {
         OR: [
           { shop_slug: shopSlug },
           { custom_shop_slug: shopSlug },
-          { seller_slug: shopSlug },
         ],
       },
       select: { id: true },

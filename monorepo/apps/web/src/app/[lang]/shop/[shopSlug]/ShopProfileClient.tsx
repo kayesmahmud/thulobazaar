@@ -8,6 +8,7 @@ import NextImage from 'next/image';
 import Cropper from 'react-easy-crop';
 import { Point, Area } from 'react-easy-crop/types';
 import { Button } from '@/components/ui';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface ShopProfileClientProps {
   shopId: number;
@@ -342,33 +343,19 @@ export default function ShopProfileClient({
         <div className="px-4 sm:px-6 md:px-8 pb-4 sm:pb-6 md:pb-8 relative flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
           {/* Shop Avatar - Overlapping Cover */}
           <div className="relative -mt-[40px] sm:-mt-[45px] flex-shrink-0 w-[100px] sm:w-[120px] md:w-[150px]">
-            {initialAvatar ? (
-              <div className="relative">
-                <NextImage
-                  src={`/uploads/avatars/${initialAvatar}`}
-                  alt={shopName}
-                  width={150}
-                  height={150}
-                  className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full object-cover border-[4px] sm:border-[5px] shadow-xl ${
-                    businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
-                      ? 'border-yellow-400'
-                      : individualVerified
-                      ? 'border-blue-500'
-                      : 'border-gray-200'
-                  }`}
-                />
-              </div>
-            ) : (
-              <div className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-rose-500 text-white flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold border-[4px] sm:border-[5px] shadow-xl ${
-                  businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
-                    ? 'border-yellow-400'
-                    : individualVerified
-                    ? 'border-blue-500'
-                    : 'border-gray-200'
-                }`}>
-                {shopName.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <UserAvatar
+              src={initialAvatar}
+              name={shopName}
+              size="2xl"
+              borderColor={
+                businessVerificationStatus === 'verified' || businessVerificationStatus === 'approved'
+                  ? 'gold'
+                  : individualVerified
+                  ? 'blue'
+                  : 'default'
+              }
+              className="shadow-xl"
+            />
 
             {/* Avatar Edit Button - Only show for owner */}
             {isOwner && (

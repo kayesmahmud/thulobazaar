@@ -15,13 +15,12 @@ router.get(
     const { slug } = req.params;
     const { limit = '20', offset = '0' } = req.query;
 
-    // Find user by custom_shop_slug first, then shop_slug, then seller_slug
+    // Find user by custom_shop_slug first, then shop_slug
     const user = await prisma.users.findFirst({
       where: {
         OR: [
           { custom_shop_slug: slug },
           { shop_slug: slug },
-          { seller_slug: slug },
         ],
       },
       select: {
@@ -117,7 +116,6 @@ router.get(
         OR: [
           { custom_shop_slug: slug },
           { shop_slug: slug },
-          { seller_slug: slug },
         ],
       },
     });

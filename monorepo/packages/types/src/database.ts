@@ -41,7 +41,6 @@ export interface DbUser {
   business_verified_at: Date | null;
   business_verified_by: number | null;
   individual_verified: boolean;
-  seller_slug: string | null;
   shop_slug: string | null;
 }
 

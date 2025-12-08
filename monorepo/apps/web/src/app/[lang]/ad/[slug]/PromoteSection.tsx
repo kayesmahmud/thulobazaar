@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import PromoteAdModal from '@/components/PromoteAdModal';
 import PromotionBadge from '@/components/PromotionBadge';
-import { apiClient } from '@/lib/api';
 
 interface PromoteSectionProps {
   ad: {
@@ -22,30 +22,16 @@ interface PromoteSectionProps {
 
 export default function PromoteSection({ ad }: PromoteSectionProps) {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const checkCurrentUser = useCallback(async () => {
-    try {
-      const response = await apiClient.getMe();
-      if (response.success && response.data) {
-        setCurrentUser(response.data);
-      }
-    } catch (error) {
-      // User not logged in or API error
-      console.log('Failed to fetch user data:', error);
-    }
-  }, []);
+  // Get user ID directly from session (works for both email and phone users)
+  const parsedId = session?.user?.id ? Number(session.user.id) : NaN;
+  const sessionUserId = Number.isFinite(parsedId) ? parsedId : null;
+  const isAdmin = (session?.user as any)?.role === 'admin';
 
-  useEffect(() => {
-    // Only fetch user data if authenticated
-    if (status === 'authenticated' && session?.user) {
-      checkCurrentUser();
-    }
-  }, [status, session, checkCurrentUser]);
-
-  // Check if current user owns this ad
-  const isOwner = currentUser && currentUser.id === ad.user_id;
+  // Check if current user owns this ad using session data directly
+  const isOwner = (sessionUserId !== null && sessionUserId === ad.user_id) || isAdmin;
 
   // Don't show anything if not authenticated or not the owner
   if (status === 'loading' || status === 'unauthenticated' || !isOwner) {
@@ -189,8 +175,7 @@ export default function PromoteSection({ ad }: PromoteSectionProps) {
           }}
           onPromote={() => {
             setShowModal(false);
-            // Refresh the page to show updated promotion status
-            window.location.reload();
+            router.refresh();
           }}
         />
       )}

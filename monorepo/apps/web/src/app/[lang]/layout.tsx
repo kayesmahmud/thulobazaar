@@ -1,12 +1,7 @@
 import { notFound } from 'next/navigation';
-import { Inter } from 'next/font/google';
 import type { Metadata } from 'next';
 import Header from '../../components/Header';
-import { Providers } from '@/components/Providers';
 import GoogleAdSense from '@/components/ads/GoogleAdSense';
-import '../globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 const supportedLanguages = ['en', 'ne'] as const;
 type SupportedLanguage = typeof supportedLanguages[number];
@@ -37,7 +32,6 @@ export default async function LanguageLayout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
-  // Await params in Next.js 15
   const { lang } = await params;
 
   // Validate language
@@ -46,16 +40,10 @@ export default async function LanguageLayout({
   }
 
   return (
-    <html lang={lang}>
-      <head>
-        <GoogleAdSense />
-      </head>
-      <body className={inter.className}>
-        <Providers>
-          <Header lang={lang} />
-          {children}
-        </Providers>
-      </body>
-    </html>
+    <>
+      <GoogleAdSense />
+      <Header lang={lang} />
+      {children}
+    </>
   );
 }

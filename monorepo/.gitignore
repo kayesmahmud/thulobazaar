@@ -41,3 +41,4 @@ yarn-error.log*
 # Expo
 .expo/
 dist/
+client_secret_*.json

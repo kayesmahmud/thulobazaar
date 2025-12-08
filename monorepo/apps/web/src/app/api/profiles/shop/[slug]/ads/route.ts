@@ -23,10 +23,10 @@ export async function GET(
     const status = searchParams.get('status') || 'approved';
     const offset = (page - 1) * limit;
 
-    // Find user by shop_slug or seller_slug
+    // Find user by shop_slug
     const user = await prisma.users.findFirst({
       where: {
-        OR: [{ shop_slug: slug }, { seller_slug: slug }],
+        OR: [{ shop_slug: slug }, { custom_shop_slug: slug }],
       },
       select: { id: true },
     });

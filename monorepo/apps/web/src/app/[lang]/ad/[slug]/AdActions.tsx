@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSquareWhatsapp, faFacebook, faXTwitter } from '@fortawesome/free-brands-svg-icons';
@@ -39,14 +39,7 @@ export default function AdActions({
     ? `${window.location.origin}/${lang}/ad/${adSlug}`
     : `https://thulobazaar.com/${lang}/ad/${adSlug}`;
 
-  // Check if ad is favorited on mount
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      checkFavoriteStatus();
-    }
-  }, [isAuthenticated, user, adId]);
-
-  const checkFavoriteStatus = async () => {
+  const checkFavoriteStatus = useCallback(async () => {
     try {
       // API uses NextAuth session from cookies, backendToken is optional
       const token = (user as any)?.backendToken;
@@ -66,7 +59,15 @@ export default function AdActions({
     } catch (error) {
       console.error('Error checking favorite status:', error);
     }
-  };
+  }, [adId, user]);
+
+  // Check if ad is favorited on mount
+  useEffect(() => {
+    const shouldLoadFavorites = !showWhatsAppOnly;
+    if (shouldLoadFavorites && isAuthenticated && user) {
+      checkFavoriteStatus();
+    }
+  }, [isAuthenticated, user, adId, showWhatsAppOnly, checkFavoriteStatus]);
 
   const toggleFavorite = async () => {
     if (!isAuthenticated) {
@@ -196,69 +197,74 @@ export default function AdActions({
     ) : null;
   }
 
+  const renderShareButton = () => (
+    <div className="relative flex-1 share-menu-container">
+      <button
+        onClick={() => setShowShareMenu(!showShareMenu)}
+        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+        <span>Share</span>
+      </button>
+
+      {/* Share Dropdown Menu */}
+      {showShareMenu && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+          <button
+            onClick={handleCopyLink}
+            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span className="text-gray-700">{copied ? 'Copied!' : 'Copy Link'}</span>
+          </button>
+          <button
+            onClick={handleShareFacebook}
+            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+          >
+            <FontAwesomeIcon icon={faFacebook} className="w-5 h-5 text-[#1877F2]" />
+            <span className="text-gray-700">Facebook</span>
+          </button>
+          <button
+            onClick={handleShareTwitter}
+            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+          >
+            <FontAwesomeIcon icon={faXTwitter} className="w-5 h-5 text-black" />
+            <span className="text-gray-700">X (Twitter)</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderFavoriteButton = () => (
+    <button
+      onClick={toggleFavorite}
+      disabled={isLoading}
+      className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+        isFavorited
+          ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
+    >
+      {isFavorited ? (
+        <HeartSolid className="w-5 h-5 text-rose-500" />
+      ) : (
+        <Heart className="w-5 h-5" />
+      )}
+    </button>
+  );
+
   // If showShareFavoriteOnly, only render Share & Favorite buttons
   if (showShareFavoriteOnly) {
     return (
       <div className="flex gap-2 mt-3">
-        {/* Favorite/Bookmark Button (Left) */}
-        <button
-          onClick={toggleFavorite}
-          disabled={isLoading}
-          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-            isFavorited
-              ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
-        >
-          {isFavorited ? (
-            <HeartSolid className="w-5 h-5 text-rose-500" />
-          ) : (
-            <Heart className="w-5 h-5" />
-          )}
-        </button>
-
-        {/* Share Button with Dropdown (Right) */}
-        <div className="relative flex-1 share-menu-container">
-          <button
-            onClick={() => setShowShareMenu(!showShareMenu)}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>Share</span>
-          </button>
-
-          {/* Share Dropdown Menu */}
-          {showShareMenu && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <span className="text-gray-700">{copied ? 'Copied!' : 'Copy Link'}</span>
-              </button>
-              <button
-                onClick={handleShareFacebook}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
-              >
-                <FontAwesomeIcon icon={faFacebook} className="w-5 h-5 text-[#1877F2]" />
-                <span className="text-gray-700">Facebook</span>
-              </button>
-              <button
-                onClick={handleShareTwitter}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
-              >
-                <FontAwesomeIcon icon={faXTwitter} className="w-5 h-5 text-black" />
-                <span className="text-gray-700">X (Twitter)</span>
-              </button>
-            </div>
-          )}
-        </div>
+        {renderFavoriteButton()}
+        {renderShareButton()}
       </div>
     );
   }
@@ -281,65 +287,8 @@ export default function AdActions({
 
       {/* Share & Favorite Row */}
       <div className="flex gap-2">
-        {/* Share Button with Dropdown */}
-        <div className="relative flex-1 share-menu-container">
-          <button
-            onClick={() => setShowShareMenu(!showShareMenu)}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>Share</span>
-          </button>
-
-          {/* Share Dropdown Menu */}
-          {showShareMenu && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <span className="text-gray-700">{copied ? 'Copied!' : 'Copy Link'}</span>
-              </button>
-              <button
-                onClick={handleShareFacebook}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
-              >
-                <FontAwesomeIcon icon={faFacebook} className="w-5 h-5 text-[#1877F2]" />
-                <span className="text-gray-700">Facebook</span>
-              </button>
-              <button
-                onClick={handleShareTwitter}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
-              >
-                <FontAwesomeIcon icon={faXTwitter} className="w-5 h-5 text-black" />
-                <span className="text-gray-700">X (Twitter)</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Favorite/Bookmark Button */}
-        <button
-          onClick={toggleFavorite}
-          disabled={isLoading}
-          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-            isFavorited
-              ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
-        >
-          {isFavorited ? (
-            <HeartSolid className="w-5 h-5 text-rose-500" />
-          ) : (
-            <Heart className="w-5 h-5" />
-          )}
-        </button>
+        {renderShareButton()}
+        {renderFavoriteButton()}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface ConversationListProps {
   conversations: any[];
@@ -104,22 +105,15 @@ export default function ConversationList({
                 >
                   <div className="flex items-start space-x-3">
                     {/* Avatar */}
-                    <div className="flex-shrink-0">
-                      {otherParticipant?.avatar ? (
-                        <img
-                          src={otherParticipant.avatar.startsWith('http') ? otherParticipant.avatar : `/uploads/avatars/${otherParticipant.avatar}`}
-                          alt={otherParticipant.fullName}
-                          className="h-12 w-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-gray-600 font-medium text-lg">
-                            {otherParticipant?.fullName?.[0]?.toUpperCase() || '?'}
-                          </span>
-                        </div>
-                      )}
+                    <div className="flex-shrink-0 relative">
+                      <UserAvatar
+                        src={otherParticipant?.avatar}
+                        name={otherParticipant?.fullName}
+                        size="lg"
+                        showBorder={false}
+                      />
                       {hasUnread && (
-                        <div className="absolute mt-8 ml-8 h-3 w-3 rounded-full bg-blue-600 border-2 border-white"></div>
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-blue-600 border-2 border-white"></div>
                       )}
                     </div>
 

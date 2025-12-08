@@ -15,8 +15,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Authenticate editor
-    await requireEditor(request);
+    // Authenticate editor and get their info
+    const editor = await requireEditor(request);
 
     const { id } = await params;
     const reportId = parseInt(id);
@@ -50,17 +50,34 @@ export async function POST(
       );
     }
 
-    // Update report status to dismissed
-    await prisma.shop_reports.update({
-      where: { id: reportId },
-      data: {
-        status: 'dismissed',
-        admin_notes: reason || 'Report verified as false/invalid',
-        updated_at: new Date(),
-      },
-    });
+    // Update report status to dismissed and log the action
+    await prisma.$transaction([
+      prisma.shop_reports.update({
+        where: { id: reportId },
+        data: {
+          status: 'dismissed',
+          admin_notes: reason || 'Report verified as false/invalid',
+          resolved_by: editor.userId,
+          updated_at: new Date(),
+        },
+      }),
+      // Log the action to admin_activity_logs
+      prisma.admin_activity_logs.create({
+        data: {
+          admin_id: editor.userId,
+          action_type: 'shop_report_dismiss',
+          target_type: 'shop_report',
+          target_id: reportId,
+          details: {
+            shopId: report.shop_id,
+            reason: reason || 'Report verified as false/invalid',
+            reportReason: report.reason,
+          },
+        },
+      }),
+    ]);
 
-    console.log(`✅ Shop report ${reportId} dismissed with reason: ${reason || 'N/A'}`);
+    console.log(`✅ Shop report ${reportId} dismissed by editor ${editor.userId} with reason: ${reason || 'N/A'}`);
 
     return NextResponse.json(
       {

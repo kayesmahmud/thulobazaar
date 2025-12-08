@@ -14,12 +14,12 @@ export async function GET(
   try {
     const { slug } = await params;
 
-    // Find user by shop_slug or seller_slug
+    // Find user by shop_slug
     const user = await prisma.users.findFirst({
       where: {
         OR: [
           { shop_slug: slug },
-          { seller_slug: slug },
+          { custom_shop_slug: slug },
         ],
       },
       select: {
@@ -32,7 +32,6 @@ export async function GET(
         bio: true,
         account_type: true,
         shop_slug: true,
-        seller_slug: true,
         business_name: true,
         business_category: true,
         business_description: true,
@@ -149,7 +148,6 @@ export async function GET(
       bio: user.bio,
       accountType: user.account_type,
       shopSlug: user.shop_slug,
-      sellerSlug: user.seller_slug,
       businessName: user.business_name,
       businessCategory: user.business_category,
       businessDescription: user.business_description,

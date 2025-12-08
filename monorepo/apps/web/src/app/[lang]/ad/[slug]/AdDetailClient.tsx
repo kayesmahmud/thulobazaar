@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
 interface AdDetailClientProps {
@@ -15,29 +15,28 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
   // Fallback if no images
   const displayImages = images.length > 0 ? images : ['/placeholder-ad.png'];
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        handleImageChange((selectedImageIndex === 0 ? displayImages.length - 1 : selectedImageIndex - 1));
-      } else if (e.key === 'ArrowRight') {
-        handleImageChange((selectedImageIndex === displayImages.length - 1 ? 0 : selectedImageIndex + 1));
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [displayImages.length, selectedImageIndex]);
-
-  // Smooth transition handler
-  const handleImageChange = (newIndex: number) => {
+  const handleImageChange = useCallback((newIndex: number) => {
     if (newIndex === selectedImageIndex) return;
     setIsTransitioning(true);
     setTimeout(() => {
       setSelectedImageIndex(newIndex);
       setIsTransitioning(false);
     }, 150);
-  };
+  }, [selectedImageIndex]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        handleImageChange(selectedImageIndex === 0 ? displayImages.length - 1 : selectedImageIndex - 1);
+      } else if (e.key === 'ArrowRight') {
+        handleImageChange(selectedImageIndex === displayImages.length - 1 ? 0 : selectedImageIndex + 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [displayImages.length, handleImageChange, selectedImageIndex]);
 
   const goToPrevious = () => {
     handleImageChange(selectedImageIndex === 0 ? displayImages.length - 1 : selectedImageIndex - 1);
@@ -61,12 +60,15 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
               <span className="text-sm">No image available</span>
             </div>
           ) : (
-            <img
+            <Image
               src={displayImages[selectedImageIndex] || '/placeholder-ad.png'}
               alt={`Image ${selectedImageIndex + 1}`}
-              className={`max-w-full max-h-full object-contain transition-opacity duration-150 ${
+              fill
+              sizes="(min-width: 1024px) 800px, (min-width: 640px) 600px, 100vw"
+              className={`object-contain transition-opacity duration-150 ${
                 isTransitioning ? 'opacity-0' : 'opacity-100'
               }`}
+              priority
             />
           )}
         </div>
@@ -123,9 +125,11 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
                   </svg>
                 </div>
               ) : (
-                <img
+                <Image
                   src={image}
                   alt={`Thumbnail ${index + 1}`}
+                  width={100}
+                  height={100}
                   className="w-full h-full object-cover"
                 />
               )}

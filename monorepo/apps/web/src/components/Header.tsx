@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface HeaderProps {
   lang: string;
@@ -207,22 +208,18 @@ export default function Header({ lang }: HeaderProps) {
                     <div ref={dropdownRef} className="relative">
                       <button
                         onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                        className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-rose-500 transition-colors cursor-pointer p-0"
+                        className="rounded-full hover:ring-2 hover:ring-rose-500 transition-all cursor-pointer p-0"
                         aria-label="Profile menu"
                         aria-expanded={profileDropdownOpen}
                         aria-haspopup="true"
                       >
-                        {user?.avatar ? (
-                          <img
-                            src={user.avatar.startsWith('http') ? user.avatar : `/uploads/avatars/${user.avatar}`}
-                            alt={user?.fullName || 'User'}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-rose-500 text-white font-bold text-sm">
-                            {getInitials(user?.fullName)}
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={user?.avatar}
+                          name={user?.fullName}
+                          size="md"
+                          borderColor="none"
+                          showBorder={false}
+                        />
                       </button>
 
                       {/* Dropdown Menu */}

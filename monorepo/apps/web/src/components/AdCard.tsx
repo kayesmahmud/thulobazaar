@@ -23,10 +23,10 @@ interface AdCardProps {
     businessVerificationStatus?: string;
     individualVerified?: boolean;
   };
-  lang: string;
+  lang?: string;
 }
 
-export default function AdCard({ ad, lang }: AdCardProps) {
+export default function AdCard({ ad, lang = 'en' }: AdCardProps) {
   // Generate ad URL using seo_slug or slug
   const adUrl = ad.seoSlug || ad.slug || `ad-${ad.id}`;
 

@@ -15,6 +15,7 @@ interface ReportedShop {
   description: string;
   status: string;
   adminNotes?: string;
+  resolvedBy?: number;
   reportedAt: string;
   updatedAt: string;
   // Shop details
@@ -30,6 +31,10 @@ interface ReportedShop {
   reporterName: string;
   reporterEmail: string;
   reporterAvatar: string | null;
+  // Resolver (editor) details
+  resolverName?: string | null;
+  resolverEmail?: string | null;
+  resolverRole?: string | null;
 }
 
 type TabStatus = 'pending' | 'resolved' | 'dismissed';
@@ -525,6 +530,30 @@ export default function ReportedShopsPage({ params: paramsPromise }: { params: P
                             <div className="mt-3 pt-3 border-t border-gray-200">
                               <div className="text-xs text-green-700 mb-1 font-medium">Resolution Notes:</div>
                               <div className="text-sm text-gray-900">{report.adminNotes}</div>
+                            </div>
+                          )}
+                          {report.resolverName && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <div className="text-xs text-blue-700 mb-1 font-medium">Handled By:</div>
+                              <div className="text-sm text-gray-900 flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                  {report.resolverName}
+                                </span>
+                                <span className="text-gray-500">({report.resolverEmail})</span>
+                                {report.resolverRole && (
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    report.resolverRole === 'super_admin'
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {report.resolverRole === 'super_admin' ? 'Super Admin' : 'Editor'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {report.updatedAt && `Resolved on ${new Date(report.updatedAt).toLocaleString('en-US')}`}
+                              </div>
                             </div>
                           )}
                         </div>

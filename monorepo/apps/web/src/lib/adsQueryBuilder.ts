@@ -50,10 +50,14 @@ export function buildAdsWhereClause(options: AdsFilterOptions) {
     where.user_id = userId;
   }
 
-  // Only show ads with at least one image (for public listings)
+  // For public listings (approved ads), require image and active user
   if (status === 'approved') {
     where.ad_images = {
       some: {},
+    };
+    // Only show ads from active users (hide suspended users' ads)
+    where.users_ads_user_idTousers = {
+      is_active: true,
     };
   }
 

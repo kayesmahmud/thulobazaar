@@ -118,7 +118,6 @@ export async function POST(
           individual_verified_at: new Date(),
           individual_verification_expires_at: expiresAt,
           full_name: verificationRequest.full_name,
-          seller_slug: shopSlug,
           shop_slug: shopSlug,
         },
       });

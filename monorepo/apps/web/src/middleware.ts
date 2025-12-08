@@ -12,6 +12,18 @@ export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const searchParams = req.nextUrl.searchParams;
 
+  // ===== GUARD AGAINST BAD LANG SEGMENTS (e.g., "/undefined/") =====
+  if (pathname.startsWith('/undefined/')) {
+    const fixedPath = `/en${pathname.replace('/undefined', '')}`;
+    return NextResponse.redirect(new URL(fixedPath, req.url));
+  }
+
+  // ===== SKIP API ROUTES =====
+  // API routes handle their own authentication via JWT headers
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   // ===== ESEWA CALLBACK REDIRECT =====
   // Handle eSewa callbacks that land on wrong URLs (due to old cached code)
   // eSewa returns with ?data= param containing base64 encoded response

@@ -14,7 +14,6 @@ const SHOP_SELECT = {
   account_type: true,
   shop_slug: true,
   custom_shop_slug: true,
-  seller_slug: true,
   business_name: true,
   business_category: true,
   business_description: true,
@@ -24,6 +23,7 @@ const SHOP_SELECT = {
   google_maps_link: true,
   business_verification_status: true,
   individual_verified: true,
+  is_active: true,
   created_at: true,
   locations: {
     select: {
@@ -45,7 +45,6 @@ interface RawShopRow {
   account_type: string | null;
   shop_slug: string | null;
   custom_shop_slug: string | null;
-  seller_slug: string | null;
   business_name: string | null;
   business_category: string | null;
   business_description: string | null;
@@ -55,6 +54,7 @@ interface RawShopRow {
   google_maps_link: string | null;
   business_verification_status: string | null;
   individual_verified: boolean | null;
+  is_active: boolean | null;
   created_at: Date | null;
   locations: {
     id: number;
@@ -74,7 +74,6 @@ export interface ShopProfile {
   accountType: string | null;
   shopSlug: string | null;
   customShopSlug: string | null;
-  sellerSlug: string | null;
   businessName: string | null;
   businessCategory: string | null;
   businessDescription: string | null;
@@ -117,7 +116,6 @@ const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
     accountType: shop.account_type,
     shopSlug: shop.shop_slug,
     customShopSlug: shop.custom_shop_slug,
-    sellerSlug: shop.seller_slug,
     businessName: shop.business_name,
     businessCategory: shop.business_category,
     businessDescription: shop.business_description,
@@ -149,12 +147,13 @@ const parseUserIdFromSlug = (slug: string): number | null => {
 export async function getShopProfile(shopSlug: string): Promise<ShopProfile | null> {
   // Everyone gets a shop page - no restrictions on verification status
   // Badges are visual only (gold for verified business, blue for verified individual)
+  // Filter out suspended/inactive shops (is_active: false)
   const shopBySlug = await prisma.users.findFirst({
     where: {
+      is_active: true, // Only show active shops
       OR: [
         { shop_slug: shopSlug },
         { custom_shop_slug: shopSlug },
-        { seller_slug: shopSlug },
       ],
     },
     select: SHOP_SELECT,
@@ -172,7 +171,10 @@ export async function getShopProfile(shopSlug: string): Promise<ShopProfile | nu
   }
 
   const shopById = await prisma.users.findFirst({
-    where: { id: userId },
+    where: {
+      id: userId,
+      is_active: true, // Only show active shops
+    },
     select: SHOP_SELECT,
   });
 

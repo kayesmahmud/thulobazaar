@@ -35,7 +35,6 @@ export function transformDbUserToApi(dbUser: DbUser): User {
     accountType: dbUser.account_type,
     businessVerificationStatus: dbUser.business_verification_status || undefined,
     individualVerified: dbUser.individual_verified || false,
-    sellerSlug: dbUser.seller_slug || undefined,
     shopSlug: dbUser.shop_slug || undefined,
     isActive: dbUser.is_active,
     locationId: dbUser.location_id || undefined,

@@ -42,7 +42,6 @@ export function UserAuthProvider({ children }: UserAuthProviderProps) {
       avatar: session.user.image || null, // Avatar from session.user.image
       accountType: session.user.accountType as any || 'individual',
       shopSlug: session.user.shopSlug || null,
-      sellerSlug: session.user.sellerSlug || null,
       customShopSlug: session.user.customShopSlug || null,
       businessName: session.user.businessName || null,
       businessVerificationStatus: session.user.businessVerificationStatus as any || null,

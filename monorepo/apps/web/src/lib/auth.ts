@@ -5,64 +5,215 @@ import GoogleProvider from 'next-auth/providers/google';
 import FacebookProvider from 'next-auth/providers/facebook';
 import { prisma } from '@thulobazaar/database';
 import bcrypt from 'bcryptjs';
+import { SignJWT } from 'jose';
+
+// =============================================================================
+// FRESH OAUTH CONFIGURATION - REBUILT FROM SCRATCH
+// =============================================================================
 
 export const authOptions: NextAuthOptions = {
-  debug: false, // Disable debug logging
-  logger: {
-    error: () => {}, // Suppress error logs in console
-    warn: () => {},  // Suppress warnings
-    debug: () => {}, // Suppress debug logs
-  },
+  // Enable debug mode to see all OAuth logs
+  debug: true,
+
   providers: [
+    // ==========================================================================
+    // GOOGLE OAUTH PROVIDER - FRESH CONFIGURATION
+    // ==========================================================================
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+          scope: 'openid email profile',
+        },
+      },
+      // Use allowDangerousEmailAccountLinking to allow users who already have
+      // an account with the same email to link their OAuth account
+      allowDangerousEmailAccountLinking: true,
     }),
+
+    // ==========================================================================
+    // FACEBOOK OAUTH PROVIDER
+    // ==========================================================================
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID || '',
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
     }),
+
+    // ==========================================================================
+    // OAUTH TOKEN PROVIDER (For backend Passport.js OAuth flow)
+    // ==========================================================================
     CredentialsProvider({
+      id: 'oauth-token',
+      name: 'OAuth Token',
+      credentials: {
+        token: { label: 'Token', type: 'text' },
+        userId: { label: 'User ID', type: 'text' },
+        email: { label: 'Email', type: 'email' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.token || !credentials?.userId || !credentials?.email) {
+          throw new Error('Missing OAuth credentials');
+        }
+
+        try {
+          // Verify the JWT token from backend
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(
+            credentials.token,
+            process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+          );
+
+          // Fetch user from database to get full profile
+          const user = await prisma.users.findUnique({
+            where: { id: decoded.userId },
+            select: {
+              id: true,
+              email: true,
+              full_name: true,
+              phone: true,
+              role: true,
+              avatar: true,
+              is_active: true,
+              account_type: true,
+              shop_slug: true,
+              custom_shop_slug: true,
+              business_name: true,
+              business_verification_status: true,
+              individual_verified: true,
+            },
+          });
+
+          if (!user) {
+            throw new Error('User not found');
+          }
+
+          if (!user.is_active) {
+            throw new Error('Account is deactivated');
+          }
+
+          console.log('🔐 [OAuth Token] User authenticated:', user.email);
+
+          return {
+            id: user.id.toString(),
+            email: user.email,
+            name: user.full_name,
+            image: user.avatar,
+            role: user.role,
+            phone: user.phone,
+            accountType: user.account_type,
+            shopSlug: user.shop_slug,
+            customShopSlug: user.custom_shop_slug,
+            businessName: user.business_name,
+            businessVerificationStatus: user.business_verification_status,
+            individualVerified: user.individual_verified,
+            backendToken: credentials.token,
+            oauthProvider: 'google',
+          };
+        } catch (error: any) {
+          console.error('🔐 [OAuth Token] Error:', error.message);
+          throw new Error(error.message || 'Token verification failed');
+        }
+      },
+    }),
+
+    // ==========================================================================
+    // CREDENTIALS PROVIDER (Email/Phone Login)
+    // ==========================================================================
+    CredentialsProvider({
+      id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email', placeholder: 'your@email.com' },
         password: { label: 'Password', type: 'password' },
         twoFactorCode: { label: '2FA Code', type: 'text', placeholder: '000000' },
+        phone: { label: 'Phone', type: 'tel', placeholder: '98XXXXXXXX' },
+        loginType: { label: 'Login Type', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required');
+        const isPhoneLogin = credentials?.loginType === 'phone';
+
+        // Validate required fields based on login type
+        if (isPhoneLogin) {
+          if (!credentials?.phone || !credentials?.password) {
+            throw new Error('Phone and password are required');
+          }
+        } else {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error('Email and password are required');
+          }
         }
 
         try {
-          // Find user in database (include 2FA fields)
-          const user = await prisma.users.findUnique({
-            where: { email: credentials.email },
-            select: {
-              id: true,
-              email: true,
-              password_hash: true,
-              full_name: true,
-              phone: true,
-              role: true,
-              is_active: true,
-              avatar: true,
-              last_login: true,
-              account_type: true,
-              shop_slug: true,
-              seller_slug: true,
-              custom_shop_slug: true,
-              business_name: true,
-              business_verification_status: true,
-              individual_verified: true,
-              two_factor_enabled: true,
-              two_factor_secret: true,
-              two_factor_backup_codes: true,
-            },
-          });
+          // Find user in database
+          let user;
+          if (isPhoneLogin) {
+            let phoneNumber = credentials.phone.replace(/\D/g, '');
+            if (phoneNumber.startsWith('977')) {
+              phoneNumber = phoneNumber.slice(3);
+            }
 
-          if (!user) {
-            throw new Error('Invalid email or password');
+            user = await prisma.users.findFirst({
+              where: {
+                phone: phoneNumber,
+                phone_verified: true,
+              },
+              select: {
+                id: true,
+                email: true,
+                password_hash: true,
+                full_name: true,
+                phone: true,
+                role: true,
+                is_active: true,
+                avatar: true,
+                last_login: true,
+                account_type: true,
+                shop_slug: true,
+                custom_shop_slug: true,
+                business_name: true,
+                business_verification_status: true,
+                individual_verified: true,
+                two_factor_enabled: true,
+                two_factor_secret: true,
+                two_factor_backup_codes: true,
+              },
+            });
+
+            if (!user) {
+              throw new Error('No account found with this phone number');
+            }
+          } else {
+            user = await prisma.users.findUnique({
+              where: { email: credentials.email },
+              select: {
+                id: true,
+                email: true,
+                password_hash: true,
+                full_name: true,
+                phone: true,
+                role: true,
+                is_active: true,
+                avatar: true,
+                last_login: true,
+                account_type: true,
+                shop_slug: true,
+                custom_shop_slug: true,
+                business_name: true,
+                business_verification_status: true,
+                individual_verified: true,
+                two_factor_enabled: true,
+                two_factor_secret: true,
+                two_factor_backup_codes: true,
+              },
+            });
+
+            if (!user) {
+              throw new Error('Invalid email or password');
+            }
           }
 
           // Check if user is active
@@ -80,111 +231,101 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          // Check if 2FA is enabled for this user
+          // Check if 2FA is enabled
           if (user.two_factor_enabled && user.two_factor_secret) {
             const twoFactorCode = credentials.twoFactorCode;
 
-            // If no 2FA code provided, signal that 2FA is required
             if (!twoFactorCode) {
               throw new Error('2FA_REQUIRED');
             }
 
-            // Verify 2FA code
             const speakeasy = require('speakeasy');
 
-            // First try TOTP verification
             const isValidTotp = speakeasy.totp.verify({
               secret: user.two_factor_secret,
               encoding: 'base32',
               token: twoFactorCode,
-              window: 2, // Allow 2 time steps before/after (60 seconds)
+              window: 2,
             });
 
             let isValid = isValidTotp;
 
-            // If TOTP fails, check if it's a backup code
             if (!isValidTotp && user.two_factor_backup_codes) {
               const backupCodes = JSON.parse(user.two_factor_backup_codes as string);
               if (backupCodes.includes(twoFactorCode.toUpperCase())) {
                 isValid = true;
-
-                // Remove used backup code
                 const updatedBackupCodes = backupCodes.filter(
                   (code: string) => code !== twoFactorCode.toUpperCase()
                 );
-
                 await prisma.users.update({
                   where: { id: user.id },
-                  data: {
-                    two_factor_backup_codes: JSON.stringify(updatedBackupCodes)
-                  },
+                  data: { two_factor_backup_codes: JSON.stringify(updatedBackupCodes) },
                 });
-
-                console.log('🔐 [2FA] Backup code used and removed');
               }
             }
 
             if (!isValid) {
               throw new Error('Invalid 2FA code');
             }
-
-            console.log('🔐 [2FA] Code verified successfully');
           }
 
-          // Save the current last_login BEFORE updating it (this is what we'll show)
           const previousLastLogin = user.last_login;
 
-          // Update last login timestamp to NOW for next time
           await prisma.users.update({
             where: { id: user.id },
             data: { last_login: new Date() },
           });
 
-          // Also get backend JWT token for API calls
+          // Generate backend token
           let backendToken = null;
           try {
-            const backendUrl = process.env.API_URL || 'http://localhost:5000';
-
-            // Choose correct endpoint based on role
-            let loginEndpoint;
-            if (user.role === 'root') {
-              loginEndpoint = `${backendUrl}/api/editor/root-login`;
-            } else if (user.role === 'super_admin') {
-              loginEndpoint = `${backendUrl}/api/admin/auth/login`;
-            } else if (user.role === 'editor') {
-              // Regular editors use admin auth endpoint
-              loginEndpoint = `${backendUrl}/api/admin/auth/login`;
+            if (isPhoneLogin || !credentials.email) {
+              const JWT_SECRET = new TextEncoder().encode(
+                process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+              );
+              backendToken = await new SignJWT({
+                userId: user.id,
+                email: user.email || '',
+                phone: user.phone,
+                role: user.role,
+              })
+                .setProtectedHeader({ alg: 'HS256' })
+                .setIssuedAt()
+                .setExpirationTime('24h')
+                .sign(JWT_SECRET);
             } else {
-              // Regular users use the user auth endpoint
-              loginEndpoint = `${backendUrl}/api/auth/login`;
-            }
-
-            if (loginEndpoint) {
-              const response = await fetch(loginEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: credentials.email,
-                  password: credentials.password,
-                }),
-              });
-
-              if (response.ok) {
-                const data = await response.json();
-                // Backend returns: { success, data: { token, user } } or { success, token, user }
-                backendToken = data.data?.token || data.token;
-                console.log('🔐 [NextAuth] Backend token fetched for role', user.role, ':', backendToken ? 'Yes' : 'No');
+              const backendUrl = process.env.API_URL || 'http://localhost:5000';
+              let loginEndpoint;
+              if (user.role === 'root') {
+                loginEndpoint = `${backendUrl}/api/editor/root-login`;
+              } else if (user.role === 'super_admin') {
+                loginEndpoint = `${backendUrl}/api/admin/auth/login`;
+              } else if (user.role === 'editor') {
+                loginEndpoint = `${backendUrl}/api/admin/auth/login`;
               } else {
-                const errorText = await response.text();
-                console.error('🔐 [NextAuth] Backend login failed:', response.status, errorText);
+                loginEndpoint = `${backendUrl}/api/auth/login`;
+              }
+
+              if (loginEndpoint) {
+                const response = await fetch(loginEndpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: credentials.email,
+                    password: credentials.password,
+                  }),
+                });
+
+                if (response.ok) {
+                  const data = await response.json();
+                  backendToken = data.data?.token || data.token;
+                }
               }
             }
           } catch (error) {
-            console.error('🔐 [NextAuth] Failed to get backend token:', error);
-            // Continue anyway - NextAuth session will work, but API calls might need separate handling
+            console.error('Failed to get backend token:', error);
           }
 
-          // Return user data (without password_hash) plus backend token and PREVIOUS last login
           return {
             id: user.id.toString(),
             email: user.email,
@@ -194,7 +335,6 @@ export const authOptions: NextAuthOptions = {
             phone: user.phone,
             accountType: user.account_type,
             shopSlug: user.shop_slug,
-            sellerSlug: user.seller_slug,
             customShopSlug: user.custom_shop_slug,
             businessName: user.business_name,
             businessVerificationStatus: user.business_verification_status,
@@ -210,16 +350,33 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
+  // ============================================================================
+  // CALLBACKS - FRESH IMPLEMENTATION
+  // ============================================================================
   callbacks: {
+    // --------------------------------------------------------------------------
+    // SIGN IN CALLBACK - Handles OAuth user creation/update
+    // --------------------------------------------------------------------------
     async signIn({ user, account, profile }) {
-      // Handle OAuth sign-in (Google/Facebook)
+      console.log('========================================');
+      console.log('🔐 [OAUTH] SIGN IN CALLBACK TRIGGERED');
+      console.log('========================================');
+      console.log('Provider:', account?.provider);
+      console.log('User email:', user?.email);
+      console.log('User name:', user?.name);
+      console.log('Profile:', JSON.stringify(profile, null, 2));
+
+      // Only handle OAuth providers (Google/Facebook)
       if (account?.provider === 'google' || account?.provider === 'facebook') {
         try {
           const email = user.email;
+
           if (!email) {
-            console.error('🔐 [OAuth] No email provided');
+            console.error('🔐 [OAUTH] ERROR: No email from provider');
             return false;
           }
+
+          console.log('🔐 [OAUTH] Looking up user in database...');
 
           // Check if user exists
           let dbUser = await prisma.users.findUnique({
@@ -227,51 +384,96 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (dbUser) {
-            // Update last login and oauth provider
+            console.log('🔐 [OAUTH] Existing user found:', dbUser.id);
+
+            // Update existing user
+            const updateData: any = {
+              last_login: new Date(),
+              oauth_provider: account.provider,
+            };
+
+            if (!dbUser.avatar && user.image) {
+              updateData.avatar = user.image;
+            }
+
+            if (!dbUser.shop_slug) {
+              const baseSlug = dbUser.full_name
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .substring(0, 50);
+              updateData.shop_slug = `${baseSlug}-${dbUser.id}`;
+            }
+
             await prisma.users.update({
               where: { id: dbUser.id },
-              data: {
-                last_login: new Date(),
-                oauth_provider: account.provider,
-                avatar: dbUser.avatar || user.image || null, // Keep existing avatar or use OAuth avatar
-              },
+              data: updateData,
             });
-            console.log(`🔐 [OAuth] Existing user logged in via ${account.provider}:`, email);
+
+            console.log('🔐 [OAUTH] User updated successfully');
           } else {
-            // Create new user from OAuth
+            console.log('🔐 [OAUTH] Creating new user...');
+
+            // Create new user
             const fullName = user.name || profile?.name || email.split('@')[0];
+            const baseSlug = fullName
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .replace(/\s+/g, '-')
+              .substring(0, 50);
+
             dbUser = await prisma.users.create({
               data: {
                 email,
                 full_name: fullName,
-                password_hash: '', // No password for OAuth users
+                password_hash: '',
                 oauth_provider: account.provider,
+                oauth_provider_id: account.providerAccountId,
                 avatar: user.image || null,
                 is_active: true,
                 role: 'user',
+                account_type: 'individual',
                 last_login: new Date(),
               },
             });
-            console.log(`🔐 [OAuth] New user created via ${account.provider}:`, email);
+
+            const shopSlug = `${baseSlug}-${dbUser.id}`;
+            await prisma.users.update({
+              where: { id: dbUser.id },
+              data: { shop_slug: shopSlug },
+            });
+
+            dbUser.shop_slug = shopSlug;
+            console.log('🔐 [OAUTH] New user created:', dbUser.id);
           }
 
-          // Store db user info for jwt callback
+          // Store database ID for JWT callback
           (user as any).dbId = dbUser.id.toString();
           (user as any).dbRole = dbUser.role;
           (user as any).oauthProvider = account.provider;
 
+          console.log('🔐 [OAUTH] Sign in SUCCESS');
           return true;
-        } catch (error) {
-          console.error('🔐 [OAuth] Error:', error);
+        } catch (error: any) {
+          console.error('========================================');
+          console.error('🔐 [OAUTH] SIGN IN ERROR');
+          console.error('========================================');
+          console.error('Message:', error?.message);
+          console.error('Code:', error?.code);
+          console.error('Full error:', error);
           return false;
         }
       }
 
+      // Allow credentials login
       return true;
     },
 
+    // --------------------------------------------------------------------------
+    // JWT CALLBACK - Add user data to token
+    // --------------------------------------------------------------------------
     async jwt({ token, user, account, trigger }) {
-      // Handle OAuth sign-in - fetch full user data from database
+      // Handle OAuth sign-in
       if (account?.provider === 'google' || account?.provider === 'facebook') {
         const dbId = (user as any).dbId;
         if (dbId) {
@@ -286,7 +488,6 @@ export const authOptions: NextAuthOptions = {
               avatar: true,
               account_type: true,
               shop_slug: true,
-              seller_slug: true,
               custom_shop_slug: true,
               business_name: true,
               business_verification_status: true,
@@ -304,7 +505,6 @@ export const authOptions: NextAuthOptions = {
             token.phone = dbUser.phone;
             token.accountType = dbUser.account_type;
             token.shopSlug = dbUser.shop_slug;
-            token.sellerSlug = dbUser.seller_slug;
             token.customShopSlug = dbUser.custom_shop_slug;
             token.businessName = dbUser.business_name;
             token.businessVerificationStatus = dbUser.business_verification_status;
@@ -316,17 +516,16 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Add user data to token on sign in (credentials provider)
+      // Add user data on credentials sign in
       if (user) {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
-        token.image = user.image; // Avatar
+        token.image = user.image;
         token.role = user.role;
         token.phone = user.phone;
         token.accountType = user.accountType;
         token.shopSlug = user.shopSlug;
-        token.sellerSlug = user.sellerSlug;
         token.customShopSlug = user.customShopSlug;
         token.businessName = user.businessName;
         token.businessVerificationStatus = user.businessVerificationStatus;
@@ -334,11 +533,10 @@ export const authOptions: NextAuthOptions = {
         token.lastLogin = user.lastLogin;
         token.backendToken = user.backendToken;
         token.oauthProvider = user.oauthProvider;
-        // Store token creation time
         token.iat = Math.floor(Date.now() / 1000);
       }
 
-      // Re-fetch user data from database when session is being updated
+      // Handle session update trigger
       if (trigger === 'update' && token.id) {
         try {
           const updatedUser = await prisma.users.findUnique({
@@ -352,7 +550,6 @@ export const authOptions: NextAuthOptions = {
               avatar: true,
               account_type: true,
               shop_slug: true,
-              seller_slug: true,
               custom_shop_slug: true,
               business_name: true,
               business_verification_status: true,
@@ -361,53 +558,49 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (updatedUser) {
-            // Update token with fresh data from database
             token.name = updatedUser.full_name;
             token.email = updatedUser.email;
             token.phone = updatedUser.phone;
             token.role = updatedUser.role;
-            token.image = updatedUser.avatar; // Update avatar
+            token.image = updatedUser.avatar;
             token.accountType = updatedUser.account_type;
             token.shopSlug = updatedUser.shop_slug;
-            token.sellerSlug = updatedUser.seller_slug;
             token.customShopSlug = updatedUser.custom_shop_slug;
             token.businessName = updatedUser.business_name;
             token.businessVerificationStatus = updatedUser.business_verification_status;
             token.individualVerified = updatedUser.individual_verified;
-            console.log('🔄 [NextAuth] Session updated with fresh data from database');
           }
         } catch (error) {
-          console.error('🔐 [NextAuth] Failed to refresh user data:', error);
+          console.error('Failed to refresh user data:', error);
         }
       }
 
-      // Check if token has expired (24 hours = 86400 seconds)
+      // Check token expiration (24 hours)
       const tokenAge = Math.floor(Date.now() / 1000) - (token.iat as number || 0);
       if (tokenAge > 86400) {
-        console.log('🔐 [NextAuth] Token expired, forcing logout');
-        return null; // This will invalidate the session
+        return null;
       }
 
       return token;
     },
 
+    // --------------------------------------------------------------------------
+    // SESSION CALLBACK - Add token data to session
+    // --------------------------------------------------------------------------
     async session({ session, token }) {
-      // If token is null (expired), return null to force logout
       if (!token) {
         return null as any;
       }
 
-      // Add user data from token to session
       if (session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name as string | null;
         session.user.email = token.email as string | null;
-        session.user.image = token.image as string | null; // Avatar
+        session.user.image = token.image as string | null;
         session.user.role = token.role as string;
         session.user.phone = token.phone as string | null;
         session.user.accountType = token.accountType as string | null;
         session.user.shopSlug = token.shopSlug as string | null;
-        session.user.sellerSlug = token.sellerSlug as string | null;
         session.user.customShopSlug = token.customShopSlug as string | null;
         session.user.businessName = token.businessName as string | null;
         session.user.businessVerificationStatus = token.businessVerificationStatus as string | null;
@@ -417,29 +610,40 @@ export const authOptions: NextAuthOptions = {
         session.user.oauthProvider = token.oauthProvider as string | null;
       }
 
-      // CRITICAL: Add backendToken at session root level for easier access
       (session as any).backendToken = token.backendToken as string | null;
 
       return session;
     },
   },
 
+  // ============================================================================
+  // EVENTS
+  // ============================================================================
   events: {
     async signOut() {
       console.log('🔐 [NextAuth] User signed out');
     },
   },
 
+  // ============================================================================
+  // PAGES - Custom auth pages
+  // ============================================================================
   pages: {
     signIn: '/auth/signin',
     signOut: '/auth/logout',
     error: '/auth/error',
   },
 
+  // ============================================================================
+  // SESSION CONFIGURATION
+  // ============================================================================
   session: {
     strategy: 'jwt',
     maxAge: 24 * 60 * 60, // 24 hours
   },
 
+  // ============================================================================
+  // SECRET - REQUIRED for production
+  // ============================================================================
   secret: process.env.NEXTAUTH_SECRET,
 };

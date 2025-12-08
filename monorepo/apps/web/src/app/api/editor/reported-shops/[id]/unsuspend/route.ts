@@ -15,8 +15,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Authenticate editor
-    await requireEditor(request);
+    // Authenticate editor and get their info
+    const editor = await requireEditor(request);
 
     const { id } = await params;
     const reportId = parseInt(id);
@@ -83,7 +83,7 @@ export async function POST(
       );
     }
 
-    // Use a transaction to update both shop and report
+    // Use a transaction to update shop, report, and log the action
     await prisma.$transaction([
       // Unsuspend the shop (set is_active to true)
       prisma.users.update({
@@ -93,17 +93,32 @@ export async function POST(
           updated_at: new Date(),
         },
       }),
-      // Update report with restoration note
+      // Update report with restoration note and track who restored it
       prisma.shop_reports.update({
         where: { id: reportId },
         data: {
           admin_notes: `${report.admin_notes || ''}\n[RESTORED] Shop unsuspended by editor.`.trim(),
+          resolved_by: editor.userId,
           updated_at: new Date(),
+        },
+      }),
+      // Log the action to admin_activity_logs
+      prisma.admin_activity_logs.create({
+        data: {
+          admin_id: editor.userId,
+          action_type: 'shop_restore',
+          target_type: 'shop_report',
+          target_id: reportId,
+          details: {
+            shopId,
+            shopName: shop.business_name || shop.full_name,
+            reportReason: report.reason,
+          },
         },
       }),
     ]);
 
-    console.log(`✅ Shop ${shopId} (${shop.business_name || shop.full_name}) restored/unsuspended from report ${reportId}`);
+    console.log(`✅ Shop ${shopId} (${shop.business_name || shop.full_name}) restored by editor ${editor.userId} from report ${reportId}`);
 
     return NextResponse.json(
       {

@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load .env file
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Since we are in a monorepo, the .env file is in the root
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export const config = {
   // Server
@@ -19,6 +22,11 @@ export const config = {
   // Security
   JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRES_IN: (process.env.JWT_EXPIRES_IN || '24h') as string,
+  SESSION_SECRET: process.env.SESSION_SECRET || '',
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
 
   // Typesense
   TYPESENSE_HOST: process.env.TYPESENSE_HOST || 'localhost',
@@ -53,6 +61,18 @@ export const config = {
 export function validateConfig(): void {
   if (!config.JWT_SECRET) {
     console.error('FATAL: JWT_SECRET environment variable is not set!');
+    process.exit(1);
+  }
+  if (!config.SESSION_SECRET) {
+    console.error('FATAL: SESSION_SECRET environment variable is not set!');
+    process.exit(1);
+  }
+  if (!config.GOOGLE_CLIENT_ID) {
+    console.error('FATAL: GOOGLE_CLIENT_ID environment variable is not set!');
+    process.exit(1);
+  }
+  if (!config.GOOGLE_CLIENT_SECRET) {
+    console.error('FATAL: GOOGLE_CLIENT_SECRET environment variable is not set!');
     process.exit(1);
   }
 }

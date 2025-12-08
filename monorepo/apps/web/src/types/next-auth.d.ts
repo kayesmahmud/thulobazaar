@@ -12,7 +12,6 @@ declare module 'next-auth' {
       phone: string | null;
       accountType: string | null;
       shopSlug: string | null;
-      sellerSlug: string | null;
       businessName: string | null;
       businessVerificationStatus: string | null;
       individualVerified: boolean | null;
@@ -29,7 +28,6 @@ declare module 'next-auth' {
     phone: string | null;
     accountType: string | null;
     shopSlug: string | null;
-    sellerSlug: string | null;
     businessName: string | null;
     businessVerificationStatus: string | null;
     individualVerified: boolean | null;
@@ -44,7 +42,6 @@ declare module 'next-auth/jwt' {
     phone: string | null;
     accountType: string | null;
     shopSlug: string | null;
-    sellerSlug: string | null;
     businessName: string | null;
     businessVerificationStatus: string | null;
     individualVerified: boolean | null;

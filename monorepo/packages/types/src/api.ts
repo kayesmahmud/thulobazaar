@@ -22,7 +22,6 @@ export interface User {
   accountType: AccountType;
   businessVerificationStatus?: VerificationStatus;
   individualVerified: boolean;
-  sellerSlug?: string;
   shopSlug?: string;
   isActive: boolean;
   locationId?: number;

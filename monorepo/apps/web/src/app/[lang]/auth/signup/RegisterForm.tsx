@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
@@ -9,18 +9,52 @@ interface RegisterFormProps {
   lang: string;
 }
 
+type RegistrationType = 'email' | 'phone';
+type PhoneStep = 'phone' | 'otp' | 'details';
+
 export default function RegisterForm({ lang }: RegisterFormProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
+
+  // Registration type
+  const [registrationType, setRegistrationType] = useState<RegistrationType>('phone');
+
+  // Phone registration state
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>('phone');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState('');
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [otpExpiry, setOtpExpiry] = useState(0);
+
+  // Form data
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     fullName: '',
   });
+
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
+
+  // OTP expiry timer
+  useEffect(() => {
+    if (otpExpiry > 0) {
+      const timer = setTimeout(() => setOtpExpiry(otpExpiry - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpExpiry]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -29,37 +63,92 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
     }
   }, [status, session, router, lang]);
 
-  // Show loading state while checking session
-  if (status === 'loading') {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-8 h-8 border-3 border-rose-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <span className="text-gray-500 text-sm">Checking session...</span>
-      </div>
-    );
-  }
+  // Validate Nepali phone number
+  const validateNepaliPhone = useCallback((phoneNumber: string): boolean => {
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    return /^(97|98)\d{8}$/.test(cleanPhone);
+  }, []);
 
-  // If authenticated, show redirecting message
-  if (status === 'authenticated') {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-12 h-12 mb-4 rounded-full bg-green-100 flex items-center justify-center">
-          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">You're already logged in!</h3>
-        <p className="text-gray-500 text-sm mb-4">Redirecting you to the homepage...</p>
-        <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  // Send OTP
+  const handleSendOtp = async () => {
+    setError('');
+    setSuccess('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!validateNepaliPhone(cleanPhone)) {
+      setError('Invalid Nepali phone number. Must be 10 digits starting with 97 or 98.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, purpose: 'registration' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.cooldownRemaining) {
+          setOtpCooldown(data.cooldownRemaining);
+        }
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      setSuccess('OTP sent successfully! Check your phone.');
+      setPhoneStep('otp');
+      setOtpExpiry(data.expiresIn || 600);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    setError('');
+    setSuccess('');
+
+    if (otp.length !== 6) {
+      setError('Please enter a 6-digit OTP');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, otp, purpose: 'registration' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to verify OTP');
+      }
+
+      setPhoneVerificationToken(data.verificationToken);
+      setSuccess('Phone verified! Complete your registration.');
+      setPhoneStep('details');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle email registration
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -73,7 +162,6 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
     setIsLoading(true);
 
     try {
-      // Register user
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,7 +178,6 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Auto-login after successful registration
       const loginResult = await signIn('credentials', {
         redirect: false,
         email: formData.email,
@@ -98,16 +185,60 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
       });
 
       if (loginResult?.error) {
-        // Registration succeeded but login failed - redirect to login page
         router.push(`/${lang}/auth/signin?registered=true`);
       } else if (loginResult?.ok) {
-        // Both registration and login succeeded
         router.push(`/${lang}`);
         router.refresh();
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');
-      console.error('Registration error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle phone registration (after OTP verified)
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: formData.password,
+          fullName: formData.fullName,
+          phoneVerificationToken,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // For phone registration, we need to handle login differently
+      // since the user doesn't have an email for credentials login
+      setSuccess('Account created successfully! Redirecting to login...');
+      setTimeout(() => {
+        router.push(`/${lang}/auth/signin?registered=true&phone=true`);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -117,18 +248,56 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
     setSocialLoading(provider);
     setError('');
     try {
-      await signIn(provider, { callbackUrl: `/${lang}` });
+      if (provider === 'google') {
+        // Use backend Passport.js OAuth instead of NextAuth
+        // The backend will handle the OAuth flow and redirect back with a token
+        window.location.href = 'http://localhost:5000/api/auth/google';
+      } else {
+        // Facebook still uses NextAuth
+        await signIn(provider, { callbackUrl: `/${lang}` });
+      }
     } catch (err) {
       setError('Failed to connect. Please try again.');
       setSocialLoading(null);
     }
   };
 
+  // Loading state while checking session
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="w-8 h-8 border-3 border-rose-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <span className="text-gray-500 text-sm">Checking session...</span>
+      </div>
+    );
+  }
+
+  // Already authenticated
+  if (status === 'authenticated') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="w-12 h-12 mb-4 rounded-full bg-green-100 flex items-center justify-center">
+          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">You're already logged in!</h3>
+        <p className="text-gray-500 text-sm mb-4">Redirecting you to the homepage...</p>
+        <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-5">
       {/* Social Login Buttons */}
       <div className="space-y-3">
-        {/* Google Button */}
         <button
           type="button"
           onClick={() => handleSocialLogin('google')}
@@ -151,7 +320,6 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           <span>{socialLoading === 'google' ? 'Connecting...' : 'Sign up with Google'}</span>
         </button>
 
-        {/* Facebook Button */}
         <button
           type="button"
           onClick={() => handleSocialLogin('facebook')}
@@ -178,11 +346,55 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">or register with email</span>
+          <span className="px-4 bg-white text-gray-500">or register with</span>
         </div>
       </div>
 
-    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Registration Type Tabs */}
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => {
+            setRegistrationType('phone');
+            setPhoneStep('phone');
+            setError('');
+            setSuccess('');
+          }}
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+            registrationType === 'phone'
+              ? 'bg-rose-500 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            Phone Number
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setRegistrationType('email');
+            setError('');
+            setSuccess('');
+          }}
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+            registrationType === 'email'
+              ? 'bg-rose-500 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Email
+          </span>
+        </button>
+      </div>
+
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-500 text-red-600 px-4 py-3 rounded-lg">
@@ -190,105 +402,314 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         </div>
       )}
 
-      {/* Full Name */}
-      <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-          Full Name *
-        </label>
-        <input
-          id="fullName"
-          type="text"
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
-          placeholder="Enter your full name"
-          value={formData.fullName}
-          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-          disabled={isLoading}
-        />
-      </div>
+      {/* Success Message */}
+      {success && (
+        <div className="bg-green-50 border border-green-500 text-green-600 px-4 py-3 rounded-lg">
+          <p className="text-sm">{success}</p>
+        </div>
+      )}
 
-      {/* Email */}
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-          Email address *
-        </label>
-        <input
-          id="email"
-          type="email"
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
-          placeholder="your@email.com"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          disabled={isLoading}
-        />
-      </div>
+      {/* Phone Registration Flow */}
+      {registrationType === 'phone' && (
+        <div className="space-y-6">
+          {/* Step 1: Phone Number */}
+          {phoneStep === 'phone' && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                    +977
+                  </span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    required
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+                    placeholder="98XXXXXXXX"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    disabled={isLoading}
+                    maxLength={10}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Enter 10-digit Nepali mobile number (starting with 97 or 98)</p>
+              </div>
 
-      {/* Password */}
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-          Password *
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
-          placeholder="At least 6 characters"
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          disabled={isLoading}
-        />
-      </div>
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                loading={isLoading}
+                disabled={isLoading || otpCooldown > 0 || phone.length !== 10}
+                onClick={handleSendOtp}
+              >
+                {otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Send OTP'}
+              </Button>
+            </div>
+          )}
 
-      {/* Confirm Password */}
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-          Confirm Password *
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
-          placeholder="Re-enter your password"
-          value={formData.confirmPassword}
-          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-          disabled={isLoading}
-        />
-      </div>
+          {/* Step 2: OTP Verification */}
+          {phoneStep === 'otp' && (
+            <div className="space-y-4">
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-600">
+                  OTP sent to <span className="font-medium">+977 {phone}</span>
+                </p>
+                {otpExpiry > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Expires in {formatTime(otpExpiry)}
+                  </p>
+                )}
+              </div>
 
-      {/* Terms & Conditions */}
-      <div className="flex items-start">
-        <input
-          id="terms"
-          type="checkbox"
-          required
-          className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500 mt-0.5"
-        />
-        <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-          I agree to the{' '}
-          <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
-            Terms & Conditions
-          </a>{' '}
-          and{' '}
-          <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
-            Privacy Policy
-          </a>
-        </label>
-      </div>
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter OTP *
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  required
+                  className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors text-center text-2xl tracking-widest"
+                  placeholder="------"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  disabled={isLoading}
+                  maxLength={6}
+                />
+              </div>
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        variant="primary"
-        fullWidth
-        loading={isLoading}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Creating account...' : 'Create account'}
-      </Button>
-    </form>
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                loading={isLoading}
+                disabled={isLoading || otp.length !== 6}
+                onClick={handleVerifyOtp}
+              >
+                Verify OTP
+              </Button>
+
+              <div className="flex justify-between items-center text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoneStep('phone');
+                    setOtp('');
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  Change number
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={isLoading || otpCooldown > 0}
+                  className="text-rose-500 hover:text-rose-600 disabled:text-gray-400"
+                >
+                  {otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Resend OTP'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Details Form */}
+          {phoneStep === 'details' && (
+            <form onSubmit={handlePhoneSubmit} className="space-y-4">
+              <div className="text-center mb-4 pb-4 border-b border-gray-200">
+                <div className="inline-flex items-center gap-2 text-green-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-medium">+977 {phone} verified</span>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+                  placeholder="Enter your full name"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Password *
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+                  placeholder="At least 6 characters"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Password *
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+                  placeholder="Re-enter your password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="flex items-start">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  required
+                  className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500 mt-0.5"
+                />
+                <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
+                  I agree to the{' '}
+                  <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
+                    Terms & Conditions
+                  </a>{' '}
+                  and{' '}
+                  <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                loading={isLoading}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating account...' : 'Create account'}
+              </Button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* Email Registration Form */}
+      {registrationType === 'email' && (
+        <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+              Full Name *
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+              placeholder="Enter your full name"
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email address *
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password *
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+              placeholder="At least 6 characters"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              Confirm Password *
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-colors"
+              placeholder="Re-enter your password"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="flex items-start">
+            <input
+              id="terms-email"
+              type="checkbox"
+              required
+              className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500 mt-0.5"
+            />
+            <label htmlFor="terms-email" className="ml-2 block text-sm text-gray-700">
+              I agree to the{' '}
+              <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
+                Terms & Conditions
+              </a>{' '}
+              and{' '}
+              <a href="#" className="text-rose-500 hover:text-rose-600 transition-colors">
+                Privacy Policy
+              </a>
+            </label>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            fullWidth
+            loading={isLoading}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating account...' : 'Create account'}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

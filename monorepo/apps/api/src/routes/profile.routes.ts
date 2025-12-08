@@ -27,7 +27,6 @@ router.get(
         location_id: true,
         account_type: true,
         shop_slug: true,
-        seller_slug: true,
         custom_shop_slug: true,
         business_name: true,
         business_verification_status: true,

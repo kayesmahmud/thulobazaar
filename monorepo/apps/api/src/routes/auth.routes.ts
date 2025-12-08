@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import passport from 'passport';
 import { prisma } from '@thulobazaar/database';
 import config from '../config/index.js';
 import { SECURITY } from '../config/constants.js';
@@ -54,7 +55,7 @@ router.post(
     // Check if slug already exists and make it unique
     const existingSlug = await prisma.users.findFirst({
       where: {
-        OR: [{ shop_slug: shopSlug }, { seller_slug: shopSlug }],
+        shop_slug: shopSlug,
       },
     });
 
@@ -70,7 +71,6 @@ router.post(
         full_name: fullName,
         phone: phone || null,
         shop_slug: shopSlug,
-        seller_slug: shopSlug,
       },
       select: {
         id: true,
@@ -80,7 +80,6 @@ router.post(
         created_at: true,
         account_type: true,
         shop_slug: true,
-        seller_slug: true,
         business_verification_status: true,
         individual_verified: true,
       },
@@ -107,7 +106,6 @@ router.post(
           createdAt: user.created_at,
           account_type: user.account_type,
           shop_slug: user.shop_slug,
-          seller_slug: user.seller_slug,
           business_verification_status: user.business_verification_status,
           individual_verified: user.individual_verified,
         },
@@ -145,7 +143,6 @@ router.post(
         role: true,
         account_type: true,
         shop_slug: true,
-        seller_slug: true,
         business_verification_status: true,
         individual_verified: true,
       },
@@ -187,7 +184,6 @@ router.post(
           role: user.role,
           account_type: user.account_type,
           shop_slug: user.shop_slug,
-          seller_slug: user.seller_slug,
           business_verification_status: user.business_verification_status,
           individual_verified: user.individual_verified,
         },
@@ -244,6 +240,43 @@ router.post(
       },
     });
   })
+);
+
+/**
+ * GET /api/auth/google
+ * Redirect to Google for authentication
+ */
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+/**
+ * GET /api/auth/callback/google
+ * Google callback URL
+ */
+router.get(
+  '/callback/google',
+  passport.authenticate('google', {
+    failureRedirect: 'http://localhost:3333/en/auth/signin?error=OAuthAccountNotLinked',
+    session: false
+  }),
+  (req, res) => {
+    // Generate JWT token for the authenticated user
+    const user = req.user as { id: string; email: string; role?: string };
+
+    if (!user) {
+      return res.redirect('http://localhost:3333/en/auth/signin?error=NoUser');
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role || 'USER' },
+      config.JWT_SECRET,
+      { expiresIn: config.JWT_EXPIRES_IN } as jwt.SignOptions
+    );
+
+    console.log(`✅ Google OAuth success for: ${user.email}`);
+
+    // Redirect to frontend with token - frontend will handle storing it
+    res.redirect(`http://localhost:3333/api/auth/oauth-callback?token=${token}&provider=google`);
+  }
 );
 
 export default router;

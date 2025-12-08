@@ -6,11 +6,28 @@ import { generateUniqueShopSlug } from '@/lib/slug';
 
 // Validation schema
 const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Invalid email address').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().optional(),
+  phoneVerificationToken: z.string().optional(),
 });
+
+// Helper to validate phone verification token
+function validatePhoneToken(token: string): { phone: string; expiresAt: number } | null {
+  try {
+    const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
+    if (decoded.expiresAt < Date.now()) {
+      return null;
+    }
+    if (decoded.purpose !== 'registration') {
+      return null;
+    }
+    return { phone: decoded.phone, expiresAt: decoded.expiresAt };
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,21 +46,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, fullName, phone } = validation.data;
+    const { email, password, fullName, phone, phoneVerificationToken } = validation.data;
 
-    // Check if user already exists
-    const existingUser = await prisma.users.findUnique({
-      where: { email },
-    });
+    // Determine registration type: email or phone
+    let verifiedPhone: string | null = null;
+    let userEmail: string | null = email || null;
 
-    if (existingUser) {
+    // If phone verification token provided, validate it
+    if (phoneVerificationToken) {
+      const tokenData = validatePhoneToken(phoneVerificationToken);
+      if (!tokenData) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Phone verification expired. Please verify again.',
+          },
+          { status: 400 }
+        );
+      }
+      verifiedPhone = tokenData.phone;
+    }
+
+    // Must have either email or verified phone
+    if (!userEmail && !verifiedPhone) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Email already registered',
+          message: 'Email or verified phone number is required',
         },
         { status: 400 }
       );
+    }
+
+    // Check if user already exists by email
+    if (userEmail) {
+      const existingEmailUser = await prisma.users.findUnique({
+        where: { email: userEmail },
+      });
+
+      if (existingEmailUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Email already registered',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check if phone already registered (for verified phone users)
+    if (verifiedPhone) {
+      const existingPhoneUser = await prisma.users.findFirst({
+        where: {
+          phone: verifiedPhone,
+          phone_verified: true,
+        },
+      });
+
+      if (existingPhoneUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Phone number already registered',
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Hash password
@@ -52,22 +121,27 @@ export async function POST(request: NextRequest) {
     // Generate unique shop slug from full name
     const shop_slug = await generateUniqueShopSlug(fullName);
 
-    // Create user
+    // Create user with phone verified if using phone registration
+    // All registration methods (email, phone OTP, OAuth) should create consistent records
     const user = await prisma.users.create({
       data: {
-        email,
+        email: userEmail,
         password_hash,
         full_name: fullName,
-        phone: phone || null,
+        phone: verifiedPhone || phone || null,
+        phone_verified: verifiedPhone ? true : false,
+        phone_verified_at: verifiedPhone ? new Date() : null,
         role: 'user',
         is_active: true,
         shop_slug,
+        account_type: 'individual', // Default to individual, can be upgraded to business later
       },
       select: {
         id: true,
         email: true,
         full_name: true,
         phone: true,
+        phone_verified: true,
         role: true,
         shop_slug: true,
         created_at: true,
@@ -83,6 +157,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           fullName: user.full_name,
           phone: user.phone,
+          phoneVerified: user.phone_verified,
           role: user.role,
           shopSlug: user.shop_slug,
           createdAt: user.created_at,

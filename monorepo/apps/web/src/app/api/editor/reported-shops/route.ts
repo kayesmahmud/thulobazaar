@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Get total count
     const total = await prisma.shop_reports.count({ where });
 
-    // Fetch reports with shop and reporter details
+    // Fetch reports with shop, reporter, and resolver details
     const reports = await prisma.shop_reports.findMany({
       where,
       select: {
@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         details: true,
         status: true,
         admin_notes: true,
+        resolved_by: true,
         created_at: true,
         updated_at: true,
         shop: {
@@ -69,6 +70,14 @@ export async function GET(request: NextRequest) {
             avatar: true,
           },
         },
+        resolver: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            role: true,
+          },
+        },
       },
       orderBy: { created_at: 'desc' },
       skip: offset,
@@ -84,6 +93,7 @@ export async function GET(request: NextRequest) {
       description: report.details,
       status: report.status,
       adminNotes: report.admin_notes,
+      resolvedBy: report.resolved_by,
       reportedAt: report.created_at,
       updatedAt: report.updated_at,
       // Shop details
@@ -99,6 +109,10 @@ export async function GET(request: NextRequest) {
       reporterName: report.reporter.full_name,
       reporterEmail: report.reporter.email,
       reporterAvatar: report.reporter.avatar,
+      // Resolver (editor) details
+      resolverName: report.resolver?.full_name || null,
+      resolverEmail: report.resolver?.email || null,
+      resolverRole: report.resolver?.role || null,
     }));
 
     return NextResponse.json(
@@ -116,6 +130,9 @@ export async function GET(request: NextRequest) {
     );
   } catch (error: any) {
     console.error('Reported shops fetch error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
 
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
