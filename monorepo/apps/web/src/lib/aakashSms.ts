@@ -39,12 +39,29 @@ export function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+export type OtpPurpose = 'registration' | 'login' | 'password_reset';
+
+/**
+ * Get SMS message based on purpose
+ */
+function getOtpMessage(otp: string, purpose: OtpPurpose): string {
+  switch (purpose) {
+    case 'registration':
+      return `Welcome to Thulo Bazaar! Your signup verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
+    case 'password_reset':
+      return `Your Thulo Bazaar password reset code is: ${otp}. Valid for 10 minutes. If you didn't request this, please ignore.`;
+    default:
+      return `Your Thulo Bazaar verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
+  }
+}
+
 /**
  * Send OTP SMS via AakashSMS API
  */
 export async function sendOtpSms(
   phone: string,
-  otp: string
+  otp: string,
+  purpose: OtpPurpose = 'registration'
 ): Promise<SendSmsResponse> {
   const authToken = process.env.AAKASH_SMS_TOKEN;
 
@@ -67,7 +84,7 @@ export async function sendOtpSms(
     };
   }
 
-  const message = `Dear user, Your Thulobazaar verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
+  const message = getOtpMessage(otp, purpose);
 
   try {
     const response = await fetch(AAKASH_SMS_API_URL, {

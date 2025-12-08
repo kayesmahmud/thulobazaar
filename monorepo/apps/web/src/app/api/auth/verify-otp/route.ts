@@ -4,9 +4,12 @@ import { z } from 'zod';
 import { formatPhoneNumber } from '@/lib/aakashSms';
 
 const verifyOtpSchema = z.object({
-  phone: z.string().min(10, 'Phone number is required'),
+  phone: z.string().optional(),
+  email: z.string().email().optional(),
   otp: z.string().length(6, 'OTP must be 6 digits'),
   purpose: z.enum(['registration', 'login', 'password_reset']).default('registration'),
+}).refine((data) => data.phone || data.email, {
+  message: 'Either phone or email is required',
 });
 
 const MAX_VERIFY_ATTEMPTS = 5;
@@ -27,13 +30,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, otp, purpose } = validation.data;
-    const formattedPhone = formatPhoneNumber(phone);
+    const { phone, email, otp, purpose } = validation.data;
 
-    // Find the most recent valid OTP for this phone
+    // Determine identifier
+    const usePhone = !!phone;
+    const formattedPhone = phone ? formatPhoneNumber(phone) : null;
+    const identifier = usePhone ? formattedPhone : email;
+
+    // Find the most recent valid OTP
     const otpRecord = await prisma.phone_otps.findFirst({
       where: {
-        phone: formattedPhone,
+        phone: identifier!,
         purpose,
         is_used: false,
         expires_at: {
@@ -89,18 +96,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OTP is valid - mark as used
-    await prisma.phone_otps.update({
-      where: { id: otpRecord.id },
-      data: { is_used: true },
-    });
+    // OTP is valid
+    // For password_reset, don't mark as used yet - let the reset-password route do that
+    if (purpose !== 'password_reset') {
+      await prisma.phone_otps.update({
+        where: { id: otpRecord.id },
+        data: { is_used: true },
+      });
+    }
 
-    console.log(`OTP verified successfully for ${formattedPhone} (${purpose})`);
+    console.log(`OTP verified successfully for ${identifier} (${purpose})`);
 
-    // Return verification token for registration flow
+    // Return verification token
     const verificationToken = Buffer.from(
       JSON.stringify({
-        phone: formattedPhone,
+        identifier,
         purpose,
         verifiedAt: Date.now(),
         expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes
@@ -110,8 +120,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Phone number verified successfully',
-        phone: formattedPhone,
+        message: usePhone ? 'Phone number verified successfully' : 'Email verified successfully',
+        identifier,
         verificationToken,
       },
       { status: 200 }

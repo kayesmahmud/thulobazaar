@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 interface LoginFormProps {
   lang: string;
@@ -76,9 +77,9 @@ export default function LoginForm({ lang }: LoginFormProps) {
           Remember me
         </label>
       </div>
-      <a href="#" className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
+      <Link href={`/${lang}/auth/forgot-password`} className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
         Forgot password?
-      </a>
+      </Link>
     </div>
   );
 
