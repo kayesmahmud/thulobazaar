@@ -16,6 +16,8 @@ export interface ProfileData {
   accountType?: string | null;
   customShopSlug?: string | null;
   createdAt?: string | Date;
+  avatar?: string | null;
+  oauthProvider?: string | null;
 }
 
 interface UseProfileDataOptions {

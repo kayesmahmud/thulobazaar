@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
         business_verified_at: true,
         business_verification_expires_at: true,
         verified_seller_name: true,
+        oauth_provider: true,
         latitude: true,
         longitude: true,
         formatted_address: true,
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest) {
       googleMapsLink: user.google_maps_link,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
+      oauthProvider: user.oauth_provider,
     };
 
     return NextResponse.json(

@@ -33,6 +33,7 @@ router.get(
         individual_verified: true,
         created_at: true,
         locations: true,
+        oauth_provider: true,
       },
     });
 
@@ -53,10 +54,12 @@ router.get(
         locationName: (user as any).locations?.name,
         accountType: user.account_type,
         shopSlug: user.custom_shop_slug || user.shop_slug,
+        customShopSlug: user.custom_shop_slug,
         businessName: user.business_name,
         businessVerificationStatus: user.business_verification_status,
         individualVerified: user.individual_verified,
         createdAt: user.created_at,
+        oauthProvider: user.oauth_provider,
       },
     });
   })
