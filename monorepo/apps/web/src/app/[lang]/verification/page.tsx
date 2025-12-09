@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import IndividualVerificationForm from '@/components/IndividualVerificationForm';
 import BusinessVerificationForm from '@/components/BusinessVerificationForm';
@@ -72,6 +73,10 @@ export default function VerificationPage({ params }: VerificationPageProps) {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [pricing, setPricing] = useState<VerificationPricing | null>(null);
 
+  // Phone verification state
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
+
   // Selection state
   const [selectedType, setSelectedType] = useState<'individual' | 'business' | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<PricingOption | null>(null);
@@ -94,14 +99,17 @@ export default function VerificationPage({ params }: VerificationPageProps) {
     try {
       setLoading(true);
 
-      // Load verification status and pricing in parallel
-      const [verificationResponse, pricingResponse] = await Promise.all([
+      // Load verification status, pricing, and user profile in parallel
+      const [verificationResponse, pricingResponse, profileResponse] = await Promise.all([
         apiClient.getVerificationStatus().catch(() => ({ success: false, data: null })),
         fetch('/api/verification/pricing', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
           },
         }).then(res => res.json()).catch(() => ({ success: false, data: null })),
+        fetch('/api/profile', { credentials: 'include' })
+          .then(res => res.json())
+          .catch(() => ({ success: false, data: null })),
       ]);
 
       if (verificationResponse.success && verificationResponse.data) {
@@ -111,6 +119,12 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       if (pricingResponse.success && pricingResponse.data) {
         setPricing(pricingResponse.data);
       }
+
+      // Set phone verification status
+      if (profileResponse.success && profileResponse.data) {
+        setPhoneVerified(profileResponse.data.phoneVerified || false);
+        setUserPhone(profileResponse.data.phone || null);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -119,6 +133,12 @@ export default function VerificationPage({ params }: VerificationPageProps) {
   };
 
   const handleTypeSelect = (type: 'individual' | 'business') => {
+    // Block selection if phone not verified
+    if (!phoneVerified) {
+      showError('Please verify your phone number first before applying for verification.');
+      return;
+    }
+
     setSelectedType(type);
     setSelectedDuration(null);
     setShowForm(false);
@@ -226,9 +246,38 @@ export default function VerificationPage({ params }: VerificationPageProps) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-12">
+        {/* Phone Verification Warning Banner */}
+        {!loading && !phoneVerified && (
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-6 mb-8 -mt-16 shadow-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="text-5xl">📱</div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold mb-1">Phone Verification Required</h3>
+                <p className="text-lg opacity-90">
+                  {userPhone ? (
+                    <>Your phone <strong>{userPhone}</strong> is not verified. </>
+                  ) : (
+                    <>You haven&apos;t added a phone number yet. </>
+                  )}
+                  To apply for Individual or Business verification, please verify your phone number first.
+                </p>
+                <Link
+                  href={`/${lang}/profile`}
+                  className="inline-flex items-center gap-2 mt-3 px-5 py-2.5 bg-white text-amber-600 font-semibold rounded-lg hover:bg-amber-50 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Verify Phone in Security Settings
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Free Verification Promotion Banner */}
-        {pricing?.freeVerification.enabled && pricing?.freeVerification.isEligible && (
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-6 mb-8 -mt-16 shadow-xl">
+        {pricing?.freeVerification.enabled && pricing?.freeVerification.isEligible && phoneVerified && (
+          <div className={`bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-6 mb-8 ${!phoneVerified ? '' : '-mt-16'} shadow-xl`}>
             <div className="flex items-center gap-4">
               <div className="text-5xl">🎁</div>
               <div>
@@ -279,7 +328,9 @@ export default function VerificationPage({ params }: VerificationPageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Individual Verification Status */}
           <div className={`group relative overflow-hidden rounded-3xl transition-all duration-300 ${
-            verificationStatus?.individual?.status === 'verified'
+            !phoneVerified
+              ? 'bg-gray-100 border-2 border-gray-300 opacity-75 cursor-not-allowed'
+              : verificationStatus?.individual?.status === 'verified'
               ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300'
               : verificationStatus?.individual?.status === 'rejected'
               ? 'bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-300'
@@ -337,11 +388,13 @@ export default function VerificationPage({ params }: VerificationPageProps) {
               </p>
 
               {(!verificationStatus?.individual || ['unverified', 'rejected'].includes(verificationStatus.individual.status)) && (
-                <div className="text-indigo-600 font-medium flex items-center gap-2">
-                  <span>Click to get verified</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                <div className={`font-medium flex items-center gap-2 ${!phoneVerified ? 'text-gray-400' : 'text-indigo-600'}`}>
+                  <span>{!phoneVerified ? 'Verify phone first to continue' : 'Click to get verified'}</span>
+                  {phoneVerified && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
                 </div>
               )}
 
@@ -361,7 +414,9 @@ export default function VerificationPage({ params }: VerificationPageProps) {
 
           {/* Business Verification Status */}
           <div className={`group relative overflow-hidden rounded-3xl transition-all duration-300 ${
-            verificationStatus?.business?.status === 'verified'
+            !phoneVerified
+              ? 'bg-gray-100 border-2 border-gray-300 opacity-75 cursor-not-allowed'
+              : verificationStatus?.business?.status === 'verified'
               ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300'
               : verificationStatus?.business?.status === 'rejected'
               ? 'bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-300'
@@ -419,11 +474,13 @@ export default function VerificationPage({ params }: VerificationPageProps) {
               </p>
 
               {(!verificationStatus?.business || ['unverified', 'rejected'].includes(verificationStatus.business.status)) && (
-                <div className="text-purple-600 font-medium flex items-center gap-2">
-                  <span>Click to get verified</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                <div className={`font-medium flex items-center gap-2 ${!phoneVerified ? 'text-gray-400' : 'text-purple-600'}`}>
+                  <span>{!phoneVerified ? 'Verify phone first to continue' : 'Click to get verified'}</span>
+                  {phoneVerified && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
                 </div>
               )}
 

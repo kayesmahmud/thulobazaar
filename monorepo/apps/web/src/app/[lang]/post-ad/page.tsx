@@ -63,6 +63,8 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [userHasDefaultLocation, setUserHasDefaultLocation] = useState(false);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   // Debug: Log current state
   console.log('📊 Current State:', {
@@ -149,6 +151,23 @@ export default function PostAdPage({ params }: PostAdPageProps) {
         setLocations(locationsRes.data);
       }
 
+      // Fetch user's profile to check phone verification status and default location
+      try {
+        const profileRes = await fetch('/api/profile', {
+          credentials: 'include',
+        });
+        const profileData = await profileRes.json();
+
+        if (profileData.success && profileData.data) {
+          // Set phone verification status
+          setUserPhone(profileData.data.phone || null);
+          setPhoneVerified(profileData.data.phoneVerified || false);
+          console.log('📱 User phone:', profileData.data.phone, 'Verified:', profileData.data.phoneVerified);
+        }
+      } catch (profileErr) {
+        console.log('Could not fetch user profile:', profileErr);
+      }
+
       // Fetch user's default location and pre-select it
       try {
         const token = (session as any)?.backendToken;
@@ -212,6 +231,13 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Phone verification check
+    if (!phoneVerified) {
+      setError('Please verify your phone number before posting an ad. Go to Profile → Security to verify.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     // Validation
     if (!formData.categoryId) {
@@ -343,6 +369,82 @@ export default function PostAdPage({ params }: PostAdPageProps) {
             Fill in the details below to create your listing
           </p>
         </div>
+
+        {/* Phone Verification Warning */}
+        {!loading && !phoneVerified && (
+          <div style={{
+            background: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '8px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem'
+          }}>
+            <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontWeight: '600',
+                color: '#92400e',
+                margin: '0 0 0.25rem 0',
+                fontSize: '0.9375rem'
+              }}>
+                Phone verification required
+              </p>
+              <p style={{
+                color: '#92400e',
+                margin: 0,
+                fontSize: '0.875rem',
+                lineHeight: 1.5
+              }}>
+                To post ads and let buyers contact you, please verify your phone number first.
+                {userPhone ? (
+                  <> Your phone <strong>{userPhone}</strong> is not yet verified.</>
+                ) : (
+                  <> You haven&apos;t added a phone number yet.</>
+                )}
+              </p>
+              <Link
+                href={`/${lang}/profile`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  marginTop: '0.75rem',
+                  padding: '0.5rem 1rem',
+                  background: '#f59e0b',
+                  color: 'white',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Verify Phone in Security Settings →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Verified Phone Display */}
+        {!loading && phoneVerified && userPhone && (
+          <div style={{
+            background: '#ecfdf5',
+            border: '1px solid #10b981',
+            borderRadius: '8px',
+            padding: '0.75rem 1rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <span style={{ fontSize: '1rem', color: '#10b981' }}>✓</span>
+            <span style={{ color: '#047857', fontSize: '0.875rem' }}>
+              Contact phone: <strong>{userPhone}</strong> (verified)
+            </span>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (

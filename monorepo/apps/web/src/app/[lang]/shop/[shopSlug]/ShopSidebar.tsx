@@ -23,6 +23,7 @@ interface ShopSidebarProps {
   businessDescription: string | null;
   businessPhone: string | null;
   phone: string | null;
+  phoneVerified?: boolean;
   businessWebsite: string | null;
   googleMapsLink: string | null;
   locationName: string | null;
@@ -39,6 +40,7 @@ export default function ShopSidebar({
   businessDescription: initialDescription,
   businessPhone: initialBusinessPhone,
   phone: initialPhone,
+  phoneVerified: initialPhoneVerified = false,
   businessWebsite: initialWebsite,
   googleMapsLink: initialGoogleMaps,
   locationName: initialLocationName,
@@ -64,11 +66,14 @@ export default function ShopSidebar({
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [contactData, setContactData] = useState({
     businessPhone: initialBusinessPhone || '',
-    phone: initialPhone || '',
     businessWebsite: initialWebsite || '',
     googleMapsLink: initialGoogleMaps || '',
   });
   const [contactSaving, setContactSaving] = useState(false);
+
+  // Verified phone is read-only, displayed from initialPhone
+  const verifiedPhone = initialPhone || '';
+  const isPhoneVerified = initialPhoneVerified;
 
   // Location section states
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -135,7 +140,6 @@ export default function ShopSidebar({
         },
         body: JSON.stringify({
           business_phone: contactData.businessPhone,
-          phone: contactData.phone,
           business_website: contactData.businessWebsite,
           google_maps_link: contactData.googleMapsLink,
         }),
@@ -275,6 +279,20 @@ export default function ShopSidebar({
 
         {isEditingContact ? (
           <div className="space-y-3 sm:space-y-4">
+            {/* Verified Phone - Read Only */}
+            {verifiedPhone && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Phone01 className="w-4 h-4 text-green-600" />
+                  <span className="text-xs font-medium text-green-700">Verified Mobile</span>
+                </div>
+                <div className="text-sm font-semibold text-gray-900">{verifiedPhone}</div>
+                <p className="text-xs text-gray-500 mt-1">
+                  To change your verified phone, go to Profile &gt; Security tab
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 WhatsApp Number
@@ -283,19 +301,6 @@ export default function ShopSidebar({
                 type="tel"
                 value={contactData.businessPhone}
                 onChange={(e) => setContactData({ ...contactData, businessPhone: e.target.value })}
-                placeholder="+977 98XXXXXXXX"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                Mobile Number
-              </label>
-              <input
-                type="tel"
-                value={contactData.phone}
-                onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
                 placeholder="+977 98XXXXXXXX"
                 className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
@@ -340,7 +345,6 @@ export default function ShopSidebar({
                   setIsEditingContact(false);
                   setContactData({
                     businessPhone: initialBusinessPhone || '',
-                    phone: initialPhone || '',
                     businessWebsite: initialWebsite || '',
                     googleMapsLink: initialGoogleMaps || '',
                   });
@@ -363,12 +367,22 @@ export default function ShopSidebar({
                 </div>
               </div>
             )}
-            {contactData.phone && (
+            {verifiedPhone && (
               <div className="flex items-center gap-2 sm:gap-3">
                 <Phone01 className="w-5 h-5 sm:w-[30px] sm:h-[30px] text-blue-500 flex-shrink-0" />
                 <div className="min-w-0">
-                  <div className="text-xs sm:text-sm text-gray-600">Mobile</div>
-                  <div className="font-semibold text-sm sm:text-base break-all">{contactData.phone}</div>
+                  <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
+                    Mobile
+                    {isPhoneVerified && (
+                      <span className="inline-flex items-center gap-0.5 text-green-600 text-xs">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-semibold text-sm sm:text-base break-all">{verifiedPhone}</div>
                 </div>
               </div>
             )}
@@ -404,7 +418,7 @@ export default function ShopSidebar({
                 </div>
               </div>
             )}
-            {!contactData.businessPhone && !contactData.phone && !contactData.businessWebsite && !contactData.googleMapsLink && (
+            {!contactData.businessPhone && !verifiedPhone && !contactData.businessWebsite && !contactData.googleMapsLink && (
               <p className="text-sm sm:text-base text-gray-500 italic">
                 No contact information available. {isOwner && 'Click Edit to add your contact details.'}
               </p>

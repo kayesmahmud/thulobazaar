@@ -19,6 +19,8 @@ export interface ProfileData {
   avatar?: string | null;
   oauthProvider?: string | null;
   hasPassword?: boolean;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: string | Date | null;
 }
 
 interface UseProfileDataOptions {

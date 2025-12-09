@@ -73,6 +73,22 @@ export function useVerificationForm<T>(
     setError(null);
   }, []);
 
+  // Check if phone is verified before submission
+  const checkPhoneVerification = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/profile', { credentials: 'include' });
+      const data = await response.json();
+      if (data.success && data.data?.phoneVerified) {
+        return true;
+      }
+      setError('Please verify your phone number first before applying for verification. Go to Profile → Security to verify.');
+      return false;
+    } catch {
+      setError('Failed to verify phone status. Please try again.');
+      return false;
+    }
+  }, []);
+
   // Submit free verification
   const submitFreeVerification = useCallback(async (
     submitData: FormData,
@@ -81,6 +97,13 @@ export function useVerificationForm<T>(
     try {
       setLoading(true);
       setError(null);
+
+      // Safety check: verify phone is verified
+      const isPhoneVerified = await checkPhoneVerification();
+      if (!isPhoneVerified) {
+        setLoading(false);
+        return;
+      }
 
       // Generate mock transaction ID for free verification
       const prefix = type === 'individual' ? 'FREE_IND' : 'FREE_BIZ';
@@ -112,7 +135,7 @@ export function useVerificationForm<T>(
     } finally {
       setLoading(false);
     }
-  }, [type, durationDays, onSuccess]);
+  }, [type, durationDays, onSuccess, checkPhoneVerification]);
 
   // Submit paid verification
   const submitPaidVerification = useCallback(async (
@@ -130,6 +153,13 @@ export function useVerificationForm<T>(
     try {
       setLoading(true);
       setError(null);
+
+      // Safety check: verify phone is verified
+      const isPhoneVerified = await checkPhoneVerification();
+      if (!isPhoneVerified) {
+        setLoading(false);
+        return;
+      }
 
       // Add payment fields
       submitData.append('payment_reference', 'PENDING');
@@ -184,7 +214,7 @@ export function useVerificationForm<T>(
       setError((err as Error)?.message || 'Failed to initiate payment');
       setLoading(false);
     }
-  }, [type, durationDays, price, selectedPaymentMethod]);
+  }, [type, durationDays, price, selectedPaymentMethod, checkPhoneVerification]);
 
   return {
     formData,

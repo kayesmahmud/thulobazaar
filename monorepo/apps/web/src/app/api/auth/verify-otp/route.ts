@@ -7,7 +7,7 @@ const verifyOtpSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional(),
   otp: z.string().length(6, 'OTP must be 6 digits'),
-  purpose: z.enum(['registration', 'login', 'password_reset']).default('registration'),
+  purpose: z.enum(['registration', 'login', 'password_reset', 'phone_verification']).default('registration'),
 }).refine((data) => data.phone || data.email, {
   message: 'Either phone or email is required',
 });

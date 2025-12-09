@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
         verified_seller_name: true,
         oauth_provider: true,
         password_hash: true,
+        phone_verified: true,
+        phone_verified_at: true,
         latitude: true,
         longitude: true,
         formatted_address: true,
@@ -118,9 +120,11 @@ export async function GET(request: NextRequest) {
       updatedAt: user.updated_at,
       oauthProvider: user.oauth_provider,
       hasPassword: !!user.password_hash,
+      phoneVerified: user.phone_verified,
+      phoneVerifiedAt: user.phone_verified_at,
     };
 
-    console.log(`🔍 Profile API - User ${user.id}: hasPassword=${!!user.password_hash}, oauthProvider=${user.oauth_provider}`);
+    console.log(`🔍 Profile API - User ${user.id}: hasPassword=${!!user.password_hash}, phoneVerified=${user.phone_verified}`);
 
     return NextResponse.json(
       {

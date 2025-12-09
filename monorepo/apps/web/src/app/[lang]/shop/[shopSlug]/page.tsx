@@ -130,6 +130,7 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
             businessDescription={shop.businessDescription}
             businessPhone={shop.businessPhone}
             phone={shop.phone}
+            phoneVerified={shop.phoneVerified}
             businessWebsite={shop.businessWebsite}
             googleMapsLink={shop.googleMapsLink}
             locationName={shop.location?.name ?? ''}

@@ -13,7 +13,7 @@ import {
 const sendOtpSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional(),
-  purpose: z.enum(['registration', 'login', 'password_reset']).default('registration'),
+  purpose: z.enum(['registration', 'login', 'password_reset', 'phone_verification']).default('registration'),
 }).refine((data) => data.phone || data.email, {
   message: 'Either phone or email is required',
 });
@@ -141,6 +141,26 @@ export async function POST(request: NextRequest) {
           {
             success: false,
             message: 'This account uses social login (Google/Facebook). Password reset is not available.',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // For phone_verification, check if phone is already verified by another user
+    if (purpose === 'phone_verification' && usePhone) {
+      const existingVerifiedUser = await prisma.users.findFirst({
+        where: {
+          phone: formattedPhone!,
+          phone_verified: true,
+        },
+      });
+
+      if (existingVerifiedUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'This phone number is already verified by another account',
           },
           { status: 400 }
         );

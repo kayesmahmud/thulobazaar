@@ -8,6 +8,7 @@ const SHOP_SELECT = {
   email: true,
   full_name: true,
   phone: true,
+  phone_verified: true,
   avatar: true,
   cover_photo: true,
   bio: true,
@@ -39,6 +40,7 @@ interface RawShopRow {
   email: string | null;
   full_name: string | null;
   phone: string | null;
+  phone_verified: boolean | null;
   avatar: string | null;
   cover_photo: string | null;
   bio: string | null;
@@ -68,6 +70,7 @@ export interface ShopProfile {
   email: string | null;
   fullName: string;
   phone: string | null;
+  phoneVerified: boolean;
   avatar: string | null;
   coverPhoto: string | null;
   bio: string | null;
@@ -110,6 +113,7 @@ const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
     email: shop.email,
     fullName: shop.full_name || '',
     phone: shop.phone,
+    phoneVerified: shop.phone_verified || false,
     avatar: shop.avatar,
     coverPhoto: shop.cover_photo,
     bio: shop.bio,
