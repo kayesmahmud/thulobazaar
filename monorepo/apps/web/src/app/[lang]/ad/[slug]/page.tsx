@@ -269,9 +269,19 @@ export default async function AdDetailPage({
               </div>
 
               <div className="flex gap-2 mb-8 flex-wrap">
-                <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded text-sm">
-                  {condition}
-                </span>
+                {/* Condition Badge - Distinctive styling based on condition */}
+                {ad.condition === 'new' ? (
+                  <span className="px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Brand New
+                  </span>
+                ) : (
+                  <span className="px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                    Used
+                  </span>
+                )}
                 {(ad.custom_fields as any)?.isNegotiable && (
                   <span className="bg-amber-50 text-amber-900 px-3 py-1 rounded text-sm font-semibold">
                     💰 Price is negotiable

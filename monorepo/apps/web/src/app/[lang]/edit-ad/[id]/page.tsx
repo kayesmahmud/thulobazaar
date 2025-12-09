@@ -24,6 +24,18 @@ interface Category {
   parent_id: number | null;
 }
 
+const normalizeConditionForForm = (condition?: string) => {
+  if (!condition) return '';
+
+  const value = String(condition).toLowerCase();
+
+  if (value === 'new' || value === 'brand new') return 'Brand New';
+  if (value === 'used') return 'Used';
+  if (value === 'reconditioned') return 'Reconditioned';
+
+  return typeof condition === 'string' ? condition : String(condition);
+};
+
 export default function EditAdPage({ params }: EditAdPageProps) {
   const { lang, id } = use(params);
   const adId = parseInt(id);
@@ -246,6 +258,12 @@ export default function EditAdPage({ params }: EditAdPageProps) {
         extractedCustomFields.condition = 'new';
       }
 
+      // Map normalized API values to display labels expected by the template select
+      const normalizedCondition = normalizeConditionForForm(extractedCustomFields.condition);
+      if (normalizedCondition) {
+        extractedCustomFields.condition = normalizedCondition;
+      }
+
       console.log('🔍 Extracted custom fields:', extractedCustomFields);
 
       // Step 6: Get location slug and name from the ad's location object
@@ -275,7 +293,7 @@ export default function EditAdPage({ params }: EditAdPageProps) {
         subcategoryId: subcategoryId,
         locationSlug: locationSlug,
         locationName: locationName,
-        condition: 'new', // Condition is now in customFields, not formData
+        condition: (ad.condition || '').toLowerCase() === 'used' ? 'used' : 'new',
         isNegotiable: adCustomFields?.isNegotiable ?? ad.isNegotiable ?? false,
         status: ad.status || 'active',
       });
