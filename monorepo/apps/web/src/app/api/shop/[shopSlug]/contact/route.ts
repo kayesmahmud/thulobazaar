@@ -44,14 +44,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Parse request body
     const body = await request.json();
-    const { business_phone, phone, business_website, google_maps_link } = body;
+    const { business_phone, business_website, google_maps_link } = body;
 
-    // Update the shop
+    // Update the shop contact info
+    // NOTE: Do NOT update 'phone' here - the verified phone is managed
+    // separately through the phone verification flow in the profile security tab
     await prisma.users.update({
       where: { id: userId },
       data: {
         business_phone: business_phone || null,
-        phone: phone || null,
         business_website: business_website || null,
         google_maps_link: google_maps_link || null,
       },

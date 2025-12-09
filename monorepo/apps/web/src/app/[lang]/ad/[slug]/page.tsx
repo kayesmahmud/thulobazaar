@@ -79,6 +79,7 @@ const getAdBySlug = cache(async (slug: string) => {
           email: true,
           full_name: true,
           phone: true,
+          business_phone: true,
           avatar: true,
           shop_slug: true,
           account_type: true,
@@ -582,13 +583,13 @@ export default async function AdDetailPage({
                 </div>
               </div>
 
-              {/* 1. WhatsApp Button */}
+              {/* 1. WhatsApp Button - Uses business_phone (WhatsApp number) with fallback to verified phone */}
               <AdActions
                 adId={ad.id}
                 adTitle={ad.title}
                 adSlug={slug}
                 lang={lang}
-                whatsappNumber={ad.users_ads_user_idTousers?.phone || null}
+                whatsappNumber={ad.users_ads_user_idTousers?.business_phone || ad.users_ads_user_idTousers?.phone || null}
                 phoneNumber={ad.users_ads_user_idTousers?.phone || null}
                 showWhatsAppOnly={true}
               />
@@ -619,7 +620,7 @@ export default async function AdDetailPage({
                 adTitle={ad.title}
                 adSlug={slug}
                 lang={lang}
-                whatsappNumber={ad.users_ads_user_idTousers?.phone || null}
+                whatsappNumber={ad.users_ads_user_idTousers?.business_phone || ad.users_ads_user_idTousers?.phone || null}
                 phoneNumber={ad.users_ads_user_idTousers?.phone || null}
                 showShareFavoriteOnly={true}
               />

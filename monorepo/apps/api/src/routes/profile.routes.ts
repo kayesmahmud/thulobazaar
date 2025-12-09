@@ -74,17 +74,21 @@ router.put(
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const { fullName, phone, bio, locationId } = req.body;
+    const { fullName, bio, locationId } = req.body;
+
+    // Build update data - only include fields that are explicitly provided
+    // NOTE: phone is NOT updated here - it's managed through phone verification flow
+    const updateData: Record<string, any> = {
+      updated_at: new Date(),
+    };
+
+    if (fullName !== undefined) updateData.full_name = fullName;
+    if (bio !== undefined) updateData.bio = bio || null;
+    if (locationId !== undefined) updateData.location_id = locationId ? parseInt(locationId) : null;
 
     const user = await prisma.users.update({
       where: { id: userId },
-      data: {
-        full_name: fullName,
-        phone: phone || null,
-        bio: bio || null,
-        location_id: locationId ? parseInt(locationId) : null,
-        updated_at: new Date(),
-      },
+      data: updateData,
     });
 
     console.log(`✅ Profile updated for user ${userId}`);

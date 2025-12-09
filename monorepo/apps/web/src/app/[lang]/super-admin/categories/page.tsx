@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { apiClient } from '@/lib/api';
+import { staffApiClient } from '@/lib/staffApi';
 import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
 
 interface Category {
@@ -41,7 +41,7 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
   const loadCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getAdminCategories();
+      const response = await staffApiClient.getAdminCategories();
       if (response.success && response.data) {
         setCategories(response.data);
       }
@@ -124,10 +124,10 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
       };
 
       if (editingCategory) {
-        await apiClient.updateCategory(editingCategory.id, data);
+        await staffApiClient.updateCategory(editingCategory.id, data);
         setSuccess('Category updated successfully');
       } else {
-        await apiClient.createCategory(data as any);
+        await staffApiClient.createCategory(data as any);
         setSuccess('Category created successfully');
       }
 
@@ -147,7 +147,7 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
 
     try {
       setError('');
-      await apiClient.deleteCategory(category.id);
+      await staffApiClient.deleteCategory(category.id);
       setSuccess('Category deleted successfully');
       await loadCategories();
       setTimeout(() => setSuccess(''), 3000);

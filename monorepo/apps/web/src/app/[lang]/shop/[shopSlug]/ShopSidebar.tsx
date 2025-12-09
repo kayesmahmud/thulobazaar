@@ -8,6 +8,16 @@ import { faSquareWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import ReportShopButton from './ReportShopButton';
 
+// Helper to ensure URL has proper protocol
+const ensureHttps = (url: string): string => {
+  if (!url) return url;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
 // Extended user type with backendToken (added by UserAuthContext from NextAuth session)
 type UserWithToken = {
   id: number;
@@ -71,6 +81,11 @@ export default function ShopSidebar({
   });
   const [contactSaving, setContactSaving] = useState(false);
 
+  // WhatsApp same as verified phone toggle
+  const [useVerifiedForWhatsApp, setUseVerifiedForWhatsApp] = useState(
+    initialBusinessPhone === initialPhone && !!initialPhone
+  );
+
   // Verified phone is read-only, displayed from initialPhone
   const verifiedPhone = initialPhone || '';
   const isPhoneVerified = initialPhoneVerified;
@@ -132,6 +147,19 @@ export default function ShopSidebar({
         return;
       }
 
+      // Determine WhatsApp number - use verified phone if toggle is on
+      let whatsAppNumber = '';
+      if (useVerifiedForWhatsApp && verifiedPhone) {
+        // Use the verified phone number
+        whatsAppNumber = verifiedPhone.startsWith('+977')
+          ? verifiedPhone
+          : `+977${verifiedPhone.replace(/\D/g, '')}`;
+      } else if (contactData.businessPhone) {
+        // Format manually entered phone with +977 prefix
+        const digits = contactData.businessPhone.replace(/^\+977\s*/, '').replace(/\D/g, '');
+        whatsAppNumber = digits ? `+977${digits}` : '';
+      }
+
       const response = await fetch(`/api/shop/${shopSlug}/contact`, {
         method: 'PUT',
         headers: {
@@ -139,7 +167,7 @@ export default function ShopSidebar({
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          business_phone: contactData.businessPhone,
+          business_phone: whatsAppNumber || null,
           business_website: contactData.businessWebsite,
           google_maps_link: contactData.googleMapsLink,
         }),
@@ -297,13 +325,64 @@ export default function ShopSidebar({
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 WhatsApp Number
               </label>
-              <input
-                type="tel"
-                value={contactData.businessPhone}
-                onChange={(e) => setContactData({ ...contactData, businessPhone: e.target.value })}
-                placeholder="+977 98XXXXXXXX"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
+
+              {/* Toggle for using verified phone */}
+              {verifiedPhone && isPhoneVerified && (
+                <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useVerifiedForWhatsApp}
+                    onChange={(e) => {
+                      setUseVerifiedForWhatsApp(e.target.checked);
+                      if (e.target.checked) {
+                        // Auto-fill with verified phone (without +977 for display)
+                        setContactData({
+                          ...contactData,
+                          businessPhone: verifiedPhone.replace(/^\+977\s*/, ''),
+                        });
+                      }
+                    }}
+                    className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Same as my verified number ({verifiedPhone})
+                  </span>
+                </label>
+              )}
+
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg">
+                  +977
+                </span>
+                <input
+                  type="tel"
+                  value={
+                    useVerifiedForWhatsApp && verifiedPhone
+                      ? verifiedPhone.replace(/^\+977\s*/, '').replace(/\D/g, '')
+                      : contactData.businessPhone.replace(/^\+977\s*/, '')
+                  }
+                  onChange={(e) => {
+                    // Only allow digits
+                    const digits = e.target.value.replace(/\D/g, '');
+                    setContactData({ ...contactData, businessPhone: digits });
+                    // Uncheck the toggle if user manually edits
+                    if (useVerifiedForWhatsApp) {
+                      setUseVerifiedForWhatsApp(false);
+                    }
+                  }}
+                  placeholder="98XXXXXXXX"
+                  maxLength={10}
+                  disabled={useVerifiedForWhatsApp}
+                  className={`flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent ${
+                    useVerifiedForWhatsApp ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {useVerifiedForWhatsApp
+                  ? 'Using your verified phone number for WhatsApp'
+                  : 'Enter 10-digit mobile number'}
+              </p>
             </div>
 
             <div>
@@ -392,7 +471,7 @@ export default function ShopSidebar({
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Website</div>
                   <a
-                    href={contactData.businessWebsite}
+                    href={ensureHttps(contactData.businessWebsite)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
@@ -408,7 +487,7 @@ export default function ShopSidebar({
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Location</div>
                   <a
-                    href={contactData.googleMapsLink}
+                    href={ensureHttps(contactData.googleMapsLink)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-rose-500 hover:underline font-semibold text-sm sm:text-base"
