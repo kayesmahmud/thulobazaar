@@ -172,7 +172,6 @@ export default async function AdDetailPage({
   const conditionMap: Record<string, string> = {
     'new': 'Brand New',
     'used': 'Used',
-    'refurbished': 'Refurbished',
   };
 
   const condition = ad.condition

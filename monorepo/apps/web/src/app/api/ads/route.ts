@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
     const title = formData.get('title')?.toString();
     const description = formData.get('description')?.toString();
     const priceStr = formData.get('price')?.toString();
-    const condition = formData.get('condition')?.toString() || 'Used';
+    let condition = formData.get('condition')?.toString();
     const categoryIdStr = formData.get('categoryId')?.toString();
     const subcategoryIdStr = formData.get('subcategoryId')?.toString();
     const locationIdStr = formData.get('locationId')?.toString();
@@ -327,6 +327,25 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Extract condition from customFields/attributes if not provided as top-level field
+    if (!condition && customFields.condition) {
+      condition = customFields.condition;
+      delete customFields.condition; // Remove from customFields to avoid duplication
+    }
+    // Normalize condition values to lowercase keys (form templates send display values)
+    if (condition) {
+      const conditionLower = condition.toLowerCase();
+      if (conditionLower === 'brand new' || conditionLower === 'new') {
+        condition = 'new';
+      } else {
+        // Everything else (Used, Reconditioned, etc.) maps to 'used'
+        condition = 'used';
+      }
+    } else {
+      // Default to 'used'
+      condition = 'used';
     }
 
     // Validate required fields

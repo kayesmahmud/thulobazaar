@@ -59,7 +59,6 @@ export const RATE_LIMIT = {
 export const AD_CONDITION = {
   NEW: 'new',
   USED: 'used',
-  REFURBISHED: 'refurbished',
 } as const;
 
 export const PROMOTION_TYPES = {
