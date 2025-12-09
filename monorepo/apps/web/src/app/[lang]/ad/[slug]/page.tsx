@@ -255,8 +255,6 @@ export default async function AdDetailPage({
                     {ad.title}
                   </h1>
                   <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
-                    {fullLocation && <span>📍 {fullLocation}</span>}
-                    {fullLocation && <span>•</span>}
                     <span>🕒 {formatRelativeTime(ad.created_at || new Date())}</span>
                     <span>•</span>
                     <span>👁️ {ad.view_count || 0} views</span>
@@ -446,7 +444,7 @@ export default async function AdDetailPage({
                     alignItems: 'center',
                     gap: '0.5rem'
                   }}>
-                    <span style={{ fontSize: '1.25rem' }}>📍</span>
+                    <span style={{ fontSize: '1.25rem' }}>📌</span>
                     <div>
                       <div style={{
                         fontSize: '1rem',
