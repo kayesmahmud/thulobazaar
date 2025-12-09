@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, use } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { staffApiClient } from '@/lib/staffApi';
 import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSession } from 'next-auth/react';
 
 interface Category {
   id: number;
@@ -38,16 +38,44 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Helper function to get auth token
+  const getAuthToken = async () => {
+    const session = await getSession();
+    if (!session) return null;
+    return session?.user?.backendToken || (session as any)?.backendToken || null;
+  };
+
   const loadCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await staffApiClient.getAdminCategories();
-      if (response.success && response.data) {
-        setCategories(response.data);
+      const token = await getAuthToken();
+
+      if (!token) {
+        setError('Not authenticated');
+        return;
       }
-    } catch (error) {
+
+      const response = await fetch('/api/admin/categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        setCategories(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to load categories');
+      }
+    } catch (error: any) {
       console.error('Error loading categories:', error);
-      setError('Failed to load categories');
+      setError(error.message || 'Failed to load categories');
     } finally {
       setLoading(false);
     }
@@ -115,6 +143,13 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
     setSuccess('');
 
     try {
+      const token = await getAuthToken();
+
+      if (!token) {
+        setError('Not authenticated');
+        return;
+      }
+
       const data = {
         name: formData.name,
         slug: formData.slug,
@@ -123,20 +158,34 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
         form_template: formData.form_template || undefined
       };
 
-      if (editingCategory) {
-        await staffApiClient.updateCategory(editingCategory.id, data);
-        setSuccess('Category updated successfully');
-      } else {
-        await staffApiClient.createCategory(data as any);
-        setSuccess('Category created successfully');
+      const url = editingCategory
+        ? `/api/admin/categories/${editingCategory.id}`
+        : '/api/admin/categories';
+
+      const method = editingCategory ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || `Failed to ${editingCategory ? 'update' : 'create'} category`);
       }
 
+      setSuccess(editingCategory ? 'Category updated successfully' : 'Category created successfully');
       await loadCategories();
       setTimeout(() => {
         handleCloseModal();
       }, 1500);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to save category');
+      setError(err.message || 'Failed to save category');
     }
   };
 
@@ -147,12 +196,32 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
 
     try {
       setError('');
-      await staffApiClient.deleteCategory(category.id);
+      const token = await getAuthToken();
+
+      if (!token) {
+        setError('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`/api/admin/categories/${category.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to delete category');
+      }
+
       setSuccess('Category deleted successfully');
       await loadCategories();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to delete category');
+      setError(err.message || 'Failed to delete category');
       setTimeout(() => setError(''), 5000);
     }
   };
@@ -249,8 +318,8 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {parentCategories.map((category) => (
-                  <>
-                    <tr key={category.id} className="hover:bg-gray-50">
+                  <React.Fragment key={category.id}>
+                    <tr className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {category.icon && <span className="text-xl">{category.icon}</span>}
@@ -304,7 +373,7 @@ export default function CategoriesManagementPage({ params: paramsPromise }: { pa
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

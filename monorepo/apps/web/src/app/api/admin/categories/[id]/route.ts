@@ -18,7 +18,7 @@ export async function PUT(
     const { id } = await params;
     const categoryId = parseInt(id);
     const body = await request.json();
-    const { name, parent_id, slug } = body;
+    const { name, parent_id, slug, icon, form_template } = body;
 
     if (isNaN(categoryId)) {
       return NextResponse.json(
@@ -46,6 +46,8 @@ export async function PUT(
     if (parent_id !== undefined) {
       updateData.parent_id = parent_id ? parseInt(parent_id) : null;
     }
+    if (icon !== undefined) updateData.icon = icon || null;
+    if (form_template !== undefined) updateData.form_template = form_template || null;
 
     // Update category
     const category = await prisma.categories.update({
@@ -60,7 +62,9 @@ export async function PUT(
           id: category.id,
           name: category.name,
           slug: category.slug,
-          parentId: category.parent_id,
+          icon: category.icon,
+          parent_id: category.parent_id,
+          form_template: category.form_template,
         },
         message: 'Category updated successfully',
       },
