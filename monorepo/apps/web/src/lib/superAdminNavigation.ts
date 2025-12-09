@@ -53,6 +53,11 @@ export function getSuperAdminNavSections(
           badge: badges?.pendingAds,
         },
         {
+          href: `/${lang}/super-admin/dashboard/users-list`,
+          icon: '👥',
+          label: 'Users',
+        },
+        {
           href: `/${lang}/super-admin/editors`,
           icon: '👨‍💼',
           label: 'Editor Management',

@@ -16,7 +16,7 @@ export interface JWTPayload {
 }
 
 /**
- * Verify JWT token from Authorization header
+ * Verify JWT token from Authorization header or cookies
  */
 export async function verifyToken(request: NextRequest): Promise<JWTPayload | null> {
   // First, check Authorization header (used by backend-issued JWT)
@@ -28,6 +28,17 @@ export async function verifyToken(request: NextRequest): Promise<JWTPayload | nu
       return verified.payload as unknown as JWTPayload;
     } catch (error) {
       console.error('JWT verification error:', error);
+    }
+  }
+
+  // Check for editorToken cookie (super-admin/editor sessions)
+  const editorToken = request.cookies.get('editorToken')?.value;
+  if (editorToken) {
+    try {
+      const verified = await jwtVerify(editorToken, JWT_SECRET);
+      return verified.payload as unknown as JWTPayload;
+    } catch (error) {
+      console.error('Editor token verification error:', error);
     }
   }
 

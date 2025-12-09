@@ -638,6 +638,13 @@ export class ApiClient {
     return response.data;
   }
 
+  async getVerificationsByStatus(status: 'pending' | 'approved' | 'rejected' | 'all', type?: 'business' | 'individual' | 'all'): Promise<ApiResponse<(BusinessVerificationRequest | IndividualVerificationRequest)[]>> {
+    const params = new URLSearchParams({ status });
+    if (type && type !== 'all') params.append('type', type);
+    const response = await this.client.get(`/api/editor/verifications?${params.toString()}`);
+    return response.data;
+  }
+
   async reviewVerification(
     verificationId: number,
     type: 'business' | 'individual',
@@ -647,6 +654,31 @@ export class ApiClient {
     const response = await this.client.post(`/api/editor/verifications/${type}/${verificationId}/${action}`, {
       reason
     });
+    return response.data;
+  }
+
+  async getSuspendedRejectedUsers(params?: {
+    page?: number;
+    limit?: number;
+    type?: 'all' | 'suspended' | 'rejected';
+    search?: string;
+  }): Promise<ApiResponse<{
+    id: number;
+    fullName: string;
+    email: string;
+    phone: string | null;
+    isActive: boolean;
+    businessVerificationStatus: string | null;
+    createdAt: string;
+    shopSlug: string | null;
+    adCount: number;
+  }[]> & { pagination?: { page: number; limit: number; total: number; totalPages: number } }> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.type) searchParams.append('type', params.type);
+    if (params?.search) searchParams.append('search', params.search);
+    const response = await this.client.get(`/api/editor/user-reports/list?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -681,6 +713,16 @@ export class ApiClient {
     }
 
     const response = await this.client.get('/api/admin/stats');
+    return response.data;
+  }
+
+  async getSuperAdminVerificationStats(): Promise<ApiResponse<{
+    pending: number;
+    verifiedBusiness: number;
+    verifiedIndividual: number;
+    suspendedRejected: number;
+  }>> {
+    const response = await this.client.get('/api/super-admin/verification-stats');
     return response.data;
   }
 

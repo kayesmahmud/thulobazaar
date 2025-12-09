@@ -346,13 +346,14 @@ router.put(
 
 /**
  * GET /api/editor/users
- * Get users list
+ * Get users list with full details for User Management page
  */
 router.get(
   '/users',
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
-    const { limit = '20', offset = '0', search } = req.query;
+    const { limit = '20', page = '1', search, status } = req.query;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const where: any = {};
     if (search) {
@@ -360,6 +361,11 @@ router.get(
         { full_name: { contains: search as string, mode: 'insensitive' } },
         { email: { contains: search as string, mode: 'insensitive' } },
       ];
+    }
+    if (status === 'suspended') {
+      where.is_suspended = true;
+    } else if (status === 'active') {
+      where.is_suspended = false;
     }
 
     const [users, total] = await Promise.all([
@@ -373,40 +379,80 @@ router.get(
           role: true,
           account_type: true,
           is_active: true,
+          is_verified: true,
+          is_suspended: true,
+          suspended_until: true,
+          suspension_reason: true,
+          suspended_by: true,
+          suspended_at: true,
+          business_name: true,
           business_verification_status: true,
           individual_verified: true,
+          avatar: true,
+          shop_slug: true,
+          custom_shop_slug: true,
           created_at: true,
+          locations: {
+            select: { name: true },
+          },
           _count: {
             select: { ads_ads_user_idTousers: true },
           },
         },
         orderBy: { created_at: 'desc' },
         take: parseInt(limit as string),
-        skip: parseInt(offset as string),
+        skip: offset,
       }),
       prisma.users.count({ where }),
     ]);
 
-    // Transform to camelCase for frontend (per CLAUDE.md guidelines)
+    // Get suspended_by names if any
+    const suspendedByIds = users
+      .filter((u) => u.suspended_by)
+      .map((u) => u.suspended_by as number);
+    const suspendedByUsers =
+      suspendedByIds.length > 0
+        ? await prisma.users.findMany({
+            where: { id: { in: suspendedByIds } },
+            select: { id: true, full_name: true },
+          })
+        : [];
+    const suspendedByMap = new Map(
+      suspendedByUsers.map((u) => [u.id, u.full_name])
+    );
+
+    // Return snake_case to match frontend interface
     res.json({
       success: true,
       data: users.map((u) => ({
         id: u.id,
         email: u.email,
-        fullName: u.full_name,
+        full_name: u.full_name,
         phone: u.phone,
         role: u.role,
-        accountType: u.account_type,
-        isActive: u.is_active,
-        businessVerificationStatus: u.business_verification_status,
-        individualVerified: u.individual_verified,
-        createdAt: u.created_at,
-        adsCount: u._count.ads_ads_user_idTousers,
+        account_type: u.account_type,
+        is_active: u.is_active,
+        is_verified: u.is_verified,
+        is_suspended: u.is_suspended,
+        suspended_until: u.suspended_until,
+        suspension_reason: u.suspension_reason,
+        suspended_by_name: u.suspended_by
+          ? suspendedByMap.get(u.suspended_by) || null
+          : null,
+        business_name: u.business_name,
+        business_verification_status: u.business_verification_status || '',
+        individual_verified: u.individual_verified || false,
+        avatar: u.avatar,
+        shop_slug: u.custom_shop_slug || u.shop_slug,
+        location_name: u.locations?.name || null,
+        created_at: u.created_at,
+        ad_count: u._count.ads_ads_user_idTousers,
       })),
       pagination: {
         total,
+        page: parseInt(page as string),
         limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
+        totalPages: Math.ceil(total / parseInt(limit as string)),
       },
     });
   })
@@ -414,25 +460,147 @@ router.get(
 
 /**
  * PUT /api/editor/users/:id/suspend
- * Suspend/unsuspend a user
+ * Suspend a user with reason and optional duration
+ * Also suspends all their approved ads
  */
 router.put(
   '/users/:id/suspend',
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { is_active } = req.body;
+    const { reason, duration } = req.body; // duration in days, optional
+    const editorId = (req as any).user?.userId || (req as any).user?.id;
+    const userId = parseInt(id);
 
-    const user = await prisma.users.update({
-      where: { id: parseInt(id) },
-      data: { is_active: is_active !== false },
-    });
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Suspension reason is required',
+      });
+    }
 
-    console.log(`✅ User ${id} ${is_active ? 'activated' : 'suspended'}`);
+    // Calculate suspended_until if duration provided
+    let suspendedUntil: Date | null = null;
+    if (duration && duration > 0) {
+      suspendedUntil = new Date();
+      suspendedUntil.setDate(suspendedUntil.getDate() + duration);
+    }
+
+    // Use transaction to update user and their ads together
+    const [user, adsUpdated] = await prisma.$transaction([
+      // Suspend the user
+      prisma.users.update({
+        where: { id: userId },
+        data: {
+          is_suspended: true,
+          suspended_at: new Date(),
+          suspended_by: editorId,
+          suspended_until: suspendedUntil,
+          suspension_reason: reason.trim(),
+        },
+      }),
+      // Suspend all their approved ads
+      prisma.ads.updateMany({
+        where: {
+          user_id: userId,
+          status: 'approved',
+        },
+        data: {
+          status: 'suspended',
+          status_reason: `User suspended: ${reason.trim()}`,
+        },
+      }),
+    ]);
+
+    console.log(
+      `✅ User ${id} suspended by editor ${editorId}, ${adsUpdated.count} ads suspended`
+    );
+
+    // Log activity
+    await prisma.admin_activity_logs
+      .create({
+        data: {
+          admin_id: editorId,
+          action_type: 'user_suspended',
+          target_type: 'user',
+          target_id: userId,
+          details: {
+            reason: reason.trim(),
+            duration: duration || 'permanent',
+            ads_suspended: adsUpdated.count,
+          },
+        },
+      })
+      .catch(() => {});
 
     res.json({
       success: true,
-      message: `User ${is_active ? 'activated' : 'suspended'} successfully`,
+      message: `User suspended successfully. ${adsUpdated.count} ads have been hidden.`,
+      data: user,
+    });
+  })
+);
+
+/**
+ * PUT /api/editor/users/:id/unsuspend
+ * Unsuspend a user and restore their ads
+ */
+router.put(
+  '/users/:id/unsuspend',
+  authenticateToken,
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const editorId = (req as any).user?.userId || (req as any).user?.id;
+    const userId = parseInt(id);
+
+    // Use transaction to update user and their ads together
+    const [user, adsRestored] = await prisma.$transaction([
+      // Unsuspend the user
+      prisma.users.update({
+        where: { id: userId },
+        data: {
+          is_suspended: false,
+          suspended_at: null,
+          suspended_by: null,
+          suspended_until: null,
+          suspension_reason: null,
+        },
+      }),
+      // Restore all their suspended ads back to approved
+      prisma.ads.updateMany({
+        where: {
+          user_id: userId,
+          status: 'suspended',
+        },
+        data: {
+          status: 'approved',
+          status_reason: null,
+        },
+      }),
+    ]);
+
+    console.log(
+      `✅ User ${id} unsuspended by editor ${editorId}, ${adsRestored.count} ads restored`
+    );
+
+    // Log activity
+    await prisma.admin_activity_logs
+      .create({
+        data: {
+          admin_id: editorId,
+          action_type: 'user_unsuspended',
+          target_type: 'user',
+          target_id: userId,
+          details: {
+            ads_restored: adsRestored.count,
+          },
+        },
+      })
+      .catch(() => {});
+
+    res.json({
+      success: true,
+      message: `User unsuspended successfully. ${adsRestored.count} ads have been restored.`,
       data: user,
     });
   })
@@ -968,37 +1136,38 @@ router.get(
           reviewed_at: { gte: today },
         },
       }),
-      // Ads edited today by this editor (use activity_logs if available, fallback to 0)
-      prisma.activity_logs.count({
+      // Ads edited today by this editor (from admin_activity_logs)
+      prisma.admin_activity_logs.count({
         where: {
           admin_id: userId,
           action_type: { contains: 'edit' },
           created_at: { gte: today },
         },
       }).catch(() => 0),
-      // Business verifications processed today by this editor
-      prisma.activity_logs.count({
+      // Business verifications processed today by this editor (query directly from verification table)
+      prisma.business_verification_requests.count({
         where: {
-          admin_id: userId,
-          target_type: 'business_verification',
+          reviewed_by: userId,
+          reviewed_at: { gte: today },
+          status: { in: ['approved', 'rejected'] },
+        },
+      }).catch(() => 0),
+      // Individual verifications processed today by this editor (query directly from verification table)
+      prisma.individual_verification_requests.count({
+        where: {
+          reviewed_by: userId,
+          reviewed_at: { gte: today },
+          status: { in: ['approved', 'rejected'] },
+        },
+      }).catch(() => 0),
+      // Support tickets this editor responded to today (count unique tickets with editor messages today)
+      prisma.support_messages.groupBy({
+        by: ['ticket_id'],
+        where: {
+          sender_id: userId,
           created_at: { gte: today },
         },
-      }).catch(() => 0),
-      // Individual verifications processed today by this editor
-      prisma.activity_logs.count({
-        where: {
-          admin_id: userId,
-          target_type: 'individual_verification',
-          created_at: { gte: today },
-        },
-      }).catch(() => 0),
-      // Support tickets assigned to this editor (open or in_progress)
-      prisma.support_tickets.count({
-        where: {
-          assigned_to: userId,
-          status: { in: ['open', 'in_progress', 'waiting_on_user'] },
-        },
-      }).catch(() => 0),
+      }).then((result) => result.length).catch(() => 0),
     ]);
 
     res.json({
@@ -1506,7 +1675,13 @@ router.put(
     const { id } = req.params;
     const { fullName, email, password, isActive } = req.body;
 
-    console.log('📝 Updating editor:', { id, fullName, email, hasPassword: !!password, isActive });
+    console.log('📝 Updating editor:', {
+      id,
+      fullName,
+      email,
+      password: password ? `[${typeof password}:${password.length}chars]` : 'not provided',
+      isActive
+    });
     console.log('📁 Uploaded file:', req.file);
 
     const updateData: Record<string, unknown> = {};
@@ -1519,8 +1694,10 @@ router.put(
       updateData.is_active = isActive === 'true';
     }
 
-    if (password && typeof password === 'string' && password.trim().length > 0) {
-      updateData.password_hash = await bcrypt.hash(password, SECURITY.BCRYPT_ROUNDS);
+    // Only hash password if it's a non-empty string (not 'undefined' string from FormData)
+    const passwordStr = password?.toString().trim();
+    if (passwordStr && passwordStr.length > 0 && passwordStr !== 'undefined') {
+      updateData.password_hash = await bcrypt.hash(passwordStr, SECURITY.BCRYPT_ROUNDS);
     }
 
     // Handle avatar file upload

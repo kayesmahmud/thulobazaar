@@ -32,6 +32,16 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<Array<{
+    id: number;
+    fullName: string;
+    email: string;
+    phone: string | null;
+    businessVerificationStatus: string | null;
+    individualVerified: boolean;
+  }>>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [userLoading, setUserLoading] = useState(false);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -59,9 +69,27 @@ export default function SuperAdminDashboard() {
         setActivities(transformedActivities);
       }
 
+      // Fetch users list (read-only)
+      setUserLoading(true);
+      const usersResponse = await apiClient.getAllUsers({ limit: 500 });
+      if (usersResponse.success && usersResponse.data) {
+        setUsers(
+          usersResponse.data.map((u: any) => ({
+            id: u.id,
+            fullName: u.full_name || u.fullName || '',
+            email: u.email || '',
+            phone: u.phone || null,
+            businessVerificationStatus: u.business_verification_status || u.businessVerificationStatus || null,
+            individualVerified: Boolean(u.individual_verified ?? u.individualVerified),
+          }))
+        );
+      }
+      setUserLoading(false);
+
       setLoading(false);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      setUserLoading(false);
       setLoading(false);
     }
   }, []);
@@ -113,6 +141,48 @@ export default function SuperAdminDashboard() {
       onClick: () => router.push(`/${lang}/super-admin/settings`),
     },
   ];
+
+  const filteredUsers = users.filter((u) => {
+    if (!userSearch) return true;
+    const q = userSearch.toLowerCase();
+    return (
+      u.fullName.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.phone || '').toLowerCase().includes(q)
+    );
+  });
+
+  const getStatusLabel = (user: (typeof users)[number]) => {
+    if (user.businessVerificationStatus && ['approved', 'verified'].includes(user.businessVerificationStatus)) {
+      return 'Business Verified';
+    }
+    if (user.individualVerified) {
+      return 'Individual Verified';
+    }
+    return 'Regular';
+  };
+
+  const exportColumn = (field: 'email' | 'phone') => {
+    const uniqueValues = Array.from(
+      new Set(
+        filteredUsers
+          .map((u) => (u[field] || '').trim())
+          .filter((v) => v)
+      )
+    );
+
+    const header = field === 'email' ? 'email' : 'phone';
+    const csv = [header, ...uniqueValues].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${field}-list.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   if (authLoading || loading) {
     return (
@@ -284,6 +354,91 @@ export default function SuperAdminDashboard() {
           showViewAll
           viewAllHref={`/${lang}/super-admin/security`}
         />
+      </div>
+
+      {/* User List (Read-only) */}
+      <div id="users" className="mt-10 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">User List (Read-only)</h2>
+            <p className="text-sm text-gray-500">View all users and export emails/phones</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => exportColumn('phone')}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+              disabled={userLoading || filteredUsers.length === 0}
+            >
+              Export Phones (CSV)
+            </button>
+            <button
+              onClick={() => exportColumn('email')}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+              disabled={userLoading || filteredUsers.length === 0}
+            >
+              Export Emails (CSV)
+            </button>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="relative">
+            <input
+              type="text"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Search by name, email, or phone..."
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+            />
+            <svg
+              className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs font-bold">
+              <tr>
+                <th className="px-6 py-3 text-left">User ID</th>
+                <th className="px-6 py-3 text-left">Name</th>
+                <th className="px-6 py-3 text-left">Email</th>
+                <th className="px-6 py-3 text-left">Phone</th>
+                <th className="px-6 py-3 text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {userLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-6 text-center text-gray-500">Loading users...</td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-6 text-center text-gray-500">No users found</td>
+                </tr>
+              ) : (
+                filteredUsers.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-3 font-semibold text-gray-900">#{u.id}</td>
+                    <td className="px-6 py-3 text-gray-900">{u.fullName || 'N/A'}</td>
+                    <td className="px-6 py-3 text-gray-700">{u.email || '—'}</td>
+                    <td className="px-6 py-3 text-gray-700">{u.phone || '—'}</td>
+                    <td className="px-6 py-3">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
+                        {getStatusLabel(u)}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </DashboardLayout>
   );

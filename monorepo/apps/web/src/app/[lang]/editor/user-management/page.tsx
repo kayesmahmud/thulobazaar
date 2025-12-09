@@ -305,7 +305,7 @@ export default function UserManagementPage({ params: paramsPromise }: { params: 
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getUserBadge(user)}`}>
                           {user.is_suspended ? '🚫 Suspended' :
                            user.business_verification_status === 'approved' ? '🏢 Business' :
-                           user.individual_verified ? '✓ Verified' :
+                           user.individual_verified ? '✓ Individual' :
                            '👤 Regular'}
                         </span>
                         {user.is_suspended && (
