@@ -1417,10 +1417,12 @@ router.get(
 /**
  * POST /api/editor/editors
  * Create a new editor (super admin only)
+ * Supports avatar file upload via multipart/form-data
  */
 router.post(
   '/editors',
   authenticateToken,
+  uploadAvatar.single('avatar'),
   catchAsync(async (req: Request, res: Response) => {
     // Only super_admin can create editors
     if (req.user!.role !== 'super_admin') {
@@ -1428,6 +1430,9 @@ router.post(
     }
 
     const { fullName, email, password } = req.body;
+
+    console.log('📝 Creating editor:', { fullName, email, hasPassword: !!password });
+    console.log('📁 Uploaded file:', req.file);
 
     if (!fullName || !email || !password) {
       throw new ValidationError('Full name, email, and password are required');
@@ -1445,25 +1450,35 @@ router.post(
     // Hash password
     const passwordHash = await bcrypt.hash(password, SECURITY.BCRYPT_ROUNDS);
 
+    // Prepare create data with optional avatar
+    const createData: Record<string, unknown> = {
+      full_name: fullName,
+      email,
+      password_hash: passwordHash,
+      role: 'editor',
+      is_active: true,
+    };
+
+    // Handle avatar file upload
+    if (req.file) {
+      createData.avatar = req.file.filename;
+      console.log('📷 Avatar uploaded:', req.file.filename);
+    }
+
     const newEditor = await prisma.users.create({
-      data: {
-        full_name: fullName,
-        email,
-        password_hash: passwordHash,
-        role: 'editor',
-        is_active: true,
-      },
+      data: createData as any,
       select: {
         id: true,
         full_name: true,
         email: true,
         role: true,
         is_active: true,
+        avatar: true,
         created_at: true,
       },
     });
 
-    console.log(`✅ New editor created: ${email}`);
+    console.log(`✅ New editor created: ${email}${req.file ? ' (with avatar)' : ''}`);
 
     res.status(201).json({
       success: true,
