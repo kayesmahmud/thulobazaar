@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import ImageUpload from '@/components/ImageUpload';
 import DynamicFormFields from '@/components/post-ad/DynamicFormFields';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import { useFormTemplate } from '@/hooks/useFormTemplate';
+import { useAdDraft, AdDraft } from '@/hooks/useAdDraft';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
 
@@ -26,19 +27,10 @@ interface Category {
   subcategories?: Category[];
 }
 
-interface Location {
-  id: number;
-  name: string;
-  type: string;
-  parent_id: number | null;
-}
-
 export default function PostAdPage({ params }: PostAdPageProps) {
   const { lang } = use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
-
-  console.log('🚀 PostAdPage component rendered');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -56,7 +48,6 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   const [images, setImages] = useState<File[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
@@ -65,14 +56,24 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   const [userHasDefaultLocation, setUserHasDefaultLocation] = useState(false);
   const [userPhone, setUserPhone] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [showDrafts, setShowDrafts] = useState(true);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  const pendingDraftCustomFieldsRef = useRef<Record<string, unknown> | null>(null);
 
-  // Debug: Log current state
-  console.log('📊 Current State:', {
-    categoriesCount: categories.length,
-    subcategoriesCount: subcategories.length,
-    selectedCategoryId: formData.categoryId,
-    selectedSubcategoryId: formData.subcategoryId
-  });
+  // Draft management
+  const {
+    drafts,
+    currentDraftId,
+    saveDraft,
+    loadDraft,
+    deleteDraft,
+    clearCurrentDraft,
+    startNewDraft,
+    isSaving,
+    lastSaved,
+    getDraftDisplayName,
+    formatDraftDate,
+  } = useAdDraft();
 
   // Dynamic form fields state
   const [customFields, setCustomFields] = useState<Record<string, any>>({});
@@ -104,33 +105,87 @@ export default function PostAdPage({ params }: PostAdPageProps) {
 
   // Load subcategories when category changes
   useEffect(() => {
-    console.log('🔥 USEEFFECT FIRED! Category ID:', formData.categoryId);
-
     if (formData.categoryId && formData.categoryId !== '') {
-      console.log('📋 Loading subcategories for category ID:', formData.categoryId);
       loadSubcategories(parseInt(formData.categoryId));
     } else {
-      console.log('📋 No category selected, clearing subcategories');
       setSubcategories([]);
     }
 
-    // Always clear subcategory and custom fields when category changes
-    if (formData.subcategoryId) {
-      setFormData(prev => ({ ...prev, subcategoryId: '' }));
+    // Only clear subcategory and custom fields when category changes manually (not when loading draft)
+    if (!isLoadingDraft) {
+      if (formData.subcategoryId) {
+        setFormData(prev => ({ ...prev, subcategoryId: '' }));
+      }
+      setCustomFields({});
+      setCustomFieldsErrors({});
     }
-    setCustomFields({});
-    setCustomFieldsErrors({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.categoryId]); // Only depend on categoryId
 
   // Initialize custom fields when template fields change
   useEffect(() => {
-    if (fields.length > 0 && getInitialValues) {
-      const initialValues = getInitialValues();
-      setCustomFields(initialValues);
+    if (fields.length > 0) {
+      // If we have pending draft custom fields, use those instead of initial values
+      if (pendingDraftCustomFieldsRef.current) {
+        setCustomFields(pendingDraftCustomFieldsRef.current);
+        pendingDraftCustomFieldsRef.current = null;
+        setIsLoadingDraft(false);
+      } else if (!isLoadingDraft && getInitialValues) {
+        const initialValues = getInitialValues();
+        setCustomFields(initialValues);
+      }
       setCustomFieldsErrors({});
     }
-  }, [fields.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.length]); // Only trigger when fields change, not on every render
+
+  // Auto-save draft when form data changes
+  useEffect(() => {
+    // Don't save if form is empty or during initial load
+    if (!formData.title && !formData.description && !formData.price && !formData.categoryId) {
+      return;
+    }
+
+    saveDraft(formData, customFields);
+  }, [formData, customFields, saveDraft]);
+
+  // Handle loading a draft
+  const handleLoadDraft = useCallback((draft: AdDraft) => {
+    // Set flag to prevent clearing subcategory/customFields when category changes
+    setIsLoadingDraft(true);
+
+    // Store custom fields to be restored after template fields load (using ref to avoid re-renders)
+    if (draft.customFields && Object.keys(draft.customFields).length > 0) {
+      pendingDraftCustomFieldsRef.current = draft.customFields;
+    }
+
+    // Load subcategories for the draft's category first
+    if (draft.categoryId) {
+      loadSubcategories(parseInt(draft.categoryId));
+    }
+
+    setFormData({
+      title: draft.title,
+      description: draft.description,
+      price: draft.price,
+      categoryId: draft.categoryId,
+      subcategoryId: draft.subcategoryId,
+      locationSlug: draft.locationSlug,
+      locationName: draft.locationName,
+      condition: draft.condition || 'new',
+      isNegotiable: draft.isNegotiable || false,
+    });
+
+    // Load the draft into the hook's current draft tracking
+    loadDraft(draft.id);
+    setShowDrafts(false);
+  }, [loadDraft]);
+
+  // Handle starting a new ad (hide drafts)
+  const handleStartNew = useCallback(() => {
+    startNewDraft();
+    setShowDrafts(false);
+  }, [startNewDraft]);
 
   const loadFormData = async () => {
     try {
@@ -142,13 +197,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
       ]);
 
       if (categoriesRes.success && categoriesRes.data) {
-        // API already returns categories with subcategories nested
         setCategories(categoriesRes.data);
-        console.log('✅ Loaded', categoriesRes.data.length, 'parent categories with subcategories');
-      }
-
-      if (locationsRes.success && locationsRes.data) {
-        setLocations(locationsRes.data);
       }
 
       // Fetch user's profile to check phone verification status and default location
@@ -159,13 +208,11 @@ export default function PostAdPage({ params }: PostAdPageProps) {
         const profileData = await profileRes.json();
 
         if (profileData.success && profileData.data) {
-          // Set phone verification status
           setUserPhone(profileData.data.phone || null);
           setPhoneVerified(profileData.data.phoneVerified || false);
-          console.log('📱 User phone:', profileData.data.phone, 'Verified:', profileData.data.phoneVerified);
         }
       } catch (profileErr) {
-        console.log('Could not fetch user profile:', profileErr);
+        // Non-critical error, continue without profile data
       }
 
       // Fetch user's default location and pre-select it
@@ -181,7 +228,6 @@ export default function PostAdPage({ params }: PostAdPageProps) {
 
           if (userLocationData.success && userLocationData.data?.location) {
             const userLocation = userLocationData.data.location;
-            console.log('📍 Pre-selecting user default location:', userLocation.name);
             setFormData(prev => ({
               ...prev,
               locationSlug: userLocation.slug || '',
@@ -193,7 +239,6 @@ export default function PostAdPage({ params }: PostAdPageProps) {
           }
         }
       } catch (locationErr) {
-        console.log('Could not fetch user default location:', locationErr);
         // Non-critical error, continue without pre-selection
       }
     } catch (err: any) {
@@ -205,27 +250,15 @@ export default function PostAdPage({ params }: PostAdPageProps) {
   };
 
   const loadSubcategories = (parentId: number) => {
-    try {
-      setLoadingSubcategories(true);
-      console.log('🔍 Extracting subcategories for parent ID:', parentId);
+    setLoadingSubcategories(true);
+    const parentCategory = categories.find((cat: any) => cat.id === parentId);
 
-      // Find the parent category from already loaded categories
-      const parentCategory = categories.find((cat: any) => cat.id === parentId);
-
-      if (parentCategory && parentCategory.subcategories && Array.isArray(parentCategory.subcategories)) {
-        console.log(`✅ Found ${parentCategory.subcategories.length} subcategories for ${parentCategory.name}:`,
-          parentCategory.subcategories.map((s: any) => s.name));
-        setSubcategories(parentCategory.subcategories);
-      } else {
-        console.warn('⚠️ No subcategories found for parent ID:', parentId);
-        setSubcategories([]);
-      }
-    } catch (err) {
-      console.error('❌ Error loading subcategories:', err);
+    if (parentCategory?.subcategories && Array.isArray(parentCategory.subcategories)) {
+      setSubcategories(parentCategory.subcategories);
+    } else {
       setSubcategories([]);
-    } finally {
-      setLoadingSubcategories(false);
     }
+    setLoadingSubcategories(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -297,6 +330,9 @@ export default function PostAdPage({ params }: PostAdPageProps) {
       const response = await apiClient.createAd(adData);
 
       if (response.success && response.data) {
+        // Clear the draft on successful post
+        clearCurrentDraft();
+
         // If user didn't have a default location and they selected one, save it as default
         if (!userHasDefaultLocation && formData.locationSlug) {
           try {
@@ -310,10 +346,8 @@ export default function PostAdPage({ params }: PostAdPageProps) {
                 },
                 body: JSON.stringify({ locationSlug: formData.locationSlug }),
               });
-              console.log('📍 Saved first ad location as user default');
             }
           } catch (saveLocationErr) {
-            console.log('Could not save default location:', saveLocationErr);
             // Non-critical error, continue with redirect
           }
         }
@@ -362,14 +396,146 @@ export default function PostAdPage({ params }: PostAdPageProps) {
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem 1rem' }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.5rem' }}>
-            Post a Free Ad
-          </h1>
-          <p style={{ color: '#6b7280' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+              Post a Free Ad
+            </h1>
+            {/* Auto-save indicator */}
+            {(isSaving || lastSaved) && (
+              <span style={{
+                fontSize: '0.75rem',
+                color: isSaving ? '#6b7280' : '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem'
+              }}>
+                {isSaving ? (
+                  <>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#6b7280', animation: 'pulse 1s infinite' }} />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                    Draft saved
+                  </>
+                )}
+              </span>
+            )}
+          </div>
+          <p style={{ color: '#6b7280', margin: 0 }}>
             Fill in the details below to create your listing
           </p>
         </div>
 
+        {/* Saved Drafts List */}
+        {showDrafts && drafts.length > 0 && (
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            marginBottom: '1.5rem',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: '600', color: '#1f2937' }}>
+                Saved Drafts ({drafts.length})
+              </h2>
+              <button
+                onClick={handleStartNew}
+                style={{
+                  background: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                + Start New Ad
+              </button>
+            </div>
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {drafts.map((draft) => (
+                <div
+                  key={draft.id}
+                  style={{
+                    padding: '1rem 1.5rem',
+                    borderBottom: '1px solid #f3f4f6',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      margin: '0 0 0.25rem 0',
+                      fontWeight: '500',
+                      color: '#1f2937',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {getDraftDisplayName(draft)}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280' }}>
+                      Last edited: {formatDraftDate(draft.updatedAt)}
+                      {draft.categoryId && (
+                        <span style={{ marginLeft: '0.5rem' }}>
+                          • {categories.find(c => c.id.toString() === draft.categoryId)?.name || 'Category selected'}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    <button
+                      onClick={() => handleLoadDraft(draft)}
+                      style={{
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Continue
+                    </button>
+                    <button
+                      onClick={() => deleteDraft(draft.id)}
+                      style={{
+                        background: 'transparent',
+                        color: '#dc2626',
+                        border: '1px solid #fca5a5',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Show form only when not showing drafts or when drafts are dismissed */}
+        {(!showDrafts || drafts.length === 0) && (
+          <>
         {/* Phone Verification Warning */}
         {!loading && !phoneVerified && (
           <div style={{
@@ -582,17 +748,18 @@ export default function PostAdPage({ params }: PostAdPageProps) {
                 value={formData.categoryId}
                 onChange={(e) => {
                   const newCategoryId = e.target.value;
-                  console.log('🎯 Category dropdown changed to:', newCategoryId);
+
+                  // Reset draft loading flag since user is manually changing
+                  setIsLoadingDraft(false);
+                  pendingDraftCustomFieldsRef.current = null;
 
                   // Update form data
                   setFormData({ ...formData, categoryId: newCategoryId, subcategoryId: '' });
 
                   // Load subcategories immediately
                   if (newCategoryId) {
-                    console.log('🚀 Immediately loading subcategories for:', newCategoryId);
                     loadSubcategories(parseInt(newCategoryId));
                   } else {
-                    console.log('🚫 No category selected, clearing subcategories');
                     setSubcategories([]);
                   }
 
@@ -618,16 +785,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
               </select>
             </div>
 
-            {/* Subcategory Dropdown - ALWAYS show when category is selected */}
-            {(() => {
-              console.log('🔍 Subcategory render check:', {
-                categoryId: formData.categoryId,
-                subcategoriesCount: subcategories.length,
-                loadingSubcategories: loadingSubcategories,
-                subcategories: subcategories.map(s => s.name)
-              });
-              return null;
-            })()}
+            {/* Subcategory Dropdown */}
             {formData.categoryId && (
               <div style={{ marginTop: '1rem' }}>
                 <label style={{
@@ -640,10 +798,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
                 </label>
                 <select
                   value={formData.subcategoryId}
-                  onChange={(e) => {
-                    console.log('📝 Subcategory selected:', e.target.value);
-                    setFormData({ ...formData, subcategoryId: e.target.value });
-                  }}
+                  onChange={(e) => setFormData({ ...formData, subcategoryId: e.target.value })}
                   disabled={loadingSubcategories}
                   required
                   style={{
@@ -670,22 +825,12 @@ export default function PostAdPage({ params }: PostAdPageProps) {
           </div>
 
           {/* Dynamic Category-Specific Fields */}
-          {(() => {
-            console.log('🎨 Dynamic fields render check:', {
-              fieldsCount: fields.length,
-              selectedCategory: selectedCategory?.name,
-              selectedSubcategory: selectedSubcategory?.name,
-              templateType: templateType
-            });
-            return null;
-          })()}
           {fields.length > 0 && (
             <DynamicFormFields
               fields={fields}
               values={customFields}
               errors={customFieldsErrors}
               onChange={(fieldName, value) => {
-                console.log('📝 Dynamic field changed:', fieldName, '=', value);
                 setCustomFields({ ...customFields, [fieldName]: value });
                 // Clear error for this field
                 if (customFieldsErrors[fieldName]) {
@@ -728,7 +873,6 @@ export default function PostAdPage({ params }: PostAdPageProps) {
               </h3>
               <CascadingLocationFilter
                 onLocationSelect={(locationSlug, locationName) => {
-                  console.log('📍 Location selected:', locationSlug, locationName);
                   setFormData(prev => ({
                     ...prev,
                     locationSlug: locationSlug || '',
@@ -775,6 +919,8 @@ export default function PostAdPage({ params }: PostAdPageProps) {
             </Button>
           </div>
         </form>
+          </>
+        )}
       </div>
     </div>
   );
