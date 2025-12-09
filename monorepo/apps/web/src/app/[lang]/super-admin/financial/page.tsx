@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { apiClient } from '@/lib/api';
 import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSession } from 'next-auth/react';
 
 interface FinancialStats {
   summary: {
@@ -67,27 +67,49 @@ export default function FinancialTrackingPage({ params: paramsPromise }: { param
     router.push(`/${params.lang}/super-admin/login`);
   }, [logout, router, params.lang]);
 
+  // Helper function to get auth token
+  const getAuthToken = async () => {
+    const session = await getSession();
+    if (!session) return null;
+    return session?.user?.backendToken || (session as any)?.backendToken || null;
+  };
+
   const loadStats = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Build params based on filter mode
-      const params: any = {};
+      const token = await getAuthToken();
+      if (!token) {
+        console.error('Not authenticated');
+        return;
+      }
+
+      // Build query params based on filter mode
+      const queryParams = new URLSearchParams();
 
       if (filterMode === 'custom') {
-        if (startDate) params.startDate = startDate;
-        if (endDate) params.endDate = endDate;
+        if (startDate) queryParams.append('startDate', startDate);
+        if (endDate) queryParams.append('endDate', endDate);
       } else {
-        params.period = period;
+        queryParams.append('period', period);
       }
 
-      const response = await apiClient.getFinancialStats(params);
+      const response = await fetch(`/api/editor/financial/stats?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      if (response.success && response.data) {
-        setStats(response.data);
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        setStats(data.data);
+      } else {
+        console.error('Failed to load financial stats:', data.message);
       }
     } catch (error) {
-      console.error('❌ Error loading financial stats:', error);
+      console.error('Error loading financial stats:', error);
     } finally {
       setLoading(false);
     }
