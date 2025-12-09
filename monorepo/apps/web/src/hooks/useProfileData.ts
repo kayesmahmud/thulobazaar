@@ -3,12 +3,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
 
+export interface ProfileLocation {
+  id: number;
+  name: string;
+  slug: string;
+  type?: string;
+}
+
 export interface ProfileData {
   id: number;
   fullName: string;
   email: string;
   phone?: string | null;
   locationId?: number | null;
+  location?: ProfileLocation | null;
   individualVerified: boolean;
   businessVerificationStatus?: string | null;
   businessName?: string | null;

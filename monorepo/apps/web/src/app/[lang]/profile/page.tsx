@@ -262,7 +262,6 @@ export default function ProfilePage() {
     try {
       const response = await apiClient.updateProfile({
         fullName: formData.name,
-        locationId: formData.locationId ? parseInt(formData.locationId, 10) : undefined,
       });
 
       if (response.success && response.data) {
@@ -788,24 +787,46 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  {/* Location Field */}
+                  {/* Location Field - Read-only, managed via Shop page */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location
-                      <span className="ml-2 text-xs font-normal text-gray-500">(Optional)</span>
                     </label>
-                    <select
-                      value={formData.locationId}
-                      onChange={(e) => handleInputChange('locationId', e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:border-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors bg-white"
-                    >
-                      <option value="">Select your location</option>
-                      {locations.map((location) => (
-                        <option key={location.id} value={location.id}>
-                          {location.name}
-                        </option>
-                      ))}
-                    </select>
+                    {profile.location ? (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-sm text-gray-900">{profile.location.name}</span>
+                        </div>
+                        <a
+                          href={`/${lang}/shop/${activeShopSlug}`}
+                          className="text-xs text-primary hover:text-primary-hover font-medium"
+                        >
+                          Edit in Shop
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">No location set</p>
+                            <a
+                              href={`/${lang}/shop/${activeShopSlug}`}
+                              className="text-xs text-primary hover:text-primary-hover font-medium"
+                            >
+                              Set location in your Shop page
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
