@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout, StatsCard } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
@@ -48,11 +48,18 @@ interface EditorDetail {
     businessRejected: number;
     individualApproved: number;
     individualRejected: number;
+    supportTickets: number;
   };
   activities: EditorActivity[];
   adWork: AdWork[];
   businessVerifications: VerificationWork[];
   individualVerifications: VerificationWork[];
+  timeBuckets?: {
+    daily: { ads: number; business: number; individual: number; supportTickets: number };
+    weekly: { ads: number; business: number; individual: number; supportTickets: number };
+    monthly: { ads: number; business: number; individual: number; supportTickets: number };
+  };
+  monthLabel?: string;
 }
 
 export default function EditorDetailPage({ params: paramsPromise }: { params: Promise<{ lang: string; id: string }> }) {
@@ -69,6 +76,9 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
   const [activeTab, setActiveTab] = useState<'activity' | 'ads' | 'business' | 'individual'>('activity');
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
+  const [pendingMonth, setPendingMonth] = useState<number | null>(null);
+  const [pendingYear, setPendingYear] = useState<number | null>(null);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -92,71 +102,62 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
         return;
       }
 
-      // Fetch activity logs for this editor
-      const activityLogsResponse = await apiClient.getEditorActivityLogs({
-        adminId: editorId,
-        limit: 100, // Get last 100 activities
+      const monthQuery = selectedMonth ? `?month=${selectedMonth.month}&year=${selectedMonth.year}` : '';
+
+      // Fetch aggregated activity for this editor (ads + verifications + logs)
+      const activityResponse = await fetch(`/api/super-admin/editors/${editorId}/activity${monthQuery}`, {
+        credentials: 'include',
       });
 
-      if (!activityLogsResponse.success || !activityLogsResponse.data) {
-        throw new Error('Failed to fetch activity logs');
-      }
-
-      const activityLogs = activityLogsResponse.data.data || [];
-
-      // Calculate statistics from activity logs
-      const stats = {
-        adsApproved: activityLogs.filter((log) => log.action_type === 'ad_approved').length,
-        adsRejected: activityLogs.filter((log) => log.action_type === 'ad_rejected').length,
-        adsEdited: activityLogs.filter((log) => log.action_type === 'ad_edited').length,
-        adsDeleted: activityLogs.filter((log) => log.action_type === 'ad_deleted').length,
-        businessApproved: activityLogs.filter((log) => log.action_type === 'business_approved').length,
-        businessRejected: activityLogs.filter((log) => log.action_type === 'business_rejected').length,
-        individualApproved: activityLogs.filter((log) => log.action_type === 'individual_approved').length,
-        individualRejected: activityLogs.filter((log) => log.action_type === 'individual_rejected').length,
+      let activities: EditorActivity[] = [];
+      let adWork: AdWork[] = [];
+      let businessVerifications: VerificationWork[] = [];
+      let individualVerifications: VerificationWork[] = [];
+      let stats = {
+        adsApproved: 0,
+        adsRejected: 0,
+        adsEdited: 0,
+        adsDeleted: 0,
+        businessApproved: 0,
+        businessRejected: 0,
+        individualApproved: 0,
+        individualRejected: 0,
+        supportTickets: 0,
       };
+      let timeBuckets: EditorDetail['timeBuckets'] | undefined = undefined;
+      let monthLabel: string | undefined = undefined;
 
-      // Map activity logs to EditorActivity format
-      const activities: EditorActivity[] = activityLogs.map((log) => ({
-        id: log.id,
-        type: log.action_type as EditorActivity['type'],
-        timestamp: log.created_at,
-        details: log.details?.description || log.details?.reason || (log.details?.ad_title ? `Ad: ${log.details.ad_title}` : undefined),
-        relatedId: log.target_id,
-      }));
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        if (activityData.success && activityData.data) {
+          const formatDetails = (val: any) => {
+            if (!val) return undefined;
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') {
+              const entries = Object.entries(val).map(([k, v]) => `${k}: ${v}`);
+              return entries.join(' | ');
+            }
+            return String(val);
+          };
 
-      // Extract ad work from activity logs
-      const adWork: AdWork[] = activityLogs
-        .filter((log) => ['ad_approved', 'ad_rejected', 'ad_edited', 'ad_deleted'].includes(log.action_type))
-        .map((log) => ({
-          id: log.target_id,
-          adTitle: log.details?.ad_title || `Ad #${log.target_id}`,
-          action: log.action_type.replace('ad_', '') as AdWork['action'],
-          timestamp: log.created_at,
-          reason: log.details?.reason || log.details?.description,
-        }));
-
-      // Extract business verifications from activity logs
-      const businessVerifications: VerificationWork[] = activityLogs
-        .filter((log) => ['business_approved', 'business_rejected'].includes(log.action_type))
-        .map((log) => ({
-          id: log.target_id,
-          sellerName: log.details?.business_name || log.details?.seller_name || `Business #${log.target_id}`,
-          action: log.action_type.replace('business_', '') as VerificationWork['action'],
-          timestamp: log.created_at,
-          reason: log.details?.reason,
-        }));
-
-      // Extract individual verifications from activity logs
-      const individualVerifications: VerificationWork[] = activityLogs
-        .filter((log) => ['individual_approved', 'individual_rejected'].includes(log.action_type))
-        .map((log) => ({
-          id: log.target_id,
-          sellerName: log.details?.individual_name || log.details?.seller_name || `Individual #${log.target_id}`,
-          action: log.action_type.replace('individual_', '') as VerificationWork['action'],
-          timestamp: log.created_at,
-          reason: log.details?.reason,
-        }));
+          activities = (activityData.data.activities || []).map((a: any) => ({
+            id: a.id,
+            type: a.type as EditorActivity['type'],
+            timestamp: a.timestamp,
+            details: formatDetails(a.details),
+            relatedId: a.relatedId,
+          }));
+          adWork = activityData.data.adWork || [];
+          businessVerifications = activityData.data.businessVerifications || [];
+          individualVerifications = activityData.data.individualVerifications || [];
+          stats = activityData.data.stats || stats;
+          timeBuckets = activityData.data.timeBuckets || undefined;
+          if (selectedMonth) {
+            const date = new Date(Date.UTC(selectedMonth.year, selectedMonth.month - 1, 1));
+            monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          }
+        }
+      }
 
       const editorDetail: EditorDetail = {
         id: editorInfo.id,
@@ -171,6 +172,8 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
         adWork,
         businessVerifications,
         individualVerifications,
+        timeBuckets,
+        monthLabel,
       };
 
       setEditor(editorDetail);
@@ -180,7 +183,7 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
       setEditor(null);
       setLoading(false);
     }
-  }, [editorId]);
+  }, [editorId, selectedMonth]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -198,6 +201,21 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
     editors: 5,
     verifications: 15,
   });
+
+  const monthOptions = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      label: new Date(Date.UTC(2000, i, 1)).toLocaleDateString('en-US', { month: 'long' }),
+    }));
+  }, []);
+
+  const yearOptions = useMemo(() => {
+    const years: { year: number; label: string }[] = [];
+    for (let y = 2025; y <= 2030; y++) {
+      years.push({ year: y, label: y.toString() });
+    }
+    return years;
+  }, []);
 
   const handleSuspend = () => {
     // TODO: Implement actual suspend functionality
@@ -331,6 +349,53 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
 
       {/* Editor Profile Header */}
       <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 p-8 mb-8">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Time Filter</h2>
+            <p className="text-sm text-gray-600">
+              View activities for a specific month or all time.
+              {editor?.monthLabel ? ` Showing: ${editor.monthLabel}` : ' Showing: All time.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 items-center">
+            <select
+              value={pendingMonth ?? ''}
+              onChange={(e) => setPendingMonth(e.target.value ? parseInt(e.target.value, 10) : null)}
+              className="px-3 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+            >
+              <option value="">Month</option>
+              {monthOptions.map((opt) => (
+                <option key={opt.month} value={opt.month}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={pendingYear ?? ''}
+              onChange={(e) => setPendingYear(e.target.value ? parseInt(e.target.value, 10) : null)}
+              className="px-3 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+            >
+              <option value="">Year</option>
+              {yearOptions.map((opt) => (
+                <option key={opt.year} value={opt.year}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                if (pendingMonth && pendingYear) {
+                  setSelectedMonth({ month: pendingMonth, year: pendingYear });
+                } else {
+                  setSelectedMonth(null);
+                }
+              }}
+              className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="flex items-center gap-6">
             {/* Avatar */}
@@ -425,7 +490,54 @@ export default function EditorDetailPage({ params: paramsPromise }: { params: Pr
           color="primary"
           theme="superadmin"
         />
+        <StatsCard
+          title="Support Tickets"
+          value={editor.stats.supportTickets}
+          icon="🎫"
+          color="warning"
+          theme="superadmin"
+        />
       </div>
+
+      {/* Time-bucketed summary */}
+      {editor.timeBuckets && (
+        <div className="mb-8 bg-white rounded-2xl shadow-md border-2 border-gray-100 p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span>📅</span> Activity Summary
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs font-bold">
+                <tr>
+                  <th className="px-4 py-3 text-left">Period</th>
+                  <th className="px-4 py-3 text-left">Ads</th>
+                  <th className="px-4 py-3 text-left">Business Verifications</th>
+                  <th className="px-4 py-3 text-left">Individual Verifications</th>
+                  <th className="px-4 py-3 text-left">Support Tickets</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {[
+                  { label: 'Last 24 hours', key: 'daily' },
+                  { label: 'Last 7 days', key: 'weekly' },
+                  { label: 'Last 30 days', key: 'monthly' },
+                ].map((row) => {
+                  const bucket = editor.timeBuckets?.[row.key as keyof typeof editor.timeBuckets];
+                  return (
+                    <tr key={row.key} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-semibold text-gray-900">{row.label}</td>
+                      <td className="px-4 py-3 text-gray-700">{bucket?.ads ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-700">{bucket?.business ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-700">{bucket?.individual ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-700">{bucket?.supportTickets ?? 0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 overflow-hidden">

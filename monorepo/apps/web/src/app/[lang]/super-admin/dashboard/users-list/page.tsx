@@ -26,6 +26,7 @@ export default function UsersListPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'regular' | 'individual' | 'business'>('all');
 
   const navSections = useMemo(() => getSuperAdminNavSections(lang), [lang]);
 
@@ -37,7 +38,7 @@ export default function UsersListPage() {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.getAllUsers({ limit: 1000 });
+      const res = await apiClient.getAllUsers({ limit: 1000, status: statusFilter });
       if (res.success && res.data) {
         setUsers(
           res.data.map((u: any) => ({
@@ -55,7 +56,7 @@ export default function UsersListPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -109,6 +110,31 @@ export default function UsersListPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportFullCsv = () => {
+    const header = ['user_id', 'name', 'email', 'phone', 'status'];
+    const rows = filteredUsers.map((u) => [
+      u.id,
+      u.fullName || '',
+      u.email || '',
+      u.phone || '',
+      getStatusLabel(u),
+    ]);
+
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'users.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
@@ -146,22 +172,34 @@ export default function UsersListPage() {
 
       <div className="mb-6 bg-white border border-gray-200 rounded-2xl shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-gray-100">
-          <div className="relative w-full md:w-2/3">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, or phone..."
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
-            />
-            <svg
-              className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-2/3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, or phone..."
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+              />
+              <svg
+                className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="px-3 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+              <option value="all">All users</option>
+              <option value="regular">Regular</option>
+              <option value="individual">Individual Verified</option>
+              <option value="business">Business Verified</option>
+            </select>
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -177,6 +215,13 @@ export default function UsersListPage() {
               disabled={filteredUsers.length === 0}
             >
               Export Emails (CSV)
+            </button>
+            <button
+              onClick={exportFullCsv}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+              disabled={filteredUsers.length === 0}
+            >
+              Export All (CSV)
             </button>
           </div>
         </div>

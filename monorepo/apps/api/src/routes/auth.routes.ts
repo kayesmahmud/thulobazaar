@@ -140,6 +140,7 @@ router.post(
         phone: true,
         location_id: true,
         is_active: true,
+        is_suspended: true,
         role: true,
         account_type: true,
         shop_slug: true,
@@ -154,6 +155,10 @@ router.post(
 
     if (!user.is_active) {
       throw new ValidationError('Account is deactivated');
+    }
+
+    if (user.is_suspended) {
+      throw new ValidationError('Account is suspended');
     }
 
     // Check password

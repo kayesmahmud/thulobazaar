@@ -23,7 +23,12 @@ function validatePhoneToken(token: string): { phone: string; expiresAt: number }
     if (decoded.purpose !== 'registration') {
       return null;
     }
-    return { phone: decoded.phone, expiresAt: decoded.expiresAt };
+    // Handle both old format (phone) and new format (identifier)
+    const phone = decoded.phone || decoded.identifier;
+    if (!phone) {
+      return null;
+    }
+    return { phone, expiresAt: decoded.expiresAt };
   } catch {
     return null;
   }

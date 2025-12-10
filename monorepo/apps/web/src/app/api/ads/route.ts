@@ -47,6 +47,11 @@ export async function GET(request: NextRequest) {
     const where: any = {
       status: status,
       deleted_at: null, // Exclude deleted ads
+      // Exclude ads from suspended or inactive users
+      users_ads_user_idTousers: {
+        is_suspended: false,
+        is_active: true,
+      },
     };
 
     // Search in title and description
@@ -157,6 +162,8 @@ export async function GET(request: NextRequest) {
             shop_slug: true,
             individual_verified: true,
             business_verification_status: true,
+            is_suspended: true,
+            is_active: true,
           },
         },
         ad_images: {

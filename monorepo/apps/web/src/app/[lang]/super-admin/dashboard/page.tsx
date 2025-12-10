@@ -32,6 +32,7 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
   const [users, setUsers] = useState<Array<{
     id: number;
     fullName: string;
@@ -42,6 +43,11 @@ export default function SuperAdminDashboard() {
   }>>([]);
   const [userSearch, setUserSearch] = useState('');
   const [userLoading, setUserLoading] = useState(false);
+  const [revenueRange, setRevenueRange] = useState<'7d' | '30d' | '90d'>('7d');
+  const [userRange, setUserRange] = useState<'7d' | '30d' | '90d'>('7d');
+  const [chartLabels, setChartLabels] = useState<string[]>([]);
+  const [revenueSeries, setRevenueSeries] = useState<number[]>([]);
+  const [userSeries, setUserSeries] = useState<number[]>([]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -94,6 +100,30 @@ export default function SuperAdminDashboard() {
     }
   }, []);
 
+  const loadCharts = useCallback(
+    async (range: '7d' | '30d' | '90d') => {
+      try {
+        setChartLoading(true);
+        const res = await fetch(`/api/admin/analytics?range=${range}`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setChartLabels(data.data.labels || []);
+            setRevenueSeries(data.data.revenueSeries || []);
+            setUserSeries(data.data.userSeries || []);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load analytics charts:', error);
+      } finally {
+        setChartLoading(false);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) return;
@@ -107,8 +137,9 @@ export default function SuperAdminDashboard() {
     // Only load data if user is authenticated with a backend token
     if (staff && isSuperAdmin) {
       loadDashboardData();
+      loadCharts(revenueRange);
     }
-  }, [authLoading, staff, isSuperAdmin, lang, router, loadDashboardData]);
+  }, [authLoading, staff, isSuperAdmin, lang, router, loadDashboardData, loadCharts, revenueRange]);
 
   const navSections = getSuperAdminNavSections(lang, {
     pendingAds: stats?.pendingAds || 0,
@@ -297,19 +328,29 @@ export default function SuperAdminDashboard() {
               </div>
               <h3 className="text-xl font-bold text-gray-900">Revenue Analytics</h3>
             </div>
-            <select className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all">
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-              <option>Last 90 days</option>
+            <select
+              value={revenueRange}
+              onChange={(e) => {
+                const val = e.target.value as '7d' | '30d' | '90d';
+                setRevenueRange(val);
+                setUserRange(val);
+                loadCharts(val);
+              }}
+              className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+            >
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
             </select>
           </div>
           <LineChart
-            labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-            data={[125000, 142000, 135000, 165000, 158000, 172000, 180000]}
+            labels={chartLabels}
+            data={revenueSeries}
             label="Revenue (NPR)"
             color="#6366f1"
             fillColor="rgba(99, 102, 241, 0.1)"
             height={250}
+            loading={chartLoading}
           />
         </div>
 
@@ -321,19 +362,29 @@ export default function SuperAdminDashboard() {
               </div>
               <h3 className="text-xl font-bold text-gray-900">User Growth</h3>
             </div>
-            <select className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all">
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-              <option>Last 90 days</option>
+            <select
+              value={userRange}
+              onChange={(e) => {
+                const val = e.target.value as '7d' | '30d' | '90d';
+                setRevenueRange(val);
+                setUserRange(val);
+                loadCharts(val);
+              }}
+              className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+            >
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
             </select>
           </div>
           <BarChart
-            labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-            data={[420, 510, 485, 620, 590, 680, 725]}
+            labels={chartLabels}
+            data={userSeries}
             label="New Users"
             color="#6366f1"
             hoverColor="#4f46e5"
             height={250}
+            loading={chartLoading}
           />
         </div>
       </div>

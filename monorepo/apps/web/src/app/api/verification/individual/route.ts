@@ -232,33 +232,57 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file types
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    // Support common image formats including HEIC (iPhone), WEBP, and PDF
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'application/pdf',
+    ];
 
-    if (!allowedTypes.includes(idDocumentFront.type)) {
+    // Helper to check if file type is allowed
+    const isAllowedType = (file: File): boolean => {
+      // Check MIME type
+      if (allowedTypes.includes(file.type.toLowerCase())) {
+        return true;
+      }
+      // Also check file extension for cases where MIME type is not set correctly
+      const extension = file.name.toLowerCase().split('.').pop();
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'pdf'];
+      return extension ? allowedExtensions.includes(extension) : false;
+    };
+
+    if (!isAllowedType(idDocumentFront)) {
+      console.log('🔍 ID Front file type:', idDocumentFront.type, 'name:', idDocumentFront.name);
       return NextResponse.json(
         {
           success: false,
-          message: 'ID document front must be JPEG, PNG, or PDF',
+          message: 'ID document front must be JPEG, PNG, WEBP, HEIC, or PDF',
         },
         { status: 400 }
       );
     }
 
-    if (!allowedTypes.includes(selfieWithId.type)) {
+    if (!isAllowedType(selfieWithId)) {
+      console.log('🔍 Selfie file type:', selfieWithId.type, 'name:', selfieWithId.name);
       return NextResponse.json(
         {
           success: false,
-          message: 'Selfie with ID must be JPEG, PNG, or PDF',
+          message: 'Selfie with ID must be JPEG, PNG, WEBP, HEIC, or PDF',
         },
         { status: 400 }
       );
     }
 
-    if (idDocumentBack && !allowedTypes.includes(idDocumentBack.type)) {
+    if (idDocumentBack && !isAllowedType(idDocumentBack)) {
+      console.log('🔍 ID Back file type:', idDocumentBack.type, 'name:', idDocumentBack.name);
       return NextResponse.json(
         {
           success: false,
-          message: 'ID document back must be JPEG, PNG, or PDF',
+          message: 'ID document back must be JPEG, PNG, WEBP, HEIC, or PDF',
         },
         { status: 400 }
       );

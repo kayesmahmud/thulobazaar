@@ -221,13 +221,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    // Support common image formats including HEIC (iPhone), WEBP, and PDF
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'application/pdf',
+    ];
 
-    if (!allowedTypes.includes(businessLicenseDoc.type)) {
+    // Helper to check if file type is allowed
+    const isAllowedType = (file: File): boolean => {
+      // Check MIME type
+      if (allowedTypes.includes(file.type.toLowerCase())) {
+        return true;
+      }
+      // Also check file extension for cases where MIME type is not set correctly
+      const extension = file.name.toLowerCase().split('.').pop();
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'pdf'];
+      return extension ? allowedExtensions.includes(extension) : false;
+    };
+
+    if (!isAllowedType(businessLicenseDoc)) {
+      console.log('🔍 Business doc file type:', businessLicenseDoc.type, 'name:', businessLicenseDoc.name);
       return NextResponse.json(
         {
           success: false,
-          message: 'Business license document must be JPEG, PNG, or PDF',
+          message: 'Business license document must be JPEG, PNG, WEBP, HEIC, or PDF',
         },
         { status: 400 }
       );

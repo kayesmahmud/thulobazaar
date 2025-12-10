@@ -197,6 +197,7 @@ export const authOptions: NextAuthOptions = {
                 phone: true,
                 role: true,
                 is_active: true,
+                is_suspended: true,
                 avatar: true,
                 last_login: true,
                 account_type: true,
@@ -219,6 +220,10 @@ export const authOptions: NextAuthOptions = {
           // Check if user is active
           if (!user.is_active) {
             throw new Error('Account is deactivated');
+          }
+
+          if (user.is_suspended) {
+            throw new Error('Account is suspended');
           }
 
           // Verify password

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { requireEditor } from '@/lib/jwt';
+import { sendNotificationByUserId } from '@/lib/notifications';
 
 /**
  * POST /api/admin/verifications/business/:id/:action
@@ -130,10 +131,23 @@ export async function POST(
       console.log(`   Duration: ${durationDays} days (expires: ${expiresAt.toISOString()})`);
       console.log(`   Payment Status: ${verificationRequest.payment_status || 'N/A'}`);
       console.log(`   Profile name updated and locked to: ${verificationRequest.business_name}`);
+
+      // Send notification to user (don't await to avoid blocking response)
+      sendNotificationByUserId(
+        verificationRequest.user_id,
+        'business_verification_approved'
+      ).catch((err) => console.error('Failed to send approval notification:', err));
     } else {
       console.log(
         `❌ Business verification rejected: Request ID ${requestId}, Reason: ${reason}`
       );
+
+      // Send rejection notification (don't await to avoid blocking response)
+      sendNotificationByUserId(
+        verificationRequest.user_id,
+        'business_verification_rejected',
+        { reason: reason || undefined }
+      ).catch((err) => console.error('Failed to send rejection notification:', err));
     }
 
     return NextResponse.json(

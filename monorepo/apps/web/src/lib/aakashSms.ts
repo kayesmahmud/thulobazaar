@@ -3,6 +3,8 @@
  * API Documentation: https://aakashsms.com/documentation/
  */
 
+import { prisma } from '@thulobazaar/database';
+
 const AAKASH_SMS_API_URL = 'https://sms.aakashsms.com/sms/v3/send';
 
 interface SendSmsResponse {
@@ -41,6 +43,16 @@ export function generateOtp(): string {
 
 export type OtpPurpose = 'registration' | 'login' | 'password_reset' | 'phone_verification';
 
+export type NotificationType =
+  | 'business_verification_approved'
+  | 'business_verification_rejected'
+  | 'individual_verification_approved'
+  | 'individual_verification_rejected'
+  | 'account_suspended'
+  | 'account_unsuspended'
+  | 'ad_approved'
+  | 'ad_rejected';
+
 /**
  * Get SMS message based on purpose
  */
@@ -55,6 +67,58 @@ function getOtpMessage(otp: string, purpose: OtpPurpose): string {
     default:
       return `Your Thulo Bazaar verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
   }
+}
+
+// Map notification type to database setting key
+const notificationTypeToSettingKey: Record<NotificationType, string> = {
+  business_verification_approved: 'sms_business_approved',
+  business_verification_rejected: 'sms_business_rejected',
+  individual_verification_approved: 'sms_individual_approved',
+  individual_verification_rejected: 'sms_individual_rejected',
+  account_suspended: 'sms_account_suspended',
+  account_unsuspended: 'sms_account_unsuspended',
+  ad_approved: 'sms_ad_approved',
+  ad_rejected: 'sms_ad_rejected',
+};
+
+// Default messages (fallback if no custom template in database)
+// These MUST match the defaults in settings/page.tsx for UI consistency
+const defaultMessages: Record<NotificationType, string> = {
+  business_verification_approved: 'Congratulations {name}! Your business verification on Thulo Bazaar has been approved. You can now enjoy all business seller benefits.',
+  business_verification_rejected: 'Dear {name}, your business verification on Thulo Bazaar was not approved. Reason: {reason}. Please submit a new request with correct documents.',
+  individual_verification_approved: 'Congratulations {name}! Your identity verification on Thulo Bazaar has been approved.',
+  individual_verification_rejected: 'Dear {name}, your identity verification on Thulo Bazaar was not approved. Reason: {reason}.',
+  account_suspended: 'Dear {name}, your Thulo Bazaar account has been suspended. Reason: {reason}. Contact support for assistance.',
+  account_unsuspended: 'Good news {name}! Your Thulo Bazaar account has been restored. You can now access all features.',
+  ad_approved: 'Great news {name}! Your ad on Thulo Bazaar has been approved and is now live.',
+  ad_rejected: 'Dear {name}, your ad on Thulo Bazaar was not approved. Reason: {reason}.',
+};
+
+/**
+ * Get notification message based on type (fetches custom template from DB if available)
+ */
+async function getNotificationMessage(type: NotificationType, details?: { reason?: string; userName?: string }): Promise<string> {
+  const name = details?.userName || 'User';
+  const reason = details?.reason || 'Not specified';
+
+  // Try to get custom template from database
+  let template = defaultMessages[type];
+  try {
+    const settingKey = notificationTypeToSettingKey[type];
+    const setting = await prisma.site_settings.findUnique({
+      where: { setting_key: settingKey },
+    });
+    if (setting?.setting_value) {
+      template = setting.setting_value;
+    }
+  } catch (err) {
+    console.error('Error fetching SMS template from DB:', err);
+  }
+
+  // Replace placeholders
+  return template
+    .replace(/\{name\}/g, name)
+    .replace(/\{reason\}/g, reason);
 }
 
 /**
@@ -133,4 +197,74 @@ export async function sendOtpSms(
  */
 export function getOtpExpiry(): Date {
   return new Date(Date.now() + 10 * 60 * 1000);
+}
+
+/**
+ * Send notification SMS via AakashSMS API
+ */
+export async function sendNotificationSms(
+  phone: string,
+  type: NotificationType,
+  details?: { reason?: string; userName?: string }
+): Promise<SendSmsResponse> {
+  const authToken = process.env.AAKASH_SMS_TOKEN;
+
+  if (!authToken) {
+    console.error('AAKASH_SMS_TOKEN not configured');
+    return {
+      success: false,
+      message: 'SMS service not configured',
+      error: 'AAKASH_SMS_TOKEN environment variable is not set',
+    };
+  }
+
+  const formattedPhone = formatPhoneNumber(phone);
+
+  if (!validateNepaliPhone(formattedPhone)) {
+    return {
+      success: false,
+      message: 'Invalid Nepali phone number',
+      error: 'Phone number must be 10 digits starting with 97 or 98',
+    };
+  }
+
+  const message = await getNotificationMessage(type, details);
+
+  try {
+    const response = await fetch(AAKASH_SMS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        auth_token: authToken,
+        to: formattedPhone,
+        text: message,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.error === false) {
+      console.log(`✅ Notification SMS sent successfully to ${formattedPhone} (${type})`);
+      return {
+        success: true,
+        message: 'Notification sent successfully',
+      };
+    } else {
+      console.error('AakashSMS API error:', data);
+      return {
+        success: false,
+        message: 'Failed to send notification',
+        error: data.message || data.response || 'Unknown error from SMS provider',
+      };
+    }
+  } catch (error) {
+    console.error('AakashSMS notification request failed:', error);
+    return {
+      success: false,
+      message: 'Failed to send notification',
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
 }

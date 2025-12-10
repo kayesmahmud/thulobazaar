@@ -503,7 +503,7 @@ router.put(
       prisma.ads.updateMany({
         where: {
           user_id: userId,
-          status: 'approved',
+          status: { in: ['approved', 'active'] },
         },
         data: {
           status: 'suspended',
