@@ -7,10 +7,9 @@ import {
   DashboardLayout,
   StatsCard,
   QuickActions,
-  RecentActivity,
 } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { getEditorStats, getActivityLogs, getPendingVerifications, getAds, getMyWorkToday, getEditorProfile, getReportedAdsCount, getUserReportsCount, getNotificationsCount, getSystemAlerts, getAvgResponseTime, getTrends, getSupportChatCount, getUserReportsTrend, getAvgResponseTimeTrend } from '@/lib/editorApi';
+import { getEditorStats, getPendingVerifications, getAds, getMyWorkToday, getEditorProfile, getReportedAdsCount, getNotificationsCount, getSystemAlerts, getAvgResponseTime, getTrends, getSupportChatCount, getAvgResponseTimeTrend } from '@/lib/editorApi';
 import { getEditorNavSections } from '@/lib/editorNavigation';
 
 interface DashboardStats {
@@ -20,18 +19,9 @@ interface DashboardStats {
   rejectedAds: number;
   pendingVerifications: number;
   // Calculated fields for UI
-  userReports?: number;
   avgResponseTime?: string;
   pendingChange?: string;
   verificationsChange?: string;
-}
-
-interface Activity {
-  icon: string;
-  title: string;
-  description: string;
-  time: string;
-  type: 'success' | 'primary' | 'warning' | 'danger';
 }
 
 export default function EditorDashboard({ params }: { params: Promise<{ lang: string }> }) {
@@ -39,12 +29,10 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
   const router = useRouter();
   const { staff, isLoading: authLoading, isEditor, logout } = useStaffAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeCounts, setBadgeCounts] = useState({
     pendingAds: 0,
     reportedAds: 0,
-    userReports: 0,
     businessVerifications: 0,
     individualVerifications: 0,
     supportChat: 0,
@@ -61,7 +49,6 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [systemAlert, setSystemAlert] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [userReportsTrendText, setUserReportsTrendText] = useState('No new reports');
   const [avgResponseTimeTrendText, setAvgResponseTimeTrendText] = useState('No change');
 
   const handleLogout = useCallback(async () => {
@@ -96,14 +83,12 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
 
     // Fetch dashboard stats from backend
     const statsResponse = await safeCall(() => getEditorStats(), 'getEditorStats');
-    const userReportsResponse = await safeCall(() => getUserReportsCount(), 'getUserReportsCount');
     const avgResponseTimeResponse = await safeCall(() => getAvgResponseTime(), 'getAvgResponseTime');
     const trendsResponse = await safeCall(() => getTrends(), 'getTrends');
 
     if (statsResponse?.success) {
       setStats({
         ...statsResponse.data,
-        userReports: userReportsResponse?.success ? userReportsResponse.data.count : 0,
         avgResponseTime: avgResponseTimeResponse?.success ? avgResponseTimeResponse.data.avgResponseTime : 'N/A',
         pendingChange: trendsResponse?.success ? trendsResponse.data.pendingChange : '0%',
         verificationsChange: trendsResponse?.success ? trendsResponse.data.verificationsChange : '0%',
@@ -116,51 +101,10 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
         activeAds: 0,
         rejectedAds: 0,
         pendingVerifications: 0,
-        userReports: 0,
         avgResponseTime: 'N/A',
         pendingChange: '0%',
         verificationsChange: '0%',
       });
-    }
-
-    // Fetch activity logs - wrapped to not break the page if it fails
-    const activityResponse = await safeCall(
-      () => getActivityLogs(undefined, { page: 1, limit: 10 }),
-      'getActivityLogs'
-    );
-
-    if (activityResponse?.success && activityResponse.data.length > 0) {
-      const transformedActivities = activityResponse.data.map((log) => {
-        let icon = '📝';
-        let type: 'success' | 'primary' | 'warning' | 'danger' = 'primary';
-        let title = log.action_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-
-        if (log.action_type.includes('approve')) {
-          icon = '✓';
-          type = 'success';
-        } else if (log.action_type.includes('reject')) {
-          icon = '🚫';
-          type = 'danger';
-        } else if (log.action_type.includes('suspend')) {
-          icon = '⚠️';
-          type = 'warning';
-        } else if (log.action_type.includes('verify')) {
-          icon = '✓';
-          type = 'success';
-        }
-
-        const timeAgo = formatRelativeTime(new Date(log.created_at));
-
-        return {
-          icon,
-          title,
-          description: `${log.target_type} #${log.target_id} - ${log.admin_name}`,
-          time: timeAgo,
-          type,
-        };
-      });
-
-      setActivities(transformedActivities);
     }
 
     // Fetch verification counts for badges
@@ -171,14 +115,13 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
       const businessCount = verificationsResponse.data.filter(v => v.type === 'business').length;
       const individualCount = verificationsResponse.data.filter(v => v.type === 'individual').length;
 
-      setBadgeCounts(prev => ({
-        ...prev,
-        pendingAds: statsResponse?.data?.pendingAds || 0,
-        businessVerifications: businessCount,
-        individualVerifications: individualCount,
-        userReports: userReportsResponse?.success ? userReportsResponse.data.count : 0,
-        supportChat: supportChatResponse?.success ? supportChatResponse.data.count : 0,
-      }));
+        setBadgeCounts(prev => ({
+          ...prev,
+          pendingAds: statsResponse?.data?.pendingAds || 0,
+          businessVerifications: businessCount,
+          individualVerifications: individualCount,
+          supportChat: supportChatResponse?.success ? supportChatResponse.data.count : 0,
+        }));
     }
 
     // Fetch reported ads count
@@ -206,12 +149,6 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
       });
     }
 
-    // Fetch user reports trend
-    const userReportsTrendResponse = await safeCall(() => getUserReportsTrend(), 'getUserReportsTrend');
-    if (userReportsTrendResponse?.success) {
-      setUserReportsTrendText(userReportsTrendResponse.data.formattedText);
-    }
-
     // Fetch avg response time trend
     const avgResponseTimeTrendResponse = await safeCall(() => getAvgResponseTimeTrend(), 'getAvgResponseTimeTrend');
     if (avgResponseTimeTrendResponse?.success) {
@@ -226,23 +163,6 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
 
     setLoading(false);
   }, [staff]);
-
-  // Helper function to format relative time
-  const formatRelativeTime = (date: Date): string => {
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / 60000);
-    const diffInHours = Math.floor(diffInMs / 3600000);
-    const diffInDays = Math.floor(diffInMs / 86400000);
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
-    } else {
-      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
-    }
-  };
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -292,12 +212,6 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
       color: 'primary' as const,
       badge: badgeCounts.supportChat,
       onClick: () => router.push(`/${lang}/editor/support-chat`),
-    },
-    {
-      icon: '📦',
-      label: 'Bulk Actions',
-      color: 'gray' as const,
-      onClick: () => router.push(`/${lang}/editor/bulk-actions`),
     },
   ];
 
@@ -422,18 +336,6 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
           }}
         />
         <StatsCard
-          title="User Reports"
-          value={stats?.userReports || 0}
-          icon="🚩"
-          color="warning"
-          theme="editor"
-          trend={{
-            value: userReportsTrendText,
-            isPositive: true,
-            label: '',
-          }}
-        />
-        <StatsCard
           title="Avg. Response Time"
           value={stats?.avgResponseTime || '0h'}
           icon="⏱️"
@@ -538,10 +440,6 @@ export default function EditorDashboard({ params }: { params: Promise<{ lang: st
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-1">
-          <RecentActivity activities={activities} showViewAll viewAllHref="#" />
-        </div>
       </div>
     </DashboardLayout>
   );

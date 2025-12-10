@@ -45,18 +45,6 @@ interface DashboardStats {
   pendingVerifications: number;
 }
 
-interface ActivityLog {
-  id: number;
-  action_type: string;
-  target_type: string;
-  target_id: number;
-  details: any;
-  ip_address: string;
-  created_at: string;
-  admin_name: string;
-  admin_email: string;
-}
-
 interface Verification {
   id: number;
   user_id: number;
@@ -123,51 +111,6 @@ export async function getEditorStats(token?: string): Promise<ApiResponse<Dashbo
 
   if (!response.ok) {
     throw new Error('Failed to fetch editor stats');
-  }
-
-  return response.json();
-}
-
-/**
- * Get editor activity logs
- */
-export async function getActivityLogs(
-  token?: string,
-  params?: {
-    adminId?: number;
-    actionType?: string;
-    targetType?: string;
-    page?: number;
-    limit?: number;
-  }
-): Promise<ApiResponse<ActivityLog[]>> {
-  // Get token from session if not provided
-  const authToken = token || await getBackendToken();
-
-  const queryParams = new URLSearchParams();
-
-  if (params?.adminId) queryParams.append('adminId', params.adminId.toString());
-  if (params?.actionType) queryParams.append('actionType', params.actionType);
-  if (params?.targetType) queryParams.append('targetType', params.targetType);
-  if (params?.page) queryParams.append('page', params.page.toString());
-  if (params?.limit) queryParams.append('limit', params.limit.toString());
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const url = `${API_BASE}/api/editor/activity-logs${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-
-  const response = await fetch(url, {
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch activity logs');
   }
 
   return response.json();
@@ -751,30 +694,6 @@ export async function updateEditor(
 /**
  * Get user reports count (problematic users)
  */
-export async function getUserReportsCount(
-  token?: string
-): Promise<ApiResponse<{ count: number }>> {
-  const authToken = token || await getBackendToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch(`${API_BASE}/api/editor/user-reports/count`, {
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch user reports count');
-  }
-
-  return response.json();
-}
-
 /**
  * Get notifications count with breakdown
  */
@@ -1050,40 +969,6 @@ export async function getSupportChatCount(token?: string): Promise<ApiResponse<{
 }
 
 /**
- * Get user reports trend (new reports today)
- */
-export async function getUserReportsTrend(token?: string): Promise<ApiResponse<{
-  newToday: number;
-  formattedText: string;
-  breakdown: {
-    suspendedToday: number;
-    rejectedToday: number;
-  };
-}>> {
-  const authToken = token || await getBackendToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch(`${API_BASE}/api/editor/user-reports/trend`, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch user reports trend');
-  }
-
-  return response.json();
-}
-
-/**
  * Get average response time trend (improvement percentage)
  */
 export async function getAvgResponseTimeTrend(token?: string): Promise<ApiResponse<{
@@ -1113,49 +998,6 @@ export async function getAvgResponseTimeTrend(token?: string): Promise<ApiRespon
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to fetch avg response time trend');
-  }
-
-  return response.json();
-}
-
-/**
- * Get list of problematic users (user reports)
- */
-export async function getUserReportsList(
-  token?: string,
-  params?: {
-    page?: number;
-    limit?: number;
-    type?: 'all' | 'suspended' | 'rejected';
-    search?: string;
-  }
-): Promise<ApiResponse<any[]>> {
-  const authToken = token || await getBackendToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const queryParams = new URLSearchParams();
-  if (params?.page) queryParams.append('page', params.page.toString());
-  if (params?.limit) queryParams.append('limit', params.limit.toString());
-  if (params?.type) queryParams.append('type', params.type);
-  if (params?.search) queryParams.append('search', params.search);
-
-  const url = `${API_BASE}/api/editor/user-reports/list${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch user reports list');
   }
 
   return response.json();

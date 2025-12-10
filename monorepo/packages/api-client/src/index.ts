@@ -726,35 +726,6 @@ export class ApiClient {
     return response.data;
   }
 
-  async getEditorActivityLogs(params?: {
-    adminId?: number;
-    actionType?: string;
-    targetType?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<ApiResponse<{
-    data: Array<{
-      id: number;
-      action_type: string;
-      target_type: string;
-      target_id: number;
-      details: any;
-      ip_address: string;
-      created_at: string;
-      admin_name: string;
-      admin_email: string;
-    }>;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  }>> {
-    const response = await this.client.get('/api/editor/activity-logs', { params });
-    return response.data;
-  }
-
   async getEditorAds(params?: {
     status?: string;
     category?: string;

@@ -7,7 +7,6 @@ interface BadgeCounts {
   pendingAds?: number;
   reportedAds?: number;
   reportedShops?: number;
-  userReports?: number;
   businessVerifications?: number;
   individualVerifications?: number;
   supportChat?: number;
@@ -56,12 +55,6 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
           icon: '👥',
           label: 'User Management',
         },
-        {
-          href: `/${lang}/editor/user-reports`,
-          icon: '⚠️',
-          label: 'User Reports',
-          badge: badgeCounts.userReports,
-        },
       ],
     },
     {
@@ -106,19 +99,9 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       title: 'Tools',
       items: [
         {
-          href: `/${lang}/editor/bulk-actions`,
-          icon: '📦',
-          label: 'Bulk Actions',
-        },
-        {
           href: `/${lang}/editor/analytics`,
           icon: '📈',
           label: 'Moderation Analytics',
-        },
-        {
-          href: `/${lang}/editor/audit-logs`,
-          icon: '📋',
-          label: 'Audit Logs',
         },
       ],
     },

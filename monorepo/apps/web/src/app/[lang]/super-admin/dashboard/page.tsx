@@ -6,14 +6,11 @@ import {
   DashboardLayout,
   StatsCard,
   QuickActions,
-  RecentActivity,
 } from '@/components/admin';
 import { LineChart, BarChart } from '@/components/admin/charts';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { apiClient } from '@/lib/api';
 import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
-import { transformActivityLogs, type Activity } from '@/lib/activityHelpers';
-import { RECENT_ACTIVITY_LIMIT } from '@/constants/dashboard';
 
 interface DashboardStats {
   totalUsers: number;
@@ -30,7 +27,6 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const { staff, isLoading: authLoading, isSuperAdmin, logout } = useStaffAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(false);
   const [users, setUsers] = useState<Array<{
@@ -61,18 +57,6 @@ export default function SuperAdminDashboard() {
 
       if (statsResponse.success && statsResponse.data) {
         setStats(statsResponse.data);
-      }
-
-      // Fetch recent activity logs
-      const activityResponse = await apiClient.getEditorActivityLogs({
-        page: 1,
-        limit: RECENT_ACTIVITY_LIMIT,
-      });
-
-      if (activityResponse.success && activityResponse.data) {
-        // Transform activity logs using helper function
-        const transformedActivities = transformActivityLogs(activityResponse.data.data);
-        setActivities(transformedActivities);
       }
 
       // Fetch users list (read-only)
@@ -396,15 +380,6 @@ export default function SuperAdminDashboard() {
           <span className="text-sm text-gray-500 font-medium">Access frequently used features</span>
         </div>
         <QuickActions actions={quickActions} theme="superadmin" />
-      </div>
-
-      {/* Recent Activity */}
-      <div>
-        <RecentActivity
-          activities={activities}
-          showViewAll
-          viewAllHref={`/${lang}/super-admin/security`}
-        />
       </div>
 
       {/* User List (Read-only) */}

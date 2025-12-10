@@ -3,11 +3,6 @@
  */
 
 /**
- * Number of recent activity items to fetch and display
- */
-export const RECENT_ACTIVITY_LIMIT = 10;
-
-/**
  * Maximum number of quick action buttons to display
  */
 export const MAX_QUICK_ACTIONS = 4;
