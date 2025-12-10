@@ -131,8 +131,17 @@ export async function sendOtpSms(
 ): Promise<SendSmsResponse> {
   const authToken = process.env.AAKASH_SMS_TOKEN;
 
+  // In non-production, allow OTP flow to continue even if token is missing, so local/dev can verify
   if (!authToken) {
-    console.error('AAKASH_SMS_TOKEN not configured');
+    const msg = `AAKASH_SMS_TOKEN not configured. Mocking OTP send for ${phone}: ${otp}`;
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(msg);
+      return {
+        success: true,
+        message: 'SMS mocked (token not configured in non-production)',
+      };
+    }
+    console.error(msg);
     return {
       success: false,
       message: 'SMS service not configured',
