@@ -75,7 +75,7 @@ export default function ReportedShopsPage({ params: paramsPromise }: { params: P
   const loadReportedShops = useCallback(async (status: TabStatus) => {
     try {
       setLoading(true);
-      const response = await getReportedShops(undefined, {
+      const response = await getReportedShops<ReportedShop>(undefined, {
         status,
         page,
         limit: 50,
@@ -98,9 +98,9 @@ export default function ReportedShopsPage({ params: paramsPromise }: { params: P
   const loadTabCounts = useCallback(async () => {
     try {
       const [pendingRes, resolvedRes, dismissedRes] = await Promise.all([
-        getReportedShops(undefined, { status: 'pending', limit: 1 }),
-        getReportedShops(undefined, { status: 'resolved', limit: 1 }),
-        getReportedShops(undefined, { status: 'dismissed', limit: 1 }),
+        getReportedShops<ReportedShop>(undefined, { status: 'pending', limit: 1 }),
+        getReportedShops<ReportedShop>(undefined, { status: 'resolved', limit: 1 }),
+        getReportedShops<ReportedShop>(undefined, { status: 'dismissed', limit: 1 }),
       ]);
 
       setTabCounts({

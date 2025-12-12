@@ -55,7 +55,7 @@ export default function UserManagementPage({ params: paramsPromise }: { params: 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getUsers(undefined, {
+      const response = await getUsers<User>(undefined, {
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: searchTerm || undefined,
         page,

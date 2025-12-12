@@ -56,7 +56,7 @@ export default function ReportedAdsPage({ params: paramsPromise }: { params: Pro
   const loadReportedAds = useCallback(async (status: TabStatus) => {
     try {
       setLoading(true);
-      const response = await getReportedAds(undefined, {
+      const response = await getReportedAds<ReportedAd>(undefined, {
         status,
         page,
         limit: 50,
@@ -79,9 +79,9 @@ export default function ReportedAdsPage({ params: paramsPromise }: { params: Pro
   const loadTabCounts = useCallback(async () => {
     try {
       const [pendingRes, resolvedRes, dismissedRes] = await Promise.all([
-        getReportedAds(undefined, { status: 'pending', limit: 1 }),
-        getReportedAds(undefined, { status: 'resolved', limit: 1 }),
-        getReportedAds(undefined, { status: 'dismissed', limit: 1 }),
+        getReportedAds<ReportedAd>(undefined, { status: 'pending', limit: 1 }),
+        getReportedAds<ReportedAd>(undefined, { status: 'resolved', limit: 1 }),
+        getReportedAds<ReportedAd>(undefined, { status: 'dismissed', limit: 1 }),
       ]);
 
       setTabCounts({
