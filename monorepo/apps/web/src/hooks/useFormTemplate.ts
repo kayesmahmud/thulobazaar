@@ -1,11 +1,20 @@
 import { useMemo } from 'react';
-import { FORM_TEMPLATES, getApplicableFields, getTemplateForCategory, FormField } from '@/config/formTemplates';
+import { FORM_TEMPLATES, getApplicableFields } from '@/config/formTemplates';
+import type { FormField, TemplateName } from '@/config/formTemplates';
 
 interface Category {
   id: number;
   name: string;
   slug: string;
   parent_id: number | null;
+  formTemplate?: string;
+  form_template?: string;
+}
+
+const VALID_TEMPLATES: TemplateName[] = ['electronics', 'vehicles', 'property', 'fashion', 'pets', 'services', 'general'];
+
+function isValidTemplate(value: string): value is TemplateName {
+  return VALID_TEMPLATES.includes(value as TemplateName);
 }
 
 /**
@@ -20,11 +29,12 @@ export function useFormTemplate(
   allCategories: Category[]
 ) {
   // Determine which template to use based on category
-  const templateType = useMemo(() => {
+  const templateType = useMemo<TemplateName | null>(() => {
     if (!selectedCategory) return null;
 
     // Get template from category's formTemplate field (matches old site exactly)
-    return (selectedCategory as any).formTemplate || (selectedCategory as any).form_template || 'general';
+    const template = selectedCategory.formTemplate || selectedCategory.form_template || 'general';
+    return isValidTemplate(template) ? template : 'general';
   }, [selectedCategory]);
 
   // Get the template configuration
