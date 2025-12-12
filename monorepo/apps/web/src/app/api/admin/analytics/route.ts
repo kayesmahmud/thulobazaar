@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
     });
 
     payments.forEach((p) => {
+      if (!p.created_at) return;
       const key = new Date(p.created_at).toISOString().slice(0, 10);
       if (revenueMap.has(key)) {
         revenueMap.set(key, (revenueMap.get(key) || 0) + Number(p.amount || 0));
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
     });
 
     users.forEach((u) => {
+      if (!u.created_at) return;
       const key = new Date(u.created_at).toISOString().slice(0, 10);
       if (userMap.has(key)) {
         userMap.set(key, (userMap.get(key) || 0) + 1);

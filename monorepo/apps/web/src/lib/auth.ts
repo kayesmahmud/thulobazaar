@@ -301,9 +301,7 @@ export const authOptions: NextAuthOptions = {
             } else {
               const backendUrl = process.env.API_URL || 'http://localhost:5000';
               let loginEndpoint;
-              if (user.role === 'root') {
-                loginEndpoint = `${backendUrl}/api/editor/root-login`;
-              } else if (user.role === 'super_admin') {
+              if (user.role === 'super_admin') {
                 loginEndpoint = `${backendUrl}/api/admin/auth/login`;
               } else if (user.role === 'editor') {
                 loginEndpoint = `${backendUrl}/api/admin/auth/login`;

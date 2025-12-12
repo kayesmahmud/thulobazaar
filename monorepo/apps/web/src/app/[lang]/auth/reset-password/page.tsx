@@ -31,6 +31,7 @@ export default function ResetPasswordPage() {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [cooldown]);
 
   // Redirect if no identifier

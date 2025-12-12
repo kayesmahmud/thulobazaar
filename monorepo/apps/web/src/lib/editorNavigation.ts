@@ -19,7 +19,7 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       items: [
         {
           href: `/${lang}/editor/dashboard`,
-          icon: '📊',
+          icon: 'LayoutDashboard',
           label: 'Dashboard',
         },
       ],
@@ -28,20 +28,25 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       title: 'Content Management',
       items: [
         {
+          href: `/${lang}/editor/ads-list`,
+          icon: 'ClipboardList',
+          label: 'All Ads List',
+        },
+        {
           href: `/${lang}/editor/ad-management`,
-          icon: '📢',
+          icon: 'Megaphone',
           label: 'Ad Management',
           badge: badgeCounts.pendingAds,
         },
         {
           href: `/${lang}/editor/reported-ads`,
-          icon: '🚩',
+          icon: 'Flag',
           label: 'Reported Ads',
           badge: badgeCounts.reportedAds,
         },
         {
           href: `/${lang}/editor/reported-shops`,
-          icon: '🏪',
+          icon: 'Store',
           label: 'Reported Shops',
           badge: badgeCounts.reportedShops,
         },
@@ -52,7 +57,7 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       items: [
         {
           href: `/${lang}/editor/user-management`,
-          icon: '👥',
+          icon: 'Users',
           label: 'User Management',
         },
       ],
@@ -62,18 +67,18 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       items: [
         {
           href: `/${lang}/editor/verifications`,
-          icon: '📋',
+          icon: 'ClipboardList',
           label: 'All Verifications',
         },
         {
           href: `/${lang}/editor/business-verification`,
-          icon: '🏢',
+          icon: 'Building2',
           label: 'Business Verification',
           badge: badgeCounts.businessVerifications,
         },
         {
           href: `/${lang}/editor/individual-verification`,
-          icon: '🪪',
+          icon: 'BadgeCheck',
           label: 'Individual Verification',
           badge: badgeCounts.individualVerifications,
         },
@@ -84,13 +89,13 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       items: [
         {
           href: `/${lang}/editor/support-chat`,
-          icon: '💬',
+          icon: 'MessageCircle',
           label: 'Support Chat',
           badge: badgeCounts.supportChat,
         },
         {
           href: `/${lang}/editor/templates`,
-          icon: '📄',
+          icon: 'FileText',
           label: 'Response Templates',
         },
       ],
@@ -100,7 +105,7 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       items: [
         {
           href: `/${lang}/editor/analytics`,
-          icon: '📈',
+          icon: 'TrendingUp',
           label: 'Moderation Analytics',
         },
       ],

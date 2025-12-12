@@ -253,6 +253,7 @@ export async function PUT(
         id: true,
         user_id: true,
         title: true,
+        status: true,
         custom_fields: true,
       },
     });
@@ -267,6 +268,17 @@ export async function PUT(
     if (existingAd.user_id !== userId) {
       return NextResponse.json(
         { success: false, message: 'You do not have permission to edit this ad' },
+        { status: 403 }
+      );
+    }
+
+    // Block editing of approved ads
+    if (existingAd.status === 'approved') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Approved ads cannot be edited to maintain content integrity. Please contact support if you need to make changes.',
+        },
         { status: 403 }
       );
     }
@@ -347,6 +359,13 @@ export async function PUT(
     console.log('🖼️ [UPDATE AD] Ad ID:', adId);
     console.log('🖼️ [UPDATE AD] Existing images to keep:', existingImages);
 
+    // If ad was rejected, automatically reset to pending for re-review
+    let autoResetToPending = false;
+    if (existingAd.status === 'rejected') {
+      autoResetToPending = true;
+      console.log('📝 [UPDATE AD] Rejected ad being edited - auto-resetting to pending status');
+    }
+
     // Build update data
     const updateData: any = {};
 
@@ -367,6 +386,11 @@ export async function PUT(
       updateData.location_id = parseInt(areaIdStr || locationIdStr || '0');
     }
     if (status !== undefined) updateData.status = status;
+
+    // Auto-reset rejected ads to pending when edited (for re-review)
+    if (autoResetToPending && status === undefined) {
+      updateData.status = 'pending';
+    }
 
     // Update custom fields
     const updatedCustomFields = {
@@ -600,7 +624,19 @@ export async function DELETE(
       where: { id: adId },
       data: {
         deleted_at: new Date(),
+        deleted_by: userId,
         status: 'deleted',
+      },
+    });
+
+    // Log this action in review history (actor is the user who owns the ad)
+    await prisma.ad_review_history.create({
+      data: {
+        ad_id: adId,
+        action: 'deleted',
+        actor_id: userId,
+        actor_type: 'user',
+        notes: 'User deleted their own ad',
       },
     });
 

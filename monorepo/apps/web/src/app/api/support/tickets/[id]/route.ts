@@ -34,7 +34,7 @@ export async function GET(
       select: { role: true },
     });
 
-    const isStaff = user?.role === 'editor' || user?.role === 'super_admin' || user?.role === 'root';
+    const isStaff = user?.role === 'editor' || user?.role === 'super_admin';
 
     // Fetch ticket
     const ticket = await prisma.support_tickets.findUnique({
@@ -199,7 +199,7 @@ export async function PATCH(
       select: { role: true },
     });
 
-    const isStaff = user?.role === 'editor' || user?.role === 'super_admin' || user?.role === 'root';
+    const isStaff = user?.role === 'editor' || user?.role === 'super_admin';
 
     if (!isStaff) {
       return NextResponse.json(
@@ -309,7 +309,7 @@ export async function POST(
       select: { role: true },
     });
 
-    const isStaff = user?.role === 'editor' || user?.role === 'super_admin' || user?.role === 'root';
+    const isStaff = user?.role === 'editor' || user?.role === 'super_admin';
 
     const ticket = await prisma.support_tickets.findUnique({
       where: { id: ticketId },

@@ -57,6 +57,7 @@ export default function PaymentSuccessPage() {
       } else {
         router.push('/en/dashboard');
       }
+      return undefined;
     }
   }, [countdown, details, router]);
 

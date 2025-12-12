@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getEditorNavSections } from '@/lib/editorNavigation';
+import { CheckCircle, XCircle, BadgeCheck, Clock, Users } from 'lucide-react';
 
 interface AnalyticsData {
   overview: {
@@ -360,7 +361,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
                   {analytics.overview.totalAdsApproved.toLocaleString()} approved
                 </div>
               </div>
-              <div className="text-4xl">✅</div>
+              <CheckCircle size={40} className="text-green-600" strokeWidth={2} />
             </div>
           </div>
 
@@ -375,7 +376,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
                   {((analytics.overview.totalAdsRejected / analytics.overview.totalAdsReviewed) * 100).toFixed(1)}% rejection rate
                 </div>
               </div>
-              <div className="text-4xl">❌</div>
+              <XCircle size={40} className="text-red-600" strokeWidth={2} />
             </div>
           </div>
 
@@ -388,7 +389,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
                 </div>
                 <div className="text-xs text-purple-600 mt-1">Processed</div>
               </div>
-              <div className="text-4xl">🪪</div>
+              <BadgeCheck size={40} className="text-purple-600" strokeWidth={2} />
             </div>
           </div>
 
@@ -401,7 +402,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
                 </div>
                 <div className="text-xs text-teal-600 mt-1">Per review</div>
               </div>
-              <div className="text-4xl">⏱️</div>
+              <Clock size={40} className="text-teal-600" strokeWidth={2} />
             </div>
           </div>
 
@@ -414,7 +415,7 @@ export default function ModerationAnalyticsPage({ params: paramsPromise }: { par
                 </div>
                 <div className="text-xs text-orange-600 mt-1">Team members</div>
               </div>
-              <div className="text-4xl">👥</div>
+              <Users size={40} className="text-orange-600" strokeWidth={2} />
             </div>
           </div>
         </div>

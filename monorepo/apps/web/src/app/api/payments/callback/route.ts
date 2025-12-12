@@ -37,6 +37,14 @@ export async function GET(request: NextRequest) {
     // Find transaction
     const transaction = await prisma.payment_transactions.findFirst({
       where: { transaction_id: orderId },
+      select: {
+        id: true,
+        user_id: true,
+        payment_type: true,
+        amount: true,
+        metadata: true,
+        transaction_id: true,
+      },
     });
 
     if (!transaction) {
@@ -146,7 +154,7 @@ export async function GET(request: NextRequest) {
  * Handle successful payment actions based on payment type
  */
 async function handlePaymentSuccess(
-  transaction: { id: number; user_id: number; payment_type: string; amount: unknown; metadata: unknown },
+  transaction: { id: number; user_id: number; payment_type: string; amount: unknown; metadata: unknown; transaction_id: string | null },
   paymentType: PaymentType,
   relatedId: number | null
 ) {

@@ -314,6 +314,12 @@ export function throttle<T extends (...args: any[]) => any>(
 
 export const formatDateTime = (dateString: string | Date): string => {
   const date = new Date(dateString);
+
+  // Handle invalid dates
+  if (isNaN(date.getTime())) {
+    return 'Date not available';
+  }
+
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - date.getTime());
   const diffHours = Math.floor(diffTime / (1000 * 60 * 60));

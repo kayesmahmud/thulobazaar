@@ -16,7 +16,7 @@ import profileRoutes from './routes/profile.routes.js';
 import shopRoutes from './routes/shop.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import messagesRoutes from './routes/messages.routes.js';
-import editorRoutes from './routes/editor.routes.js';
+import editorRoutes from './routes/editor/index.js';
 import verificationRoutes from './routes/verification.routes.js';
 import areasRoutes from './routes/areas.routes.js';
 import promotionRoutes from './routes/promotion.routes.js';

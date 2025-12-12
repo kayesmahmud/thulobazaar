@@ -38,7 +38,7 @@ export function getSuperAdminNavSections(
       items: [
         {
           href: `/${lang}/super-admin/dashboard`,
-          icon: '📊',
+          icon: 'LayoutDashboard',
           label: 'Dashboard',
         },
       ],
@@ -48,24 +48,24 @@ export function getSuperAdminNavSections(
       items: [
         {
           href: `/${lang}/super-admin/ads`,
-          icon: '📢',
+          icon: 'Megaphone',
           label: 'Ad Management',
           badge: badges?.pendingAds,
         },
         {
           href: `/${lang}/super-admin/dashboard/users-list`,
-          icon: '👥',
+          icon: 'Users',
           label: 'Users',
         },
         {
           href: `/${lang}/super-admin/editors`,
-          icon: '👨‍💼',
+          icon: 'UserCog',
           label: 'Editor Management',
           badge: badges?.editors,
         },
         {
           href: `/${lang}/super-admin/financial`,
-          icon: '💸',
+          icon: 'DollarSign',
           label: 'Financial Tracking',
         },
       ],
@@ -75,13 +75,13 @@ export function getSuperAdminNavSections(
       items: [
         {
           href: `/${lang}/super-admin/verifications`,
-          icon: '✓',
+          icon: 'CheckCircle',
           label: 'Verifications',
           badge: badges?.verifications,
         },
         {
           href: `/${lang}/super-admin/verification-pricing`,
-          icon: '💰',
+          icon: 'Coins',
           label: 'Verification Pricing',
         },
       ],
@@ -91,7 +91,7 @@ export function getSuperAdminNavSections(
       items: [
         {
           href: `/${lang}/super-admin/announcements`,
-          icon: '📣',
+          icon: 'Bell',
           label: 'Announcements',
         },
       ],
@@ -101,12 +101,12 @@ export function getSuperAdminNavSections(
       items: [
         {
           href: `/${lang}/super-admin/promotion-pricing`,
-          icon: '⭐',
+          icon: 'Star',
           label: 'Promotion Pricing',
         },
         {
           href: `/${lang}/super-admin/analytics`,
-          icon: '📈',
+          icon: 'TrendingUp',
           label: 'Analytics & Reports',
         },
       ],
@@ -116,32 +116,32 @@ export function getSuperAdminNavSections(
       items: [
         {
           href: `/${lang}/super-admin/super-admins`,
-          icon: '👑',
+          icon: 'Crown',
           label: 'Super Admins',
         },
         {
           href: `/${lang}/super-admin/system-health`,
-          icon: '🖥️',
+          icon: 'Monitor',
           label: 'System Health',
         },
         {
           href: `/${lang}/super-admin/security`,
-          icon: '🛡️',
+          icon: 'Shield',
           label: 'Security & Audit',
         },
         {
           href: `/${lang}/super-admin/categories`,
-          icon: '🏷️',
+          icon: 'Tag',
           label: 'Categories',
         },
         {
           href: `/${lang}/super-admin/locations`,
-          icon: '📍',
+          icon: 'MapPin',
           label: 'Locations',
         },
         {
           href: `/${lang}/super-admin/settings`,
-          icon: '⚙️',
+          icon: 'Settings',
           label: 'Settings',
         },
       ],

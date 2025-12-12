@@ -18,36 +18,71 @@ export function slugify(text: string): string {
 }
 
 /**
- * Generate a unique slug for an ad
- * Checks for duplicates and appends a counter if necessary
+ * Generate a unique SEO-friendly slug for an ad
+ * Format: title-location-counter (e.g., "iphone-15-pro-thamel-1")
+ * Includes location (area or district) and auto-increments counter for duplicates
+ *
  * @param title - The ad title
+ * @param locationId - The location ID (to get area/district name)
  * @param adId - The ad ID (for updates, to exclude self from duplicate check)
- * @returns Unique slug
+ * @returns Unique slug with location and counter (e.g., "apartment-for-rent-kathmandu-1")
  */
-export async function generateSlug(title: string, adId?: number): Promise<string> {
-  const baseSlug = slugify(title);
-  let slug = baseSlug;
-  let counter = 1;
+export async function generateSlug(
+  title: string,
+  locationId?: number,
+  adId?: number
+): Promise<string> {
+  const titleSlug = slugify(title);
 
-  while (true) {
-    // Check if slug exists (excluding current ad if updating)
-    const existingAd = await prisma.ads.findFirst({
-      where: {
-        slug,
-        ...(adId ? { NOT: { id: adId } } : {}),
-      },
-      select: { id: true },
+  // Get location name (prefer area over district for more specific SEO)
+  let locationName = '';
+  if (locationId) {
+    const location = await prisma.locations.findUnique({
+      where: { id: locationId },
+      select: { name: true, type: true, parent_id: true },
     });
 
-    // If slug doesn't exist, it's unique!
-    if (!existingAd) {
-      return slug;
+    if (location) {
+      locationName = slugify(location.name);
     }
-
-    // Slug exists, try with counter
-    counter++;
-    slug = `${baseSlug}-${counter}`;
   }
+
+  // Build base slug: title-location or just title if no location
+  const baseSlug = locationName ? `${titleSlug}-${locationName}` : titleSlug;
+
+  // Find the highest counter for slugs with this base
+  // Pattern: baseSlug-1, baseSlug-2, etc.
+  const existingSlugs = await prisma.ads.findMany({
+    where: {
+      slug: {
+        startsWith: `${baseSlug}-`,
+      },
+      ...(adId ? { NOT: { id: adId } } : {}),
+    },
+    select: { slug: true },
+  });
+
+  // Extract counters from existing slugs
+  let maxCounter = 0;
+  const counterRegex = new RegExp(`^${baseSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d+)$`);
+
+  for (const ad of existingSlugs) {
+    if (!ad.slug) continue;
+    const match = ad.slug.match(counterRegex);
+    if (match?.[1]) {
+      const counter = parseInt(match[1], 10);
+      if (counter > maxCounter) {
+        maxCounter = counter;
+      }
+    }
+  }
+
+  // Next available counter
+  const nextCounter = maxCounter + 1;
+  const finalSlug = `${baseSlug}-${nextCounter}`;
+
+  // Database constraint requires ending with numbers, which we have!
+  return finalSlug;
 }
 
 /**

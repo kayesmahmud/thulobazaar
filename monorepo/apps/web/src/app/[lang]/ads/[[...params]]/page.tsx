@@ -10,6 +10,7 @@ import { generateAdListingMetadata } from '@/lib/urlBuilder';
 import { getLocationHierarchy } from '@/lib/locationHierarchy';
 import { getRootCategoriesWithChildren } from '@/lib/categories';
 import { buildAdsWhereClause, buildAdsOrderBy, standardAdInclude } from '@/lib/adsQueryBuilder';
+import { SearchX } from 'lucide-react';
 
 interface AdsPageProps {
   params: Promise<{ lang: string; params?: string[] }>;
@@ -217,7 +218,9 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
             {/* No Results */}
             {ads.length === 0 && (
               <div className="card text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
+                <div className="mb-4 flex justify-center">
+                  <SearchX size={64} className="text-gray-400" strokeWidth={1.5} />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No ads found</h3>
                 <p className="text-gray-500 mb-4">
                   Try adjusting your filters or browse other categories

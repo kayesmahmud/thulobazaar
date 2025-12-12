@@ -66,8 +66,10 @@ export default function AdBanner({ slot, size, className = '', autoExpand = fals
         return () => clearTimeout(timer);
       } catch (error) {
         console.error('AdSense error:', error);
+        return undefined;
       }
     }
+    return undefined;
   }, [isProduction]);
 
   // Watch for ad content to load (for auto-expand)

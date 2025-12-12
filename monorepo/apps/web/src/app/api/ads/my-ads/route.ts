@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         price: true,
         condition: true,
         status: true,
+        status_reason: true,
         slug: true,
         view_count: true,
         is_featured: true,
@@ -95,6 +96,9 @@ export async function GET(request: NextRequest) {
       price: ad.price ? parseFloat(ad.price.toString()) : null,
       condition: ad.condition,
       status: ad.status === 'approved' ? 'active' : ad.status, // Map 'approved' to 'active' for dashboard
+      actualStatus: ad.status, // Preserve original status for logic checks
+      isApproved: ad.status === 'approved', // Flag for approved ads
+      statusReason: ad.status_reason || null, // Include rejection reason
       slug: ad.slug,
       views: ad.view_count, // Map view_count to views for dashboard
       viewCount: ad.view_count,
@@ -104,7 +108,10 @@ export async function GET(request: NextRequest) {
       featuredUntil: ad.featured_until,
       urgentUntil: ad.urgent_until,
       stickyUntil: ad.sticky_until,
+      // Support both snake_case and camelCase for compatibility
+      created_at: ad.created_at,
       createdAt: ad.created_at,
+      updated_at: ad.updated_at,
       updatedAt: ad.updated_at,
       category: ad.categories
         ? {

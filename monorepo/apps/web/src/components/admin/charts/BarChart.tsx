@@ -21,6 +21,7 @@ interface BarChartProps {
   color?: string;
   hoverColor?: string;
   height?: number;
+  loading?: boolean;
 }
 
 export function BarChart({
@@ -30,7 +31,16 @@ export function BarChart({
   color = '#10b981',
   hoverColor = '#059669',
   height = 250,
+  loading = false,
 }: BarChartProps) {
+  if (loading) {
+    return (
+      <div style={{ height: `${height}px` }} className="flex items-center justify-center bg-gray-50 rounded-lg animate-pulse">
+        <div className="text-gray-400 text-sm">Loading chart...</div>
+      </div>
+    );
+  }
+
   const chartData = {
     labels,
     datasets: [

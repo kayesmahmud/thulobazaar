@@ -3,6 +3,7 @@ import { prisma } from '@thulobazaar/database';
 import { catchAsync, NotFoundError, ValidationError } from '../middleware/errorHandler.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import { PAGINATION } from '../config/constants.js';
+import { uploadAdImages } from '../middleware/upload.js';
 
 const router = Router();
 
@@ -339,28 +340,59 @@ router.get(
 
 /**
  * POST /api/ads
- * Create a new ad
+ * Create a new ad with images (multipart/form-data)
  */
 router.post(
   '/',
   authenticateToken,
+  uploadAdImages.array('images', 10), // Handle up to 10 images
   catchAsync(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
+
+    // Frontend sends camelCase, map to snake_case for database
     const {
       title,
       description,
       price,
-      category_id,
-      location_id,
-      condition,
-      seller_name,
-      seller_phone,
-      custom_fields,
+      categoryId,
+      subcategoryId,
+      locationId,
+      isNegotiable,
+      attributes, // JSON string containing condition and custom fields
     } = req.body;
 
-    if (!title || !description || !category_id) {
+    console.log('📥 Ad creation request - RAW BODY:', {
+      userId,
+      body: req.body,
+      files: req.files ? (req.files as Express.Multer.File[]).length : 0,
+    });
+
+    console.log('📥 Parsed fields:', {
+      title,
+      categoryId,
+      subcategoryId,
+      locationId,
+      attributes: attributes ? JSON.parse(attributes) : null,
+    });
+
+    // Validate required fields
+    if (!title || !description || !categoryId) {
       throw new ValidationError('Title, description, and category are required');
     }
+
+    // Parse attributes (contains condition and custom fields)
+    let parsedAttributes: any = {};
+    if (attributes) {
+      try {
+        parsedAttributes = JSON.parse(attributes);
+      } catch (err) {
+        console.error('❌ Failed to parse attributes:', err);
+      }
+    }
+
+    // Extract condition and custom fields
+    const condition = parsedAttributes.condition || 'used';
+    const { condition: _cond, ...customFields } = parsedAttributes;
 
     // Generate slug
     const baseSlug = title
@@ -371,20 +403,22 @@ router.post(
       .replace(/-+/g, '-');
     const slug = `${baseSlug}-${Date.now()}`;
 
+    // Create ad with pending status
+    // Use subcategoryId if provided, otherwise use categoryId
+    const finalCategoryId = subcategoryId ? parseInt(subcategoryId) : parseInt(categoryId);
+
     const ad = await prisma.ads.create({
       data: {
         title,
         description,
         price: price ? parseFloat(price) : null,
-        category_id: parseInt(category_id),
-        location_id: location_id ? parseInt(location_id) : null,
-        condition: condition || 'used',
-        seller_name: seller_name || null,
-        seller_phone: seller_phone || null,
+        category_id: finalCategoryId, // ✅ Use subcategory if provided
+        location_id: locationId ? parseInt(locationId) : null,
+        condition,
         user_id: userId,
-        status: 'pending',
+        status: 'pending', // Goes to editor for review
         slug,
-        custom_fields: custom_fields || null,
+        custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
       },
       include: {
         categories: true,
@@ -392,11 +426,30 @@ router.post(
       },
     });
 
-    console.log(`✅ Ad created: ${ad.title} (ID: ${ad.id}) by user ${userId}`);
+    // Handle uploaded images
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const imageRecords = req.files.map((file: Express.Multer.File, index: number) => ({
+        ad_id: ad.id,
+        filename: file.filename,
+        original_name: file.originalname,
+        file_path: `/uploads/ads/${file.filename}`,
+        file_size: file.size,
+        mime_type: file.mimetype,
+        is_primary: index === 0, // First image is primary
+      }));
+
+      await prisma.ad_images.createMany({
+        data: imageRecords,
+      });
+
+      console.log(`✅ Uploaded ${req.files.length} images for ad ${ad.id}`);
+    }
+
+    console.log(`✅ Ad created: ${ad.title} (ID: ${ad.id}) by user ${userId} - Status: pending`);
 
     res.status(201).json({
       success: true,
-      message: 'Ad created successfully. It will be reviewed shortly.',
+      message: 'Ad created successfully. It will be reviewed by our team shortly.',
       data: ad,
     });
   })

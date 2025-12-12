@@ -234,6 +234,12 @@ export function useAdDraft(): UseAdDraftReturn {
 
     // Format: "Untitled - 12:45 PM, Dec 9"
     const date = new Date(draft.updatedAt);
+
+    // Handle invalid dates
+    if (isNaN(date.getTime())) {
+      return 'Untitled Draft';
+    }
+
     const time = date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -250,6 +256,12 @@ export function useAdDraft(): UseAdDraftReturn {
   // Format draft date for display
   const formatDraftDate = useCallback((dateString: string): string => {
     const date = new Date(dateString);
+
+    // Handle invalid dates
+    if (isNaN(date.getTime())) {
+      return 'Unknown date';
+    }
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);

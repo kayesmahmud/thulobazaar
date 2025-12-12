@@ -40,7 +40,8 @@ export default function AuthErrorPage() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error') || 'Default';
 
-  const errorInfo = errorMessages[error] || errorMessages.Default;
+  const defaultError = { title: 'Authentication Error', description: 'An error occurred during authentication.', solution: 'Try again or contact support.' };
+  const errorInfo = errorMessages[error] ?? defaultError;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">

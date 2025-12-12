@@ -246,6 +246,11 @@ export class ApiClient {
     return response.data;
   }
 
+  async markAdAsSold(id: number): Promise<ApiResponse<{ id: number; title: string; status: string }>> {
+    const response = await this.client.post(`/api/ads/${id}/mark-sold`);
+    return response.data;
+  }
+
   async incrementAdView(id: number): Promise<ApiResponse<void>> {
     const response = await this.client.post(`/api/ads/${id}/view`);
     return response.data;

@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       const current = promotionMap.get(p.promotion_type) || { total: 0, revenue: 0, active: 0 };
       current.total += 1;
       current.revenue += Number(p.price_paid || 0);
-      if (p.end_date && new Date(p.end_date) > now) {
+      if (p.expires_at && new Date(p.expires_at) > now) {
         current.active += 1;
       }
       promotionMap.set(p.promotion_type, current);
@@ -168,7 +168,8 @@ export async function GET(request: NextRequest) {
     const dailyMap = new Map<string, { revenue: number; transactions: number }>();
     for (const t of verifiedTransactions) {
       if (!t.created_at) continue;
-      const dateKey = t.created_at.toISOString().split('T')[0];
+      const dateKey = t.created_at.toISOString().split('T')[0] ?? '';
+      if (!dateKey) continue;
       const current = dailyMap.get(dateKey) || { revenue: 0, transactions: 0 };
       current.revenue += Number(t.amount);
       current.transactions += 1;

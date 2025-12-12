@@ -224,7 +224,6 @@ export const rejectIndividualVerification = (verificationId: number, reason: str
  * Get ads with filters
  */
 export async function getAds(
-  token?: string,
   params?: {
     status?: string;
     category?: string;
@@ -234,9 +233,13 @@ export async function getAds(
     limit?: number;
     sortBy?: string;
     sortOrder?: 'ASC' | 'DESC';
-    includeDeleted?: boolean;
-  }
+    includeDeleted?: string;
+  },
+  token?: string
 ): Promise<ApiResponse<Ad[]>> {
+  // Get token from session if not provided
+  const authToken = token || await getBackendToken();
+
   const queryParams = new URLSearchParams();
 
   if (params?.status) queryParams.append('status', params.status);
@@ -255,8 +258,8 @@ export async function getAds(
     'Content-Type': 'application/json',
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
 
   const url = `${API_BASE}/api/editor/ads${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
@@ -276,21 +279,26 @@ export async function getAds(
  * Approve an ad
  */
 export async function approveAd(adId: number, token?: string): Promise<ApiResponse<Ad>> {
+  // Get token from session if not provided
+  const authToken = token || await getBackendToken();
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/approve`, {
+  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/status`, {
     method: 'PUT',
     headers,
+    body: JSON.stringify({ status: 'approved' }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to approve ad');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to approve ad');
   }
 
   return response.json();
@@ -304,22 +312,29 @@ export async function rejectAd(
   reason: string,
   token?: string
 ): Promise<ApiResponse<Ad>> {
+  // Get token from session if not provided
+  const authToken = token || await getBackendToken();
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/reject`, {
+  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/status`, {
     method: 'PUT',
     headers,
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify({
+      status: 'rejected',
+      rejection_reason: reason
+    }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to reject ad');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to reject ad');
   }
 
   return response.json();
@@ -381,6 +396,101 @@ export async function restoreAd(
 
   if (!response.ok) {
     throw new Error('Failed to restore ad');
+  }
+
+  return response.json();
+}
+
+/**
+ * Suspend an ad with reason and optional duration
+ */
+export async function suspendAd(
+  adId: number,
+  reason: string,
+  duration?: number,
+  token?: string
+): Promise<ApiResponse<Ad>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/suspend`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ reason, duration }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to suspend ad');
+  }
+
+  return response.json();
+}
+
+/**
+ * Unsuspend an ad
+ */
+export async function unsuspendAd(
+  adId: number,
+  token?: string
+): Promise<ApiResponse<Ad>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/unsuspend`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to unsuspend ad');
+  }
+
+  return response.json();
+}
+
+/**
+ * Permanently delete an ad (cannot be undone)
+ */
+export async function permanentDeleteAd(
+  adId: number,
+  reason?: string,
+  token?: string
+): Promise<ApiResponse<void>> {
+  const authToken = token || await getBackendToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/editor/ads/${adId}/permanent`, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to permanently delete ad');
   }
 
   return response.json();

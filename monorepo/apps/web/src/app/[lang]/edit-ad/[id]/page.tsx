@@ -11,6 +11,7 @@ import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import { useFormTemplate } from '@/hooks/useFormTemplate';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
+import { XCircle } from 'lucide-react';
 
 interface EditAdPageProps {
   params: Promise<{ lang: string; id: string }>;
@@ -67,6 +68,11 @@ export default function EditAdPage({ params }: EditAdPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Flag to skip useEffect during initial load
   const [lastCategoryId, setLastCategoryId] = useState<string>(''); // Track last category to detect manual changes
+
+  // Ad status tracking for approval lock and rejection notice
+  const [adStatus, setAdStatus] = useState<string>('');
+  const [rejectionReason, setRejectionReason] = useState<string>('');
+  const [isApproved, setIsApproved] = useState(false);
 
   // Dynamic form fields state
   const [customFields, setCustomFields] = useState<Record<string, any>>({});
@@ -191,6 +197,19 @@ export default function EditAdPage({ params }: EditAdPageProps) {
 
       if (adOwnerId !== currentUserId) {
         setError('You do not have permission to edit this ad');
+        return;
+      }
+
+      // Check if ad is approved - block editing if yes
+      const status = ad.status || '';
+      const statusReason = ad.statusReason || ad.status_reason || '';
+
+      setAdStatus(status);
+      setRejectionReason(statusReason);
+
+      if (status === 'approved') {
+        setIsApproved(true);
+        setError('This ad has been approved and published. Approved ads cannot be edited to maintain content integrity. If you need to make changes, please contact support or create a new ad.');
         return;
       }
 
@@ -486,7 +505,9 @@ export default function EditAdPage({ params }: EditAdPageProps) {
     return (
       <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
+          <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+            <XCircle size={48} color="#dc2626" strokeWidth={1.5} />
+          </div>
           <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{error}</p>
           <Link
             href={`/${lang}/dashboard`}
@@ -539,6 +560,133 @@ export default function EditAdPage({ params }: EditAdPageProps) {
             Update your listing details below
           </p>
         </div>
+
+        {/* Rejection Notice Banner */}
+        {adStatus === 'rejected' && rejectionReason && (
+          <div style={{
+            background: 'linear-gradient(to right, #fef2f2, #fff7ed)',
+            border: '2px solid #f87171',
+            borderLeft: '6px solid #dc2626',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '2rem',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'start' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                background: '#fecaca',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: '#7f1d1d', margin: 0 }}>
+                    ❌ Your Ad Was Rejected
+                  </h3>
+                  <span style={{
+                    padding: '0.25rem 0.75rem',
+                    background: '#dc2626',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    borderRadius: '9999px'
+                  }}>
+                    Action Required
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#991b1b', marginBottom: '0.5rem', margin: 0 }}>
+                  Reason from editor:
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#7f1d1d',
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid #fca5a5',
+                  marginBottom: '1rem',
+                  margin: '0.5rem 0 1rem 0'
+                }}>
+                  {rejectionReason}
+                </p>
+                <div style={{
+                  background: '#dbeafe',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '8px',
+                  padding: '1rem'
+                }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
+                    <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>💡</span>
+                    <div style={{ fontSize: '0.8125rem', color: '#1e3a8a' }}>
+                      <p style={{ fontWeight: '600', marginBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>What to do next:</p>
+                      <ol style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <li>Fix the issues mentioned in the rejection reason above</li>
+                        <li>Update your ad details in the form below</li>
+                        <li>Click "Update Ad" - your ad will automatically be resubmitted for review</li>
+                        <li>You'll receive a notification once the editor reviews it again</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approved Lock Message */}
+        {isApproved && (
+          <div style={{
+            background: 'linear-gradient(to right, #f0fdf4, #dbeafe)',
+            border: '2px solid #34d399',
+            borderLeft: '6px solid #10b981',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '2rem',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'start' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                background: '#a7f3d0',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>🔒</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: '#064e3b', marginBottom: '0.75rem', margin: '0 0 0.75rem 0' }}>
+                  ✅ Ad Approved & Published
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#065f46', marginBottom: '1rem', margin: '0 0 1rem 0' }}>
+                  This ad has been approved by our editors and is currently live on ThuluBazaar. For content integrity and fairness to buyers, approved ads cannot be edited.
+                </p>
+                <div style={{
+                  background: '#fef3c7',
+                  border: '1px solid #fbbf24',
+                  borderRadius: '8px',
+                  padding: '1rem'
+                }}>
+                  <p style={{ fontSize: '0.8125rem', color: '#78350f', margin: 0 }}>
+                    <strong>Need to make changes?</strong> You have these options:<br/>
+                    • Contact our support team if you need to update critical information<br/>
+                    • Mark this ad as sold and create a new listing with updated details
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (

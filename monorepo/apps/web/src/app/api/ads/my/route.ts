@@ -75,7 +75,10 @@ export async function GET(request: NextRequest) {
       isBumped: ad.is_bumped,
       isSticky: ad.is_sticky,
       isUrgent: ad.is_urgent,
+      // Support both snake_case and camelCase for compatibility
+      created_at: ad.created_at,
       createdAt: ad.created_at,
+      updated_at: ad.updated_at,
       updatedAt: ad.updated_at,
       slug: ad.slug,
       categoryId: ad.categories?.id,

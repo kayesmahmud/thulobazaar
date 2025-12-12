@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // URL now configured via adapter in client.ts (Prisma 7 change)
 }
 
 model ad_images {
@@ -67,6 +66,24 @@ model ad_reports {
   @@index([created_at(sort: Desc)], map: "idx_ad_reports_created_at")
   @@index([reporter_id], map: "idx_ad_reports_reporter_id")
   @@index([status], map: "idx_ad_reports_status")
+}
+
+/// Ad review history - tracks all status changes for ads
+model ad_review_history {
+  id         Int       @id @default(autoincrement())
+  ad_id      Int
+  action     String    @db.VarChar(50)
+  actor_id   Int
+  actor_type String    @db.VarChar(20)
+  reason     String?   @db.Text
+  notes      String?   @db.Text
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  ads        ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [actor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ad_id], map: "idx_ad_review_history_ad_id")
+  @@index([created_at(sort: Desc)], map: "idx_ad_review_history_created_at")
+  @@index([action], map: "idx_ad_review_history_action")
 }
 
 /// Phone OTPs - for phone number verification
@@ -154,6 +171,7 @@ model ads {
   deleted_at                   DateTime?          @db.Timestamp(6)
   deleted_by                   Int?
   deletion_reason              String?
+  suspended_until              DateTime?          @db.Timestamp(6)
   is_bumped                    Boolean?           @default(false)
   bump_expires_at              DateTime?          @db.Timestamp(6)
   is_sticky                    Boolean?           @default(false)
@@ -171,6 +189,7 @@ model ads {
   ad_images                    ad_images[]
   ad_promotions                ad_promotions[]
   ad_reports                   ad_reports[]
+  ad_review_history            ad_review_history[]
   categories                   categories?        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_ads_deleted_byTousers  users?             @relation("ads_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   locations                    locations?         @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -435,9 +454,6 @@ model users {
   verified_seller_name                                                                 String?                            @db.VarChar(255)
   individual_verification_expires_at                                                   DateTime?                          @db.Timestamp(6)
   business_verification_expires_at                                                     DateTime?                          @db.Timestamp(6)
-  latitude                                                                             Decimal?                           @db.Decimal(10, 8)
-  longitude                                                                            Decimal?                           @db.Decimal(11, 8)
-  formatted_address                                                                    String?
   google_maps_link                                                                     String?
   last_login                                                                           DateTime?                          @db.Timestamp(6)
   two_factor_enabled                                                                   Boolean?                           @default(false)
@@ -448,6 +464,7 @@ model users {
   oauth_provider_id                                                                    String?                            @db.VarChar(255)
   ad_promotions                                                                        ad_promotions[]
   ad_reports                                                                           ad_reports[]
+  ad_review_history                                                                    ad_review_history[]
   admin_activity_logs                                                                  admin_activity_logs[]
   ads_ads_deleted_byTousers                                                            ads[]                              @relation("ads_deleted_byTousers")
   ads_ads_reviewed_byTousers                                                           ads[]                              @relation("ads_reviewed_byTousers")
@@ -485,7 +502,6 @@ model users {
   shop_reports_as_reporter                                                             shop_reports[]                     @relation("shop_reports_reporter")
   shop_reports_as_resolver                                                             shop_reports[]                     @relation("shop_reports_resolver")
 
-  @@index([latitude, longitude], map: "idx_users_coordinates")
   @@index([location_id], map: "idx_users_location_id")
   @@index([role], map: "idx_users_role")
 }

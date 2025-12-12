@@ -167,6 +167,14 @@ export function useVerificationForm<T>(
       submitData.append('payment_status', 'pending');
       submitData.append('duration_days', durationDays.toString());
 
+      console.log('🚀 Submitting verification request:', {
+        endpoint,
+        price,
+        durationDays,
+        paymentType,
+        selectedPaymentMethod,
+      });
+
       // Step 1: Submit verification form
       const verificationResponse = await fetch(endpoint, {
         method: 'POST',
@@ -176,8 +184,17 @@ export function useVerificationForm<T>(
 
       const verificationData = await verificationResponse.json();
 
+      console.log('🔍 Verification API Response:', {
+        status: verificationResponse.status,
+        success: verificationData.success,
+        message: verificationData.message,
+        data: verificationData.data,
+        error: verificationData.error,
+      });
+
       if (!verificationData.success) {
-        throw new Error(verificationData.message || 'Failed to submit verification');
+        console.error('❌ Verification failed:', verificationData.message || verificationData.error);
+        throw new Error(verificationData.message || verificationData.error || 'Failed to submit verification');
       }
 
       const verificationRequestId = verificationData.data.requestId;

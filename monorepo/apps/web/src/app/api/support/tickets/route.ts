@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       select: { role: true },
     });
 
-    const isStaff = user?.role === 'editor' || user?.role === 'super_admin' || user?.role === 'root';
+    const isStaff = user?.role === 'editor' || user?.role === 'super_admin';
 
     // Build where clause
     const where: any = {};

@@ -39,7 +39,9 @@ export function UserAvatar({
     if (!fullName) return '?';
     const names = fullName.trim().split(' ');
     if (names.length >= 2) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      const first = names[0]?.[0] ?? '';
+      const last = names[names.length - 1]?.[0] ?? '';
+      return `${first}${last}`.toUpperCase();
     }
     return fullName.substring(0, 2).toUpperCase();
   };
@@ -75,8 +77,9 @@ export function UserAvatar({
 
   const imageUrl = getImageUrl(src);
   const initials = getInitials(name);
-  const sizeClass = sizeClasses[size] || sizeClasses.md;
-  const borderClass = showBorder ? `border-2 ${size === '2xl' ? 'border-4 sm:border-[5px]' : ''} ${borderClasses[borderColor]}` : '';
+  const defaultSize = { container: 'w-10 h-10', text: 'text-sm' };
+  const sizeClass = sizeClasses[size] ?? defaultSize;
+  const borderClass = showBorder ? `border-2 ${size === '2xl' ? 'border-4 sm:border-[5px]' : ''} ${borderClasses[borderColor] ?? ''}` : '';
 
   // Show fallback if no image or image failed to load
   if (!imageUrl || imageError) {

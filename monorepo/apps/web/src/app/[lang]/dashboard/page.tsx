@@ -22,6 +22,9 @@ interface Ad {
   slug: string;
   price: number;
   status: string;
+  actualStatus?: string;
+  isApproved?: boolean;
+  statusReason?: string;
   views: number;
   created_at: string;
 }
@@ -69,7 +72,7 @@ export default function DashboardPage() {
   const { data: session, status, update: updateSession } = useSession();
   const { success, error: showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'sold'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'rejected' | 'sold'>('active');
   const [userAds, setUserAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -212,10 +215,26 @@ export default function DashboardPage() {
     }
   };
 
+  const handleMarkAsSold = async (adId: number) => {
+    if (!confirm('Mark this ad as sold? It will be removed from active listings.')) {
+      return;
+    }
+
+    try {
+      await apiClient.markAdAsSold(adId);
+      success('Ad marked as sold successfully!');
+      // Reload data to reflect the change
+      loadUserData();
+    } catch (err: any) {
+      showError(err.message || 'Failed to mark ad as sold');
+    }
+  };
+
   // Filter ads based on active tab
   const filteredAds = userAds.filter(ad => {
     if (activeTab === 'active') return ad.status === 'active';
     if (activeTab === 'pending') return ad.status === 'pending';
+    if (activeTab === 'rejected') return ad.status === 'rejected';
     if (activeTab === 'sold') return ad.status === 'sold';
     return true;
   });
@@ -841,6 +860,21 @@ export default function DashboardPage() {
                 </span>
               </button>
               <button
+                onClick={() => setActiveTab('rejected')}
+                className={`group relative px-6 py-3 rounded-xl font-semibold cursor-pointer transition-all duration-300 ${
+                  activeTab === 'rejected'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Rejected ({userAds.filter(ad => ad.status === 'rejected').length})
+                </span>
+              </button>
+              <button
                 onClick={() => setActiveTab('sold')}
                 className={`group relative px-6 py-3 rounded-xl font-semibold cursor-pointer transition-all duration-300 ${
                   activeTab === 'sold'
@@ -912,6 +946,44 @@ export default function DashboardPage() {
                           <span>{ad.views || 0} views</span>
                         </div>
                       </div>
+                      {/* Rejection Reason - Enhanced */}
+                      {ad.status === 'rejected' && ad.statusReason && (
+                        <div className="mt-3 p-4 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <p className="text-sm font-bold text-red-900">❌ Ad Rejected</p>
+                                <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                                  Needs Attention
+                                </span>
+                              </div>
+                              <p className="text-sm font-semibold text-red-800 mb-1">Reason from editor:</p>
+                              <p className="text-sm text-red-700 bg-white/60 p-2 rounded border border-red-200">{ad.statusReason}</p>
+
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-start gap-2">
+                                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <div className="text-xs text-blue-800">
+                                    <p className="font-semibold mb-1">📝 Next Steps:</p>
+                                    <ol className="list-decimal ml-4 space-y-1">
+                                      <li>Fix the issues mentioned above</li>
+                                      <li>Click "Edit & Resubmit" below</li>
+                                      <li>Your ad will be automatically sent for review again</li>
+                                    </ol>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Price */}
@@ -936,24 +1008,61 @@ export default function DashboardPage() {
                           View
                         </Link>
                         <div className="flex gap-2">
-                          <Link
-                            href={`/${lang}/edit-ad/${ad.id}`}
-                            className="inline-flex items-center justify-center gap-1 py-2 px-3 bg-gray-100 text-gray-700 rounded-lg no-underline text-sm font-medium hover:bg-gray-200 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteAd(ad.id)}
-                            className="inline-flex items-center justify-center gap-1 py-2 px-3 bg-red-50 text-red-600 border-none rounded-lg cursor-pointer text-sm font-medium hover:bg-red-100 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </button>
+                          {/* Only show Edit button for non-approved ads */}
+                          {!ad.isApproved && (
+                            <Link
+                              href={`/${lang}/edit-ad/${ad.id}`}
+                              className={`inline-flex items-center justify-center gap-1 py-2 px-3 rounded-lg no-underline text-sm font-medium transition-colors ${
+                                ad.status === 'rejected'
+                                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-md'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                              title={ad.status === 'rejected' ? 'Fix issues and resubmit for review' : 'Edit this ad'}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              {ad.status === 'rejected' ? 'Edit & Resubmit' : 'Edit'}
+                            </Link>
+                          )}
+                          {/* Show Mark as Sold and Delete buttons for approved ads */}
+                          {ad.isApproved && (
+                            <>
+                              <button
+                                onClick={() => handleMarkAsSold(ad.id)}
+                                className="inline-flex items-center justify-center gap-1 py-2 px-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white border-none rounded-lg cursor-pointer text-sm font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
+                                title="Mark this ad as sold"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Mark as Sold
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAd(ad.id)}
+                                className="inline-flex items-center justify-center gap-1 py-2 px-3 bg-red-50 text-red-600 border border-red-200 rounded-lg cursor-pointer text-sm font-medium hover:bg-red-100 transition-colors"
+                                title="Delete this ad"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete
+                              </button>
+                            </>
+                          )}
+                          {/* Show only Delete button for non-approved ads */}
+                          {!ad.isApproved && (
+                            <button
+                              onClick={() => handleDeleteAd(ad.id)}
+                              className="inline-flex items-center justify-center gap-1 py-2 px-3 bg-red-50 text-red-600 border-none rounded-lg cursor-pointer text-sm font-medium hover:bg-red-100 transition-colors"
+                              title="Delete this ad"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -980,7 +1089,7 @@ export default function DashboardPage() {
               setShowResubmitModal(false);
               setResubmitType(null);
             }}
-            durationDays={verificationStatus?.individualVerification?.request?.durationDays || 365}
+            durationDays={(verificationStatus?.individualVerification?.request as any)?.durationDays || 365}
             price={0}
             isFreeVerification={true}
             isResubmission={true}
@@ -997,7 +1106,7 @@ export default function DashboardPage() {
               setShowResubmitModal(false);
               setResubmitType(null);
             }}
-            durationDays={verificationStatus?.businessVerification?.request?.durationDays || 365}
+            durationDays={(verificationStatus?.businessVerification?.request as any)?.durationDays || 365}
             price={0}
             isFreeVerification={true}
             isResubmission={true}

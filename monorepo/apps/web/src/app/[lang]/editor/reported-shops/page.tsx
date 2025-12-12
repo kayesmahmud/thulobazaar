@@ -203,7 +203,8 @@ export default function ReportedShopsPage({ params: paramsPromise }: { params: P
   };
 
   const getReasonBadge = (reason: string) => {
-    const reasonInfo = REASON_LABELS[reason.toLowerCase()] || REASON_LABELS.other;
+    const defaultReason = { label: 'Other', icon: '📝', color: 'gray' };
+    const reasonInfo = REASON_LABELS[reason.toLowerCase()] ?? defaultReason;
     const colorClasses: Record<string, string> = {
       red: 'bg-red-100 text-red-800 border-red-200',
       orange: 'bg-orange-100 text-orange-800 border-orange-200',

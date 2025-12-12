@@ -50,7 +50,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
   useEffect(() => {
     const urlError = searchParams.get('error');
     if (urlError) {
-      setError(oauthErrorMessages[urlError] || oauthErrorMessages.Default);
+      setError(oauthErrorMessages[urlError] || oauthErrorMessages.Default || 'Authentication failed. Please try again.');
     }
   }, [searchParams]);
 

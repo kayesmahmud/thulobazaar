@@ -18,6 +18,7 @@ import {
   type AdsSortBy,
 } from '@/lib/adsQueryBuilder';
 import { getRootCategoriesWithChildren } from '@/lib/categories';
+import { SearchX } from 'lucide-react';
 
 interface SearchPageProps {
   params: Promise<{ lang: string }>;
@@ -208,7 +209,9 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
             {/* No Results */}
             {ads.length === 0 && (
               <div className="card text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
+                <div className="mb-4 flex justify-center">
+                  <SearchX size={64} className="text-gray-400" strokeWidth={1.5} />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No ads found</h3>
                 <p className="text-gray-500 mb-4">
                   Try adjusting your filters or search query

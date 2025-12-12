@@ -2,6 +2,34 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Megaphone,
+  Users,
+  UserCog,
+  DollarSign,
+  CheckCircle,
+  Coins,
+  Bell,
+  Star,
+  TrendingUp,
+  Crown,
+  Monitor,
+  Shield,
+  Tag,
+  MapPin,
+  Settings,
+  ClipboardList,
+  Building2,
+  UserCheck,
+  Home,
+  Flag,
+  Store,
+  BadgeCheck,
+  MessageCircle,
+  FileText,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface NavItem {
   href: string;
@@ -25,6 +53,35 @@ interface SidebarProps {
   navSections: NavSection[];
   theme?: 'superadmin' | 'editor';
 }
+
+// Icon mapping for navigation items
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Megaphone,
+  Users,
+  UserCog,
+  DollarSign,
+  CheckCircle,
+  Coins,
+  Bell,
+  Star,
+  TrendingUp,
+  Crown,
+  Monitor,
+  Shield,
+  Tag,
+  MapPin,
+  Settings,
+  ClipboardList,
+  Building2,
+  UserCheck,
+  Home,
+  Flag,
+  Store,
+  BadgeCheck,
+  MessageCircle,
+  FileText,
+};
 
 export function Sidebar({
   lang,
@@ -113,12 +170,19 @@ export function Sidebar({
                     {/* Icon */}
                     <span
                       className={`
-                        text-2xl w-6 text-center flex-shrink-0
+                        flex items-center justify-center w-6 flex-shrink-0
                         transition-transform duration-200
                         ${isActive ? '' : 'group-hover:scale-110'}
                       `}
                     >
-                      {item.icon}
+                      {(() => {
+                        const IconComponent = iconMap[item.icon];
+                        if (IconComponent) {
+                          return <IconComponent size={20} strokeWidth={2} />;
+                        }
+                        // Fallback to emoji if icon not found in map
+                        return <span className="text-2xl text-center">{item.icon}</span>;
+                      })()}
                     </span>
 
                     {!isCollapsed && (

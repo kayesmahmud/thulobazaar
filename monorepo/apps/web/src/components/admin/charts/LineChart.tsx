@@ -32,6 +32,7 @@ interface LineChartProps {
   color?: string;
   fillColor?: string;
   height?: number;
+  loading?: boolean;
 }
 
 export function LineChart({
@@ -41,7 +42,15 @@ export function LineChart({
   color = '#ff6b35',
   fillColor = 'rgba(255, 107, 53, 0.1)',
   height = 250,
+  loading = false,
 }: LineChartProps) {
+  if (loading) {
+    return (
+      <div style={{ height: `${height}px` }} className="flex items-center justify-center bg-gray-50 rounded-lg animate-pulse">
+        <div className="text-gray-400 text-sm">Loading chart...</div>
+      </div>
+    );
+  }
   const chartData = {
     labels,
     datasets: [

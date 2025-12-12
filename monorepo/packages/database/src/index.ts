@@ -1,5 +1,5 @@
-// Export Prisma Client instance
-export { prisma } from './client';
+// Export Prisma Client instance and health check
+export { prisma, checkDatabaseHealth } from './client';
 
 // Re-export Prisma types for convenience
 export type {

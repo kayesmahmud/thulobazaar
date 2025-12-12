@@ -5,6 +5,7 @@ import { cache } from 'react';
 import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
 import { notFound } from 'next/navigation';
+import { MapPin } from 'lucide-react';
 import AdDetailClient from './AdDetailClient';
 import PromoteSection from './PromoteSection';
 import Breadcrumb from '@/components/Breadcrumb';
@@ -23,7 +24,8 @@ const getAdBySlug = cache(async (slug: string) => {
   return prisma.ads.findFirst({
     where: {
       slug,
-      status: 'approved',
+      // Allow viewing any status for editors to preview pending ads
+      // status: 'approved', // Removed - editors need to view pending ads
       deleted_at: null,
     },
     include: {
@@ -67,6 +69,14 @@ const getAdBySlug = cache(async (slug: string) => {
                   id: true,
                   name: true,
                   type: true,
+                  locations: {
+                    // 4th level for Province
+                    select: {
+                      id: true,
+                      name: true,
+                      type: true,
+                    },
+                  },
                 },
               },
             },
@@ -178,12 +188,17 @@ export default async function AdDetailPage({
     ? conditionMap[ad.condition] || ad.condition
     : 'Not specified';
 
-  // Build full location string (Province › District › Municipality)
+  // Build full location string in correct hierarchy: Area → Municipality → District → Province
   const locationParts = [];
-  if (ad.locations?.locations?.locations?.name) locationParts.push(ad.locations.locations.locations.name);
-  if (ad.locations?.locations?.name) locationParts.push(ad.locations.locations.name);
+  // Level 3: Area (most specific)
   if (ad.locations?.name) locationParts.push(ad.locations.name);
-  const fullLocation = locationParts.join(' › ');
+  // Level 2: Municipality/Metro City
+  if (ad.locations?.locations?.name) locationParts.push(ad.locations.locations.name);
+  // Level 1: District
+  if (ad.locations?.locations?.locations?.name) locationParts.push(ad.locations.locations.locations.name);
+  // Level 0: Province (least specific)
+  if (ad.locations?.locations?.locations?.locations?.name) locationParts.push(ad.locations.locations.locations.locations.name);
+  const fullLocation = locationParts.join(', ');
 
   // Build full category string (Parent › Child)
   const categoryParts = [];
@@ -444,14 +459,18 @@ export default async function AdDetailPage({
                     alignItems: 'center',
                     gap: '0.5rem'
                   }}>
-                    <span style={{ fontSize: '1.25rem' }}>📌</span>
+                    <MapPin
+                      size={24}
+                      className="text-red-500 flex-shrink-0"
+                      strokeWidth={2}
+                    />
                     <div>
                       <div style={{
                         fontSize: '1rem',
                         fontWeight: '600',
                         color: '#1f2937'
                       }}>
-                        {fullLocation.replace(/› /g, ', ')}
+                        {fullLocation}
                       </div>
                       {ad.locations?.type && (
                         <div style={{

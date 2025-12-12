@@ -289,11 +289,15 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('📥 Next.js POST /api/ads - Request received');
+
     // Authenticate user
     const userId = await requireAuth(request);
+    console.log('✅ Auth successful, userId:', userId);
 
     // Parse FormData
     const formData = await request.formData();
+    console.log('✅ FormData parsed, keys:', Array.from(formData.keys()));
 
     // Extract basic fields
     const title = formData.get('title')?.toString();
@@ -407,8 +411,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate unique slug
-    const slug = await generateSlug(title);
+    // Generate unique SEO-friendly slug with location
+    const slug = await generateSlug(title, locationId);
 
     // Prepare custom_fields JSON
     const customFieldsData = {
@@ -450,6 +454,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create ad in database
+    console.log('📝 Creating ad with data:', {
+      title,
+      categoryId,
+      locationId,
+      condition,
+      userId,
+      imageCount: processedImages.length,
+    });
+
     const ad = await prisma.ads.create({
       data: {
         title,
@@ -463,7 +476,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         slug,
         custom_fields: customFieldsData,
-        status: 'approved', // Auto-approve for now
+        status: 'pending', // ✅ Go to editor dashboard for review
       },
     });
 
@@ -556,7 +569,10 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Ad creation error:', error);
+    console.error('❌ Ad creation error:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error name:', error.name);
 
     // Check for authentication errors
     if (error.message === 'Unauthorized') {
@@ -571,6 +587,8 @@ export async function POST(request: NextRequest) {
         success: false,
         message: 'Failed to create ad',
         error: error.message,
+        errorName: error.name,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       },
       { status: 500 }
     );

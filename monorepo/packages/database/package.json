@@ -9,7 +9,12 @@
     "db:pull": "prisma db pull",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "tsx src/seed.ts"
+    "db:seed": "tsx src/seed.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:check-drift": "./scripts/check-schema-drift.sh",
+    "db:init-migrations": "./scripts/init-migrations.sh"
   },
   "devDependencies": {
     "@prisma/client": "^7.0.1",

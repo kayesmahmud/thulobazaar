@@ -105,3 +105,34 @@ export const requireRegularUser = (
   }
   next();
 };
+
+/**
+ * Require editor, admin, or super_admin role
+ */
+export const requireEditorOrAdmin = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  const role = req.user?.role;
+  if (role !== 'editor' && role !== 'admin' && role !== 'super_admin') {
+    next(new AuthenticationError('Editor or admin access required'));
+    return;
+  }
+  next();
+};
+
+/**
+ * Require super_admin role only
+ */
+export const requireSuperAdmin = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  if (req.user?.role !== 'super_admin') {
+    next(new AuthenticationError('Super admin access required'));
+    return;
+  }
+  next();
+};

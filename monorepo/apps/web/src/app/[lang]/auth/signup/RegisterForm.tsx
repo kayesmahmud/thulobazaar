@@ -46,6 +46,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
       const timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [otpCooldown]);
 
   // OTP expiry timer
@@ -54,6 +55,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
       const timer = setTimeout(() => setOtpExpiry(otpExpiry - 1), 1000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [otpExpiry]);
 
   // Redirect if already logged in
