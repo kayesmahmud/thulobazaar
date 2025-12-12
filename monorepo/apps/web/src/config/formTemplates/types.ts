@@ -58,3 +58,30 @@ export type FormTemplates = Record<TemplateName, FormTemplate>;
 
 // Category to template mapping type
 export type CategoryTemplateMap = Record<string, TemplateName>;
+
+/**
+ * Subcategory Configuration Types
+ */
+
+// Field override - customize specific properties of a base field
+export interface FieldOverride {
+  placeholder?: string;
+  options?: string[];
+  required?: boolean;
+  label?: string;
+}
+
+// Field reference with optional overrides
+export interface FieldRef {
+  field: FormField;
+  override?: FieldOverride;
+}
+
+// Subcategory configuration
+export interface SubcategoryConfig {
+  name: string;
+  fields: FieldRef[];
+}
+
+// Map of subcategory name to its config
+export type SubcategoryConfigMap = Record<string, SubcategoryConfig>;

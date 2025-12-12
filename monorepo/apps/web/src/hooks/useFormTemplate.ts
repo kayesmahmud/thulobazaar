@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { FORM_TEMPLATES, getApplicableFields } from '@/config/formTemplates';
+import { getFieldsForSubcategory, hasSubcategoryConfig } from '@/config/formTemplates/subcategories';
 import type { FormField, TemplateName } from '@/config/formTemplates';
 
 interface Category {
@@ -44,9 +45,18 @@ export function useFormTemplate(
   }, [templateType]);
 
   // Get applicable fields for the selected subcategory
+  // Priority: 1) Subcategory-specific config, 2) Template-based filtering
   const applicableFields = useMemo<FormField[]>(() => {
-    if (!template || !selectedSubcategory) return [];
+    if (!selectedSubcategory) return [];
 
+    // First, check if there's a subcategory-specific configuration
+    // This allows us to define exact fields with custom placeholders/options per subcategory
+    if (hasSubcategoryConfig(selectedSubcategory.name)) {
+      return getFieldsForSubcategory(selectedSubcategory.name);
+    }
+
+    // Fall back to template-based filtering for subcategories without specific configs
+    if (!template) return [];
     return getApplicableFields(templateType || 'general', selectedSubcategory.name);
   }, [template, selectedSubcategory, templateType]);
 

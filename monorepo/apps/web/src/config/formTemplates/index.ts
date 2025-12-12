@@ -32,6 +32,11 @@ export type {
   TemplateName,
   FormTemplates,
   CategoryTemplateMap,
+  // Subcategory config types
+  FieldOverride,
+  FieldRef,
+  SubcategoryConfig,
+  SubcategoryConfigMap,
 } from './types';
 
 // Templates
@@ -98,3 +103,12 @@ export {
   createColorField,
   createWarrantyField,
 } from './sharedFields';
+
+// Subcategory configurations
+export {
+  SUBCATEGORY_CONFIGS,
+  getSubcategoryConfig,
+  getFieldsForSubcategory,
+  hasSubcategoryConfig,
+  getAllConfiguredSubcategories,
+} from './subcategories';
