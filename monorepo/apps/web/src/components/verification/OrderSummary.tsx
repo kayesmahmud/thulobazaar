@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDurationLabel } from '@/lib/verificationUtils';
+import { formatDurationLabel } from '@/lib/verification';
 
 export type VerificationType = 'individual' | 'business';
 

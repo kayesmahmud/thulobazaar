@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getUsers, suspendUser, unsuspendUser } from '@/lib/editorApi';
-import { getEditorNavSections } from '@/lib/editorNavigation';
+import { getEditorNavSections } from '@/lib/navigation';
 
 interface User {
   id: number;

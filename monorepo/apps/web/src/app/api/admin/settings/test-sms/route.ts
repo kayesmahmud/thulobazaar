@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperAdmin } from '@/lib/jwt';
-import { sendNotificationSms } from '@/lib/aakashSms';
+import { requireSuperAdmin } from '@/lib/auth';
+import { sendNotificationSms } from '@/lib/sms';
 
 /**
  * POST /api/admin/settings/test-sms

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireAuth } from '@/lib/jwt';
+import { requireAuth } from '@/lib/auth';
 
 // Generate unique ticket number
 function generateTicketNumber(): string {

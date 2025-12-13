@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
-import { messagingApi } from '@/lib/messagingApi';
-import { useToast } from '@/components/Toast';
+import { messagingApi } from '@/lib/messaging';
+import { useToast } from '@/components/ui';
 import { useBackendToken } from '@/hooks/useBackendToken';
 import { useMessages } from '@/hooks/useSocket';
 import type { Ad, DashboardStats, VerificationStatus, AdTab } from '../types';

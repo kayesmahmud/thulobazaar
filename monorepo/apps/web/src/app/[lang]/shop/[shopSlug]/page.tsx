@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ShopProfileClient from './ShopProfileClient';
 import ShopSidebar from './ShopSidebar';
 import ShopEmptyState from './ShopEmptyState';
-import AdCard from '@/components/AdCard';
+import { AdCard } from '@/components/ads';
 import { getShopProfile, buildShopMetadata } from '@/lib/shops';
 
 interface ShopProfilePageProps {

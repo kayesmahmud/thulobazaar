@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { typesenseClient, COLLECTION_NAME, buildFilterQuery } from '@/lib/typesense';
+import { typesenseClient, COLLECTION_NAME, buildFilterQuery } from '@/lib/search';
 
 /**
  * GET /api/search

@@ -10,7 +10,7 @@ import {
 } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getEditorStats, getPendingVerifications, getAds, getMyWorkToday, getEditorProfile, getReportedAdsCount, getNotificationsCount, getSystemAlerts, getAvgResponseTime, getTrends, getSupportChatCount, getAvgResponseTimeTrend } from '@/lib/editorApi';
-import { getEditorNavSections } from '@/lib/editorNavigation';
+import { getEditorNavSections } from '@/lib/navigation';
 
 interface DashboardStats {
   totalAds: number;

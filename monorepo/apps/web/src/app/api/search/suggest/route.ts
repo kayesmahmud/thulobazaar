@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { typesenseClient, COLLECTION_NAME } from '@/lib/typesense';
+import { typesenseClient, COLLECTION_NAME } from '@/lib/search';
 
 /**
  * GET /api/search/suggest

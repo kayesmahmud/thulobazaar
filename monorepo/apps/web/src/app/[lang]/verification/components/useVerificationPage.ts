@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/components/ui';
 import type { VerificationStatus, VerificationPricing, PricingOption, VerificationType } from './types';
 
 export function useVerificationPage(lang: string) {

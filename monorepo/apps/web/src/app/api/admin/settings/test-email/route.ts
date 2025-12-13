@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperAdmin } from '@/lib/jwt';
+import { requireSuperAdmin } from '@/lib/auth';
 import nodemailer from 'nodemailer';
 
 /**

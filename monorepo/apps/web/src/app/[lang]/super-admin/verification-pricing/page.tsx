@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 
 interface VerificationPricing {
   id: number;

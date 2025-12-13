@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent } from 'react';
 import { Button } from '@/components/ui';
-import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import { PaymentMethodSelector } from '@/components/payment';
 import { useVerificationForm } from '@/hooks/useVerificationForm';
 import {
   VerificationModal,

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@thulobazaar/database';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
-import { formatPhoneNumber, validateNepaliPhone } from '@/lib/aakashSms';
+import { formatPhoneNumber, validateNepaliPhone } from '@/lib/sms';
 
 const updatePhoneSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),

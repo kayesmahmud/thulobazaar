@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { apiClient } from '@/lib/api';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 import { EditSuperAdminModal } from '@/components/admin/EditSuperAdminModal';
 
 interface SuperAdmin {

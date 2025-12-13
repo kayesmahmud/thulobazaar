@@ -5,7 +5,7 @@ import { prisma } from '@thulobazaar/database';
 import { notFound } from 'next/navigation';
 import AdDetailClient from './AdDetailClient';
 import PromoteSection from './PromoteSection';
-import Breadcrumb from '@/components/Breadcrumb';
+import { Breadcrumb } from '@/components/ui';
 import PromotionSuccessToast from './PromotionSuccessToast';
 import AdBanner from '@/components/ads/AdBanner';
 import {

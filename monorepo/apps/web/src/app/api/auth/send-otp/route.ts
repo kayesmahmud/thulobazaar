@@ -8,7 +8,7 @@ import {
   sendOtpSms,
   getOtpExpiry,
   type OtpPurpose,
-} from '@/lib/aakashSms';
+} from '@/lib/sms';
 
 const sendOtpSchema = z.object({
   phone: z.string().optional(),

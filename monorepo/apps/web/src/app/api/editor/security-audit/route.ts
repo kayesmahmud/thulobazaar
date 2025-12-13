@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireEditor } from '@/lib/jwt';
+import { requireEditor } from '@/lib/auth';
 
 /**
  * Temporary placeholder for security audit API.

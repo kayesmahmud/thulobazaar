@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { z } from 'zod';
-import { formatPhoneNumber } from '@/lib/aakashSms';
+import { formatPhoneNumber } from '@/lib/sms';
 
 const verifyOtpSchema = z.object({
   phone: z.string().optional(),

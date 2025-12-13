@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth';
+import { authOptions } from './authOptions';
 
 /**
  * Get the current session on the server side

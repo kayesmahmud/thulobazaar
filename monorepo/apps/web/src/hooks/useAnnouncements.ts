@@ -11,7 +11,7 @@ import type {
   Announcement,
   UseAnnouncementsReturn,
 } from '@/types/messaging';
-import { announcementsApi } from '@/lib/messagingApi';
+import { announcementsApi } from '@/lib/messaging';
 
 interface UseAnnouncementsOptions {
   /** Authentication token */

@@ -3,7 +3,7 @@
 import { SessionProvider } from 'next-auth/react';
 import { UserAuthProvider } from '@/contexts/UserAuthContext';
 import { StaffAuthProvider } from '@/contexts/StaffAuthContext';
-import { ToastProvider } from '@/components/Toast';
+import { ToastProvider } from '@/components/ui';
 import { ReactNode, useEffect } from 'react';
 import { initConsoleFilter } from '@/lib/utils/client';
 

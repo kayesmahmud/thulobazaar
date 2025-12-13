@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import ImageUpload from '@/components/ImageUpload';
+import { ImageUpload } from '@/components/forms';
 import DynamicFormFields from '@/components/post-ad/DynamicFormFields';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import { Button } from '@/components/ui';

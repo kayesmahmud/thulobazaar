@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { createToken } from '@/lib/jwt';
+import { createToken } from '@/lib/auth';
 
 /**
  * POST /api/auth/refresh-token

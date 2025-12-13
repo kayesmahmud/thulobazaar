@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { messagingApi } from '@/lib/messagingApi';
+import { messagingApi } from '@/lib/messaging';
 
 interface SendMessageButtonProps {
   sellerId: number;

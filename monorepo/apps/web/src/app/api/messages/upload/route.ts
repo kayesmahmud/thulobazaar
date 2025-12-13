@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { requireAuth } from '@/lib/jwt';
+import { requireAuth } from '@/lib/auth';
 
 // Constants
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

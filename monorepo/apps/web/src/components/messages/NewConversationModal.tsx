@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBackendToken } from '@/hooks/useBackendToken';
-import { messagingApi } from '@/lib/messagingApi';
+import { messagingApi } from '@/lib/messaging';
 
 interface User {
   id: number;

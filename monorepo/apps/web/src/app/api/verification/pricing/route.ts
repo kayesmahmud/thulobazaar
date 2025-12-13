@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { formatDurationLabel } from '@/lib/verificationUtils';
+import { formatDurationLabel } from '@/lib/verification';
 
 /**
  * GET /api/verification/pricing

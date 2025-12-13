@@ -6,9 +6,13 @@
  */
 
 import { prisma } from '@thulobazaar/database';
+import { slugify as slugifyUtil, generateSeoSlug } from './slug-utils';
 
 // Re-export client-safe functions for convenience in server code
-export { slugify, generateSeoSlug } from './slug-utils';
+export { slugifyUtil as slugify, generateSeoSlug };
+
+// Create local alias for use in this file
+const slugify = slugifyUtil;
 
 /**
  * Generate a unique SEO-friendly slug for an ad

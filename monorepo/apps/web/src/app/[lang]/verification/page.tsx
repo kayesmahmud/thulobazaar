@@ -1,8 +1,10 @@
 'use client';
 
 import { use } from 'react';
-import IndividualVerificationForm from '@/components/IndividualVerificationForm';
-import BusinessVerificationForm from '@/components/BusinessVerificationForm';
+import {
+  IndividualVerificationForm,
+  BusinessVerificationForm,
+} from '@/components/verification';
 import {
   useVerificationPage,
   HeroHeader,

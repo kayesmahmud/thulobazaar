@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireAuth } from '@/lib/jwt';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * POST /api/payments/mock/initiate

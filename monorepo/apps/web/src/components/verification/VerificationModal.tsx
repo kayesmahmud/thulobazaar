@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { formatDurationLabel } from '@/lib/verificationUtils';
+import { formatDurationLabel } from '@/lib/verification';
 import StepIndicator, { Step } from './StepIndicator';
 
 export type VerificationType = 'individual' | 'business';

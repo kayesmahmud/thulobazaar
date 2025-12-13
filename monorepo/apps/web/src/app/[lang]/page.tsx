@@ -2,9 +2,8 @@ import * as React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
-import AdCard from '@/components/AdCard';
+import { AdCard, AdBanner } from '@/components/ads';
 import HeroSearch from './HeroSearch';
-import AdBanner from '@/components/ads/AdBanner';
 
 interface HomePageProps {
   params: Promise<{ lang: string }>;

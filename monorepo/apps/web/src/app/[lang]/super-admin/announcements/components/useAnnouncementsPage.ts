@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 import type { Announcement, AnnouncementDetail, CreateFormData } from './types';
 
 const INITIAL_FORM: CreateFormData = {

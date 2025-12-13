@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useBackendToken } from '@/hooks/useBackendToken';
-import { messagingApi } from '@/lib/messagingApi';
+import { messagingApi } from '@/lib/messaging';
 
 interface ContactSellerButtonProps {
   sellerId: number;

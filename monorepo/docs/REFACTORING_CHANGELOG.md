@@ -320,3 +320,145 @@ SELECT id, ad_id, file_path FROM ad_images;
 | Fixed API routing | Editor API calls reach backend |
 | Fixed image URLs | Thumbnails load from correct path |
 | Removed ads-list | Cleaner navigation, no duplicate pages |
+
+---
+
+# Phase 2: Components & Additional Organization
+
+**Date:** December 13, 2025
+
+---
+
+## lib/ Additional Organization
+
+New folders created to organize remaining loose files:
+
+### New Folders Created
+
+| Folder | Contents | Purpose |
+|--------|----------|---------|
+| `lib/sms/` | `aakashSms.ts` | SMS gateway integration |
+| `lib/notifications/` | `notifications.ts` | User notification functions |
+| `lib/search/` | `typesense.ts` | Search indexing utilities |
+| `lib/messaging/` | `messagingApi.ts` | Messaging API client |
+| `lib/shops/` | `shops.ts` | Shop profile utilities |
+| `lib/promotion/` | `promotionService.ts` | Ad promotion services |
+| `lib/navigation/` | `editorNavigation.ts`, `superAdminNavigation.ts` | Navigation configs |
+| `lib/verification/` | `verificationUtils.ts` | Verification status helpers |
+| `lib/paymentGateways/` | `esewaService.ts`, `khaltiService.ts`, `mockPaymentService.ts` | Payment integrations |
+| `lib/auth/` | Split auth into `authOptions.ts`, `helpers.ts`, `jwt.ts`, `queries.ts`, `session.ts`, `staffApi.ts` | Auth modularization |
+
+### Index Files Created
+
+Each new folder has an `index.ts` barrel export file for clean imports:
+
+```typescript
+// Example: lib/sms/index.ts
+export {
+  sendOtpSms,
+  sendNotificationSms,
+  validateNepaliPhone,
+  formatPhoneNumber,
+  generateOtp,
+  getOtpExpiry,
+  type OtpPurpose,
+  type NotificationType,
+} from './aakashSms';
+```
+
+---
+
+## components/ Organization
+
+New folders created to organize component files:
+
+### New Folders Created
+
+| Folder | Components | Purpose |
+|--------|------------|---------|
+| `components/ui/` | Button, StatusBadge, Breadcrumb, Pagination, EmptyState, Toast, LoadingSkeletons, LazyImage | Reusable UI primitives |
+| `components/ads/` | AdCard, AdsFilter, RecentlyViewed, AdBanner, GoogleAdSense | Ad-related components |
+| `components/promotion/` | PromoteAdModal, PromotionBadge | Ad promotion UI |
+| `components/layout/` | Header | Layout components |
+| `components/payment/` | PaymentMethodSelector | Payment UI |
+| `components/forms/` | ImageUpload | Form components |
+| `components/verification/` | BusinessVerificationForm, IndividualVerificationForm, FormAlert, etc. | Verification forms |
+
+### Updated Index Files
+
+```typescript
+// components/ui/index.ts
+export { Button } from './Button';
+export { StatusBadge } from './StatusBadge';
+export { default as Breadcrumb } from './Breadcrumb';
+export { default as Pagination } from './Pagination';
+export { default as EmptyState, EmptyAds, EmptySearchResults, EmptyFavorites, EmptyMessages, EmptyNotifications, ErrorState } from './EmptyState';
+export { useToast, ToastProvider } from './Toast';
+export * from './LoadingSkeletons';
+export { default as LazyImage } from './LazyImage';
+```
+
+---
+
+## docs/ Organization
+
+Moved 72 markdown files from monorepo root to organized `docs/` folder:
+
+### Folder Structure
+
+```
+docs/
+├── guides/           # Development guides
+├── features/         # Feature documentation
+├── sessions/         # Session transcripts
+├── migrations/       # Database migration docs
+├── archive/          # Archived documentation
+└── REFACTORING_CHANGELOG.md
+```
+
+### Files Kept at Root
+
+- `README.md` - Project overview
+- `CLAUDE.md` - AI assistant instructions
+- `complete_claude_guide.md` - Full development guide
+
+---
+
+## Import Path Changes
+
+### Components
+
+| Old Import | New Import |
+|------------|------------|
+| `import Breadcrumb from '@/components/ui'` | `import { Breadcrumb } from '@/components/ui'` |
+| `import AdCard from '@/components/ads'` | `import { AdCard } from '@/components/ads'` |
+| `import Header from '../../components/Header'` | `import { Header } from '@/components/layout'` |
+| `import LazyImage from './LazyImage'` | `import { LazyImage } from '../ui'` |
+
+### Auth Module
+
+```typescript
+// lib/auth.ts now re-exports everything from lib/auth/
+export * from './auth/index';
+
+// lib/auth/index.ts barrel exports
+export { authOptions } from './authOptions';
+export { verifyToken, createToken, requireAuth, ... } from './jwt';
+export * from './session';
+```
+
+---
+
+## Bug Fixes During Refactoring
+
+1. **Circular dependency in auth** - Split `authOptions` to separate file to avoid session.ts import loop
+2. **Missing exports** - Added EmptyAds, EmptySearchResults to ui/index.ts exports
+3. **Default vs named exports** - Fixed components using default imports from barrel exports
+4. **Missing slugify import** - Fixed slug.ts to properly import from slug-utils.ts
+
+---
+
+## Pre-existing Issues Found (Not Fixed)
+
+- Type mismatch in `CategoryWithSubcategories` (subcategories missing `icon` property)
+- API project TypeScript errors (User type missing `role`, `userId` properties)

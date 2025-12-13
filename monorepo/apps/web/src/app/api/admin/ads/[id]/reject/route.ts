@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireEditor } from '@/lib/jwt';
+import { requireEditor } from '@/lib/auth';
 
 /**
  * PUT /api/admin/ads/:id/reject

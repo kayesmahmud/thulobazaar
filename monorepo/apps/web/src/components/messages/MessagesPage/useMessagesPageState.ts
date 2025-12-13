@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMessages } from '@/hooks/useSocket';
-import { messagingApi, announcementsApi } from '@/lib/messagingApi';
+import { messagingApi, announcementsApi } from '@/lib/messaging';
 import type { Announcement } from '@/types/messaging';
 import type { TabType } from './types';
 

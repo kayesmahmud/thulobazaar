@@ -1,3 +1,7 @@
+// Verification Form Components
+export { default as BusinessVerificationForm } from './BusinessVerificationForm';
+export { default as IndividualVerificationForm } from './IndividualVerificationForm';
+
 // Verification Shared Components
 export { default as FormAlert } from './FormAlert';
 export { default as FormTips } from './FormTips';

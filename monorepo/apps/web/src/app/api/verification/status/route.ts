@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireAuth } from '@/lib/jwt';
+import { requireAuth } from '@/lib/auth';
 import {
   isIndividualVerificationActive,
   isBusinessVerificationActive,
   getDaysUntilExpiry,
   isVerificationExpiringSoon,
-} from '@/lib/verificationUtils';
+} from '@/lib/verification';
 
 /**
  * GET /api/verification/status

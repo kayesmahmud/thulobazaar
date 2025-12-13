@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { apiClient } from '@/lib/api';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 
 interface UserRow {
   id: number;

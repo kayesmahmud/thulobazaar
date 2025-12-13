@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { apiClient } from '@/lib/api';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 
 export default function SecurityAuditPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
   const params = use(paramsPromise);

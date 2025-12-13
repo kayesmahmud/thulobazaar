@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import Pagination from '@/components/Pagination';
+import { Pagination } from '@/components/ui';
 
 interface AllAdsPaginationProps {
   currentPage: number;

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui';
-import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import { PaymentMethodSelector } from '@/components/payment';
 import type { PaymentGateway } from '@/lib/paymentGateways/types';
 
 interface PromoteAdModalProps {

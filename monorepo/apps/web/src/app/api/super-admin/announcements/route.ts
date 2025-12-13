@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireSuperAdmin } from '@/lib/jwt';
+import { requireSuperAdmin } from '@/lib/auth';
 
 const VALID_AUDIENCES = ['all_users', 'new_users', 'business_verified', 'individual_verified'] as const;
 type AudienceType = typeof VALID_AUDIENCES[number];

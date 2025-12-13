@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireSuperAdmin } from '@/lib/jwt';
+import { requireSuperAdmin } from '@/lib/auth';
 
 const REVENUE_STATUSES = ['verified', 'completed', 'paid', 'success', 'approved'];
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/components/ui';
 
 interface PromotionSuccessToastProps {
   promoted: boolean;

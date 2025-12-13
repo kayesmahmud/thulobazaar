@@ -1,6 +1,6 @@
 'use client';
 
-import { EmptyAds } from '@/components/EmptyState';
+import { EmptyAds } from '@/components/ui';
 import { AdItem } from './AdItem';
 import type { Ad, AdTab } from './types';
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireAdmin } from '@/lib/jwt';
+import { requireAdmin } from '@/lib/auth';
 
 /**
  * PUT /api/admin/users/:id/promote

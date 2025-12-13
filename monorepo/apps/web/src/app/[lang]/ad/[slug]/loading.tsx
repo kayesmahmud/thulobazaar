@@ -1,5 +1,3 @@
-import Breadcrumb from '@/components/Breadcrumb';
-
 export default function AdDetailLoading() {
   return (
     <div className="min-h-screen bg-gray-50">

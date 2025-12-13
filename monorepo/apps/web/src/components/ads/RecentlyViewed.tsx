@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import LazyImage from './LazyImage';
+import { LazyImage } from '../ui';
 import { recentlyViewedUtils, formatPrice, formatDateTime, type RecentlyViewedAd } from '@thulobazaar/utils';
 
 interface RecentlyViewedProps {

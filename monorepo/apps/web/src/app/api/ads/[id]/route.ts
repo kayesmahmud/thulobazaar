@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireAuth } from '@/lib/jwt';
+import { requireAuth } from '@/lib/auth';
 import { generateSlug } from '@/lib/urls';
 import { processMultipleImages, deleteImage } from '@/lib/utils';
-import { indexAd, removeAdFromIndex } from '@/lib/typesense';
+import { indexAd, removeAdFromIndex } from '@/lib/search';
 import { getLocationBreadcrumb } from '@/lib/location';
 import {
   transformAdToResponse,

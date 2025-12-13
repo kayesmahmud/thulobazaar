@@ -3,7 +3,7 @@ import { prisma } from '@thulobazaar/database';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { formatPhoneNumber, validateNepaliPhone } from '@/lib/aakashSms';
+import { formatPhoneNumber, validateNepaliPhone } from '@/lib/sms';
 
 const phoneLoginSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),

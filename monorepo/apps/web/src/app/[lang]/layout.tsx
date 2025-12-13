@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import Header from '../../components/Header';
+import { Header } from '@/components/layout';
 import GoogleAdSense from '@/components/ads/GoogleAdSense';
 
 const supportedLanguages = ['en', 'ne'] as const;

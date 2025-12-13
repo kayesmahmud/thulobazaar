@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import PromoteAdModal from '@/components/PromoteAdModal';
-import PromotionBadge from '@/components/PromotionBadge';
+import { PromoteAdModal, PromotionBadge } from '@/components/promotion';
 
 interface PromoteSectionProps {
   ad: {

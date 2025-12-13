@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { activatePromotion } from '@/lib/promotionService';
+import { activatePromotion } from '@/lib/promotion';
 
 /**
  * GET /api/mock-payment/success

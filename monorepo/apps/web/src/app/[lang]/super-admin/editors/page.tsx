@@ -7,7 +7,7 @@ import { CreateEditorModal } from '@/components/admin/editors/CreateEditorModal'
 import { EditEditorModal } from '@/components/admin/editors/EditEditorModal';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { apiClient } from '@/lib/api';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 
 interface Editor {
   id: number;

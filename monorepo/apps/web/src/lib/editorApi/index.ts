@@ -139,3 +139,8 @@ export {
   createEditor,
   updateEditor,
 } from './editors';
+
+// ============================================
+// Helper utilities
+// ============================================
+export { getBadgeClasses, getTimeAgo, getStatusBadgeVariant, getPriorityBadgeClasses, formatNumber, truncateText } from './editorHelpers';

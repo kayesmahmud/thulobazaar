@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 import { getSession } from 'next-auth/react';
 
 interface Category {

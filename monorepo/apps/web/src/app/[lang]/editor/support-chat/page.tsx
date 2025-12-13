@@ -3,7 +3,7 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
-import { getEditorNavSections } from '@/lib/editorNavigation';
+import { getEditorNavSections } from '@/lib/navigation';
 import {
   useSupportChatPage,
   StatsCards,

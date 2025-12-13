@@ -2,8 +2,10 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import IndividualVerificationForm from '@/components/IndividualVerificationForm';
-import BusinessVerificationForm from '@/components/BusinessVerificationForm';
+import {
+  IndividualVerificationForm,
+  BusinessVerificationForm,
+} from '@/components/verification';
 import {
   DashboardStats,
   VerificationBanner,

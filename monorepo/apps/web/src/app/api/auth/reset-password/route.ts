@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
-import { formatPhoneNumber } from '@/lib/aakashSms';
+import { formatPhoneNumber } from '@/lib/sms';
 
 const BCRYPT_SALT_ROUNDS = 12;
 

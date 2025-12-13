@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getAds } from '@/lib/editorApi';
-import { getEditorNavSections } from '@/lib/editorNavigation';
+import { getEditorNavSections } from '@/lib/navigation';
 import { useAdActions } from '@/hooks/useAdActions';
 import { RejectAdModal, SuspendAdModal, PermanentDeleteAdModal } from '@/components/editor';
 import { getStatusBadge, getAvailableActions } from '@/utils/editorUtils';

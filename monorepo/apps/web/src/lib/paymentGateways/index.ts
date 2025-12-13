@@ -6,6 +6,7 @@
 export * from './types';
 export * from './khalti';
 export * from './esewa';
+export * from './mockPaymentService';
 
 import type {
   PaymentGateway,

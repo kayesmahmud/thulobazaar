@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import { DashboardLayout } from '@/components/admin/DashboardLayout';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 import {
   useSettingsPage,
   SETTINGS_TABS,

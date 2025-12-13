@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { DashboardLayout } from '@/components/admin';
-import { getEditorNavSections } from '@/lib/editorNavigation';
+import { getEditorNavSections } from '@/lib/navigation';
 import { useEditorAuth } from '@/hooks/useEditorAuth';
 import {
   EditorLoadingScreen,
@@ -11,7 +11,7 @@ import {
   EditorModal,
   EditorEmptyState,
 } from '@/components/editor';
-import { getBadgeClasses } from '@/lib/editorHelpers';
+import { getBadgeClasses } from '@/lib/editorApi';
 
 interface Template {
   id: number;

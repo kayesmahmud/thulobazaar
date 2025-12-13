@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { createToken } from '@/lib/jwt';
+import { createToken } from '@/lib/auth';
 
 // Validation schema
 const loginSchema = z.object({

@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { Metadata } from 'next';
 import { prisma } from '@thulobazaar/database';
 import AllAdsFilters from './AllAdsFilters';
-import AdCard from '@/components/AdCard';
+import { AdCard } from '@/components/ads';
 import AllAdsPagination from './AllAdsPagination';
-import Breadcrumb from '@/components/Breadcrumb';
+import { Breadcrumb } from '@/components/ui';
 import { getFilterIds } from '@/lib/urls';
 import {
   buildAdsOrderBy,

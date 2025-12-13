@@ -10,7 +10,7 @@ import {
 import { LineChart, BarChart } from '@/components/admin/charts';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { apiClient } from '@/lib/api';
-import { getSuperAdminNavSections } from '@/lib/superAdminNavigation';
+import { getSuperAdminNavSections } from '@/lib/navigation';
 
 interface DashboardStats {
   totalUsers: number;
