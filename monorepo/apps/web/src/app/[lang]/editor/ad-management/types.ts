@@ -23,7 +23,6 @@ export type TabStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'del
 export const TAB_LIST: TabStatus[] = ['pending', 'approved', 'rejected', 'suspended', 'deleted', 'all'];
 
 // Transform API response (snake_case) to component format (camelCase)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function transformAd(ad: any): Ad {
   return {
     id: ad.id,

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 
 export default function EditorError({
@@ -24,12 +25,12 @@ export default function EditorError({
           >
             Try again
           </button>
-          <a
+          <Link
             href="/en/editor/dashboard"
             className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
           >
             Back to Dashboard
-          </a>
+          </Link>
         </div>
       </div>
     </div>

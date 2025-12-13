@@ -30,8 +30,8 @@ export function RejectionBanner({ rejectionReason }: RejectionBannerProps) {
                 <ol className="list-decimal ml-4 space-y-1">
                   <li>Fix the issues mentioned in the rejection reason above</li>
                   <li>Update your ad details in the form below</li>
-                  <li>Click "Update Ad" - your ad will automatically be resubmitted for review</li>
-                  <li>You'll receive a notification once the editor reviews it again</li>
+                  <li>Click &quot;Update Ad&quot; - your ad will automatically be resubmitted for review</li>
+                  <li>You&apos;ll receive a notification once the editor reviews it again</li>
                 </ol>
               </div>
             </div>
