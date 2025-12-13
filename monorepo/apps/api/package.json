@@ -1,6 +1,7 @@
 {
   "name": "api",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "description": "ThuluBazaar Express API Server",
   "main": "dist/index.js",

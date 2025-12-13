@@ -83,7 +83,12 @@ passport.use(
           console.log('🔐 [Passport] Existing user updated:', user.id);
         }
 
-        return done(null, user);
+        // Transform Prisma user to Express.User format
+        return done(null, {
+          userId: user.id,
+          email: user.email,
+          role: user.role || 'user',
+        });
       } catch (error) {
         console.error('🔐 [Passport] OAuth error:', error);
         return done(error, undefined);
@@ -92,14 +97,22 @@ passport.use(
   )
 );
 
-passport.serializeUser((user: any, done) => {
-  done(null, user.id);
+passport.serializeUser((user: Express.User, done) => {
+  done(null, user.userId);
 });
 
-passport.deserializeUser(async (id: string, done) => {
+passport.deserializeUser(async (id: number, done) => {
   try {
-    const user = await prisma.users.findUnique({ where: { id } });
-    done(null, user);
+    const dbUser = await prisma.users.findUnique({ where: { id } });
+    if (dbUser) {
+      done(null, {
+        userId: dbUser.id,
+        email: dbUser.email,
+        role: dbUser.role || 'user',
+      });
+    } else {
+      done(null, false);
+    }
   } catch (error) {
     done(error, null);
   }

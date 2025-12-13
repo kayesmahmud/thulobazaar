@@ -265,14 +265,14 @@ router.get(
   }),
   (req, res) => {
     // Generate JWT token for the authenticated user
-    const user = req.user as { id: string; email: string; role?: string };
+    const user = req.user;
 
     if (!user) {
       return res.redirect('http://localhost:3333/en/auth/signin?error=NoUser');
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role || 'USER' },
+      { userId: user.userId, email: user.email, role: user.role || 'user' },
       config.JWT_SECRET,
       { expiresIn: config.JWT_EXPIRES_IN } as jwt.SignOptions
     );
