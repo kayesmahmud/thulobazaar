@@ -1,205 +1,71 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import {
-  DashboardLayout,
-  StatsCard,
-  QuickActions,
-} from '@/components/admin';
-import { LineChart, BarChart } from '@/components/admin/charts';
-import { useStaffAuth } from '@/contexts/StaffAuthContext';
-import { apiClient } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { DashboardLayout, QuickActions } from '@/components/admin';
 import { getSuperAdminNavSections } from '@/lib/navigation';
-
-interface DashboardStats {
-  totalUsers: number;
-  totalAds: number;
-  activeAds: number;
-  pendingAds: number;
-  adsThisWeek: number;
-  usersThisWeek: number;
-}
+import { useDashboard } from './useDashboard';
+import {
+  DashboardHeader,
+  StatsGrid,
+  ChartsSection,
+  UserListSection,
+} from './components';
+import type { QuickAction } from './types';
 
 export default function SuperAdminDashboard() {
-  const params = useParams<{ lang: string }>();
-  const lang = params?.lang || 'en';
   const router = useRouter();
-  const { staff, isLoading: authLoading, isSuperAdmin, logout } = useStaffAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [chartLoading, setChartLoading] = useState(false);
-  const [users, setUsers] = useState<Array<{
-    id: number;
-    fullName: string;
-    email: string;
-    phone: string | null;
-    businessVerificationStatus: string | null;
-    individualVerified: boolean;
-  }>>([]);
-  const [userSearch, setUserSearch] = useState('');
-  const [userLoading, setUserLoading] = useState(false);
-  const [revenueRange, setRevenueRange] = useState<'7d' | '30d' | '90d'>('7d');
-  const [userRange, setUserRange] = useState<'7d' | '30d' | '90d'>('7d');
-  const [chartLabels, setChartLabels] = useState<string[]>([]);
-  const [revenueSeries, setRevenueSeries] = useState<number[]>([]);
-  const [userSeries, setUserSeries] = useState<number[]>([]);
-
-  const handleLogout = useCallback(async () => {
-    await logout();
-    router.push(`/${lang}/super-admin/login`);
-  }, [logout, router, lang]);
-
-  const loadDashboardData = useCallback(async () => {
-    try {
-      // Fetch stats from admin API
-      const statsResponse = await apiClient.getAdminStats();
-
-      if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data);
-      }
-
-      // Fetch users list (read-only)
-      setUserLoading(true);
-      const usersResponse = await apiClient.getAllUsers({ limit: 500 });
-      if (usersResponse.success && usersResponse.data) {
-        setUsers(
-          usersResponse.data.map((u: any) => ({
-            id: u.id,
-            fullName: u.full_name || u.fullName || '',
-            email: u.email || '',
-            phone: u.phone || null,
-            businessVerificationStatus: u.business_verification_status || u.businessVerificationStatus || null,
-            individualVerified: Boolean(u.individual_verified ?? u.individualVerified),
-          }))
-        );
-      }
-      setUserLoading(false);
-
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      setUserLoading(false);
-      setLoading(false);
-    }
-  }, []);
-
-  const loadCharts = useCallback(
-    async (range: '7d' | '30d' | '90d') => {
-      try {
-        setChartLoading(true);
-        const res = await fetch(`/api/admin/analytics?range=${range}`, {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.data) {
-            setChartLabels(data.data.labels || []);
-            setRevenueSeries(data.data.revenueSeries || []);
-            setUserSeries(data.data.userSeries || []);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load analytics charts:', error);
-      } finally {
-        setChartLoading(false);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) return;
-
-    // Check if user is authenticated and is a super admin
-    if (!staff || !isSuperAdmin) {
-      router.push(`/${lang}/super-admin/login`);
-      return;
-    }
-
-    // Only load data if user is authenticated with a backend token
-    if (staff && isSuperAdmin) {
-      loadDashboardData();
-      loadCharts(revenueRange);
-    }
-  }, [authLoading, staff, isSuperAdmin, lang, router, loadDashboardData, loadCharts, revenueRange]);
+  const {
+    lang,
+    staff,
+    handleLogout,
+    stats,
+    loading,
+    chartLabels,
+    revenueSeries,
+    userSeries,
+    chartLoading,
+    chartRange,
+    setChartRange,
+    users,
+    userLoading,
+    userSearch,
+    setUserSearch,
+    filteredUsers,
+  } = useDashboard();
 
   const navSections = getSuperAdminNavSections(lang, {
     pendingAds: stats?.pendingAds || 0,
   });
 
-  const quickActions = [
+  const quickActions: QuickAction[] = [
     {
       icon: '📢',
       label: 'Review Pending Ads',
-      color: 'primary' as const,
+      color: 'primary',
       badge: stats?.pendingAds || 0,
       onClick: () => router.push(`/${lang}/super-admin/ads?status=pending`),
     },
     {
       icon: '✓',
       label: 'Verify Sellers',
-      color: 'success' as const,
+      color: 'success',
       onClick: () => router.push(`/${lang}/super-admin/verifications`),
     },
     {
       icon: '📊',
       label: 'Analytics',
-      color: 'warning' as const,
+      color: 'warning',
       onClick: () => router.push(`/${lang}/super-admin/analytics`),
     },
     {
       icon: '⚙️',
       label: 'System Settings',
-      color: 'gray' as const,
+      color: 'gray',
       onClick: () => router.push(`/${lang}/super-admin/settings`),
     },
   ];
 
-  const filteredUsers = users.filter((u) => {
-    if (!userSearch) return true;
-    const q = userSearch.toLowerCase();
-    return (
-      u.fullName.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      (u.phone || '').toLowerCase().includes(q)
-    );
-  });
-
-  const getStatusLabel = (user: (typeof users)[number]) => {
-    if (user.businessVerificationStatus && ['approved', 'verified'].includes(user.businessVerificationStatus)) {
-      return 'Business Verified';
-    }
-    if (user.individualVerified) {
-      return 'Individual Verified';
-    }
-    return 'Regular';
-  };
-
-  const exportColumn = (field: 'email' | 'phone') => {
-    const uniqueValues = Array.from(
-      new Set(
-        filteredUsers
-          .map((u) => (u[field] || '').trim())
-          .filter((v) => v)
-      )
-    );
-
-    const header = field === 'email' ? 'email' : 'phone';
-    const csv = [header, ...uniqueValues].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${field}-list.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
         <div className="text-center">
@@ -227,153 +93,20 @@ export default function SuperAdminDashboard() {
       theme="superadmin"
       onLogout={handleLogout}
     >
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Super Admin Dashboard
-            </h1>
-            <p className="text-gray-600 text-lg">
-              Welcome back, <span className="font-semibold text-indigo-600">{staff?.fullName}</span>! Here&apos;s your complete system overview.
-            </p>
-          </div>
-          <button
-            onClick={() => router.push(`/${lang}/super-admin/analytics`)}
-            className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 hover:scale-105 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span>View Analytics</span>
-          </button>
-        </div>
-      </div>
+      <DashboardHeader lang={lang} staffName={staff?.fullName} />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Total Users"
-          value={(stats?.totalUsers ?? 0).toLocaleString()}
-          icon="👥"
-          color="primary"
-          theme="superadmin"
-          trend={{
-            value: stats?.usersThisWeek ? `+${stats.usersThisWeek}` : '0',
-            isPositive: true,
-            label: 'this week',
-          }}
-        />
-        <StatsCard
-          title="Active Ads"
-          value={(stats?.activeAds ?? 0).toLocaleString()}
-          icon="📢"
-          color="success"
-          theme="superadmin"
-          trend={{
-            value: stats?.adsThisWeek ? `+${stats.adsThisWeek}` : '0',
-            isPositive: true,
-            label: 'this week',
-          }}
-        />
-        <StatsCard
-          title="Pending Ads"
-          value={(stats?.pendingAds ?? 0).toLocaleString()}
-          icon="⏳"
-          color="warning"
-          theme="superadmin"
-          trend={{
-            value: 'Requires attention',
-            isPositive: false,
-            label: '',
-          }}
-        />
-        <StatsCard
-          title="Total Ads"
-          value={(stats?.totalAds ?? 0).toLocaleString()}
-          icon="📊"
-          color="primary"
-          theme="superadmin"
-          trend={{
-            value: 'All time',
-            isPositive: true,
-            label: '',
-          }}
-        />
-      </div>
+      <StatsGrid stats={stats} />
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 p-6 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <span className="text-white text-xl">💰</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Revenue Analytics</h3>
-            </div>
-            <select
-              value={revenueRange}
-              onChange={(e) => {
-                const val = e.target.value as '7d' | '30d' | '90d';
-                setRevenueRange(val);
-                setUserRange(val);
-                loadCharts(val);
-              }}
-              className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </select>
-          </div>
-          <LineChart
-            labels={chartLabels}
-            data={revenueSeries}
-            label="Revenue (NPR)"
-            color="#6366f1"
-            fillColor="rgba(99, 102, 241, 0.1)"
-            height={250}
-            loading={chartLoading}
-          />
-        </div>
+      <ChartsSection
+        chartLabels={chartLabels}
+        revenueSeries={revenueSeries}
+        userSeries={userSeries}
+        chartLoading={chartLoading}
+        chartRange={chartRange}
+        onRangeChange={setChartRange}
+      />
 
-        <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 p-6 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <span className="text-white text-xl">📈</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">User Growth</h3>
-            </div>
-            <select
-              value={userRange}
-              onChange={(e) => {
-                const val = e.target.value as '7d' | '30d' | '90d';
-                setRevenueRange(val);
-                setUserRange(val);
-                loadCharts(val);
-              }}
-              className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </select>
-          </div>
-          <BarChart
-            labels={chartLabels}
-            data={userSeries}
-            label="New Users"
-            color="#6366f1"
-            hoverColor="#4f46e5"
-            height={250}
-            loading={chartLoading}
-          />
-        </div>
-      </div>
-
-      {/* Quick Actions Section */}
+      {/* Quick Actions */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
@@ -382,90 +115,13 @@ export default function SuperAdminDashboard() {
         <QuickActions actions={quickActions} theme="superadmin" />
       </div>
 
-      {/* User List (Read-only) */}
-      <div id="users" className="mt-10 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">User List (Read-only)</h2>
-            <p className="text-sm text-gray-500">View all users and export emails/phones</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => exportColumn('phone')}
-              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
-              disabled={userLoading || filteredUsers.length === 0}
-            >
-              Export Phones (CSV)
-            </button>
-            <button
-              onClick={() => exportColumn('email')}
-              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
-              disabled={userLoading || filteredUsers.length === 0}
-            >
-              Export Emails (CSV)
-            </button>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-b border-gray-100">
-          <div className="relative">
-            <input
-              type="text"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              placeholder="Search by name, email, or phone..."
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
-            />
-            <svg
-              className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs font-bold">
-              <tr>
-                <th className="px-6 py-3 text-left">User ID</th>
-                <th className="px-6 py-3 text-left">Name</th>
-                <th className="px-6 py-3 text-left">Email</th>
-                <th className="px-6 py-3 text-left">Phone</th>
-                <th className="px-6 py-3 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {userLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-6 text-center text-gray-500">Loading users...</td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-6 text-center text-gray-500">No users found</td>
-                </tr>
-              ) : (
-                filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-semibold text-gray-900">#{u.id}</td>
-                    <td className="px-6 py-3 text-gray-900">{u.fullName || 'N/A'}</td>
-                    <td className="px-6 py-3 text-gray-700">{u.email || '—'}</td>
-                    <td className="px-6 py-3 text-gray-700">{u.phone || '—'}</td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
-                        {getStatusLabel(u)}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <UserListSection
+        users={users}
+        filteredUsers={filteredUsers}
+        userLoading={userLoading}
+        userSearch={userSearch}
+        onSearchChange={setUserSearch}
+      />
     </DashboardLayout>
   );
 }
