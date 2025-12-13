@@ -16,7 +16,7 @@ export async function PUT(
     await requireEditor(request);
 
     const { id } = await params;
-    const locationId = parseInt(id);
+    const locationId = parseInt(id, 10);
     const body = await request.json();
     const { name, type, parent_id, slug } = body;
 
@@ -45,7 +45,7 @@ export async function PUT(
     if (type) updateData.type = type;
     if (slug) updateData.slug = slug;
     if (parent_id !== undefined) {
-      updateData.parent_id = parent_id ? parseInt(parent_id) : null;
+      updateData.parent_id = parent_id ? parseInt(parent_id, 10) : null;
     }
 
     // Update location
@@ -110,7 +110,7 @@ export async function DELETE(
     await requireEditor(request);
 
     const { id } = await params;
-    const locationId = parseInt(id);
+    const locationId = parseInt(id, 10);
 
     if (isNaN(locationId)) {
       return NextResponse.json(

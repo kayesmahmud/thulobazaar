@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
       if (adId && promotionType && durationDays) {
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
+        expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays, 10));
 
         const updateData: any = {};
         if (promotionType === 'featured') {
@@ -70,16 +70,16 @@ export async function GET(request: NextRequest) {
         }
 
         await prisma.ads.update({
-          where: { id: parseInt(adId) },
+          where: { id: parseInt(adId, 10) },
           data: updateData,
         });
 
         await prisma.ad_promotions.create({
           data: {
-            ad_id: parseInt(adId),
+            ad_id: parseInt(adId, 10),
             user_id: payment.user_id,
             promotion_type: promotionType,
-            duration_days: parseInt(durationDays),
+            duration_days: parseInt(durationDays, 10),
             price_paid: parseFloat(amount || '0'),
             account_type: 'individual',
             payment_reference: txnId,

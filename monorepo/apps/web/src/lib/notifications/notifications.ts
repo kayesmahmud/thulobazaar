@@ -51,7 +51,7 @@ function getEmailTemplate(
               <li>Access to business analytics</li>
               <li>Enhanced trust with buyers</li>
             </ul>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com'}/dashboard"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/dashboard"
                style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
               Go to Dashboard
             </a>
@@ -84,7 +84,7 @@ function getEmailTemplate(
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
               You can submit a new verification request with the correct documents.
             </p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com'}/verification"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/verification"
                style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
               Submit New Request
             </a>
@@ -111,7 +111,7 @@ function getEmailTemplate(
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
               Your profile now displays the verified badge, increasing trust with potential buyers.
             </p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com'}/profile"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/profile"
                style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
               View Profile
             </a>
@@ -144,7 +144,7 @@ function getEmailTemplate(
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
               Please ensure your ID documents are clear and submit a new request.
             </p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com'}/verification"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/verification"
                style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
               Submit New Request
             </a>
@@ -194,7 +194,7 @@ function getEmailTemplate(
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
               You can now access all features again. Thank you for your patience.
             </p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com'}"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}"
                style="display: inline-block; background: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
               Go to Thulo Bazaar
             </a>
@@ -215,7 +215,7 @@ function getEmailTemplate(
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
               Your ad has been <strong style="color: #059669;">approved</strong> and is now live on Thulo Bazaar!
             </p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com'}/my-ads"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/my-ads"
                style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
               View My Ads
             </a>
@@ -286,7 +286,7 @@ async function getSmtpSettings() {
       port: parseInt(settingsMap.get('smtp_port') || process.env.SMTP_PORT || '587'),
       user: settingsMap.get('smtp_user') || process.env.SMTP_USER,
       pass: settingsMap.get('smtp_pass') || process.env.SMTP_PASS,
-      fromEmail: settingsMap.get('smtp_from_email') || process.env.SMTP_FROM_EMAIL || 'noreply@thulobazaar.com',
+      fromEmail: settingsMap.get('smtp_from_email') || process.env.SMTP_FROM_EMAIL || 'noreply@thulobazaar.com.np',
       fromName: settingsMap.get('smtp_from_name') || process.env.SMTP_FROM_NAME || 'Thulo Bazaar',
     };
   } catch (error) {
@@ -297,7 +297,7 @@ async function getSmtpSettings() {
       port: parseInt(process.env.SMTP_PORT || '587'),
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
-      fromEmail: process.env.SMTP_FROM_EMAIL || 'noreply@thulobazaar.com',
+      fromEmail: process.env.SMTP_FROM_EMAIL || 'noreply@thulobazaar.com.np',
       fromName: process.env.SMTP_FROM_NAME || 'Thulo Bazaar',
     };
   }
@@ -436,5 +436,110 @@ export async function sendNotificationByUserId(
   } catch (error) {
     console.error('Error sending notification:', error);
     return { success: false };
+  }
+}
+
+/**
+ * OTP Email Templates
+ */
+type OtpPurpose = 'registration' | 'login' | 'password_reset' | 'phone_verification';
+
+function getOtpEmailTemplate(
+  otp: string,
+  purpose: OtpPurpose
+): { subject: string; html: string; text: string } {
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np';
+
+  const purposeText = {
+    registration: 'complete your registration',
+    login: 'log in to your account',
+    password_reset: 'reset your password',
+    phone_verification: 'verify your phone number',
+  };
+
+  const purposeTitle = {
+    registration: 'Complete Your Registration',
+    login: 'Login Verification',
+    password_reset: 'Password Reset',
+    phone_verification: 'Phone Verification',
+  };
+
+  return {
+    subject: `${otp} is your Thulo Bazaar verification code`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Thulo Bazaar</h1>
+        </div>
+        <div style="padding: 30px; background: #f9fafb;">
+          <h2 style="color: #1f2937; margin-bottom: 20px;">${purposeTitle[purpose]}</h2>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+            Your verification code to ${purposeText[purpose]} is:
+          </p>
+          <div style="background: #ffffff; border: 2px dashed #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 25px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #667eea;">${otp}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+            This code will expire in <strong>10 minutes</strong>.
+          </p>
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+            If you didn't request this code, please ignore this email or contact support if you have concerns.
+          </p>
+        </div>
+        <div style="padding: 20px; text-align: center; background: #f3f4f6;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            This email was sent by <a href="${siteUrl}" style="color: #667eea;">Thulo Bazaar</a>. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `Your Thulo Bazaar verification code is: ${otp}. This code will expire in 10 minutes. Use this code to ${purposeText[purpose]}.`,
+  };
+}
+
+/**
+ * Send OTP via Email
+ */
+export async function sendOtpEmail(
+  email: string,
+  otp: string,
+  purpose: OtpPurpose
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const smtpSettings = await getSmtpSettings();
+
+    if (!smtpSettings || !smtpSettings.host || !smtpSettings.user) {
+      console.warn('⚠️ SMTP not configured, OTP email not sent. OTP:', otp);
+      return { success: false, error: 'SMTP not configured' };
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpSettings.host,
+      port: smtpSettings.port,
+      secure: smtpSettings.port === 465,
+      auth: {
+        user: smtpSettings.user,
+        pass: smtpSettings.pass,
+      },
+    });
+
+    const template = getOtpEmailTemplate(otp, purpose);
+
+    await transporter.sendMail({
+      from: `"${smtpSettings.fromName}" <${smtpSettings.fromEmail}>`,
+      to: email,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+
+    console.log(`✅ OTP email sent to ${email} for ${purpose}`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ OTP email error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send OTP email',
+    };
   }
 }

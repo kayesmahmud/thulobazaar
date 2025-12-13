@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         name,
         type,
         slug: locationSlug,
-        parent_id: parent_id ? parseInt(parent_id) : null,
+        parent_id: parent_id ? parseInt(parent_id, 10) : null,
       },
     });
 

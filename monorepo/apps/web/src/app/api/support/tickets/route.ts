@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
     const assigned = searchParams.get('assigned'); // 'me', 'unassigned', or user ID
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Check if user is editor/admin
     const user = await prisma.users.findUnique({
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       } else if (assigned === 'unassigned') {
         where.assigned_to = null;
       } else if (assigned) {
-        where.assigned_to = parseInt(assigned);
+        where.assigned_to = parseInt(assigned, 10);
       }
     }
 

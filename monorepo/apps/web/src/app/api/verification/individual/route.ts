@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const fullName = formData.get('full_name')?.toString();
     const idDocumentType = formData.get('id_document_type')?.toString();
     const idDocumentNumber = formData.get('id_document_number')?.toString();
-    const durationDays = parseInt(formData.get('duration_days')?.toString() || '365');
+    const durationDays = parseInt(formData.get('duration_days')?.toString() || '365', 10);
     const paymentAmount = parseFloat(formData.get('payment_amount')?.toString() || '0');
     const paymentReference = formData.get('payment_reference')?.toString();
 

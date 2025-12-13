@@ -16,7 +16,7 @@ export async function PUT(
     await requireEditor(request);
 
     const { id } = await params;
-    const adId = parseInt(id);
+    const adId = parseInt(id, 10);
 
     if (isNaN(adId)) {
       return NextResponse.json(

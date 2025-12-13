@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const businessWebsite = formData.get('business_website')?.toString();
     const businessPhone = formData.get('business_phone')?.toString();
     const businessAddress = formData.get('business_address')?.toString();
-    const durationDays = parseInt(formData.get('duration_days')?.toString() || '365');
+    const durationDays = parseInt(formData.get('duration_days')?.toString() || '365', 10);
     const paymentAmount = parseFloat(formData.get('payment_amount')?.toString() || '0');
     const paymentReference = formData.get('payment_reference')?.toString();
 

@@ -18,8 +18,8 @@ export async function GET(
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
 
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const status = searchParams.get('status') || 'approved';
     const offset = (page - 1) * limit;
 

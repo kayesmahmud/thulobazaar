@@ -26,7 +26,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const adId = parseInt(id);
+    const adId = parseInt(id, 10);
 
     if (isNaN(adId)) {
       return errorResponse('Invalid ad ID', 400);
@@ -67,7 +67,7 @@ export async function PUT(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const adId = parseInt(id);
+    const adId = parseInt(id, 10);
 
     if (isNaN(adId)) {
       return errorResponse('Invalid ad ID', 400);
@@ -157,10 +157,10 @@ export async function PUT(
     if (priceStr !== undefined) updateData.price = parseFloat(priceStr);
     if (condition !== undefined) updateData.condition = condition;
     if (subcategoryIdStr || categoryIdStr) {
-      updateData.category_id = parseInt(subcategoryIdStr || categoryIdStr || '0');
+      updateData.category_id = parseInt(subcategoryIdStr || categoryIdStr || '0', 10);
     }
     if (areaIdStr || locationIdStr) {
-      updateData.location_id = parseInt(areaIdStr || locationIdStr || '0');
+      updateData.location_id = parseInt(areaIdStr || locationIdStr || '0', 10);
     }
     if (status !== undefined) updateData.status = status;
     if (autoResetToPending && status === undefined) {
@@ -192,14 +192,18 @@ export async function PUT(
     const imagesToDelete = currentImages.filter(
       (img) =>
         !existingImages.includes(img.file_path) &&
-        !existingImages.includes(`http://localhost:3333/${img.file_path}`)
+        !existingImages.includes(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3333'}/${img.file_path}`)
     );
 
     console.log('🖼️ [UPDATE AD] Images to delete:', imagesToDelete.length);
 
-    for (const img of imagesToDelete) {
-      await prisma.ad_images.delete({ where: { id: img.id } });
-      await deleteImage(img.file_path);
+    // Delete all images from DB in single query (avoid N+1)
+    if (imagesToDelete.length > 0) {
+      const idsToDelete = imagesToDelete.map((img) => img.id);
+      await prisma.ad_images.deleteMany({ where: { id: { in: idsToDelete } } });
+
+      // Delete files from storage (these are I/O operations, can run in parallel)
+      await Promise.all(imagesToDelete.map((img) => deleteImage(img.file_path)));
     }
 
     // Process new images
@@ -312,7 +316,7 @@ export async function DELETE(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const adId = parseInt(id);
+    const adId = parseInt(id, 10);
 
     if (isNaN(adId)) {
       return errorResponse('Invalid ad ID', 400);

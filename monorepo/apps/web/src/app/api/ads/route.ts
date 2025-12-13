@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
     const condition = searchParams.get('condition');
     const status = searchParams.get('status') || 'approved'; // Default to approved (public ads)
     const sort = searchParams.get('sort') || 'newest';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const offset = (page - 1) * limit;
 
     // Build where clause
@@ -64,17 +64,17 @@ export async function GET(request: NextRequest) {
 
     // Filter by category
     if (categoryId) {
-      where.category_id = parseInt(categoryId);
+      where.category_id = parseInt(categoryId, 10);
     }
 
     // Filter by location
     if (locationId) {
-      where.location_id = parseInt(locationId);
+      where.location_id = parseInt(locationId, 10);
     }
 
     // Filter by area
     if (areaId) {
-      where.area_id = parseInt(areaId);
+      where.area_id = parseInt(areaId, 10);
     }
 
     // Filter by price range
@@ -371,8 +371,8 @@ export async function POST(request: NextRequest) {
     }
 
     const price = parseFloat(priceStr);
-    const categoryId = parseInt(subcategoryIdStr || categoryIdStr || '0');
-    const locationId = parseInt(areaIdStr || locationIdStr || '0');
+    const categoryId = parseInt(subcategoryIdStr || categoryIdStr || '0', 10);
+    const locationId = parseInt(areaIdStr || locationIdStr || '0', 10);
 
     if (isNaN(price) || price < 0) {
       return NextResponse.json(

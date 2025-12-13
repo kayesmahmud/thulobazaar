@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     const userId = await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const offset = (page - 1) * limit;
 
     // Get total count
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     // Check if ad exists
     const ad = await prisma.ads.findUnique({
-      where: { id: parseInt(adId) },
+      where: { id: parseInt(adId, 10) },
       select: { id: true, status: true, deleted_at: true },
     });
 

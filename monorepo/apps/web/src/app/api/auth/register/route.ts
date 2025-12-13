@@ -29,7 +29,8 @@ function validatePhoneToken(token: string): { phone: string; expiresAt: number }
       return null;
     }
     return { phone, expiresAt: decoded.expiresAt };
-  } catch {
+  } catch (err) {
+    console.debug('Phone token decode failed:', err);
     return null;
   }
 }

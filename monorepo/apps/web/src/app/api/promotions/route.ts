@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     const userId = await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const offset = (page - 1) * limit;
 
     // Get total count
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Verify ad belongs to user
     const ad = await prisma.ads.findUnique({
-      where: { id: parseInt(adId) },
+      where: { id: parseInt(adId, 10) },
       select: {
         id: true,
         user_id: true,
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
     const pricing = await prisma.promotion_pricing.findFirst({
       where: {
         promotion_type: promotionType,
-        duration_days: parseInt(durationDays),
+        duration_days: parseInt(durationDays, 10),
         account_type: accountType || undefined,
         is_active: true,
       },
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate expiry date
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
+    expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays, 10));
 
     // Insert promotion record
     const promotion = await prisma.ad_promotions.create({
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
         ad_id: ad.id,
         user_id: userId,
         promotion_type: promotionType,
-        duration_days: parseInt(durationDays),
+        duration_days: parseInt(durationDays, 10),
         price_paid: price,
         account_type: accountType || 'individual',
         payment_reference: paymentReference || '',

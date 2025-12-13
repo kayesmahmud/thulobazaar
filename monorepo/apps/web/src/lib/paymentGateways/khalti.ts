@@ -17,16 +17,31 @@ const KHALTI_PRODUCTION_URL = 'https://khalti.com/api/v2';
 
 /**
  * Get Khalti configuration from environment
+ * IMPORTANT: Credentials must be set in environment variables
  */
 export function getKhaltiConfig(): KhaltiConfig {
   const isTest = process.env.KHALTI_ENV !== 'production';
+  const secretKey = process.env.KHALTI_SECRET_KEY;
+  const publicKey = process.env.KHALTI_PUBLIC_KEY;
+
+  // Warn if credentials are missing
+  if (!secretKey || !publicKey) {
+    console.warn('⚠️ Khalti credentials not configured. Set KHALTI_SECRET_KEY and KHALTI_PUBLIC_KEY environment variables.');
+  }
 
   return {
-    secretKey: process.env.KHALTI_SECRET_KEY || '',
-    publicKey: process.env.KHALTI_PUBLIC_KEY || '',
+    secretKey: secretKey || '',
+    publicKey: publicKey || '',
     apiUrl: isTest ? KHALTI_SANDBOX_URL : KHALTI_PRODUCTION_URL,
     isTest,
   };
+}
+
+/**
+ * Check if Khalti is properly configured
+ */
+export function isKhaltiConfigured(): boolean {
+  return !!process.env.KHALTI_SECRET_KEY && !!process.env.KHALTI_PUBLIC_KEY;
 }
 
 /**

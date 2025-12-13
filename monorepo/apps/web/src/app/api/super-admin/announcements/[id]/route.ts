@@ -60,7 +60,7 @@ export async function GET(
   try {
     await requireSuperAdmin(request);
     const { id } = await params;
-    const announcementId = parseInt(id);
+    const announcementId = parseInt(id, 10);
 
     if (isNaN(announcementId)) {
       return NextResponse.json(
@@ -169,7 +169,7 @@ export async function PATCH(
   try {
     await requireSuperAdmin(request);
     const { id } = await params;
-    const announcementId = parseInt(id);
+    const announcementId = parseInt(id, 10);
 
     if (isNaN(announcementId)) {
       return NextResponse.json(
@@ -255,7 +255,7 @@ export async function DELETE(
   try {
     await requireSuperAdmin(request);
     const { id } = await params;
-    const announcementId = parseInt(id);
+    const announcementId = parseInt(id, 10);
 
     if (isNaN(announcementId)) {
       return NextResponse.json(

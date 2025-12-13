@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         })),
         freeVerification: {
           enabled: settingsMap['free_verification_enabled'] === 'true',
-          durationDays: parseInt(settingsMap['free_verification_duration_days'] || '180'),
+          durationDays: parseInt(settingsMap['free_verification_duration_days'] || '180', 10),
           types: JSON.parse(settingsMap['free_verification_types'] || '["individual","business"]'),
         },
       },

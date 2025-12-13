@@ -50,8 +50,9 @@ export const config = {
   SMTP_PASSWORD: process.env.SMTP_PASSWORD || '',
   EMAIL_FROM: process.env.EMAIL_FROM || '',
 
-  // Frontend
+  // URLs
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3333',
+  BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:5000',
 
   // File Uploads
   UPLOAD_DIR: process.env.UPLOAD_DIR || './uploads',

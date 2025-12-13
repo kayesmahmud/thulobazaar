@@ -169,7 +169,8 @@ export function parseJsonSafe<T>(str: string | undefined, defaultValue: T): T {
   if (!str) return defaultValue;
   try {
     return JSON.parse(str) as T;
-  } catch {
+  } catch (err) {
+    console.debug('JSON parse failed, using default:', err);
     return defaultValue;
   }
 }
@@ -179,7 +180,8 @@ export function tryParseJson<T>(str: string | undefined): T | undefined {
   if (!str) return undefined;
   try {
     return JSON.parse(str) as T;
-  } catch {
+  } catch (err) {
+    console.debug('JSON parse failed:', err);
     return undefined;
   }
 }

@@ -188,7 +188,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
       if (provider === 'google') {
         // Use backend Passport.js OAuth instead of NextAuth
         // The backend will handle the OAuth flow and redirect back with a token
-        window.location.href = 'http://localhost:5000/api/auth/google';
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
       } else {
         // Facebook still uses NextAuth
         await signIn(provider, { callbackUrl: `/${lang}` });

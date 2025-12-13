@@ -142,7 +142,8 @@ export function useSettingsPage(lang: string) {
       } else {
         setError(data.message || 'Failed to send test email');
       }
-    } catch {
+    } catch (err) {
+      console.error('Test email error:', err);
       setError('Failed to send test email');
     } finally {
       setTestingEmail(false);
@@ -172,7 +173,8 @@ export function useSettingsPage(lang: string) {
       } else {
         setError(data.message || 'Failed to send test SMS');
       }
-    } catch {
+    } catch (err) {
+      console.error('Test SMS error:', err);
       setError('Failed to send test SMS');
     } finally {
       setTestingSms(false);

@@ -20,7 +20,7 @@ export async function PUT(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const userId = parseInt(id);
+    const userId = parseInt(id, 10);
     const body = await request.json();
     const { reason, duration } = body;
 

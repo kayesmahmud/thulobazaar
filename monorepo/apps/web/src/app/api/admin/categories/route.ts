@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         slug: categorySlug,
-        parent_id: parent_id ? parseInt(parent_id) : null,
+        parent_id: parent_id ? parseInt(parent_id, 10) : null,
         icon: icon || null,
         form_template: form_template || null,
       },

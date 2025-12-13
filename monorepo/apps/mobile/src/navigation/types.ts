@@ -38,7 +38,10 @@ export type SearchStackParamList = {
 
 // Post Ad Stack
 export type PostAdStackParamList = {
-  PostAd: undefined;
+  PostAd: {
+    selectedCategory?: { id: number; name: string; slug: string };
+    selectedLocation?: { id: number; name: string; slug: string };
+  } | undefined;
   SelectCategory: undefined;
   SelectLocation: undefined;
   AdPreview: { adData: any };

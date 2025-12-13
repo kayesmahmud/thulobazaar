@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Get areas directly under the municipality
     const areas = await prisma.locations.findMany({
       where: {
-        parent_id: parseInt(municipality_id),
+        parent_id: parseInt(municipality_id, 10),
         type: 'area',
       },
       orderBy: { name: 'asc' },

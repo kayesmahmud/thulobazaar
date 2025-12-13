@@ -16,7 +16,7 @@ export async function PUT(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const userId = parseInt(id);
+    const userId = parseInt(id, 10);
 
     // Demote editor to user (only if current role is 'editor')
     const user = await prisma.users.update({

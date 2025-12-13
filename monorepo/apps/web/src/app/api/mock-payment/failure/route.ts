@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3333';
+
 /**
  * GET /api/mock-payment/failure
  * Handle failed mock payment callback
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     if (!txnId) {
       return NextResponse.redirect(
-        `http://localhost:3333/en/dashboard?payment=failed&reason=${encodeURIComponent('Missing transaction ID')}`
+        `${SITE_URL}/en/dashboard?payment=failed&reason=${encodeURIComponent('Missing transaction ID')}`
       );
     }
 
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Payment marked as failed');
 
     // Redirect to dashboard with failure message
-    const redirectUrl = `http://localhost:3333/en/dashboard?payment=failed&txnId=${txnId}&reason=${encodeURIComponent(reason || 'Payment cancelled')}`;
+    const redirectUrl = `${SITE_URL}/en/dashboard?payment=failed&txnId=${txnId}&reason=${encodeURIComponent(reason || 'Payment cancelled')}`;
 
     console.log('✅ Redirecting to:', redirectUrl);
 
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Redirect to dashboard with error
     return NextResponse.redirect(
-      'http://localhost:3333/en/dashboard?payment=error'
+      `${SITE_URL}/en/dashboard?payment=error`
     );
   }
 }

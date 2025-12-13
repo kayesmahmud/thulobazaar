@@ -21,16 +21,31 @@ const ESEWA_PRODUCTION_VERIFY_URL = 'https://esewa.com.np';
 
 /**
  * Get eSewa configuration from environment
+ * IMPORTANT: Credentials must be set in environment variables
  */
 export function getEsewaConfig(): EsewaConfig {
   const isTest = process.env.ESEWA_ENV !== 'production';
+  const merchantCode = process.env.ESEWA_MERCHANT_CODE;
+  const secretKey = process.env.ESEWA_SECRET_KEY;
+
+  // Warn if credentials are missing
+  if (!merchantCode || !secretKey) {
+    console.warn('⚠️ eSewa credentials not configured. Set ESEWA_MERCHANT_CODE and ESEWA_SECRET_KEY environment variables.');
+  }
 
   return {
-    merchantCode: process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST',
-    secretKey: process.env.ESEWA_SECRET_KEY || '8gBm/:&EnhH.1/q',
+    merchantCode: merchantCode || '',
+    secretKey: secretKey || '',
     apiUrl: isTest ? ESEWA_SANDBOX_URL : ESEWA_PRODUCTION_URL,
     isTest,
   };
+}
+
+/**
+ * Check if eSewa is properly configured
+ */
+export function isEsewaConfigured(): boolean {
+  return !!process.env.ESEWA_MERCHANT_CODE && !!process.env.ESEWA_SECRET_KEY;
 }
 
 /**

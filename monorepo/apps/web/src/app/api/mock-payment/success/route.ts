@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { activatePromotion } from '@/lib/promotion';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3333';
+
 /**
  * GET /api/mock-payment/success
  * Handle successful mock payment callback
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (!txnId) {
       return NextResponse.redirect(
-        `http://localhost:3333/en/dashboard?payment=failed&reason=${encodeURIComponent('Missing transaction ID')}`
+        `${SITE_URL}/en/dashboard?payment=failed&reason=${encodeURIComponent('Missing transaction ID')}`
       );
     }
 
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (!payment) {
       console.error('❌ Payment transaction not found:', txnId);
       return NextResponse.redirect(
-        `http://localhost:3333/en/dashboard?payment=failed&reason=${encodeURIComponent('Transaction not found')}`
+        `${SITE_URL}/en/dashboard?payment=failed&reason=${encodeURIComponent('Transaction not found')}`
       );
     }
 
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Get ad slug for redirect
     const adId = (payment.metadata as any)?.adId || payment.related_id;
-    let redirectUrl = `http://localhost:3333/en/dashboard?payment=success&txnId=${txnId}`;
+    let redirectUrl = `${SITE_URL}/en/dashboard?payment=success&txnId=${txnId}`;
 
     if (adId) {
       const ad = await prisma.ads.findUnique({
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (ad?.slug) {
-        redirectUrl = `http://localhost:3333/en/ad/${ad.slug}?promoted=true&txnId=${txnId}`;
+        redirectUrl = `${SITE_URL}/en/ad/${ad.slug}?promoted=true&txnId=${txnId}`;
       }
     }
 
@@ -95,7 +97,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Mock payment success callback error:', error);
     return NextResponse.redirect(
-      `http://localhost:3333/en/dashboard?payment=error&reason=${encodeURIComponent(error.message || 'Unknown error')}`
+      `${SITE_URL}/en/dashboard?payment=error&reason=${encodeURIComponent(error.message || 'Unknown error')}`
     );
   }
 }

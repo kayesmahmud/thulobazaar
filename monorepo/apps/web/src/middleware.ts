@@ -46,8 +46,9 @@ export default async function middleware(req: NextRequest) {
 
         return NextResponse.redirect(callbackUrl);
       }
-    } catch {
+    } catch (err) {
       // Not a valid eSewa response, continue with normal processing
+      console.debug('eSewa response parsing skipped:', err);
     }
   }
 

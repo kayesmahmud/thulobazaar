@@ -18,7 +18,7 @@ export async function DELETE(
     const userId = await requireAuth(request);
 
     const { adId: adIdParam } = await params;
-    const adId = parseInt(adIdParam);
+    const adId = parseInt(adIdParam, 10);
 
     // Find and delete favorite
     const favorite = await prisma.user_favorites.findFirst({
@@ -89,7 +89,7 @@ export async function GET(
     const userId = await requireAuth(request);
 
     const { adId: adIdParam } = await params;
-    const adId = parseInt(adIdParam);
+    const adId = parseInt(adIdParam, 10);
 
     // Check if favorited
     const favorite = await prisma.user_favorites.findFirst({

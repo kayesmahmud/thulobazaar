@@ -39,8 +39,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Parse query params
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     const sort = searchParams.get('sort') || 'newest';
     const offset = (page - 1) * limit;
 

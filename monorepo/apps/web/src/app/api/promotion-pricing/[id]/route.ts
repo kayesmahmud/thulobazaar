@@ -21,7 +21,7 @@ export async function PUT(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const pricingId = parseInt(id);
+    const pricingId = parseInt(id, 10);
 
     if (isNaN(pricingId)) {
       return NextResponse.json(
@@ -126,7 +126,7 @@ export async function DELETE(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const pricingId = parseInt(id);
+    const pricingId = parseInt(id, 10);
 
     if (isNaN(pricingId)) {
       return NextResponse.json(

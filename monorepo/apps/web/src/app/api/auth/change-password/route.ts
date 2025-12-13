@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Find the user
     const user = await prisma.users.findUnique({
-      where: { id: parseInt(session.user.id) },
+      where: { id: parseInt(session.user.id, 10) },
       select: {
         id: true,
         password_hash: true,

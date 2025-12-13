@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const municipality_id = searchParams.get('municipality_id');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 50);
 
     let query = `
       SELECT
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const params: any[] = [];
     if (municipality_id) {
       query += ` AND municipality_id = $1`;
-      params.push(parseInt(municipality_id));
+      params.push(parseInt(municipality_id, 10));
     }
 
     query += `

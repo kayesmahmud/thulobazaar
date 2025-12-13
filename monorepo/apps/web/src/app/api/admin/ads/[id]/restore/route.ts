@@ -16,7 +16,7 @@ export async function PUT(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const adId = parseInt(id);
+    const adId = parseInt(id, 10);
 
     // Restore ad - clear deletion fields
     const ad = await prisma.ads.update({

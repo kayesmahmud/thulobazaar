@@ -10,31 +10,20 @@ export async function GET(request: NextRequest) {
   try {
     const userId = await requireAuth(request);
 
-    // Get all conversations user is participating in
-    const participants = await prisma.conversation_participants.findMany({
-      where: {
-        user_id: userId,
-        is_archived: false,
-      },
-      select: {
-        conversation_id: true,
-        last_read_at: true,
-      },
-    });
+    // Single query to count all unread messages across all conversations
+    // This avoids N+1 by using a subquery/join instead of looping
+    const result = await prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*) as count
+      FROM messages m
+      INNER JOIN conversation_participants cp
+        ON m.conversation_id = cp.conversation_id
+      WHERE cp.user_id = ${userId}
+        AND cp.is_archived = false
+        AND m.sender_id != ${userId}
+        AND m.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
+    `;
 
-    // Count unread messages across all conversations
-    let totalUnread = 0;
-
-    for (const p of participants) {
-      const unreadCount = await prisma.messages.count({
-        where: {
-          conversation_id: p.conversation_id,
-          sender_id: { not: userId },
-          created_at: { gt: p.last_read_at || new Date(0) },
-        },
-      });
-      totalUnread += unreadCount;
-    }
+    const totalUnread = Number(result[0]?.count || 0);
 
     return NextResponse.json(
       {

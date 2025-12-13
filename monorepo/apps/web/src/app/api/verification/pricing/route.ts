@@ -64,8 +64,9 @@ export async function GET(request: NextRequest) {
             isEligibleForFreeVerification = !hasHadIndividualVerification && !hasHadBusinessVerification;
           }
         }
-      } catch {
+      } catch (err) {
         // Token invalid or expired - no free verification
+        console.debug('Token validation for free verification failed:', err);
       }
     }
 
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
     // Free verification settings
     const freeVerification = {
       enabled: settingsMap['free_verification_enabled'] === 'true',
-      durationDays: parseInt(settingsMap['free_verification_duration_days'] || '180'),
+      durationDays: parseInt(settingsMap['free_verification_duration_days'] || '180', 10),
       types: JSON.parse(settingsMap['free_verification_types'] || '["individual","business"]'),
       isEligible: isEligibleForFreeVerification,
     };

@@ -24,7 +24,9 @@ export default function SelectCategoryScreen({ navigation }: any) {
     try {
       const response = await apiClient.getCategories();
       if (response.success && response.data) {
-        setCategories(response.data);
+        // API returns { data: Category[] } wrapper
+        const categories = (response.data as { data?: Category[] }).data || (response.data as Category[]);
+        setCategories(Array.isArray(categories) ? categories : []);
       }
     } catch (error) {
       console.error('Failed to load categories:', error);
@@ -40,8 +42,10 @@ export default function SelectCategoryScreen({ navigation }: any) {
         if (item.subcategories && item.subcategories.length > 0) {
           setSelectedCategory(item);
         } else {
-          // Select this category and go back
-          navigation.goBack();
+          // Navigate back to PostAd with selected category
+          navigation.navigate('PostAd', {
+            selectedCategory: { id: item.id, name: item.name, slug: item.slug },
+          });
         }
       }}
     >

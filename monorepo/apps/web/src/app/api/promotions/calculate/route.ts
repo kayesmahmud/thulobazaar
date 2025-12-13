@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const pricing = await prisma.promotion_pricing.findFirst({
       where: {
         promotion_type: promotionType,
-        duration_days: parseInt(durationDays),
+        duration_days: parseInt(durationDays, 10),
         account_type: accountType,
         is_active: true,
       },
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           promotionType,
-          durationDays: parseInt(durationDays),
+          durationDays: parseInt(durationDays, 10),
           accountType,
           price: parseFloat(pricing.price.toString()),
           discountPercentage: pricing.discount_percentage,

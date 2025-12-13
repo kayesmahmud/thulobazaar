@@ -11,6 +11,7 @@ import { catchAsync, ValidationError, NotFoundError } from '../middleware/errorH
 import { authenticateToken } from '../middleware/auth.js';
 import { mockPaymentService } from '../services/mockPayment.service.js';
 import { promotionService } from '../services/promotion.service.js';
+import config from '../config/index.js';
 
 const router = Router();
 
@@ -247,8 +248,8 @@ router.get(
 
     // Redirect to the ad detail page on the new monorepo site
     const redirectUrl = adSlug
-      ? `http://localhost:3333/en/ad/${adSlug}?promoted=true&txnId=${txnId}`
-      : `http://localhost:3333/en/dashboard?promoted=true&txnId=${txnId}`;
+      ? `${config.FRONTEND_URL}/en/ad/${adSlug}?promoted=true&txnId=${txnId}`
+      : `${config.FRONTEND_URL}/en/dashboard?promoted=true&txnId=${txnId}`;
 
     res.redirect(redirectUrl);
   })

@@ -16,7 +16,7 @@ export async function PUT(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const conversationId = parseInt(id);
+    const conversationId = parseInt(id, 10);
 
     if (isNaN(conversationId)) {
       return NextResponse.json(

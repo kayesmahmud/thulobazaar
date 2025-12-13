@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
     let tokenData;
     try {
       tokenData = JSON.parse(Buffer.from(verificationToken, 'base64').toString());
-    } catch {
+    } catch (err) {
+      console.warn('Invalid verification token format:', err);
       return NextResponse.json(
         { success: false, message: 'Invalid verification token' },
         { status: 400 }
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = parseInt(session.user.id);
+    const userId = parseInt(session.user.id, 10);
 
     // Check if this phone is already verified by another user
     const existingVerifiedUser = await prisma.users.findFirst({

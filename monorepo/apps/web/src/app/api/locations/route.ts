@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Filter by parent if provided
     if (parentId) {
-      where.parent_id = parseInt(parentId);
+      where.parent_id = parseInt(parentId, 10);
     } else if (!type) {
       // If no type and no parent, get root locations (provinces)
       where.type = 'province';

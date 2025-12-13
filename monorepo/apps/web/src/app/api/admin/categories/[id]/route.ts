@@ -16,7 +16,7 @@ export async function PUT(
     await requireEditor(request);
 
     const { id } = await params;
-    const categoryId = parseInt(id);
+    const categoryId = parseInt(id, 10);
     const body = await request.json();
     const { name, parent_id, slug, icon, form_template } = body;
 
@@ -44,7 +44,7 @@ export async function PUT(
     if (name) updateData.name = name;
     if (slug) updateData.slug = slug;
     if (parent_id !== undefined) {
-      updateData.parent_id = parent_id ? parseInt(parent_id) : null;
+      updateData.parent_id = parent_id ? parseInt(parent_id, 10) : null;
     }
     if (icon !== undefined) updateData.icon = icon || null;
     if (form_template !== undefined) updateData.form_template = form_template || null;
@@ -112,7 +112,7 @@ export async function DELETE(
     await requireEditor(request);
 
     const { id } = await params;
-    const categoryId = parseInt(id);
+    const categoryId = parseInt(id, 10);
 
     if (isNaN(categoryId)) {
       return NextResponse.json(

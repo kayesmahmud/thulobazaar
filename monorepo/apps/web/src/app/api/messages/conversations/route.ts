@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     const userId = await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
     const includeArchived = searchParams.get('includeArchived') === 'true';
 
     // Find all conversations where user is a participant

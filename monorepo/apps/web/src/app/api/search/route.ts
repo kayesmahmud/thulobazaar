@@ -32,14 +32,14 @@ export async function GET(request: NextRequest) {
     const condition = searchParams.get('condition');
     const featured = searchParams.get('featured');
     const sortBy = searchParams.get('sortBy') || 'created_at:desc';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
 
     // Build filter query
     const filterBy = await buildFilterQuery({
-      category: category ? parseInt(category) : undefined,
-      parentCategoryId: parentCategoryId ? parseInt(parentCategoryId) : undefined,
-      location: location ? parseInt(location) : undefined,
+      category: category ? parseInt(category, 10) : undefined,
+      parentCategoryId: parentCategoryId ? parseInt(parentCategoryId, 10) : undefined,
+      location: location ? parseInt(location, 10) : undefined,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       condition: condition || undefined,
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const ads = (results.hits || []).map((hit: any) => {
       const doc = hit.document;
       return {
-        id: parseInt(doc.id),
+        id: parseInt(doc.id, 10),
         title: doc.title,
         description: doc.description,
         price: doc.price,

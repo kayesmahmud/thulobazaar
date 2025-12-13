@@ -19,7 +19,7 @@ export async function POST(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const reportId = parseInt(id);
+    const reportId = parseInt(id, 10);
 
     if (isNaN(reportId)) {
       return NextResponse.json(

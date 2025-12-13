@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const location = searchParams.get('location');
     const search = searchParams.get('search');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const sortBy = searchParams.get('sortBy') || 'created_at';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
     const offset = (page - 1) * limit;
@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
     if (category) {
-      where.category_id = parseInt(category);
+      where.category_id = parseInt(category, 10);
     }
     if (location) {
-      where.location_id = parseInt(location);
+      where.location_id = parseInt(location, 10);
     }
     if (search) {
       where.OR = [

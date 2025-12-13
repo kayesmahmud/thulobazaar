@@ -71,9 +71,9 @@ export async function GET(request: NextRequest) {
 
       const [districtsRaw, municipalitiesRaw, areasRaw]: any[] =
         await Promise.all([
-          prisma.$queryRawUnsafe(districtQuery, parseInt(province_id)),
-          prisma.$queryRawUnsafe(municipalityQuery, parseInt(province_id)),
-          prisma.$queryRawUnsafe(areasQuery, parseInt(province_id)),
+          prisma.$queryRawUnsafe(districtQuery, parseInt(province_id, 10)),
+          prisma.$queryRawUnsafe(municipalityQuery, parseInt(province_id, 10)),
+          prisma.$queryRawUnsafe(areasQuery, parseInt(province_id, 10)),
         ]);
 
       // Convert BigInt to Number
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
         {
           success: true,
           data: {
-            province_id: parseInt(province_id),
+            province_id: parseInt(province_id, 10),
             districts: districts,
           },
         },

@@ -19,7 +19,7 @@ export async function GET(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const ticketId = parseInt(id);
+    const ticketId = parseInt(id, 10);
 
     if (isNaN(ticketId)) {
       return NextResponse.json(
@@ -184,7 +184,7 @@ export async function PATCH(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const ticketId = parseInt(id);
+    const ticketId = parseInt(id, 10);
 
     if (isNaN(ticketId)) {
       return NextResponse.json(
@@ -284,7 +284,7 @@ export async function POST(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const ticketId = parseInt(id);
+    const ticketId = parseInt(id, 10);
 
     if (isNaN(ticketId)) {
       return NextResponse.json(

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { requireAuth } from '@/lib/auth';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3333';
+
 /**
  * POST /api/payments/mock/initiate
  * Initiate mock payment (for testing only)
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate mock payment URL
-    const paymentUrl = `http://localhost:3333/api/payments/mock/success?txnId=${transactionId}&amount=${amount}`;
+    const paymentUrl = `${SITE_URL}/api/payments/mock/success?txnId=${transactionId}&amount=${amount}`;
 
     console.log(`✅ Mock payment initiated: ${transactionId} for user ${userId}`);
 

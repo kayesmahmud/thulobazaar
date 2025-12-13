@@ -17,7 +17,7 @@ export async function GET(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const conversationId = parseInt(id);
+    const conversationId = parseInt(id, 10);
 
     if (isNaN(conversationId)) {
       return NextResponse.json(
@@ -27,8 +27,8 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Check if user is a participant
     const participant = await prisma.conversation_participants.findUnique({
@@ -236,7 +236,7 @@ export async function POST(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const conversationId = parseInt(id);
+    const conversationId = parseInt(id, 10);
 
     if (isNaN(conversationId)) {
       return NextResponse.json(
@@ -375,7 +375,7 @@ export async function DELETE(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const conversationId = parseInt(id);
+    const conversationId = parseInt(id, 10);
 
     if (isNaN(conversationId)) {
       return NextResponse.json(

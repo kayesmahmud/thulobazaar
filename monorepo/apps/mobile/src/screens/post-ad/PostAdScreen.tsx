@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,26 +7,78 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS } from '../../constants/config';
+import { apiClient } from '../../lib/api';
+import type { PostAdStackParamList } from '../../navigation/types';
+
+type PostAdRouteProp = RouteProp<PostAdStackParamList, 'PostAd'>;
+
+interface SelectedItem {
+  id: number;
+  name: string;
+  slug: string;
+}
 
 export default function PostAdScreen({ navigation }: any) {
+  const route = useRoute<PostAdRouteProp>();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
-    category: '',
-    location: '',
     isNegotiable: false,
   });
+  const [selectedCategory, setSelectedCategory] = useState<SelectedItem | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<SelectedItem | null>(null);
 
-  const handleSubmit = () => {
-    if (!formData.title || !formData.price || !formData.category) {
+  // Update state when returning from SelectCategory/SelectLocation
+  useEffect(() => {
+    if (route.params?.selectedCategory) {
+      setSelectedCategory(route.params.selectedCategory);
+    }
+    if (route.params?.selectedLocation) {
+      setSelectedLocation(route.params.selectedLocation);
+    }
+  }, [route.params?.selectedCategory, route.params?.selectedLocation]);
+
+  const handleSubmit = async () => {
+    if (!formData.title || !formData.price || !selectedCategory || !selectedLocation) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
-    // TODO: Implement ad creation
-    Alert.alert('Success', 'Feature coming soon!');
+
+    setLoading(true);
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('price', formData.price);
+      data.append('categoryId', selectedCategory.id.toString());
+      data.append('locationId', selectedLocation.id.toString());
+      data.append('isNegotiable', formData.isNegotiable.toString());
+
+      const response = await apiClient.createAd(data);
+
+      if (response.success) {
+        Alert.alert('Success', 'Your ad has been posted!', [
+          { text: 'OK', onPress: () => navigation.navigate('HomeTab') },
+        ]);
+        // Reset form
+        setFormData({ title: '', description: '', price: '', isNegotiable: false });
+        setSelectedCategory(null);
+        setSelectedLocation(null);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to post ad');
+      }
+    } catch (error) {
+      console.error('Create ad error:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,8 +90,8 @@ export default function PostAdScreen({ navigation }: any) {
       >
         <Text style={styles.selectLabel}>Category *</Text>
         <View style={styles.selectValue}>
-          <Text style={formData.category ? styles.selectValueText : styles.selectPlaceholder}>
-            {formData.category || 'Select a category'}
+          <Text style={selectedCategory ? styles.selectValueText : styles.selectPlaceholder}>
+            {selectedCategory?.name || 'Select a category'}
           </Text>
           <Text style={styles.selectArrow}>›</Text>
         </View>
@@ -107,8 +159,8 @@ export default function PostAdScreen({ navigation }: any) {
       >
         <Text style={styles.selectLabel}>Location *</Text>
         <View style={styles.selectValue}>
-          <Text style={formData.location ? styles.selectValueText : styles.selectPlaceholder}>
-            {formData.location || 'Select location'}
+          <Text style={selectedLocation ? styles.selectValueText : styles.selectPlaceholder}>
+            {selectedLocation?.name || 'Select location'}
           </Text>
           <Text style={styles.selectArrow}>›</Text>
         </View>
@@ -125,8 +177,16 @@ export default function PostAdScreen({ navigation }: any) {
       </View>
 
       {/* Submit Button */}
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitButtonText}>Post Ad</Text>
+      <TouchableOpacity
+        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color={COLORS.white} />
+        ) : (
+          <Text style={styles.submitButtonText}>Post Ad</Text>
+        )}
       </TouchableOpacity>
 
       {/* Bottom Padding */}
@@ -264,6 +324,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
   submitButtonText: {
     color: COLORS.white,

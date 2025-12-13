@@ -195,7 +195,8 @@ export function useResetPassword(
       } else {
         setError(data.message || 'Failed to resend OTP');
       }
-    } catch {
+    } catch (err) {
+      console.error('Resend OTP error:', err);
       setError('Failed to resend OTP. Please try again.');
     } finally {
       setIsResending(false);

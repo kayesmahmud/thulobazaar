@@ -43,8 +43,11 @@ export default function SelectLocationScreen({ navigation }: any) {
     try {
       const response = await apiClient.getLocations({ type: 'municipality' });
       if (response.success && response.data) {
-        setLocations(response.data);
-        setFilteredLocations(response.data);
+        // API returns { data: Location[] } wrapper
+        const locs = (response.data as { data?: Location[] }).data || (response.data as Location[]);
+        const locArray = Array.isArray(locs) ? locs : [];
+        setLocations(locArray);
+        setFilteredLocations(locArray);
       }
     } catch (error) {
       console.error('Failed to load locations:', error);
@@ -57,8 +60,10 @@ export default function SelectLocationScreen({ navigation }: any) {
     <TouchableOpacity
       style={styles.locationItem}
       onPress={() => {
-        // TODO: Pass location back to PostAdScreen
-        navigation.goBack();
+        // Navigate back to PostAd with selected location
+        navigation.navigate('PostAd', {
+          selectedLocation: { id: item.id, name: item.name, slug: item.slug },
+        });
       }}
     >
       <Text style={styles.locationIcon}>📍</Text>

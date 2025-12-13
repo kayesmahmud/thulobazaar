@@ -260,7 +260,7 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 router.get(
   '/callback/google',
   passport.authenticate('google', {
-    failureRedirect: 'http://localhost:3333/en/auth/signin?error=OAuthAccountNotLinked',
+    failureRedirect: `${config.FRONTEND_URL}/en/auth/signin?error=OAuthAccountNotLinked`,
     session: false
   }),
   (req, res) => {
@@ -268,7 +268,7 @@ router.get(
     const user = req.user;
 
     if (!user) {
-      return res.redirect('http://localhost:3333/en/auth/signin?error=NoUser');
+      return res.redirect(`${config.FRONTEND_URL}/en/auth/signin?error=NoUser`);
     }
 
     const token = jwt.sign(
@@ -280,7 +280,7 @@ router.get(
     console.log(`✅ Google OAuth success for: ${user.email}`);
 
     // Redirect to frontend with token - frontend will handle storing it
-    res.redirect(`http://localhost:3333/api/auth/oauth-callback?token=${token}&provider=google`);
+    res.redirect(`${config.FRONTEND_URL}/api/auth/oauth-callback?token=${token}&provider=google`);
   }
 );
 

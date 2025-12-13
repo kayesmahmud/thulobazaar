@@ -3,6 +3,8 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3333';
+
 const errorMessages: Record<string, { title: string; description: string; solution: string }> = {
   AccessDenied: {
     title: 'Access Denied',
@@ -17,7 +19,7 @@ const errorMessages: Record<string, { title: string; description: string; soluti
   OAuthCallback: {
     title: 'OAuth Callback Error',
     description: 'There was an error during the sign-in callback.',
-    solution: 'Check that the redirect URI is correctly configured in Google Cloud Console: http://localhost:3333/api/auth/callback/google',
+    solution: `Check that the redirect URI is correctly configured in Google Cloud Console: ${SITE_URL}/api/auth/callback/google`,
   },
   OAuthCreateAccount: {
     title: 'Account Creation Error',
@@ -72,7 +74,7 @@ export default function AuthErrorPage() {
                 <p className="text-sm font-semibold text-blue-800 mb-2">Required Google Cloud Console Settings:</p>
                 <ol className="text-sm text-blue-700 list-decimal list-inside space-y-1">
                   <li>Go to Google Cloud Console {">"} APIs & Services {">"} Credentials</li>
-                  <li>Add redirect URI: <code className="bg-blue-100 px-1 rounded">http://localhost:3333/api/auth/callback/google</code></li>
+                  <li>Add redirect URI: <code className="bg-blue-100 px-1 rounded">{SITE_URL}/api/auth/callback/google</code></li>
                   <li>Go to OAuth consent screen</li>
                   <li>Add your email as a test user OR publish the app</li>
                 </ol>

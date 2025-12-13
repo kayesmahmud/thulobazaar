@@ -24,7 +24,7 @@ export async function POST(
     const admin = await requireEditor(request);
 
     const { id, action } = await params;
-    const requestId = parseInt(id);
+    const requestId = parseInt(id, 10);
 
     // Validate action
     if (!['approve', 'reject'].includes(action)) {

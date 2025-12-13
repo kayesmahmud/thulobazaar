@@ -16,7 +16,7 @@ export async function PUT(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const userId = parseInt(id);
+    const userId = parseInt(id, 10);
 
     // Promote user to editor (only if current role is 'user')
     const user = await prisma.users.update({

@@ -32,11 +32,11 @@ export async function GET(request: NextRequest) {
     const now = new Date();
 
     if (yearParam) {
-      const year = parseInt(yearParam);
+      const year = parseInt(yearParam, 10);
 
       if (monthParam) {
         // Monthly view
-        const month = parseInt(monthParam) - 1; // JS months are 0-indexed
+        const month = parseInt(monthParam, 10) - 1; // JS months are 0-indexed
         startDate = new Date(year, month, 1);
         endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Last day of month
 
@@ -374,7 +374,7 @@ export async function GET(request: NextRequest) {
     if (yearParam && monthParam) {
       const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                           'July', 'August', 'September', 'October', 'November', 'December'];
-      periodLabel = `${monthNames[parseInt(monthParam) - 1]} ${yearParam}`;
+      periodLabel = `${monthNames[parseInt(monthParam, 10) - 1]} ${yearParam}`;
     } else if (yearParam) {
       periodLabel = `Year ${yearParam}`;
     } else {

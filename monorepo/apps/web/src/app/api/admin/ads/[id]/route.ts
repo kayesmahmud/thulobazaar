@@ -19,7 +19,7 @@ export async function DELETE(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const adId = parseInt(id);
+    const adId = parseInt(id, 10);
     const body = await request.json();
     const reason = body.reason || 'No reason provided';
 

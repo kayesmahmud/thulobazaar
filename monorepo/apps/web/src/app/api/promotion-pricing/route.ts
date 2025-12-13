@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     const newPricing = await prisma.promotion_pricing.create({
       data: {
         promotion_type,
-        duration_days: parseInt(duration_days),
+        duration_days: parseInt(duration_days, 10),
         account_type,
         price: parseFloat(price),
         discount_percentage: discount_percentage || 0,

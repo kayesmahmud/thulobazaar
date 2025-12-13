@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { prisma } from '@thulobazaar/database';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://thulobazaar.com'; // TODO: Use env variable
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://thulobazaar.com.np';
 
   // Fetch all approved ads
   const ads = await prisma.ads.findMany({

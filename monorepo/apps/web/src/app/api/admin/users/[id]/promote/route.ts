@@ -16,7 +16,7 @@ export async function PUT(
     await requireAdmin(request);
 
     const { id } = await params;
-    const userId = parseInt(id);
+    const userId = parseInt(id, 10);
 
     if (isNaN(userId)) {
       return NextResponse.json(

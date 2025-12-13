@@ -83,7 +83,8 @@ export function useVerificationForm<T>(
       }
       setError('Please verify your phone number first before applying for verification. Go to Profile → Security to verify.');
       return false;
-    } catch {
+    } catch (err) {
+      console.error('Phone verification check error:', err);
       setError('Failed to verify phone status. Please try again.');
       return false;
     }

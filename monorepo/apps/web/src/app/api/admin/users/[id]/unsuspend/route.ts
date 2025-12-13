@@ -16,7 +16,7 @@ export async function PUT(
     const editor = await requireEditor(request);
 
     const { id } = await params;
-    const userId = parseInt(id);
+    const userId = parseInt(id, 10);
 
     // Update user - clear all suspension fields
     const user = await prisma.users.update({

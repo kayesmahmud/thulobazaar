@@ -105,8 +105,9 @@ export function usePostAd(lang: string) {
           setUserPhone(profileData.data.phone || null);
           setPhoneVerified(profileData.data.phoneVerified || false);
         }
-      } catch {
-        // Non-critical error
+      } catch (err) {
+        // Non-critical error - user profile fetch failed
+        console.warn('Failed to fetch user profile:', err);
       }
 
       // Fetch user's default location
@@ -130,8 +131,9 @@ export function usePostAd(lang: string) {
             setUserHasDefaultLocation(false);
           }
         }
-      } catch {
-        // Non-critical error
+      } catch (err) {
+        // Non-critical error - user location fetch failed
+        console.warn('Failed to fetch user location:', err);
       }
     } catch (err: any) {
       console.error('Error loading form data:', err);
@@ -344,8 +346,9 @@ export function usePostAd(lang: string) {
                   body: JSON.stringify({ locationSlug: formData.locationSlug }),
                 });
               }
-            } catch {
-              // Non-critical error
+            } catch (err) {
+              // Non-critical error - saving user default location failed
+              console.warn('Failed to save user default location:', err);
             }
           }
 

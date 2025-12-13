@@ -9,6 +9,7 @@ import {
   getOtpExpiry,
   type OtpPurpose,
 } from '@/lib/sms';
+import { sendOtpEmail } from '@/lib/notifications/notifications';
 
 const sendOtpSchema = z.object({
   phone: z.string().optional(),
@@ -257,11 +258,25 @@ export async function POST(request: NextRequest) {
       }
       console.log(`OTP sent via SMS to ${formattedPhone} for ${purpose}`);
     } else if (email) {
-      // For email, just log for now (email service can be added later)
-      // In production, integrate with email service like Resend, SendGrid, etc.
-      console.log(`OTP for ${email} (${purpose}): ${otp}`);
-      // TODO: Implement email sending
-      // For now, we'll just store the OTP and let users know it's logged
+      // Send OTP via email
+      const emailResult = await sendOtpEmail(email, otp, purpose as OtpPurpose);
+
+      if (!emailResult.success) {
+        console.error('Failed to send OTP email:', emailResult.error);
+        // If SMTP is not configured, log OTP for development
+        if (emailResult.error === 'SMTP not configured') {
+          console.log(`📧 [DEV] OTP for ${email} (${purpose}): ${otp}`);
+        } else {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Failed to send OTP email. Please try again.',
+            },
+            { status: 500 }
+          );
+        }
+      }
+      console.log(`OTP sent via email to ${email} for ${purpose}`);
     }
 
     return NextResponse.json(

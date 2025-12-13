@@ -253,11 +253,12 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
     setError('');
     try {
       if (provider === 'google') {
-        window.location.href = 'http://localhost:5000/api/auth/google';
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
       } else {
         await signIn(provider, { callbackUrl: `/${lang}` });
       }
-    } catch {
+    } catch (err) {
+      console.error('Social login error:', err);
       setError('Failed to connect. Please try again.');
       setSocialLoading(null);
     }

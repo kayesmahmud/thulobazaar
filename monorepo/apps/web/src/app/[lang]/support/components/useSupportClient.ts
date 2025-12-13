@@ -195,7 +195,8 @@ export function useSupportClient(): UseSupportClientReturn {
       } else {
         setError(data.message);
       }
-    } catch {
+    } catch (err) {
+      console.error('Load tickets error:', err);
       setError('Failed to load tickets');
     } finally {
       setLoading(false);
@@ -215,7 +216,8 @@ export function useSupportClient(): UseSupportClientReturn {
       } else {
         setError(data.message);
       }
-    } catch {
+    } catch (err) {
+      console.error('Load ticket detail error:', err);
       setError('Failed to load ticket');
     }
   };
@@ -243,7 +245,8 @@ export function useSupportClient(): UseSupportClientReturn {
       } else {
         setError(data.message);
       }
-    } catch {
+    } catch (err) {
+      console.error('Create ticket error:', err);
       setError('Failed to create ticket');
     } finally {
       setSubmitting(false);
@@ -295,7 +298,8 @@ export function useSupportClient(): UseSupportClientReturn {
       } else {
         setError(data.message);
       }
-    } catch {
+    } catch (err) {
+      console.error('Send message error:', err);
       setError('Failed to send message');
     } finally {
       setSendingMessage(false);

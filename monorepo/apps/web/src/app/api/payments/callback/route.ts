@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         gateway: 'khalti',
         transactionId: orderId,
         pidx: pidx || undefined,
-        amount: khaltiAmount ? parseInt(khaltiAmount) / 100 : transaction.amount ? parseFloat(transaction.amount.toString()) : 0,
+        amount: khaltiAmount ? parseInt(khaltiAmount, 10) / 100 : transaction.amount ? parseFloat(transaction.amount.toString()) : 0,
       });
     } else if (gateway === 'esewa') {
       // Decode eSewa response
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       console.log(`✅ Payment verified: ${orderId} via ${gateway}`);
 
       // Handle post-payment actions based on payment type
-      await handlePaymentSuccess(transaction, paymentType, relatedId ? parseInt(relatedId) : null);
+      await handlePaymentSuccess(transaction, paymentType, relatedId ? parseInt(relatedId, 10) : null);
 
       // Redirect to success page
       return NextResponse.redirect(
@@ -176,7 +176,7 @@ async function handlePaymentSuccess(
 
         // Calculate expiry date
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
+        expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays, 10));
 
         // Get user account type for pricing record
         const user = await prisma.users.findUnique({
@@ -203,7 +203,7 @@ async function handlePaymentSuccess(
             ad_id: relatedId,
             user_id: transaction.user_id,
             promotion_type: promotionType,
-            duration_days: parseInt(durationDays),
+            duration_days: parseInt(durationDays, 10),
             price_paid: transaction.amount as number,
             account_type: accountType,
             payment_reference: transaction.id.toString(),

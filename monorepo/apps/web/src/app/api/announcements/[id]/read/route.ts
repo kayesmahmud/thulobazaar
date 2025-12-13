@@ -13,7 +13,7 @@ export async function POST(
   try {
     const userId = await requireAuth(request);
     const { id } = await params;
-    const announcementId = parseInt(id);
+    const announcementId = parseInt(id, 10);
 
     if (isNaN(announcementId)) {
       return NextResponse.json(

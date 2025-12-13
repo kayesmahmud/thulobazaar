@@ -21,11 +21,12 @@ export async function GET(request: NextRequest) {
       if (s.setting_type === 'boolean') {
         value = s.setting_value === 'true';
       } else if (s.setting_type === 'number') {
-        value = parseInt(s.setting_value || '0');
+        value = parseInt(s.setting_value || '0', 10);
       } else if (s.setting_type === 'json') {
         try {
           value = JSON.parse(s.setting_value || '{}');
-        } catch {
+        } catch (err) {
+          console.debug(`Failed to parse JSON setting ${s.setting_key}:`, err);
           value = s.setting_value;
         }
       }
