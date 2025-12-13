@@ -16,13 +16,13 @@ const slugify = slugifyUtil;
 
 /**
  * Generate a unique SEO-friendly slug for an ad
- * Format: title-location-counter (e.g., "iphone-15-pro-thamel-1")
- * Includes location (area or district) and auto-increments counter for duplicates
+ * Format: title-for-sale-location-counter (e.g., "iphone-15-pro-for-sale-thamel-1")
+ * Includes "for-sale" for SEO, location (area or district), and auto-increments counter for duplicates
  *
  * @param title - The ad title
  * @param locationId - The location ID (to get area/district name)
  * @param adId - The ad ID (for updates, to exclude self from duplicate check)
- * @returns Unique slug with location and counter (e.g., "apartment-for-rent-kathmandu-1")
+ * @returns Unique slug with for-sale, location and counter (e.g., "apartment-for-sale-kathmandu-1")
  */
 export async function generateSlug(
   title: string,
@@ -44,8 +44,11 @@ export async function generateSlug(
     }
   }
 
-  // Build base slug: title-location or just title if no location
-  const baseSlug = locationName ? `${titleSlug}-${locationName}` : titleSlug;
+  // Build base slug: title-for-sale-in-location (SEO optimized pattern)
+  // Example: "basket-ball-for-sale-in-anamnagar" or "iphone-15-for-sale-in-kathmandu"
+  const baseSlug = locationName
+    ? `${titleSlug}-for-sale-in-${locationName}`
+    : `${titleSlug}-for-sale`;
 
   // Find the highest counter for slugs with this base
   // Pattern: baseSlug-1, baseSlug-2, etc.

@@ -25,16 +25,17 @@ export function slugify(text: string): string {
 
 /**
  * Generate SEO-friendly slug with location for ad detail pages
- * Format: title-area-district--id
- * Example: iphone-15-pro-thamel-kathmandu--48
+ * Format: title-for-sale-in-area-district--id
+ * Example: iphone-15-pro-for-sale-in-thamel-kathmandu--48
  *
  * This is a pure function that doesn't require database access.
+ * Uses "for-sale-in" keyword for better SEO (natural search query pattern)
  *
  * @param adId - The ad ID
  * @param title - The ad title
  * @param areaName - Area name (e.g., "Thamel")
  * @param districtName - District name (e.g., "Kathmandu")
- * @returns SEO-friendly slug with location and ID
+ * @returns SEO-friendly slug with for-sale-in, location and ID
  */
 export function generateSeoSlug(
   adId: number,
@@ -42,7 +43,7 @@ export function generateSeoSlug(
   areaName?: string | null,
   districtName?: string | null
 ): string {
-  const parts = [title];
+  const parts = [title, 'for-sale-in'];
 
   // Add area if available
   if (areaName) {
@@ -57,6 +58,6 @@ export function generateSeoSlug(
   // Slugify the combined parts
   const slugPart = slugify(parts.join(' '));
 
-  // Return slug with ID at the end: title-area-district--id
+  // Return slug with ID at the end: title-for-sale-area-district--id
   return `${slugPart}--${adId}`;
 }

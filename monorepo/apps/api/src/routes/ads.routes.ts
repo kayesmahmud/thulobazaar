@@ -394,14 +394,34 @@ router.post(
     const condition = parsedAttributes.condition || 'used';
     const { condition: _cond, ...customFields } = parsedAttributes;
 
-    // Generate slug
-    const baseSlug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-    const slug = `${baseSlug}-${Date.now()}`;
+    // Generate SEO-friendly slug with "for-sale" pattern (like Bikroy)
+    const slugify = (text: string) =>
+      text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+
+    const titleSlug = slugify(title);
+
+    // Get location name for slug
+    let locationSlug = '';
+    if (locationId) {
+      const location = await prisma.locations.findUnique({
+        where: { id: parseInt(locationId) },
+        select: { name: true },
+      });
+      if (location?.name) {
+        locationSlug = slugify(location.name);
+      }
+    }
+
+    // Build slug: title-for-sale-in-location-timestamp
+    // Example: "basket-ball-for-sale-in-anamnagar-1702567890123"
+    const slug = locationSlug
+      ? `${titleSlug}-for-sale-in-${locationSlug}-${Date.now()}`
+      : `${titleSlug}-for-sale-${Date.now()}`;
 
     // Create ad with pending status
     // Use subcategoryId if provided, otherwise use categoryId

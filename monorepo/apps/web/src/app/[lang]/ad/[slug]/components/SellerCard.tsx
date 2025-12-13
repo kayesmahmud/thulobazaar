@@ -3,6 +3,7 @@ import Image from 'next/image';
 import AdActions from '../AdActions';
 import ReportAdButton from '../ReportAdButton';
 import SendMessageButton from '@/components/messages/SendMessageButton';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import type { SellerCardProps } from './types';
 
 export function SellerCard({
@@ -46,22 +47,12 @@ export function SellerCard({
         gap: '1rem',
         marginBottom: '1.5rem'
       }}>
-        <div style={{
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          background: seller?.avatar ? `url(/uploads/avatars/${seller.avatar})` : '#667eea',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '1.5rem',
-          fontWeight: '700'
-        }}>
-          {!seller?.avatar && (seller?.full_name?.charAt(0) || 'U')}
-        </div>
+        <UserAvatar
+          src={seller?.avatar}
+          name={seller?.full_name}
+          size="xl"
+          borderColor="none"
+        />
         <div style={{ flex: 1 }}>
           {/* Seller/Shop Name with Badge - Clickable */}
           {seller?.shop_slug ? (
