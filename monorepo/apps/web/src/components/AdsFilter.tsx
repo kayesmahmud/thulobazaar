@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import FilterSection from '@/components/shared/FilterSection';
 import RadioOption from '@/components/shared/RadioOption';
-import { buildAdUrl } from '@/lib/urlBuilder';
-import type { LocationHierarchyProvince } from '@/lib/locationHierarchy';
+import { buildAdUrl } from '@/lib/urls/client';
+import type { LocationHierarchyProvince } from '@/lib/location/types';
 
 interface Category {
   id: number;

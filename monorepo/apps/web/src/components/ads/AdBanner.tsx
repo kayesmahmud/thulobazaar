@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { adsConfig, AdSize, AdSlot } from '@/lib/adsConfig';
+import { adsConfig, AdSize, AdSlot } from '@/lib/ads/client';
 
 interface AdBannerProps {
   /** Ad slot name from adsConfig.slots */

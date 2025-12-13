@@ -5,7 +5,7 @@ import { UserAuthProvider } from '@/contexts/UserAuthContext';
 import { StaffAuthProvider } from '@/contexts/StaffAuthContext';
 import { ToastProvider } from '@/components/Toast';
 import { ReactNode, useEffect } from 'react';
-import { initConsoleFilter } from '@/lib/consoleFilter';
+import { initConsoleFilter } from '@/lib/utils/client';
 
 interface ProvidersProps {
   children: ReactNode;

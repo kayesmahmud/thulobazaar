@@ -30,6 +30,7 @@ import {
   FileText,
   type LucideIcon,
 } from 'lucide-react';
+import { AdminTheme, getRoleLabel } from '@/lib/themes';
 
 interface NavItem {
   href: string;
@@ -51,7 +52,7 @@ interface SidebarProps {
   isCollapsed?: boolean;
   onToggle?: () => void;
   navSections: NavSection[];
-  theme?: 'superadmin' | 'editor';
+  theme?: AdminTheme;
 }
 
 // Icon mapping for navigation items
@@ -93,7 +94,7 @@ export function Sidebar({
   theme = 'editor',
 }: SidebarProps) {
   const pathname = usePathname();
-  const roleLabel = theme === 'editor' ? 'Editor' : 'Super Admin';
+  const roleLabel = getRoleLabel(theme);
 
   return (
     <aside

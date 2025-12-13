@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { optionalAuth, requireAuth } from '@/lib/jwt';
-import { generateSlug, generateSeoSlug } from '@/lib/slug';
-import { processMultipleImages } from '@/lib/imageProcessing';
+import { generateSlug, generateSeoSlug } from '@/lib/urls';
+import { processMultipleImages } from '@/lib/utils';
 import { indexAd } from '@/lib/typesense';
 
 /**

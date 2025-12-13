@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { generateUniqueShopSlug } from '@/lib/slug';
+import { generateUniqueShopSlug } from '@/lib/urls';
 
 // Validation schema
 const registerSchema = z.object({

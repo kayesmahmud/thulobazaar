@@ -1,19 +1,20 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
-import Image from 'next/image';
 import { cache } from 'react';
 import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
 import { notFound } from 'next/navigation';
-import { MapPin } from 'lucide-react';
 import AdDetailClient from './AdDetailClient';
 import PromoteSection from './PromoteSection';
 import Breadcrumb from '@/components/Breadcrumb';
 import PromotionSuccessToast from './PromotionSuccessToast';
-import SendMessageButton from '@/components/messages/SendMessageButton';
 import AdBanner from '@/components/ads/AdBanner';
-import AdActions from './AdActions';
-import ReportAdButton from './ReportAdButton';
+import {
+  AdBadges,
+  SpecificationsSection,
+  LocationSection,
+  SellerCard,
+  SafetyTips,
+} from './components';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
@@ -24,8 +25,6 @@ const getAdBySlug = cache(async (slug: string) => {
   return prisma.ads.findFirst({
     where: {
       slug,
-      // Allow viewing any status for editors to preview pending ads
-      // status: 'approved', // Removed - editors need to view pending ads
       deleted_at: null,
     },
     include: {
@@ -70,7 +69,6 @@ const getAdBySlug = cache(async (slug: string) => {
                   name: true,
                   type: true,
                   locations: {
-                    // 4th level for Province
                     select: {
                       id: true,
                       name: true,
@@ -129,14 +127,7 @@ export async function generateMetadata({ params }: AdDetailPageProps): Promise<M
           description,
           url: `${baseUrl}/${lang}/ad/${slug}`,
           siteName: 'Thulobazaar',
-          images: [
-            {
-              url: imageUrl,
-              width: 800,
-              height: 600,
-              alt: ad.title,
-            },
-          ],
+          images: [{ url: imageUrl, width: 800, height: 600, alt: ad.title }],
           locale: lang === 'en' ? 'en_US' : 'ne_NP',
           type: 'website',
         },
@@ -159,15 +150,28 @@ export async function generateMetadata({ params }: AdDetailPageProps): Promise<M
   };
 }
 
-export default async function AdDetailPage({
-  params,
-  searchParams,
-}: AdDetailPageProps) {
+// Helper functions for building location and category strings
+function buildFullLocation(locations: any): string {
+  const locationParts: string[] = [];
+  if (locations?.name) locationParts.push(locations.name);
+  if (locations?.locations?.name) locationParts.push(locations.locations.name);
+  if (locations?.locations?.locations?.name) locationParts.push(locations.locations.locations.name);
+  if (locations?.locations?.locations?.locations?.name) locationParts.push(locations.locations.locations.locations.name);
+  return locationParts.join(', ');
+}
+
+function buildFullCategory(categories: any): string {
+  const categoryParts: string[] = [];
+  if (categories?.categories?.name) categoryParts.push(categories.categories.name);
+  if (categories?.name) categoryParts.push(categories.name);
+  return categoryParts.join(' > ');
+}
+
+export default async function AdDetailPage({ params, searchParams }: AdDetailPageProps) {
   const { lang, slug } = await params;
   const search = (await searchParams) || {};
 
   const ad = await getAdBySlug(slug);
-
   if (!ad) {
     notFound();
   }
@@ -178,70 +182,35 @@ export default async function AdDetailPage({
     data: { view_count: { increment: 1 } },
   }).catch(console.error);
 
-  // Format condition for display
-  const conditionMap: Record<string, string> = {
-    'new': 'Brand New',
-    'used': 'Used',
-  };
-
-  const condition = ad.condition
-    ? conditionMap[ad.condition] || ad.condition
-    : 'Not specified';
-
-  // Build full location string in correct hierarchy: Area → Municipality → District → Province
-  const locationParts = [];
-  // Level 3: Area (most specific)
-  if (ad.locations?.name) locationParts.push(ad.locations.name);
-  // Level 2: Municipality/Metro City
-  if (ad.locations?.locations?.name) locationParts.push(ad.locations.locations.name);
-  // Level 1: District
-  if (ad.locations?.locations?.locations?.name) locationParts.push(ad.locations.locations.locations.name);
-  // Level 0: Province (least specific)
-  if (ad.locations?.locations?.locations?.locations?.name) locationParts.push(ad.locations.locations.locations.locations.name);
-  const fullLocation = locationParts.join(', ');
-
-  // Build full category string (Parent › Child)
-  const categoryParts = [];
-  if (ad.categories?.categories?.name) categoryParts.push(ad.categories.categories.name);
-  if (ad.categories?.name) categoryParts.push(ad.categories.name);
-  const fullCategory = categoryParts.join(' › ');
-
-  // Prepare images for client component (array of full URL strings)
-  // Images are served from the public folder at /uploads/ads/...
-  const images = ad.ad_images.map(img =>
-    `/${img.file_path}`
-  );
+  const fullLocation = buildFullLocation(ad.locations);
+  const fullCategory = buildFullCategory(ad.categories);
+  const images = ad.ad_images.map(img => `/${img.file_path}`);
+  const customFields = ad.custom_fields as Record<string, any> | null;
 
   // Build breadcrumb items
   const breadcrumbItems = [
     { label: 'Home', path: `/${lang}` },
     { label: 'All Ads', path: `/${lang}/search` },
   ];
-
   if (ad.categories?.name && ad.categories?.slug) {
     breadcrumbItems.push({
       label: ad.categories.name,
       path: `/${lang}/search?category=${ad.categories.slug}`
     });
   }
-
   breadcrumbItems.push({
     label: ad.title.substring(0, 40) + (ad.title.length > 40 ? '...' : ''),
-    path: '' // Current page
+    path: ''
   });
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
       <Breadcrumb items={breadcrumbItems} />
-
-      {/* Toast notification for successful promotion */}
       <PromotionSuccessToast promoted={search.promoted === 'true'} txnId={search.txnId} />
 
       <div className="max-w-[1440px] mx-auto px-4 py-8">
-        {/* 4-column grid: Left Banner | Main Content | Sidebar | Right Banner */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] xl:grid-cols-[160px_1fr_350px_160px] gap-6">
-          {/* Left Vertical Banner (160x600) - Hidden on smaller screens, positioned 200px down */}
+          {/* Left Vertical Banner */}
           <div className="hidden xl:flex xl:flex-col xl:items-center self-start" style={{ marginTop: '200px' }}>
             <div className="sticky top-4">
               <AdBanner slot="adDetailLeft" size="skyscraper" />
@@ -250,8 +219,7 @@ export default async function AdDetailPage({
 
           {/* Main Content */}
           <div>
-            {/* Horizontal Banner - Above Images */}
-            {/* Mobile: 320x100, Desktop: 728x90 */}
+            {/* Top Banners */}
             <div className="flex sm:hidden justify-center mb-6">
               <AdBanner slot="adDetailTopMobile" size="mobileBanner" />
             </div>
@@ -259,20 +227,18 @@ export default async function AdDetailPage({
               <AdBanner slot="adDetailTop" size="leaderboard" />
             </div>
 
-            {/* Image Gallery - Client component for interactivity */}
+            {/* Image Gallery */}
             <AdDetailClient images={images} lang={lang} />
 
             {/* Ad Details */}
             <div className="bg-white rounded-xl p-8 mb-6 shadow-sm">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                    {ad.title}
-                  </h1>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">{ad.title}</h1>
                   <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
-                    <span>🕒 {formatRelativeTime(ad.created_at || new Date())}</span>
+                    <span>{formatRelativeTime(ad.created_at || new Date())}</span>
                     <span>•</span>
-                    <span>👁️ {ad.view_count || 0} views</span>
+                    <span>{ad.view_count || 0} views</span>
                   </div>
                 </div>
               </div>
@@ -281,213 +247,28 @@ export default async function AdDetailPage({
                 {ad.price ? formatPrice(parseFloat(ad.price.toString())) : 'Price on request'}
               </div>
 
-              <div className="flex gap-2 mb-8 flex-wrap">
-                {/* Condition Badge - Distinctive styling based on condition */}
-                {ad.condition === 'new' ? (
-                  <span className="px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Brand New
-                  </span>
-                ) : (
-                  <span className="px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                    Used
-                  </span>
-                )}
-                {(ad.custom_fields as any)?.isNegotiable && (
-                  <span className="bg-amber-50 text-amber-900 px-3 py-1 rounded text-sm font-semibold">
-                    💰 Price is negotiable
-                  </span>
-                )}
-                {fullCategory && (
-                  <span className="bg-green-50 text-green-800 px-3 py-1 rounded text-sm">
-                    {fullCategory}
-                  </span>
-                )}
-                {ad.is_featured && ad.featured_until && new Date(ad.featured_until) > new Date() && (
-                  <span style={{
-                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                    color: 'white',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '4px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    boxShadow: '0 2px 4px rgba(251, 191, 36, 0.3)'
-                  }}>
-                    ⭐ Featured
-                  </span>
-                )}
-                {ad.is_urgent && ad.urgent_until && new Date(ad.urgent_until) > new Date() && (
-                  <span style={{
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    color: 'white',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '4px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
-                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                  }}>
-                    🔥 Urgent Sale
-                  </span>
-                )}
-                {ad.is_sticky && ad.sticky_until && new Date(ad.sticky_until) > new Date() && (
-                  <span style={{
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                    color: 'white',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '4px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-                  }}>
-                    📌 Promoted
-                  </span>
-                )}
-              </div>
+              <AdBadges
+                condition={ad.condition}
+                isNegotiable={customFields?.isNegotiable || false}
+                fullCategory={fullCategory}
+                isFeatured={ad.is_featured ?? false}
+                featuredUntil={ad.featured_until}
+                isUrgent={ad.is_urgent ?? false}
+                urgentUntil={ad.urgent_until}
+                isSticky={ad.is_sticky ?? false}
+                stickyUntil={ad.sticky_until}
+              />
 
               <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                  Description
-                </h2>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                  {ad.description}
-                </p>
+                <h2 className="text-xl font-semibold mb-4 text-gray-800">Description</h2>
+                <p className="text-gray-600 leading-relaxed whitespace-pre-line">{ad.description}</p>
               </div>
 
-              {/* Specifications Section */}
-              {ad.custom_fields && Object.keys(ad.custom_fields as object).length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                    Specifications
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(() => {
-                      const filteredKeys = ['isNegotiable', 'amenities', 'condition'];
-                      const entries = Object.entries(ad.custom_fields as Record<string, any>)
-                        .filter(([key]) => !filteredKeys.includes(key));
-
-                      // Check if this is a property-related ad (has totalArea field)
-                      const hasAreaFields = entries.some(([key]) => key === 'totalArea' || key === 'areaUnit');
-
-                      if (hasAreaFields) {
-                        // Sort to put totalArea first, then areaUnit, then everything else
-                        entries.sort((a, b) => {
-                          const [keyA] = a;
-                          const [keyB] = b;
-
-                          if (keyA === 'totalArea') return -1;
-                          if (keyB === 'totalArea') return 1;
-                          if (keyA === 'areaUnit') return -1;
-                          if (keyB === 'areaUnit') return 1;
-
-                          return 0;
-                        });
-                      }
-
-                      return entries.map(([key, value]) => (
-                        <div
-                          key={key}
-                          className="p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="text-xs text-gray-600 mb-1 capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-                          </div>
-                          <div className="text-base font-medium text-gray-800">
-                            {String(value)}
-                          </div>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-
-                  {/* Amenities Section - Display at bottom with checkmarks */}
-                  {(ad.custom_fields as Record<string, any>)?.amenities && (
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                        Amenities
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {(() => {
-                          const amenitiesValue = (ad.custom_fields as Record<string, any>).amenities;
-                          let amenitiesList: string[] = [];
-
-                          // Handle if amenities is a string (comma-separated)
-                          if (typeof amenitiesValue === 'string') {
-                            amenitiesList = amenitiesValue.split(',').map(a => a.trim()).filter(Boolean);
-                          }
-                          // Handle if amenities is an array
-                          else if (Array.isArray(amenitiesValue)) {
-                            amenitiesList = amenitiesValue;
-                          }
-
-                          return amenitiesList.map((amenity, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-3 text-gray-700"
-                            >
-                              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 text-sm font-bold flex-shrink-0">
-                                ✓
-                              </span>
-                              <span>{amenity}</span>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Location Section */}
-              {fullLocation && (
-                <div>
-                  <h2 style={{
-                    fontSize: '1.25rem',
-                    fontWeight: '600',
-                    marginBottom: '1rem',
-                    color: '#1f2937'
-                  }}>
-                    Location
-                  </h2>
-                  <div style={{
-                    padding: '1rem',
-                    background: '#f9fafb',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <MapPin
-                      size={24}
-                      className="text-red-500 flex-shrink-0"
-                      strokeWidth={2}
-                    />
-                    <div>
-                      <div style={{
-                        fontSize: '1rem',
-                        fontWeight: '600',
-                        color: '#1f2937'
-                      }}>
-                        {fullLocation}
-                      </div>
-                      {ad.locations?.type && (
-                        <div style={{
-                          fontSize: '0.75rem',
-                          color: '#6b7280',
-                          textTransform: 'capitalize'
-                        }}>
-                          {ad.locations.type.replace('_', ' ')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+              <SpecificationsSection customFields={customFields} />
+              <LocationSection fullLocation={fullLocation} locationType={ad.locations?.type || null} />
             </div>
 
-            {/* Bottom Banner (336x280) - Large Rectangle - After Location */}
+            {/* Bottom Banner */}
             <div className="flex justify-center mt-8">
               <AdBanner slot="adDetailBottom" size="largeRectangle" />
             </div>
@@ -495,177 +276,15 @@ export default async function AdDetailPage({
 
           {/* Sidebar */}
           <div>
-            {/* Seller Card */}
-            <div style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              marginBottom: '1.5rem',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              position: 'sticky',
-              top: '1rem'
-            }}>
-              <h3 style={{
-                fontSize: '1.1rem',
-                fontWeight: '600',
-                marginBottom: '1rem',
-                color: '#1f2937'
-              }}>
-                Seller Information
-              </h3>
+            <SellerCard
+              seller={ad.users_ads_user_idTousers}
+              adId={ad.id}
+              userId={ad.user_id}
+              adTitle={ad.title}
+              adSlug={slug}
+              lang={lang}
+            />
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '1.5rem'
-              }}>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  background: ad.users_ads_user_idTousers?.avatar ? `url(/uploads/avatars/${ad.users_ads_user_idTousers.avatar})` : '#667eea',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem',
-                  fontWeight: '700'
-                }}>
-                  {!ad.users_ads_user_idTousers?.avatar && (ad.users_ads_user_idTousers?.full_name?.charAt(0) || 'U')}
-                </div>
-                <div style={{ flex: 1 }}>
-                  {/* Seller/Shop Name with Badge - Clickable */}
-                  {ad.users_ads_user_idTousers?.shop_slug ? (
-                    <Link
-                      href={`/${lang}/shop/${ad.users_ads_user_idTousers.shop_slug}`}
-                      style={{
-                        fontWeight: '600',
-                        color: '#1f2937',
-                        marginBottom: '0.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        textDecoration: 'none'
-                      }}
-                    >
-                      {ad.users_ads_user_idTousers?.business_verification_status === 'approved' && ad.users_ads_user_idTousers?.business_name
-                        ? ad.users_ads_user_idTousers.business_name
-                        : ad.users_ads_user_idTousers?.full_name || 'Seller'}
-                      {/* Golden Badge for Verified Business */}
-                      {ad.users_ads_user_idTousers?.account_type === 'business' && ad.users_ads_user_idTousers?.business_verification_status === 'approved' && (
-                        <Image
-                          src="/golden-badge.png"
-                          alt="Verified Business"
-                          title="Verified Business"
-                          width={20}
-                          height={20}
-                        />
-                      )}
-                      {/* Blue Badge for Verified Individual */}
-                      {ad.users_ads_user_idTousers?.account_type === 'individual' &&
-                       (ad.users_ads_user_idTousers?.individual_verified || ad.users_ads_user_idTousers?.business_verification_status === 'verified') && (
-                        <Image
-                          src="/blue-badge.png"
-                          alt="Verified Individual Seller"
-                          title="Verified Individual Seller"
-                          width={20}
-                          height={20}
-                        />
-                      )}
-                    </Link>
-                  ) : (
-                    <div style={{
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '0.25rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      {ad.users_ads_user_idTousers?.full_name || 'Seller'}
-                    </div>
-                  )}
-                  {/* Verification Status Text - only for verified sellers */}
-                  {ad.users_ads_user_idTousers?.account_type === 'business' && ad.users_ads_user_idTousers?.business_verification_status === 'approved' && (
-                    <div style={{
-                      fontSize: '0.875rem',
-                      color: '#6b7280'
-                    }}>
-                      Verified Business Account
-                    </div>
-                  )}
-                  {ad.users_ads_user_idTousers?.account_type === 'individual' &&
-                   (ad.users_ads_user_idTousers?.individual_verified || ad.users_ads_user_idTousers?.business_verification_status === 'verified') && (
-                    <div style={{
-                      fontSize: '0.875rem',
-                      color: '#6b7280'
-                    }}>
-                      Verified Individual Seller
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 1. WhatsApp Button - Uses business_phone (WhatsApp number) with fallback to verified phone */}
-              <AdActions
-                adId={ad.id}
-                adTitle={ad.title}
-                adSlug={slug}
-                lang={lang}
-                whatsappNumber={ad.users_ads_user_idTousers?.business_phone || ad.users_ads_user_idTousers?.phone || null}
-                phoneNumber={ad.users_ads_user_idTousers?.phone || null}
-                showWhatsAppOnly={true}
-              />
-
-              {/* 2. Phone Number Button */}
-              {ad.users_ads_user_idTousers?.phone && (
-                <a
-                  href={`tel:${ad.users_ads_user_idTousers.phone}`}
-                  className="block w-full px-3 py-3 bg-emerald-500 text-white rounded-lg font-semibold mb-3 text-center no-underline transition-all duration-200 hover:bg-emerald-600 hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  📞 {ad.users_ads_user_idTousers.phone}
-                </a>
-              )}
-
-              {/* 3. Send Message Button */}
-              {ad.user_id && (
-                <SendMessageButton
-                  sellerId={ad.user_id}
-                  adId={ad.id}
-                  adTitle={ad.title}
-                  lang={lang}
-                />
-              )}
-
-              {/* 4. Share and Bookmark actions */}
-              <AdActions
-                adId={ad.id}
-                adTitle={ad.title}
-                adSlug={slug}
-                lang={lang}
-                whatsappNumber={ad.users_ads_user_idTousers?.business_phone || ad.users_ads_user_idTousers?.phone || null}
-                phoneNumber={ad.users_ads_user_idTousers?.phone || null}
-                showShareFavoriteOnly={true}
-              />
-
-              <div style={{
-                marginTop: '1.5rem',
-                paddingTop: '1.5rem',
-                borderTop: '1px solid #e5e7eb',
-                textAlign: 'center'
-              }}>
-                <ReportAdButton
-                  adId={ad.id}
-                  adTitle={ad.title}
-                  lang={lang}
-                />
-              </div>
-            </div>
-
-            {/* Promote Section - Only visible to ad owner */}
             <PromoteSection ad={{
               id: ad.id,
               title: ad.title,
@@ -678,36 +297,10 @@ export default async function AdDetailPage({
               sticky_until: ad.sticky_until
             }} />
 
-            {/* Safety Tips */}
-            <div style={{
-              background: '#fff7ed',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              border: '1px solid #fed7aa'
-            }}>
-              <h4 style={{
-                fontSize: '1rem',
-                fontWeight: '600',
-                marginBottom: '1rem',
-                color: '#9a3412'
-              }}>
-                ⚠️ Safety Tips
-              </h4>
-              <ul style={{
-                fontSize: '0.875rem',
-                color: '#78350f',
-                lineHeight: '1.7',
-                paddingLeft: '1.25rem'
-              }}>
-                <li>Meet in a safe public place</li>
-                <li>Check the item before payment</li>
-                <li>Never pay in advance</li>
-                <li>Beware of unrealistic offers</li>
-              </ul>
-            </div>
+            <SafetyTips />
           </div>
 
-          {/* Right Vertical Banner (160x600) - Hidden on smaller screens, positioned 200px down */}
+          {/* Right Vertical Banner */}
           <div className="hidden xl:flex xl:flex-col xl:items-center self-start" style={{ marginTop: '200px' }}>
             <div className="sticky top-4">
               <AdBanner slot="adDetailRight" size="skyscraper" />

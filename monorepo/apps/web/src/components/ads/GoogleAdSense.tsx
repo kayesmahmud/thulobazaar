@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { adsConfig } from '@/lib/adsConfig';
+import { adsConfig } from '@/lib/ads/client';
 
 /**
  * GoogleAdSense Script Loader

@@ -28,11 +28,6 @@ export function getEditorNavSections(lang: string, badgeCounts: BadgeCounts = {}
       title: 'Content Management',
       items: [
         {
-          href: `/${lang}/editor/ads-list`,
-          icon: 'ClipboardList',
-          label: 'All Ads List',
-        },
-        {
           href: `/${lang}/editor/ad-management`,
           icon: 'Megaphone',
           label: 'Ad Management',

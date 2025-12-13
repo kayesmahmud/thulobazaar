@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { AdminTheme } from '@/lib/themes';
 
 interface HeaderProps {
   onSidebarToggle?: () => void;
@@ -14,7 +15,7 @@ interface HeaderProps {
   userEmail?: string;
   userAvatar?: string;
   onLogout?: () => void | Promise<void>;
-  theme?: 'editor' | 'superadmin';
+  theme?: AdminTheme;
   showDashboardButton?: boolean;
   lastLogin?: string | null;
 }

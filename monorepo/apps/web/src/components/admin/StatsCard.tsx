@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  AdminTheme,
+  getStatsCardPrimaryColors,
+  sharedColorClasses,
+} from '@/lib/themes';
+
 interface StatsCardProps {
   title: string;
   value: string | number;
@@ -10,59 +16,14 @@ interface StatsCardProps {
     label: string;
   };
   color?: 'primary' | 'success' | 'warning' | 'danger';
-  theme?: 'editor' | 'superadmin';
+  theme?: AdminTheme;
 }
-
-// Theme-specific colors
-const themeColors = {
-  editor: {
-    primary: {
-      gradient: 'from-emerald-50 to-green-50',
-      iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
-      iconShadow: 'shadow-lg shadow-emerald-500/30',
-      borderColor: 'border-emerald-100',
-      accentColor: 'bg-emerald-500',
-    },
-  },
-  superadmin: {
-    primary: {
-      gradient: 'from-indigo-50 to-blue-50',
-      iconBg: 'bg-gradient-to-br from-indigo-500 to-blue-600',
-      iconShadow: 'shadow-lg shadow-indigo-500/30',
-      borderColor: 'border-indigo-100',
-      accentColor: 'bg-indigo-500',
-    },
-  },
-};
-
-// Universal color classes (same for both themes)
-const colorClasses = {
-  success: {
-    gradient: 'from-teal-50 to-cyan-50',
-    iconBg: 'bg-gradient-to-br from-teal-500 to-cyan-600',
-    iconShadow: 'shadow-lg shadow-teal-500/30',
-    borderColor: 'border-teal-100',
-    accentColor: 'bg-teal-500',
-  },
-  warning: {
-    gradient: 'from-amber-50 to-orange-50',
-    iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-    iconShadow: 'shadow-lg shadow-amber-500/30',
-    borderColor: 'border-amber-100',
-    accentColor: 'bg-amber-500',
-  },
-  danger: {
-    gradient: 'from-rose-50 to-red-50',
-    iconBg: 'bg-gradient-to-br from-rose-500 to-red-600',
-    iconShadow: 'shadow-lg shadow-rose-500/30',
-    borderColor: 'border-rose-100',
-    accentColor: 'bg-rose-500',
-  },
-};
 
 export function StatsCard({ title, value, icon, trend, color = 'primary', theme = 'editor' }: StatsCardProps) {
   // Get colors based on color type and theme
-  const colors = color === 'primary' ? themeColors[theme].primary : colorClasses[color];
+  const colors = color === 'primary'
+    ? getStatsCardPrimaryColors(theme)
+    : sharedColorClasses[color];
 
   return (
     <div

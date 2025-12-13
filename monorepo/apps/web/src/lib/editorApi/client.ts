@@ -62,9 +62,11 @@ async function buildHeaders(options: RequestOptions): Promise<HeadersInit> {
 
 /**
  * Build full URL for API requests
+ * All endpoints go to the backend API (API_BASE) by default.
+ * Use useRelativeUrl: true only for Next.js API routes.
  */
 function buildUrl(endpoint: string, useRelativeUrl?: boolean): string {
-  if (useRelativeUrl || endpoint.startsWith('/api/')) {
+  if (useRelativeUrl) {
     return endpoint;
   }
   return `${API_BASE}${endpoint}`;

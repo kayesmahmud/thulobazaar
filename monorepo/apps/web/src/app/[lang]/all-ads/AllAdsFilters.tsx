@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import FilterSection from '@/components/shared/FilterSection';
-import type { LocationHierarchyProvince } from '@/lib/locationHierarchy';
-import type { CategoryWithSubcategories } from '@/lib/categories';
+import type { LocationHierarchyProvince, CategoryWithSubcategories } from '@/lib/location/types';
 
 interface AllAdsFiltersProps {
   lang: string;

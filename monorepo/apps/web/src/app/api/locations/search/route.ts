@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { getLocationBreadcrumb } from '@/lib/locationHierarchy';
+import { getLocationBreadcrumb } from '@/lib/location';
 
 /**
  * GET /api/locations/search

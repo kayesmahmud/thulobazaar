@@ -1,5 +1,5 @@
 import { prisma } from '@thulobazaar/database';
-import { getLocationBreadcrumb } from '@/lib/locationHierarchy';
+import { getLocationBreadcrumb } from '@/lib/location';
 
 const VERIFIED_BUSINESS_STATUSES = ['approved', 'verified'];
 

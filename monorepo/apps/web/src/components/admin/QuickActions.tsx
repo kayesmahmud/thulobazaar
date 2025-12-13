@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  AdminTheme,
+  getQuickActionPrimaryColors,
+  sharedColorClasses,
+} from '@/lib/themes';
+
 interface QuickAction {
   icon: string;
   label: string;
@@ -10,65 +16,18 @@ interface QuickAction {
 
 interface QuickActionsProps {
   actions: QuickAction[];
-  theme?: 'editor' | 'superadmin';
+  theme?: AdminTheme;
 }
-
-// Theme-specific primary colors
-const themePrimaryColors = {
-  editor: {
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    icon: 'bg-gradient-to-br from-emerald-500 to-green-600',
-    hoverBorder: 'hover:border-emerald-300',
-    hoverBg: 'hover:bg-emerald-50',
-  },
-  superadmin: {
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-700',
-    icon: 'bg-gradient-to-br from-indigo-500 to-blue-600',
-    hoverBorder: 'hover:border-indigo-300',
-    hoverBg: 'hover:bg-indigo-50',
-  },
-};
-
-// Universal color classes (same for both themes)
-const colorClasses = {
-  success: {
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    icon: 'bg-gradient-to-br from-teal-500 to-cyan-600',
-    hoverBorder: 'hover:border-teal-300',
-    hoverBg: 'hover:bg-teal-50',
-  },
-  warning: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    icon: 'bg-gradient-to-br from-amber-500 to-orange-600',
-    hoverBorder: 'hover:border-amber-300',
-    hoverBg: 'hover:bg-amber-50',
-  },
-  danger: {
-    bg: 'bg-rose-50',
-    text: 'text-rose-700',
-    icon: 'bg-gradient-to-br from-rose-500 to-red-600',
-    hoverBorder: 'hover:border-rose-300',
-    hoverBg: 'hover:bg-rose-50',
-  },
-  gray: {
-    bg: 'bg-gray-50',
-    text: 'text-gray-700',
-    icon: 'bg-gradient-to-br from-gray-500 to-slate-600',
-    hoverBorder: 'hover:border-gray-300',
-    hoverBg: 'hover:bg-gray-50',
-  },
-};
 
 export function QuickActions({ actions, theme = 'editor' }: QuickActionsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {actions.map((action, index) => {
         // Get colors based on action color and theme
-        const colors = action.color === 'primary' ? themePrimaryColors[theme] : colorClasses[action.color];
+        const colors = action.color === 'primary'
+          ? getQuickActionPrimaryColors(theme)
+          : sharedColorClasses[action.color];
+
         return (
           <button
             key={index}

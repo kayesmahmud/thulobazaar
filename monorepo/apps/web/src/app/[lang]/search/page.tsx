@@ -9,15 +9,15 @@ import SearchBar from './SearchBar';
 import AdCard from '@/components/AdCard';
 import AdBanner from '@/components/ads/AdBanner';
 import Breadcrumb from '@/components/Breadcrumb';
-import { getFilterIds } from '@/lib/urlParser';
-import { getLocationHierarchy } from '@/lib/locationHierarchy';
+import { getFilterIds } from '@/lib/urls';
+import { getLocationHierarchy } from '@/lib/location';
 import {
   buildAdsOrderBy,
   buildAdsWhereClause,
   standardAdInclude,
   type AdsSortBy,
-} from '@/lib/adsQueryBuilder';
-import { getRootCategoriesWithChildren } from '@/lib/categories';
+} from '@/lib/ads';
+import { getRootCategoriesWithChildren } from '@/lib/location';
 import { SearchX } from 'lucide-react';
 
 interface SearchPageProps {

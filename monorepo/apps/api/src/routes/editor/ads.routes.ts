@@ -74,8 +74,6 @@ router.get(
       where.deleted_at = null;
     }
 
-    console.log('🔍 [Editor Ads Query]', { status, includeDeleted, where, limit, offset });
-
     const [ads, total] = await Promise.all([
       prisma.ads.findMany({
         where,
@@ -100,8 +98,6 @@ router.get(
       }),
       prisma.ads.count({ where }),
     ]);
-
-    console.log('📊 [Editor Ads Result]', { foundAds: ads.length, total, deletedAds: ads.filter(a => a.deleted_at).length });
 
     res.json({
       success: true,

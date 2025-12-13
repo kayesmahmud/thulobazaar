@@ -146,6 +146,12 @@ export interface Ad {
   seller_name: string;
   seller_email: string;
   reviewer_name: string | null;
+  images?: string[];
+  primaryImage?: string | null;
+  imageUrl?: string | null;
+  slug?: string;
+  status_reason?: string | null;
+  suspended_until?: string | null;
 }
 
 export interface GetAdsParams {

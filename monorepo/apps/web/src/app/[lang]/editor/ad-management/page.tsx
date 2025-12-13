@@ -54,7 +54,7 @@ function transformAd(ad: any): Ad {
     createdAt: ad.created_at || ad.createdAt,
     updatedAt: ad.updated_at || ad.updatedAt,
     deletedAt: ad.deleted_at || ad.deletedAt,
-    images: ad.images,
+    images: ad.images || [],
     sellerName: ad.seller_name || ad.sellerName,
     sellerPhone: ad.seller_phone || ad.sellerPhone,
     condition: ad.condition,
@@ -273,15 +273,19 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
                   <div className="p-6">
                     <div className="flex gap-6">
                       {/* Ad Image */}
-                      {ad.images && ad.images[0] && (
-                        <div className="flex-shrink-0 w-32 h-32 bg-gray-100 rounded-lg overflow-hidden">
+                      <div className="flex-shrink-0">
+                        {ad.images && ad.images.length > 0 ? (
                           <img
-                            src={ad.images[0]}
+                            src={`/${ad.images[0]}`}
                             alt={ad.title}
-                            className="w-full h-full object-cover"
+                            className="w-48 h-36 object-cover rounded-lg"
                           />
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-48 h-36 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span className="text-4xl">📷</span>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Ad Content */}
                       <div className="flex-1 min-w-0">

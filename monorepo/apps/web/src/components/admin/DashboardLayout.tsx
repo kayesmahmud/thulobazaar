@@ -3,7 +3,7 @@
 import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { AdminTheme, getThemeColors } from '@/lib/adminThemes';
+import { AdminTheme, getThemeColors, getBackgroundGradient } from '@/lib/themes';
 
 interface NavItem {
   href: string;
@@ -56,10 +56,8 @@ export function DashboardLayout({
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  // Theme-specific background gradients
-  const backgroundGradient = theme === 'editor'
-    ? 'bg-gradient-to-br from-gray-50 via-gray-50 to-emerald-50/30'
-    : 'bg-gradient-to-br from-gray-50 via-gray-50 to-indigo-50/30';
+  // Theme-specific background gradient
+  const backgroundGradient = getBackgroundGradient(theme);
 
   return (
     <div

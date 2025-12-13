@@ -9,7 +9,7 @@ interface ChatAreaProps {
   isConnected: boolean;
   isOtherTyping: boolean;
   typingUserName: string | null;
-  messagesEndRef: RefObject<HTMLDivElement>;
+  messagesEndRef: RefObject<HTMLDivElement | null>;
   newMessage: string;
   isInternal: boolean;
   setIsInternal: (value: boolean) => void;

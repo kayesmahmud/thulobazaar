@@ -5,11 +5,10 @@ import { prisma } from '@thulobazaar/database';
 import AdsFilter from '@/components/AdsFilter';
 import AdCard from '@/components/AdCard';
 import AdBanner from '@/components/ads/AdBanner';
-import { parseAdUrlParams, getFilterIds } from '@/lib/urlParser';
-import { generateAdListingMetadata } from '@/lib/urlBuilder';
-import { getLocationHierarchy } from '@/lib/locationHierarchy';
-import { getRootCategoriesWithChildren } from '@/lib/categories';
-import { buildAdsWhereClause, buildAdsOrderBy, standardAdInclude } from '@/lib/adsQueryBuilder';
+import { parseAdUrlParams, getFilterIds, generateAdListingMetadata } from '@/lib/urls';
+import { getLocationHierarchy } from '@/lib/location';
+import { getRootCategoriesWithChildren } from '@/lib/location';
+import { buildAdsWhereClause, buildAdsOrderBy, standardAdInclude } from '@/lib/ads';
 import { SearchX } from 'lucide-react';
 
 interface AdsPageProps {
