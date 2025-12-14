@@ -3,7 +3,7 @@ import {
   normalizeCondition,
   parseJsonSafe,
   tryParseJson,
-} from '../app/api/ads/[id]/helpers';
+} from '../../app/api/ads/[id]/helpers';
 
 describe('normalizeCondition', () => {
   it('returns undefined for undefined input', () => {
