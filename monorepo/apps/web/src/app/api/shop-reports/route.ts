@@ -71,19 +71,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has already reported this shop
-    const existingReport = await prisma.shop_reports.findFirst({
+    // Check if user has a PENDING report for this shop
+    // Allow new reports if the previous report was already handled (resolved/dismissed/restored)
+    const existingPendingReport = await prisma.shop_reports.findFirst({
       where: {
         shop_id: shop.id,
         reporter_id: userId,
+        status: 'pending',
       },
     });
 
-    if (existingReport) {
+    if (existingPendingReport) {
       return NextResponse.json(
         {
           success: false,
-          message: 'You have already reported this shop',
+          message: 'You already have a pending report for this shop',
         },
         { status: 400 }
       );

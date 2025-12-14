@@ -25,11 +25,12 @@ export interface ReportedShop {
   resolverRole?: string | null;
 }
 
-export type TabStatus = 'pending' | 'resolved' | 'dismissed';
+export type TabStatus = 'pending' | 'resolved' | 'dismissed' | 'restored';
 
 export const TABS: { id: TabStatus; label: string; icon: string; color: string }[] = [
   { id: 'pending', label: 'Pending Review', icon: '🏪', color: 'orange' },
   { id: 'resolved', label: 'Suspended Shops', icon: '🚫', color: 'red' },
+  { id: 'restored', label: 'Restored', icon: '♻️', color: 'blue' },
   { id: 'dismissed', label: 'Dismissed', icon: '✅', color: 'gray' },
 ];
 
@@ -46,4 +47,5 @@ export interface TabCounts {
   pending: number;
   resolved: number;
   dismissed: number;
+  restored: number;
 }

@@ -31,6 +31,8 @@ export function ReportCard({
           ? 'border-orange-100'
           : activeTab === 'resolved'
           ? 'border-red-100'
+          : activeTab === 'restored'
+          ? 'border-blue-100'
           : 'border-gray-100'
       }`}
     >
@@ -44,11 +46,13 @@ export function ReportCard({
                   ? 'bg-orange-100'
                   : activeTab === 'resolved'
                   ? 'bg-red-100'
+                  : activeTab === 'restored'
+                  ? 'bg-blue-100'
                   : 'bg-gray-100'
               }`}
             >
               <span className="text-2xl">
-                {activeTab === 'pending' ? '🏪' : activeTab === 'resolved' ? '🚫' : '✅'}
+                {activeTab === 'pending' ? '🏪' : activeTab === 'resolved' ? '🚫' : activeTab === 'restored' ? '♻️' : '✅'}
               </span>
             </div>
             <div>
@@ -136,6 +140,8 @@ export function ReportCard({
                   ? 'bg-orange-50 border-orange-200'
                   : activeTab === 'resolved'
                   ? 'bg-red-50 border-red-200'
+                  : activeTab === 'restored'
+                  ? 'bg-blue-50 border-blue-200'
                   : 'bg-gray-50 border-gray-200'
               }`}
             >

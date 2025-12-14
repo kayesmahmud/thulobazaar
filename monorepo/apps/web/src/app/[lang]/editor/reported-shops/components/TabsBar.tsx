@@ -21,6 +21,8 @@ export function TabsBar({ activeTab, tabCounts, onTabChange }: TabsBarProps) {
                 ? 'bg-orange-500 text-white shadow-md'
                 : tab.id === 'resolved'
                 ? 'bg-red-500 text-white shadow-md'
+                : tab.id === 'restored'
+                ? 'bg-blue-500 text-white shadow-md'
                 : 'bg-gray-500 text-white shadow-md'
               : 'text-gray-600 hover:bg-gray-100'
           }`}

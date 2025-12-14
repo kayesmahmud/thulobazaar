@@ -93,10 +93,11 @@ export async function POST(
           updated_at: new Date(),
         },
       }),
-      // Update report with restoration note and track who restored it
+      // Update report status to 'restored' and track who restored it
       prisma.shop_reports.update({
         where: { id: reportId },
         data: {
+          status: 'restored',
           admin_notes: `${report.admin_notes || ''}\n[RESTORED] Shop unsuspended by editor.`.trim(),
           resolved_by: editor.userId,
           updated_at: new Date(),

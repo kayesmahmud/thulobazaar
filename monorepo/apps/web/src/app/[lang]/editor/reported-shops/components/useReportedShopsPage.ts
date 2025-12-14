@@ -21,7 +21,7 @@ export function useReportedShopsPage(lang: string) {
   const [activeTab, setActiveTab] = useState<TabStatus>('pending');
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [tabCounts, setTabCounts] = useState<TabCounts>({ pending: 0, resolved: 0, dismissed: 0 });
+  const [tabCounts, setTabCounts] = useState<TabCounts>({ pending: 0, resolved: 0, dismissed: 0, restored: 0 });
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -55,16 +55,18 @@ export function useReportedShopsPage(lang: string) {
 
   const loadTabCounts = useCallback(async () => {
     try {
-      const [pendingRes, resolvedRes, dismissedRes] = await Promise.all([
+      const [pendingRes, resolvedRes, dismissedRes, restoredRes] = await Promise.all([
         getReportedShops<ReportedShop>(undefined, { status: 'pending', limit: 1 }),
         getReportedShops<ReportedShop>(undefined, { status: 'resolved', limit: 1 }),
         getReportedShops<ReportedShop>(undefined, { status: 'dismissed', limit: 1 }),
+        getReportedShops<ReportedShop>(undefined, { status: 'restored', limit: 1 }),
       ]);
 
       setTabCounts({
         pending: pendingRes.pagination?.total || 0,
         resolved: resolvedRes.pagination?.total || 0,
         dismissed: dismissedRes.pagination?.total || 0,
+        restored: restoredRes.pagination?.total || 0,
       });
     } catch (error) {
       console.error('Error loading tab counts:', error);
