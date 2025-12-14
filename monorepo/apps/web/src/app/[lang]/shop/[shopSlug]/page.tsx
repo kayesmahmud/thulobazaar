@@ -136,6 +136,14 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
             locationName={shop.location?.name ?? ''}
             locationSlug={shop.location?.slug ?? ''}
             locationFullPath={shop.locationFullPath ?? ''}
+            categoryId={shop.defaultCategory?.id ?? null}
+            categoryName={shop.defaultCategory?.name ?? null}
+            categorySlug={shop.defaultCategory?.slug ?? null}
+            categoryIcon={shop.defaultCategory?.icon ?? null}
+            subcategoryId={shop.defaultSubcategory?.id ?? null}
+            subcategoryName={shop.defaultSubcategory?.name ?? null}
+            subcategorySlug={shop.defaultSubcategory?.slug ?? null}
+            subcategoryIcon={shop.defaultSubcategory?.icon ?? null}
           />
 
           {/* Right Side - Ads Grid */}

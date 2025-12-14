@@ -28,6 +28,7 @@ export function usePostAd(lang: string) {
 
   // User state
   const [userHasDefaultLocation, setUserHasDefaultLocation] = useState(false);
+  const [userHasDefaultCategory, setUserHasDefaultCategory] = useState(false);
   const [userPhone, setUserPhone] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
 
@@ -134,6 +135,35 @@ export function usePostAd(lang: string) {
       } catch (err) {
         // Non-critical error - user location fetch failed
         console.warn('Failed to fetch user location:', err);
+      }
+
+      // Fetch user's default category and subcategory
+      try {
+        const token = (session as any)?.backendToken;
+        if (token) {
+          const userCategoryRes = await fetch('/api/user/category', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const userCategoryData = await userCategoryRes.json();
+
+          if (userCategoryData.success && userCategoryData.data?.category) {
+            const userCategory = userCategoryData.data.category;
+            const userSubcategory = userCategoryData.data.subcategory;
+
+            // API now returns category (main) and subcategory separately
+            setFormData((prev) => ({
+              ...prev,
+              categoryId: userCategory.id.toString(),
+              subcategoryId: userSubcategory ? userSubcategory.id.toString() : '',
+            }));
+            setUserHasDefaultCategory(true);
+          } else {
+            setUserHasDefaultCategory(false);
+          }
+        }
+      } catch (err) {
+        // Non-critical error - user category fetch failed
+        console.warn('Failed to fetch user category:', err);
       }
     } catch (err: any) {
       console.error('Error loading form data:', err);
@@ -352,6 +382,30 @@ export function usePostAd(lang: string) {
             }
           }
 
+          // Auto-save user's category if they don't have a default
+          if (!userHasDefaultCategory && formData.categoryId) {
+            try {
+              const token = (session as any)?.backendToken;
+              if (token) {
+                // Save both category and subcategory separately
+                await fetch('/api/user/category', {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    categoryId: parseInt(formData.categoryId),
+                    subcategoryId: formData.subcategoryId ? parseInt(formData.subcategoryId) : null,
+                  }),
+                });
+              }
+            } catch (err) {
+              // Non-critical error - saving user default category failed
+              console.warn('Failed to save user default category:', err);
+            }
+          }
+
           router.push(`/${lang}/dashboard`);
         }
       } catch (err: any) {
@@ -370,6 +424,7 @@ export function usePostAd(lang: string) {
       validateFields,
       clearCurrentDraft,
       userHasDefaultLocation,
+      userHasDefaultCategory,
       session,
       router,
       lang,

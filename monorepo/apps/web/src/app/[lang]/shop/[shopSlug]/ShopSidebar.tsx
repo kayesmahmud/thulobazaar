@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
-import { Phone01, Globe01, MarkerPin01, MarkerPin02 } from '@untitledui-pro/icons/line';
+import { Phone01, Globe01, MarkerPin01, MarkerPin02, Tag01 } from '@untitledui-pro/icons/line';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSquareWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
@@ -39,6 +39,16 @@ interface ShopSidebarProps {
   locationName: string | null;
   locationSlug: string | null;
   locationFullPath: string | null;
+  // Category props (main category)
+  categoryId: number | null;
+  categoryName: string | null;
+  categorySlug: string | null;
+  categoryIcon: string | null;
+  // Subcategory props
+  subcategoryId: number | null;
+  subcategoryName: string | null;
+  subcategorySlug: string | null;
+  subcategoryIcon: string | null;
 }
 
 export default function ShopSidebar({
@@ -56,6 +66,14 @@ export default function ShopSidebar({
   locationName: initialLocationName,
   locationSlug: initialLocationSlug,
   locationFullPath: initialLocationFullPath,
+  categoryId: initialCategoryId,
+  categoryName: initialCategoryName,
+  categorySlug: initialCategorySlug,
+  categoryIcon: initialCategoryIcon,
+  subcategoryId: initialSubcategoryId,
+  subcategoryName: initialSubcategoryName,
+  subcategorySlug: initialSubcategorySlug,
+  subcategoryIcon: initialSubcategoryIcon,
 }: ShopSidebarProps) {
   const { user, isAuthenticated } = useUserAuth();
   const [isOwner, setIsOwner] = useState(false);
@@ -96,6 +114,70 @@ export default function ShopSidebar({
   const [locationName, setLocationName] = useState(initialLocationName || '');
   const [locationFullPath, setLocationFullPath] = useState(initialLocationFullPath || '');
   const [locationSaving, setLocationSaving] = useState(false);
+
+  // Category section states
+  const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(initialCategoryId);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | null>(initialSubcategoryId);
+  const [categoryName, setCategoryName] = useState(initialCategoryName || '');
+  const [subcategoryName, setSubcategoryName] = useState(initialSubcategoryName || '');
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: number; name: string; icon: string | null }>>([]);
+  const [subcategories, setSubcategories] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setCategories(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch subcategories when parent category changes
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      if (!selectedCategoryId) {
+        setSubcategories([]);
+        return;
+      }
+      setLoadingSubcategories(true);
+      try {
+        const res = await fetch(`/api/categories/${selectedCategoryId}/subcategories`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          setSubcategories(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching subcategories:', error);
+      } finally {
+        setLoadingSubcategories(false);
+      }
+    };
+    if (isEditingCategory && selectedCategoryId) {
+      fetchSubcategories();
+    }
+  }, [selectedCategoryId, isEditingCategory]);
+
+  // Set initial values when editing starts
+  useEffect(() => {
+    if (isEditingCategory) {
+      setSelectedCategoryId(initialCategoryId);
+      setSelectedSubcategoryId(initialSubcategoryId);
+    }
+  }, [isEditingCategory, initialCategoryId, initialSubcategoryId]);
 
   const handleSaveAbout = async () => {
     try {
@@ -234,6 +316,59 @@ export default function ShopSidebar({
     setLocationSlug(slug || '');
     setLocationName(name || '');
     setLocationFullPath(fullPath || name || '');
+  };
+
+  const handleCategoryChange = (catId: string) => {
+    const id = catId ? parseInt(catId, 10) : null;
+    setSelectedCategoryId(id);
+    setSelectedSubcategoryId(null); // Reset subcategory when category changes
+  };
+
+  const handleSubcategoryChange = (subId: string) => {
+    const id = subId ? parseInt(subId, 10) : null;
+    setSelectedSubcategoryId(id);
+  };
+
+  const handleSaveCategory = async () => {
+    try {
+      setCategorySaving(true);
+
+      const token = (user as UserWithToken | null)?.backendToken;
+
+      if (!token) {
+        alert('You must be logged in to update this section. Please refresh the page and try again.');
+        setCategorySaving(false);
+        return;
+      }
+
+      // Send both category and subcategory IDs
+      const response = await fetch(`/api/user/category`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          categoryId: selectedCategoryId,
+          subcategoryId: selectedSubcategoryId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsEditingCategory(false);
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        alert(data.message || 'Failed to update category');
+      }
+    } catch (err) {
+      console.error('Error updating category:', err);
+      alert('Failed to update category');
+    } finally {
+      setCategorySaving(false);
+    }
   };
 
   return (
@@ -576,6 +711,121 @@ export default function ShopSidebar({
             ) : (
               <p className="text-sm sm:text-base text-gray-500 italic">
                 No default location set. {isOwner && 'Click Edit to set your location for easier ad posting.'}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Default Category - Using centralized category system */}
+      <div className="card">
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold">Category</h2>
+          {!isEditingCategory && isOwner && (
+            <button
+              onClick={() => setIsEditingCategory(true)}
+              className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+
+        {isEditingCategory ? (
+          <div className="space-y-3 sm:space-y-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                Select Your Default Category
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                This will be pre-selected when you post new ads.
+              </p>
+
+              {/* Main Category Select */}
+              <select
+                value={selectedCategoryId || ''}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                disabled={loadingCategories}
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+              >
+                <option value="">
+                  {loadingCategories ? 'Loading categories...' : '-- Select Main Category --'}
+                </option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.icon || '📦'} {cat.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Subcategory Select */}
+              {selectedCategoryId && (
+                <div className="mt-3">
+                  <select
+                    value={selectedSubcategoryId || ''}
+                    onChange={(e) => handleSubcategoryChange(e.target.value)}
+                    disabled={loadingSubcategories}
+                    className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  >
+                    <option value="">
+                      {loadingSubcategories ? 'Loading subcategories...' : '-- Select Subcategory (Optional) --'}
+                    </option>
+                    {subcategories.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-3 sm:mt-4">
+              <button
+                onClick={handleSaveCategory}
+                disabled={categorySaving || !selectedCategoryId}
+                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg font-semibold transition-colors disabled:opacity-60"
+              >
+                {categorySaving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingCategory(false);
+                  // Reset to initial values
+                  setSelectedCategoryId(initialCategoryId);
+                  setSelectedSubcategoryId(initialSubcategoryId);
+                }}
+                disabled={categorySaving}
+                className="flex-1 border border-gray-300 px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-4">
+            {categoryName ? (
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Tag01 className="w-5 h-5 sm:w-[30px] sm:h-[30px] text-indigo-500 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm text-gray-600">Your Default Category</div>
+                  <div className="font-semibold text-sm sm:text-base">
+                    {/* Show category > subcategory if subcategory exists */}
+                    {subcategoryName ? (
+                      <>
+                        <span>{initialCategoryIcon || '📦'} {categoryName}</span>
+                        <span className="text-gray-400 mx-1">&gt;</span>
+                        <span>{initialSubcategoryIcon || ''} {subcategoryName}</span>
+                      </>
+                    ) : (
+                      <span>{initialCategoryIcon || '📦'} {categoryName}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm sm:text-base text-gray-500 italic">
+                No default category set. {isOwner && 'Click Edit to set your category for easier ad posting.'}
               </p>
             )}
           </div>

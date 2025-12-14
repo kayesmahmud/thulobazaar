@@ -33,6 +33,24 @@ const SHOP_SELECT = {
       slug: true,
     },
   },
+  default_category_id: true,
+  default_subcategory_id: true,
+  default_category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      icon: true,
+    },
+  },
+  default_subcategory: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      icon: true,
+    },
+  },
 } as const;
 
 interface RawShopRow {
@@ -62,6 +80,20 @@ interface RawShopRow {
     id: number;
     name: string;
     slug: string | null;
+  } | null;
+  default_category_id: number | null;
+  default_subcategory_id: number | null;
+  default_category: {
+    id: number;
+    name: string;
+    slug: string | null;
+    icon: string | null;
+  } | null;
+  default_subcategory: {
+    id: number;
+    name: string;
+    slug: string | null;
+    icon: string | null;
   } | null;
 }
 
@@ -93,6 +125,19 @@ export interface ShopProfile {
     slug: string | null;
   } | null;
   locationFullPath: string | null; // Full hierarchy path like "Thamel, Kathmandu Metropolitan City, Kathmandu, Bagmati Province"
+  // Default category and subcategory for ads
+  defaultCategory: {
+    id: number;
+    name: string;
+    slug: string | null;
+    icon: string | null;
+  } | null;
+  defaultSubcategory: {
+    id: number;
+    name: string;
+    slug: string | null;
+    icon: string | null;
+  } | null;
 }
 
 const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
@@ -107,6 +152,25 @@ const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
       console.error('Error fetching location hierarchy:', error);
     }
   }
+
+  // Extract category and subcategory data
+  const defaultCategory = shop.default_category
+    ? {
+        id: shop.default_category.id,
+        name: shop.default_category.name,
+        slug: shop.default_category.slug,
+        icon: shop.default_category.icon,
+      }
+    : null;
+
+  const defaultSubcategory = shop.default_subcategory
+    ? {
+        id: shop.default_subcategory.id,
+        name: shop.default_subcategory.name,
+        slug: shop.default_subcategory.slug,
+        icon: shop.default_subcategory.icon,
+      }
+    : null;
 
   return {
     id: shop.id,
@@ -138,6 +202,8 @@ const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
         }
       : null,
     locationFullPath,
+    defaultCategory,
+    defaultSubcategory,
   };
 };
 
