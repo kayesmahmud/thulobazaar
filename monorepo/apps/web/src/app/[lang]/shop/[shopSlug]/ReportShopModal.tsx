@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
+import { useSession } from 'next-auth/react';
 
 interface ReportShopModalProps {
   shopId: number;
@@ -22,6 +23,7 @@ const REPORT_REASONS = [
 
 export default function ReportShopModal({ shopId, shopName, isOpen, onClose, lang }: ReportShopModalProps) {
   const { isAuthenticated } = useUserAuth();
+  const { data: session } = useSession();
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,11 +47,21 @@ export default function ReportShopModal({ shopId, shopName, isOpen, onClose, lan
     setError(null);
 
     try {
+      // Get the backend token from session
+      const backendToken = (session?.user as any)?.backendToken;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add Authorization header if we have a backend token
+      if (backendToken) {
+        headers['Authorization'] = `Bearer ${backendToken}`;
+      }
+
       const response = await fetch('/api/shop-reports', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           shopId,

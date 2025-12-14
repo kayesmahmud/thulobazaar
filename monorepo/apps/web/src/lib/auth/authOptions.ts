@@ -235,6 +235,14 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (dbUser) {
+            // Generate backend token for OAuth users
+            const backendToken = await generateBackendToken({
+              id: dbUser.id,
+              email: dbUser.email,
+              phone: dbUser.phone,
+              role: dbUser.role,
+            });
+
             Object.assign(token, {
               id: dbUser.id.toString(),
               name: dbUser.full_name,
@@ -249,6 +257,7 @@ export const authOptions: NextAuthOptions = {
               businessVerificationStatus: dbUser.business_verification_status,
               individualVerified: dbUser.individual_verified,
               oauthProvider: dbUser.oauth_provider,
+              backendToken, // Add backend token for OAuth users
               iat: Math.floor(Date.now() / 1000),
             });
             return token;
