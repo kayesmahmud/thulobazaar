@@ -91,8 +91,8 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { categoryId, subcategoryId } = body;
 
-    let finalCategoryId: number | null = null;
-    let finalSubcategoryId: number | null = null;
+    let finalCategoryId: number | undefined = undefined;
+    let finalSubcategoryId: number | undefined = undefined;
 
     // Validate category if provided
     if (categoryId) {
