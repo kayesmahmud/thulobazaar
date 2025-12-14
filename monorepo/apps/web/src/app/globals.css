@@ -3,40 +3,37 @@
 /* ============================================
    Theme Configuration (Tailwind v4)
    ============================================
-   Note: These CSS variables should match the values
-   in src/lib/themes/main.ts for consistency.
-
-   For TypeScript access to theme values:
-   import { colors, fonts, theme } from '@/lib/themes/main';
+   Custom colors defined here automatically create
+   utility classes like text-primary, bg-primary, etc.
    ============================================ */
 @theme {
-  /* Colors - Primary Brand Colors (Rose) */
+  /* Primary Brand Colors (Rose) */
   --color-primary: #f43f5e;
   --color-primary-hover: #e11d48;
   --color-primary-light: #fce7ec;
   --color-primary-dark: #be123c;
 
-  /* Colors - Secondary (Blue) */
+  /* Secondary (Blue) */
   --color-secondary: #3b82f6;
   --color-secondary-hover: #2563eb;
   --color-secondary-light: #dbeafe;
 
-  /* Colors - Success (Emerald) */
+  /* Success (Emerald) */
   --color-success: #10b981;
   --color-success-hover: #059669;
   --color-success-light: #d1fae5;
 
-  /* Colors - Warning (Amber) */
+  /* Warning (Amber) */
   --color-warning: #f59e0b;
   --color-warning-hover: #d97706;
   --color-warning-light: #fef3c7;
 
-  /* Colors - Danger (Red) */
+  /* Danger (Red) */
   --color-danger: #dc2626;
   --color-danger-hover: #b91c1c;
   --color-danger-light: #fee2e2;
 
-  /* Colors - Info (Sky Blue) */
+  /* Info (Sky Blue) */
   --color-info: #0ea5e9;
   --color-info-hover: #0284c7;
   --color-info-light: #e0f2fe;
@@ -53,7 +50,7 @@
 }
 
 /* ============================================
-   Base Styles (lowest specificity)
+   Base Styles
    ============================================ */
 @layer base {
   * {
@@ -73,7 +70,6 @@
     background-color: #ffffff;
   }
 
-  /* Improved focus styles for accessibility */
   :focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -81,190 +77,8 @@
 }
 
 /* ============================================
-   Component Styles (Only used classes)
+   Animations (used by homepage gradient)
    ============================================ */
-@layer components {
-  /* Card Component - 6 uses */
-  .card {
-    background-color: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    padding: 1.5rem;
-  }
-
-  /* Button - Outline Danger - 1 use (Header.tsx) */
-  .btn-outline-danger {
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    background-color: transparent;
-    color: var(--color-danger);
-    border: 2px solid var(--color-danger);
-    transition: all 200ms;
-  }
-  .btn-outline-danger:hover {
-    background-color: var(--color-danger);
-    color: white;
-  }
-  .btn-outline-danger:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Loading Spinner - Used in multiple loading states */
-  .spinner {
-    display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    border: 2px solid currentColor;
-    border-top-color: transparent;
-    border-radius: 9999px;
-    animation: spin 1s linear infinite;
-  }
-
-  .spinner-lg {
-    width: 2rem;
-    height: 2rem;
-    border-width: 3px;
-  }
-
-  /* Skeleton Loading - Used in LoadingSkeletons, LazyImage, etc. */
-  .skeleton {
-    border-radius: 0.25rem;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
-}
-
-/* ============================================
-   Utility Styles
-   ============================================ */
-@layer utilities {
-  /* Scrollbar utilities - Used in ConversationList, etc. */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Line clamp utilities - Used for text truncation */
-  .line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Text colors using theme variables - 37 uses */
-  .text-primary {
-    color: var(--color-primary);
-  }
-
-  .text-secondary {
-    color: var(--color-secondary);
-  }
-
-  .text-success {
-    color: var(--color-success);
-  }
-
-  .text-warning {
-    color: var(--color-warning);
-  }
-
-  .text-danger {
-    color: var(--color-danger);
-  }
-
-  .text-info {
-    color: var(--color-info);
-  }
-
-  /* Background colors using theme variables */
-  .bg-primary {
-    background-color: var(--color-primary);
-  }
-
-  .bg-primary-light {
-    background-color: var(--color-primary-light);
-  }
-
-  .bg-secondary {
-    background-color: var(--color-secondary);
-  }
-
-  .bg-success {
-    background-color: var(--color-success);
-  }
-
-  .bg-warning {
-    background-color: var(--color-warning);
-  }
-
-  .bg-danger {
-    background-color: var(--color-danger);
-  }
-
-  /* Border colors using theme variables */
-  .border-primary {
-    border-color: var(--color-primary);
-  }
-
-  .border-secondary {
-    border-color: var(--color-secondary);
-  }
-
-  .border-success {
-    border-color: var(--color-success);
-  }
-
-  .border-warning {
-    border-color: var(--color-warning);
-  }
-
-  .border-danger {
-    border-color: var(--color-danger);
-  }
-}
-
-/* ============================================
-   Keyframe Animations (outside @layer)
-   ============================================ */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 @keyframes gradient-shift {
   0%, 100% {
     background-position: 0% 50%;
@@ -274,44 +88,6 @@
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-/* Animation utility classes */
 .animate-gradient-shift {
   animation: gradient-shift 15s ease infinite;
-}
-
-.animate-fade-in {
-  animation: fadeIn 200ms ease;
-}
-
-.animate-slide-up {
-  animation: slideUp 300ms ease;
 }

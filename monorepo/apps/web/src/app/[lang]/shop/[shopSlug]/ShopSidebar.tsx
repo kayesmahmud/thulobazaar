@@ -374,7 +374,7 @@ export default function ShopSidebar({
   return (
     <div className="space-y-4 sm:space-y-5 md:space-y-6">
       {/* About Section */}
-      <div className="card">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl font-semibold">About</h2>
           {!isEditingAbout && isOwner && (
@@ -427,7 +427,7 @@ export default function ShopSidebar({
       </div>
 
       {/* Contact Information */}
-      <div className="card">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl font-semibold">Contact Information</h2>
           {!isEditingContact && isOwner && (
@@ -642,7 +642,7 @@ export default function ShopSidebar({
       </div>
 
       {/* Default Category - Using centralized category system */}
-      <div className="card">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl font-semibold">Category</h2>
           {!isEditingCategory && isOwner && (
@@ -757,7 +757,7 @@ export default function ShopSidebar({
       </div>
 
       {/* Default Location - Using centralized location system */}
-      <div className="card">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl font-semibold">Location</h2>
           {!isEditingLocation && isOwner && (

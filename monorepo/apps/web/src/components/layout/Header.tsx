@@ -404,7 +404,7 @@ export default function Header({ lang }: HeaderProps) {
 
                   {/* Only show Sign Out for regular users (not staff) in mobile */}
                   {!isStaff && (
-                    <button onClick={handleSignOut} className="btn-outline-danger w-full">
+                    <button onClick={handleSignOut} className="px-4 py-2 rounded-lg font-semibold cursor-pointer bg-transparent text-red-600 border-2 border-red-600 transition-all duration-200 hover:bg-red-600 hover:text-white w-full">
                       Sign Out
                     </button>
                   )}

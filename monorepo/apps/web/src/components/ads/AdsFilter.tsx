@@ -155,7 +155,7 @@ export default function AdsFilter({
   const totalActiveFilters = categoryCount + locationCount + priceCount + conditionCount;
 
   return (
-    <div className="card">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
         <h3 className="text-lg font-semibold flex items-center gap-2">
