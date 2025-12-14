@@ -8,7 +8,7 @@ export function useReportedAds() {
   const [reports, setReports] = useState<ReportedAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [tabCounts, setTabCounts] = useState<TabCounts>({ pending: 0, resolved: 0, dismissed: 0 });
+  const [tabCounts, setTabCounts] = useState<TabCounts>({ pending: 0, resolved: 0, dismissed: 0, restored: 0 });
 
   const loadReportedAds = useCallback(async (status: TabStatus, page: number = 1) => {
     try {
@@ -34,16 +34,18 @@ export function useReportedAds() {
 
   const loadTabCounts = useCallback(async () => {
     try {
-      const [pendingRes, resolvedRes, dismissedRes] = await Promise.all([
+      const [pendingRes, resolvedRes, dismissedRes, restoredRes] = await Promise.all([
         getReportedAds<ReportedAd>(undefined, { status: 'pending', limit: 1 }),
         getReportedAds<ReportedAd>(undefined, { status: 'resolved', limit: 1 }),
         getReportedAds<ReportedAd>(undefined, { status: 'dismissed', limit: 1 }),
+        getReportedAds<ReportedAd>(undefined, { status: 'restored', limit: 1 }),
       ]);
 
       setTabCounts({
         pending: pendingRes.pagination?.total || 0,
         resolved: resolvedRes.pagination?.total || 0,
         dismissed: dismissedRes.pagination?.total || 0,
+        restored: restoredRes.pagination?.total || 0,
       });
     } catch (error) {
       console.error('Error loading tab counts:', error);

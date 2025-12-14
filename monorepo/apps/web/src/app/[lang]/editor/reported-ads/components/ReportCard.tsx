@@ -29,6 +29,8 @@ const getStatusBadge = (status: string) => {
   switch (status) {
     case 'resolved':
       return 'bg-green-100 text-green-800 border-green-200';
+    case 'restored':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'dismissed':
       return 'bg-gray-100 text-gray-800 border-gray-200';
     default:
@@ -52,6 +54,8 @@ export default function ReportCard({
           ? 'border-red-100'
           : activeTab === 'resolved'
           ? 'border-green-100'
+          : activeTab === 'restored'
+          ? 'border-blue-100'
           : 'border-gray-100'
       }`}
     >
@@ -64,10 +68,12 @@ export default function ReportCard({
                 ? 'bg-red-100'
                 : activeTab === 'resolved'
                 ? 'bg-green-100'
+                : activeTab === 'restored'
+                ? 'bg-blue-100'
                 : 'bg-gray-100'
             }`}>
               <span className="text-2xl">
-                {activeTab === 'pending' ? '🚩' : activeTab === 'resolved' ? '🗑️' : '✅'}
+                {activeTab === 'pending' ? '🚩' : activeTab === 'resolved' ? '🗑️' : activeTab === 'restored' ? '♻️' : '✅'}
               </span>
             </div>
             <div>
@@ -133,11 +139,13 @@ export default function ReportCard({
                 ? 'bg-red-50 border-red-200'
                 : activeTab === 'resolved'
                 ? 'bg-green-50 border-green-200'
+                : activeTab === 'restored'
+                ? 'bg-blue-50 border-blue-200'
                 : 'bg-gray-50 border-gray-200'
             }`}>
               <div className="mb-3">
                 <div className={`text-xs mb-1 font-medium ${
-                  activeTab === 'pending' ? 'text-red-700' : 'text-gray-700'
+                  activeTab === 'pending' ? 'text-red-700' : activeTab === 'restored' ? 'text-blue-700' : 'text-gray-700'
                 }`}>Reporter:</div>
                 <div className="text-sm text-gray-900">
                   {report.reporterName} ({report.reporterEmail})
@@ -147,14 +155,14 @@ export default function ReportCard({
               {report.description && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className={`text-xs mb-1 font-medium ${
-                    activeTab === 'pending' ? 'text-red-700' : 'text-gray-700'
+                    activeTab === 'pending' ? 'text-red-700' : activeTab === 'restored' ? 'text-blue-700' : 'text-gray-700'
                   }`}>Description:</div>
                   <div className="text-sm text-gray-900">{report.description}</div>
                 </div>
               )}
               {report.adminNotes && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="text-xs text-green-700 mb-1 font-medium">Resolution Notes:</div>
+                  <div className={`text-xs mb-1 font-medium ${activeTab === 'restored' ? 'text-blue-700' : 'text-green-700'}`}>Resolution Notes:</div>
                   <div className="text-sm text-gray-900">{report.adminNotes}</div>
                 </div>
               )}

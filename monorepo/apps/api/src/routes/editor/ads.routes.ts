@@ -373,47 +373,69 @@ router.post(
 
     const existingAd = await prisma.ads.findUnique({
       where: { id: adId },
-      select: { id: true, title: true, deleted_at: true },
+      select: { id: true, title: true, deleted_at: true, status: true },
     });
 
     if (!existingAd) {
       throw new NotFoundError('Ad not found');
     }
 
-    if (!existingAd.deleted_at) {
-      throw new ValidationError('Ad is not deleted');
+    let ad = existingAd;
+    let wasDeleted = false;
+
+    // Only restore the ad if it's actually deleted
+    if (existingAd.deleted_at) {
+      wasDeleted = true;
+      ad = await prisma.ads.update({
+        where: { id: adId },
+        data: {
+          deleted_at: null,
+          deleted_by: null,
+          deletion_reason: null,
+          status: 'approved',
+          reviewed_at: new Date(),
+          reviewed_by: req.user!.userId,
+        },
+      });
+
+      await logReviewHistory(
+        adId,
+        'restored',
+        req.user!.userId,
+        req.user!.role === 'super_admin' ? 'admin' : 'editor',
+        null,
+        'Ad restored from deletion'
+      );
     }
 
-    const ad = await prisma.ads.update({
-      where: { id: adId },
+    // Always update any resolved reports to 'restored' status
+    // This handles cases where ad was restored through another mechanism
+    const updatedReports = await prisma.ad_reports.updateMany({
+      where: {
+        ad_id: adId,
+        status: 'resolved',
+      },
       data: {
-        deleted_at: null,
-        deleted_by: null,
-        deletion_reason: null,
-        status: 'approved',
-        reviewed_at: new Date(),
-        reviewed_by: req.user!.userId,
+        status: 'restored',
+        admin_notes: wasDeleted
+          ? 'Ad was restored by editor/admin'
+          : 'Report marked as restored (ad was already active)',
+        updated_at: new Date(),
       },
     });
 
-    await logReviewHistory(
-      adId,
-      'restored',
-      req.user!.userId,
-      req.user!.role === 'super_admin' ? 'admin' : 'editor',
-      null,
-      'Ad restored from deletion'
-    );
-
-    console.log(`✅ Ad ${id} restored by ${req.user!.email}`);
+    console.log(`✅ Ad ${id} ${wasDeleted ? 'restored' : 'reports updated'} by ${req.user!.email}. ${updatedReports.count} reports updated.`);
 
     res.json({
       success: true,
-      message: 'Ad restored successfully',
+      message: wasDeleted
+        ? 'Ad restored successfully'
+        : 'Reports updated successfully (ad was already active)',
       data: {
         id: ad.id,
         title: ad.title,
         status: ad.status,
+        reportsUpdated: updatedReports.count,
       },
     });
   })

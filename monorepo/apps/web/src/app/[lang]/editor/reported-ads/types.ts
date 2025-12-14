@@ -18,7 +18,7 @@ export interface ReportedAd {
   adminNotes?: string;
 }
 
-export type TabStatus = 'pending' | 'resolved' | 'dismissed';
+export type TabStatus = 'pending' | 'resolved' | 'dismissed' | 'restored';
 
 export interface TabConfig {
   id: TabStatus;
@@ -30,6 +30,7 @@ export interface TabConfig {
 export const TABS: TabConfig[] = [
   { id: 'pending', label: 'Pending Review', icon: '🚩', color: 'red' },
   { id: 'resolved', label: 'Deleted Ads', icon: '🗑️', color: 'green' },
+  { id: 'restored', label: 'Restored', icon: '♻️', color: 'blue' },
   { id: 'dismissed', label: 'Dismissed', icon: '✅', color: 'gray' },
 ];
 
@@ -37,4 +38,5 @@ export interface TabCounts {
   pending: number;
   resolved: number;
   dismissed: number;
+  restored: number;
 }

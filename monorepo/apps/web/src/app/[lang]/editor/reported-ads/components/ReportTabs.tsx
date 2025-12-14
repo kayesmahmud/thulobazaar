@@ -22,6 +22,8 @@ export default function ReportTabs({ tabs, activeTab, tabCounts, onTabChange }: 
                 ? 'bg-red-500 text-white shadow-md'
                 : tab.id === 'resolved'
                 ? 'bg-green-500 text-white shadow-md'
+                : tab.id === 'restored'
+                ? 'bg-blue-500 text-white shadow-md'
                 : 'bg-gray-500 text-white shadow-md'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
