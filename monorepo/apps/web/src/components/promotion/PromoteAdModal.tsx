@@ -82,18 +82,35 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
     }
   };
 
+  // Map account type to pricing key (individual_verified uses individual pricing)
+  const getPricingAccountType = () => {
+    if (userAccountType === 'individual_verified') return 'individual';
+    return userAccountType;
+  };
+
   const getCurrentPrice = () => {
     if (!pricing || !pricing[selectedType]) return 0;
     const typePrice = pricing[selectedType][selectedDuration];
     if (!typePrice) return 0;
-    return typePrice[userAccountType]?.price || 0;
+    const pricingAccountType = getPricingAccountType();
+    // For individual_verified, apply 20% discount on individual price
+    if (userAccountType === 'individual_verified') {
+      const basePrice = typePrice.individual?.price || 0;
+      return Math.round(basePrice * 0.8); // 20% discount
+    }
+    return typePrice[pricingAccountType]?.price || 0;
   };
 
   const getDiscountPercentage = () => {
     if (!pricing || !pricing[selectedType]) return 0;
     const typePrice = pricing[selectedType][selectedDuration];
     if (!typePrice) return 0;
-    return typePrice[userAccountType]?.discount_percentage || 0;
+    // For individual_verified, return 20% discount
+    if (userAccountType === 'individual_verified') {
+      return 20;
+    }
+    const pricingAccountType = getPricingAccountType();
+    return typePrice[pricingAccountType]?.discountPercentage || 0;
   };
 
   const getOriginalPrice = () => {
