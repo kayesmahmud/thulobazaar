@@ -223,13 +223,14 @@ export async function verifyKhaltiPayment(
 }
 
 /**
- * Test credentials for sandbox
- * - Khalti ID: 9800000000-9800000005
+ * Test credentials for sandbox (test-admin.khalti.com)
+ * - Khalti ID: 9800000005 (confirmed working)
  * - MPIN: 1111
  * - OTP: 987654
  */
 export const KHALTI_TEST_INFO = {
-  testIds: ['9800000000', '9800000001', '9800000002', '9800000003', '9800000004', '9800000005'],
+  testId: '9800000005', // Confirmed working
+  testIds: ['9800000005', '9800000004', '9800000003', '9800000002', '9800000001', '9800000000'],
   mpin: '1111',
   otp: '987654',
 };
