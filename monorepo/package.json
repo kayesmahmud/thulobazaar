@@ -25,7 +25,13 @@
     "dev:mobile": "turbo run dev --filter=mobile",
     "dev:web-safe": "./scripts/dev-safe.sh web",
     "dev:api-safe": "./scripts/dev-safe.sh api",
-    "dev:stop": "lsof -ti:3333,5000 | xargs kill -9 2>/dev/null || echo 'No dev servers running'"
+    "dev:stop": "lsof -ti:3333,5000 | xargs kill -9 2>/dev/null || echo 'No dev servers running'",
+    "test": "turbo run test:run",
+    "test:web": "npm run test:run --workspace=web",
+    "test:api": "npm run test:run --workspace=api",
+    "test:e2e": "npm run test:e2e --workspace=web",
+    "test:coverage": "turbo run test:coverage",
+    "test:a11y": "npm run a11y --workspace=web"
   },
   "devDependencies": {
     "turbo": "^2.6.1",

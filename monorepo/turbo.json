@@ -18,6 +18,16 @@
     },
     "clean": {
       "cache": false
+    },
+    "test": {
+      "cache": false
+    },
+    "test:run": {
+      "cache": false
+    },
+    "test:coverage": {
+      "cache": false,
+      "outputs": ["coverage/**"]
     }
   }
 }

@@ -1,0 +1,40 @@
+config:
+  target: "http://localhost:3333"
+
+  # Quick smoke test - verify basic functionality
+  phases:
+    - duration: 10
+      arrivalRate: 1
+      name: "Smoke test"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+  # Strict requirements - smoke test should have zero errors
+  ensure:
+    maxErrorRate: 0
+    p99: 1000
+
+scenarios:
+  - name: "Health Check"
+    flow:
+      # Homepage loads
+      - get:
+          url: "/en"
+          expect:
+            - statusCode: 200
+
+      # API health
+      - get:
+          url: "/api/categories"
+          expect:
+            - statusCode: 200
+            - contentType: "application/json"
+
+      # Ads endpoint works
+      - get:
+          url: "/api/ads?limit=1"
+          expect:
+            - statusCode: 200
+            - hasProperty: "success"

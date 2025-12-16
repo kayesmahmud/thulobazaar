@@ -24,7 +24,11 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "a11y": "pa11y-ci",
-    "a11y:single": "pa11y"
+    "a11y:single": "pa11y",
+    "test:load": "npx artillery run artillery/load-test.yml",
+    "test:load:smoke": "npx artillery run artillery/smoke-test.yml",
+    "test:load:stress": "npx artillery run artillery/api-stress.yml",
+    "test:load:report": "npx artillery run artillery/load-test.yml --output artillery/report.json && npx artillery report artillery/report.json"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.1",

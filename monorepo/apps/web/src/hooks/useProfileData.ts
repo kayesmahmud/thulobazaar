@@ -22,6 +22,7 @@ export interface ProfileData {
   businessName?: string | null;
   verifiedSellerName?: string | null;
   accountType?: string | null;
+  shopSlug?: string | null;
   customShopSlug?: string | null;
   createdAt?: string | Date;
   avatar?: string | null;

@@ -1,0 +1,65 @@
+config:
+  target: "http://localhost:3333"
+
+  # High-load stress test configuration
+  phases:
+    # Start with moderate load
+    - duration: 20
+      arrivalRate: 10
+      name: "Warm up"
+
+    # Spike test - sudden increase
+    - duration: 30
+      arrivalRate: 50
+      name: "Spike"
+
+    # Sustained high load
+    - duration: 60
+      arrivalRate: 30
+      name: "High load"
+
+    # Extreme spike to find breaking point
+    - duration: 20
+      arrivalRate: 100
+      name: "Stress peak"
+
+    # Recovery
+    - duration: 30
+      arrivalRate: 10
+      name: "Recovery"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+  # Stricter performance requirements for stress test
+  ensure:
+    maxErrorRate: 10   # Allow up to 10% errors during stress
+    p95: 3000          # 95th percentile < 3s
+    p99: 5000          # 99th percentile < 5s
+
+scenarios:
+  # =============================================
+  # API ENDPOINT STRESS TEST
+  # =============================================
+  - name: "API Endpoints"
+    flow:
+      # Categories (lightweight endpoint)
+      - get:
+          url: "/api/categories"
+          expect:
+            - statusCode: 200
+
+      # Ads listing (heavier query)
+      - get:
+          url: "/api/ads?limit=50"
+          expect:
+            - statusCode: 200
+
+      # Search with filters (complex query)
+      - get:
+          url: "/api/ads?search=phone&category=1&sortBy=price-low&limit=20"
+
+      # Paginated results
+      - get:
+          url: "/api/ads?limit=20&offset=100"

@@ -49,12 +49,18 @@ export function useProfilePage(lang: string) {
 
   const fallbackShopSlug = useMemo(() => {
     if (!profile) return '';
+    // Use the actual shop_slug from database if available (set by verification approval)
+    if (profile.shopSlug) {
+      return profile.shopSlug;
+    }
+    // Fallback to calculated slug only if no shop_slug in database
     const baseName = (profile.businessName || displayName || 'shop')
       .toLowerCase()
       .replace(/[^a-z0-9-]+/g, '-');
     return `${baseName}-${profile.id}`;
   }, [profile, displayName]);
 
+  // Priority: custom_shop_slug > shop_slug > calculated fallback
   const activeShopSlug = profile?.customShopSlug || fallbackShopSlug;
 
   const isVerifiedBusiness =

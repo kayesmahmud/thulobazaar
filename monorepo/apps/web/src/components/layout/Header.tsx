@@ -20,7 +20,7 @@ export default function Header({ lang }: HeaderProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check both user and staff auth
-  const { user, isAuthenticated: isUserAuthenticated, logout: userLogout } = useUserAuth();
+  const { user, isAuthenticated: isUserAuthenticated, logout: userLogout, refreshUser } = useUserAuth();
   const { staff, isAuthenticated: isStaffAuthenticated, logout: staffLogout } = useStaffAuth();
 
   // Determine which user is logged in
@@ -31,6 +31,27 @@ export default function Header({ lang }: HeaderProps) {
   const handleSignOut = async () => {
     await logout();
     setProfileDropdownOpen(false);
+  };
+
+  // Auto-refresh user session when dropdown/menu is opened (to get latest shop slug, verification status, etc.)
+  const handleDropdownToggle = () => {
+    const newState = !profileDropdownOpen;
+    setProfileDropdownOpen(newState);
+
+    // Refresh user data when opening dropdown (only for regular users, not staff)
+    if (newState && isUserAuthenticated && !staff) {
+      refreshUser().catch(err => console.error('Failed to refresh user:', err));
+    }
+  };
+
+  const handleMobileMenuToggle = () => {
+    const newState = !mobileMenuOpen;
+    setMobileMenuOpen(newState);
+
+    // Refresh user data when opening mobile menu (only for regular users, not staff)
+    if (newState && isUserAuthenticated && !staff) {
+      refreshUser().catch(err => console.error('Failed to refresh user:', err));
+    }
   };
 
   // Close dropdown when clicking outside
@@ -207,7 +228,7 @@ export default function Header({ lang }: HeaderProps) {
                     {/* Profile Avatar Dropdown */}
                     <div ref={dropdownRef} className="relative">
                       <button
-                        onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                        onClick={handleDropdownToggle}
                         className="rounded-full hover:ring-2 hover:ring-rose-500 transition-all cursor-pointer p-0"
                         aria-label="Profile menu"
                         aria-expanded={profileDropdownOpen}
@@ -306,7 +327,7 @@ export default function Header({ lang }: HeaderProps) {
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 text-gray-600 hover:text-rose-500"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={handleMobileMenuToggle}
             aria-label="Toggle mobile menu"
             aria-expanded={mobileMenuOpen}
           >

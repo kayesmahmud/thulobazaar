@@ -46,8 +46,10 @@ export type OtpPurpose = 'registration' | 'login' | 'password_reset' | 'phone_ve
 export type NotificationType =
   | 'business_verification_approved'
   | 'business_verification_rejected'
+  | 'business_verification_submitted'
   | 'individual_verification_approved'
   | 'individual_verification_rejected'
+  | 'individual_verification_submitted'
   | 'account_suspended'
   | 'account_unsuspended'
   | 'ad_approved'
@@ -73,8 +75,10 @@ function getOtpMessage(otp: string, purpose: OtpPurpose): string {
 const notificationTypeToSettingKey: Record<NotificationType, string> = {
   business_verification_approved: 'sms_business_approved',
   business_verification_rejected: 'sms_business_rejected',
+  business_verification_submitted: 'sms_business_submitted',
   individual_verification_approved: 'sms_individual_approved',
   individual_verification_rejected: 'sms_individual_rejected',
+  individual_verification_submitted: 'sms_individual_submitted',
   account_suspended: 'sms_account_suspended',
   account_unsuspended: 'sms_account_unsuspended',
   ad_approved: 'sms_ad_approved',
@@ -86,8 +90,10 @@ const notificationTypeToSettingKey: Record<NotificationType, string> = {
 const defaultMessages: Record<NotificationType, string> = {
   business_verification_approved: 'Congratulations {name}! Your business verification on Thulo Bazaar has been approved. You can now enjoy all business seller benefits.',
   business_verification_rejected: 'Dear {name}, your business verification on Thulo Bazaar was not approved. Reason: {reason}. Please submit a new request with correct documents.',
+  business_verification_submitted: 'Dear {name}, your business verification application has been submitted successfully. Our team will review it within 24-48 hours. We will notify you once reviewed.',
   individual_verification_approved: 'Congratulations {name}! Your identity verification on Thulo Bazaar has been approved.',
   individual_verification_rejected: 'Dear {name}, your identity verification on Thulo Bazaar was not approved. Reason: {reason}.',
+  individual_verification_submitted: 'Dear {name}, your identity verification application has been submitted successfully. Our team will review it within 24-48 hours. We will notify you once reviewed.',
   account_suspended: 'Dear {name}, your Thulo Bazaar account has been suspended. Reason: {reason}. Contact support for assistance.',
   account_unsuspended: 'Good news {name}! Your Thulo Bazaar account has been restored. You can now access all features.',
   ad_approved: 'Great news {name}! Your ad on Thulo Bazaar has been approved and is now live.',

@@ -1,7 +1,144 @@
 'use client';
 
+import { useRef, useEffect, useState } from 'react';
 import { usePhoneVerification } from '@/hooks/usePhoneVerification';
 import { useChangePassword } from '@/hooks/useChangePassword';
+
+// OTP Input Component with individual digit boxes
+interface OtpInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  length?: number;
+  status?: 'idle' | 'success' | 'error';
+  disabled?: boolean;
+  autoFocus?: boolean;
+}
+
+function OtpInput({
+  value,
+  onChange,
+  length = 6,
+  status = 'idle',
+  disabled = false,
+  autoFocus = true,
+}: OtpInputProps) {
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [shake, setShake] = useState(false);
+
+  // Trigger shake animation on error
+  useEffect(() => {
+    if (status !== 'error') return;
+
+    setShake(true);
+    const timer = setTimeout(() => setShake(false), 500);
+    return () => clearTimeout(timer);
+  }, [status]);
+
+  // Auto-focus first input
+  useEffect(() => {
+    if (autoFocus && inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, [autoFocus]);
+
+  // Convert value string to array of digits
+  const digits = value.split('').concat(Array(length - value.length).fill(''));
+
+  const handleChange = (index: number, newValue: string) => {
+    // Only allow digits
+    const digit = newValue.replace(/\D/g, '').slice(-1);
+
+    if (digit) {
+      // Update value
+      const newDigits = [...digits];
+      newDigits[index] = digit;
+      onChange(newDigits.join('').slice(0, length));
+
+      // Move to next input
+      if (index < length - 1) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      const newDigits = [...digits];
+
+      if (digits[index]) {
+        // Clear current digit
+        newDigits[index] = '';
+        onChange(newDigits.join(''));
+      } else if (index > 0) {
+        // Move to previous input and clear it
+        newDigits[index - 1] = '';
+        onChange(newDigits.join(''));
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < length - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length);
+    if (pastedData) {
+      onChange(pastedData);
+      // Focus the next empty input or last input
+      const nextIndex = Math.min(pastedData.length, length - 1);
+      inputRefs.current[nextIndex]?.focus();
+    }
+  };
+
+  // Style classes based on status
+  const getBoxStyles = (hasValue: boolean) => {
+    const baseStyles = 'w-12 h-14 text-center text-2xl font-semibold rounded-lg border-2 transition-all duration-200 focus:outline-none';
+
+    if (status === 'success') {
+      return `${baseStyles} border-green-500 bg-green-50 text-green-700 focus:border-green-600 focus:ring-2 focus:ring-green-200`;
+    }
+    if (status === 'error') {
+      return `${baseStyles} border-red-500 bg-red-50 text-red-700 focus:border-red-600 focus:ring-2 focus:ring-red-200`;
+    }
+    // idle state
+    return `${baseStyles} ${hasValue ? 'border-primary bg-primary/5 text-gray-900' : 'border-gray-300 bg-white text-gray-900'} focus:border-primary focus:ring-2 focus:ring-primary/20`;
+  };
+
+  return (
+    <div
+      className={`flex gap-2 justify-center ${shake ? 'animate-shake' : ''}`}
+      style={shake ? { animation: 'shake 0.5s ease-in-out' } : undefined}
+    >
+      <style jsx>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+      `}</style>
+      {digits.map((digit, index) => (
+        <input
+          key={index}
+          ref={(el) => { inputRefs.current[index] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => handleChange(index, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(index, e)}
+          onPaste={handlePaste}
+          disabled={disabled}
+          className={getBoxStyles(!!digit)}
+          aria-label={`Digit ${index + 1}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 interface SecurityTabProps {
   isPhoneVerified: boolean;
@@ -213,38 +350,60 @@ function PhoneVerificationForm({
   }
 
   if (phoneVerification.step === 'enter_otp') {
+    // Determine OTP input status
+    const otpStatus = phoneVerification.success ? 'success' : phoneVerification.error ? 'error' : 'idle';
+
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
               Enter OTP sent to {phoneVerification.phoneToVerify}
             </label>
+
+            {/* OTP Input with individual boxes */}
+            <OtpInput
+              value={phoneVerification.otp}
+              onChange={phoneVerification.setOtp}
+              status={otpStatus}
+              disabled={phoneVerification.isVerifying}
+            />
+
+            {/* Error message below OTP */}
             {phoneVerification.error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">
+              <div className="mt-3 text-center text-sm text-red-600 flex items-center justify-center gap-1.5">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
                 {phoneVerification.error}
               </div>
             )}
-            <div className="space-y-3">
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={phoneVerification.otp}
-                onChange={(e) => phoneVerification.setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="------"
-                maxLength={6}
-                autoFocus
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-2xl text-center tracking-widest font-mono focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
-              />
-              <button
-                onClick={phoneVerification.verifyOtp}
-                disabled={phoneVerification.isVerifying || phoneVerification.otp.length !== 6}
-                className="w-full px-4 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {phoneVerification.isVerifying ? 'Verifying...' : 'Verify OTP'}
-              </button>
-            </div>
+
+            {/* Success message */}
+            {phoneVerification.success && (
+              <div className="mt-3 text-center text-sm text-green-600 flex items-center justify-center gap-1.5">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {phoneVerification.success}
+              </div>
+            )}
+
+            {/* Verify Button */}
+            <button
+              onClick={phoneVerification.verifyOtp}
+              disabled={phoneVerification.isVerifying || phoneVerification.otp.length !== 6}
+              className="w-full mt-4 px-4 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {phoneVerification.isVerifying ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Verifying...
+                </span>
+              ) : (
+                'Verify OTP'
+              )}
+            </button>
           </div>
           <div className="flex items-center justify-between">
             <button

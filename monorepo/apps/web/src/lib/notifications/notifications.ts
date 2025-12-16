@@ -96,6 +96,37 @@ function getEmailTemplate(
       `,
       text: `Dear ${name}, your business verification request on Thulo Bazaar was not approved. ${details?.reason ? `Reason: ${details.reason}` : ''} You can submit a new request with correct documents.`,
     },
+    business_verification_submitted: {
+      subject: 'Business Verification Application Received - Thulo Bazaar',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Thulo Bazaar</h1>
+          </div>
+          <div style="padding: 30px; background: #f9fafb;">
+            <h2 style="color: #1f2937;">Thank you, ${name}!</h2>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Your business verification application has been <strong style="color: #f59e0b;">submitted successfully</strong> and is now pending review.
+            </p>
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+              <strong style="color: #92400e;">What's Next?</strong>
+              <p style="color: #78350f; margin: 5px 0 0 0;">Our team will review your application within 24-48 hours. We will notify you via SMS and email once the review is complete.</p>
+            </div>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              You can check your verification status anytime from your profile settings.
+            </p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/profile"
+               style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
+              View Profile
+            </a>
+          </div>
+          <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 12px;">
+            <p>Thank you for choosing Thulo Bazaar!</p>
+          </div>
+        </div>
+      `,
+      text: `Thank you ${name}! Your business verification application on Thulo Bazaar has been submitted successfully and is pending review. Our team will review it within 24-48 hours. We will notify you once reviewed.`,
+    },
     individual_verification_approved: {
       subject: 'Identity Verification Approved - Thulo Bazaar',
       html: `
@@ -152,6 +183,37 @@ function getEmailTemplate(
         </div>
       `,
       text: `Dear ${name}, your identity verification request was not approved. ${details?.reason ? `Reason: ${details.reason}` : ''}`,
+    },
+    individual_verification_submitted: {
+      subject: 'Identity Verification Application Received - Thulo Bazaar',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Thulo Bazaar</h1>
+          </div>
+          <div style="padding: 30px; background: #f9fafb;">
+            <h2 style="color: #1f2937;">Thank you, ${name}!</h2>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Your identity verification application has been <strong style="color: #f59e0b;">submitted successfully</strong> and is now pending review.
+            </p>
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+              <strong style="color: #92400e;">What's Next?</strong>
+              <p style="color: #78350f; margin: 5px 0 0 0;">Our team will review your application within 24-48 hours. We will notify you via SMS and email once the review is complete.</p>
+            </div>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              You can check your verification status anytime from your profile settings.
+            </p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://thulobazaar.com.np'}/profile"
+               style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px;">
+              View Profile
+            </a>
+          </div>
+          <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 12px;">
+            <p>Thank you for choosing Thulo Bazaar!</p>
+          </div>
+        </div>
+      `,
+      text: `Thank you ${name}! Your identity verification application on Thulo Bazaar has been submitted successfully and is pending review. Our team will review it within 24-48 hours. We will notify you once reviewed.`,
     },
     account_suspended: {
       subject: 'Account Suspended - Thulo Bazaar',

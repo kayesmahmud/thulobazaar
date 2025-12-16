@@ -3,6 +3,7 @@ import { prisma } from '@thulobazaar/database';
 import { requireAuth } from '@/lib/auth';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { sendNotificationByUserId } from '@/lib/notifications';
 
 /**
  * POST /api/verification/business
@@ -338,6 +339,18 @@ export async function POST(request: NextRequest) {
         `✅ Business verification request submitted by user ${userId}, request ID: ${verificationRequest.id}`
       );
       console.log(`   Status: ${verificationStatus}, Duration: ${durationDays} days, Payment: NPR ${paymentAmount} (Ref: ${paymentReference})`);
+    }
+
+    // Send SMS/email notification that application is submitted and pending
+    // Only send if status is 'pending' (ready for review, not waiting for payment)
+    if (verificationStatus === 'pending') {
+      sendNotificationByUserId(userId, 'business_verification_submitted')
+        .then((result) => {
+          if (result.success) {
+            console.log(`📱 Business verification submitted notification sent to user ${userId}`);
+          }
+        })
+        .catch((err) => console.error('Failed to send submitted notification:', err));
     }
 
     return NextResponse.json(

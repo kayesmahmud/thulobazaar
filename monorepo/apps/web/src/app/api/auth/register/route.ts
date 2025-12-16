@@ -128,7 +128,6 @@ export async function POST(request: NextRequest) {
     const shop_slug = await generateUniqueShopSlug(fullName);
 
     // Create user with phone verified if using phone registration
-    // All registration methods (email, phone OTP, OAuth) should create consistent records
     const user = await prisma.users.create({
       data: {
         email: userEmail,
@@ -140,7 +139,7 @@ export async function POST(request: NextRequest) {
         role: 'user',
         is_active: true,
         shop_slug,
-        account_type: 'individual', // Default to individual, can be upgraded to business later
+        account_type: 'individual',
       },
       select: {
         id: true,
