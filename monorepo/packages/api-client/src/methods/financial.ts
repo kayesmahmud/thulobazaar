@@ -110,6 +110,7 @@ export function createFinancialMethods(client: AxiosInstance) {
       promotion_type: string;
       duration_days: number;
       account_type: string;
+      pricing_tier?: string;
       price: number;
       discount_percentage?: number;
     }): Promise<ApiResponse<any>> {

@@ -64,7 +64,7 @@ else
       --to-schema-datasource prisma/schema.prisma \
       --script > migrations/$(date +%s)_fix_drift.sql
     echo -e "${GREEN}✅ Migration file generated in migrations/$(date +%s)_fix_drift.sql${NC}"
-    echo -e "${YELLOW}   Review the file and apply with: npx prisma migrate resolve --applied$(NC}"
+    echo -e "${YELLOW}   Review the file and apply with: npx prisma migrate resolve --applied${NC}"
   else
     echo -e "${YELLOW}   Run: npm run db:check-drift --fix (to generate migration)${NC}"
   fi

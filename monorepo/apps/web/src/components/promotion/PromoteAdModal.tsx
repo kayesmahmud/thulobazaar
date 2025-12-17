@@ -30,32 +30,58 @@ interface PricingData {
   };
 }
 
+// Tier labels for display
+const tierLabels: Record<string, string> = {
+  default: 'Standard',
+  electronics: 'Electronics',
+  vehicles: 'Vehicles',
+  property: 'Property',
+};
+
 export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: PromoteAdModalProps) {
   const [selectedType, setSelectedType] = useState<'featured' | 'urgent' | 'sticky'>('featured');
   const [selectedDuration, setSelectedDuration] = useState<3 | 7 | 15>(7);
   const [pricing, setPricing] = useState<PricingData | null>(null);
+  const [pricingTier, setPricingTier] = useState<string>('default');
   const [userAccountType, setUserAccountType] = useState<'individual' | 'individual_verified' | 'business'>('individual');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'select' | 'payment'>('select');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentGateway | null>(null);
+  const [activeCampaign, setActiveCampaign] = useState<{
+    id: number;
+    name: string;
+    discountPercentage: number;
+    bannerText: string;
+    bannerEmoji: string;
+    daysRemaining: number;
+    promoCode?: string;
+  } | null>(null);
 
-  // Fetch pricing data
+  // Fetch pricing data and active campaigns
   useEffect(() => {
     if (isOpen) {
       fetchPricing();
       checkUserAccountType();
+      fetchActiveCampaigns();
       // Reset to first step when opening
       setStep('select');
       setSelectedPaymentMethod(null);
+      setActiveCampaign(null);
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, ad.id]);
 
   const fetchPricing = async () => {
     try {
-      const response = await apiClient.getPromotionPricing();
+      // Fetch pricing with adId to get tier-specific pricing
+      const response = await apiClient.getPromotionPricing({ adId: ad.id });
       if (response.success && response.data) {
-        setPricing(response.data.pricing);
+        // Use ad-specific pricing if available, otherwise use default
+        setPricing(response.data.adPricing || response.data.pricing);
+        // Set the tier for display
+        setPricingTier(response.data.adPricingTier || 'default');
+        console.log('📊 [Pricing] Tier for ad:', response.data.adPricingTier || 'default');
       }
     } catch (err: any) {
       console.error('Error fetching pricing:', err);
@@ -82,6 +108,18 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
     }
   };
 
+  const fetchActiveCampaigns = async () => {
+    try {
+      const response = await fetch(`/api/promotional-campaigns/active?tier=${pricingTier}`);
+      const data = await response.json();
+      if (data.success && data.data?.bestCampaign) {
+        setActiveCampaign(data.data.bestCampaign);
+      }
+    } catch (err) {
+      console.error('Error fetching active campaigns:', err);
+    }
+  };
+
   // Map account type to pricing key (individual_verified uses individual pricing)
   const getPricingAccountType = () => {
     if (userAccountType === 'individual_verified') return 'individual';
@@ -93,12 +131,22 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
     const typePrice = pricing[selectedType][selectedDuration];
     if (!typePrice) return 0;
     const pricingAccountType = getPricingAccountType();
+
+    let basePrice = 0;
     // For individual_verified, apply 20% discount on individual price
     if (userAccountType === 'individual_verified') {
-      const basePrice = typePrice.individual?.price || 0;
-      return Math.round(basePrice * 0.8); // 20% discount
+      basePrice = Math.round((typePrice.individual?.price || 0) * 0.8); // 20% discount
+    } else {
+      basePrice = typePrice[pricingAccountType]?.price || 0;
     }
-    return typePrice[pricingAccountType]?.price || 0;
+
+    // Apply campaign discount if active
+    if (activeCampaign && activeCampaign.discountPercentage > 0) {
+      const campaignDiscount = activeCampaign.discountPercentage / 100;
+      basePrice = Math.round(basePrice * (1 - campaignDiscount));
+    }
+
+    return basePrice;
   };
 
   const getDiscountPercentage = () => {
@@ -118,6 +166,31 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
     const typePrice = pricing[selectedType][selectedDuration];
     if (!typePrice) return 0;
     return typePrice.individual?.price || 0;
+  };
+
+  // Get price after account discount but before campaign discount
+  const getPriceBeforeCampaign = () => {
+    if (!pricing || !pricing[selectedType]) return 0;
+    const typePrice = pricing[selectedType][selectedDuration];
+    if (!typePrice) return 0;
+    const pricingAccountType = getPricingAccountType();
+
+    if (userAccountType === 'individual_verified') {
+      return Math.round((typePrice.individual?.price || 0) * 0.8);
+    }
+    return typePrice[pricingAccountType]?.price || 0;
+  };
+
+  // Get total combined discount percentage
+  const getTotalDiscountPercentage = () => {
+    let total = discountPercent;
+    if (activeCampaign) {
+      // Compound discount: (1 - d1) * (1 - d2) = remaining
+      // total discount = 1 - remaining
+      const remaining = (1 - discountPercent / 100) * (1 - activeCampaign.discountPercentage / 100);
+      total = Math.round((1 - remaining) * 100);
+    }
+    return total;
   };
 
   const handleProceedToPayment = () => {
@@ -244,20 +317,70 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
 
           {step === 'select' ? (
             <>
+              {/* Pricing Tier Badge */}
+              {pricingTier !== 'default' && (
+                <div className="mb-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-amber-800">
+                      <strong>{tierLabels[pricingTier] || pricingTier}</strong> category pricing applies to this ad
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Campaign Banner - Auto Applied */}
+              {activeCampaign && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">{activeCampaign.bannerEmoji || '🎉'}</span>
+                      <div>
+                        <h4 className="font-bold text-green-800">{activeCampaign.name}</h4>
+                        <p className="text-sm text-green-700">
+                          Extra {activeCampaign.discountPercentage}% OFF automatically applied!
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1.5 bg-green-500 text-white rounded-full text-sm font-bold">
+                        -{activeCampaign.discountPercentage}%
+                      </span>
+                      <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                        ⏰ {activeCampaign.daysRemaining} days left
+                      </span>
+                    </div>
+                  </div>
+                  {/* Show promo code as auto-applied */}
+                  {activeCampaign.promoCode && (
+                    <div className="mt-3 flex items-center gap-2 p-2 bg-green-100 rounded-lg">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm text-green-700">
+                        Promo Code: <strong className="font-mono">{activeCampaign.promoCode}</strong> - Automatically Applied!
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Account Type Badge */}
               <div className="mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
                 <span className="text-sm font-medium text-gray-600">Your Account:</span>
                 {userAccountType === 'business' ? (
                   <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold flex items-center gap-1">
-                    <span className="hidden sm:inline">⭐</span> Verified Business (40% OFF)
+                    <span className="hidden sm:inline">✨</span> Verified Business Seller (40% OFF)
                   </span>
                 ) : userAccountType === 'individual_verified' ? (
                   <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold flex items-center gap-1">
-                    <span className="hidden sm:inline">✓</span> Verified Seller (20% OFF)
+                    <span className="hidden sm:inline">✓</span> Verified Individual Seller (20% OFF)
                   </span>
                 ) : (
                   <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">
-                    Individual Seller
+                    Individual Seller (Standard Price)
                   </span>
                 )}
               </div>
@@ -350,18 +473,43 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 sm:p-6 mb-6">
                 <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Price Summary</h3>
                 <div className="space-y-2 sm:space-y-3">
-                  {discountPercent > 0 && (
+                  {/* Original Price */}
+                  {(discountPercent > 0 || activeCampaign) && (
                     <div className="flex justify-between items-center text-gray-500 text-sm sm:text-base">
                       <span>Original Price:</span>
                       <span className="line-through">NPR {originalPrice.toLocaleString()}</span>
                     </div>
                   )}
+
+                  {/* Account Type Discount */}
                   {discountPercent > 0 && (
-                    <div className="flex justify-between items-center text-green-600 font-semibold text-sm sm:text-base">
-                      <span>Discount ({discountPercent}%):</span>
-                      <span>- NPR {savings.toLocaleString()}</span>
+                    <div className="flex justify-between items-center text-blue-600 font-medium text-sm sm:text-base">
+                      <span className="flex items-center gap-1">
+                        {userAccountType === 'business' ? '✨ Business Discount' : '✓ Verified Discount'} ({discountPercent}%):
+                      </span>
+                      <span>- NPR {(originalPrice - getPriceBeforeCampaign()).toLocaleString()}</span>
                     </div>
                   )}
+
+                  {/* Campaign Discount */}
+                  {activeCampaign && activeCampaign.discountPercentage > 0 && (
+                    <div className="flex justify-between items-center text-green-600 font-medium text-sm sm:text-base">
+                      <span className="flex items-center gap-1">
+                        {activeCampaign.bannerEmoji} {activeCampaign.name} ({activeCampaign.discountPercentage}%):
+                      </span>
+                      <span>- NPR {(getPriceBeforeCampaign() - currentPrice).toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* Total Savings */}
+                  {(discountPercent > 0 || activeCampaign) && (
+                    <div className="flex justify-between items-center text-green-700 font-semibold text-sm sm:text-base bg-green-50 -mx-4 px-4 py-2 rounded-lg">
+                      <span>🎉 Total Savings:</span>
+                      <span>NPR {(originalPrice - currentPrice).toLocaleString()} ({getTotalDiscountPercentage()}% OFF)</span>
+                    </div>
+                  )}
+
+                  {/* Final Price */}
                   <div className="flex justify-between items-center text-xl sm:text-2xl font-bold text-rose-500 border-t-2 pt-3">
                     <span>Total:</span>
                     <span>NPR {currentPrice.toLocaleString()}</span>

@@ -105,6 +105,16 @@ export function getSuperAdminNavSections(
           label: 'Promotion Pricing',
         },
         {
+          href: `/${lang}/super-admin/promotional-campaigns`,
+          icon: 'Gift',
+          label: 'Promotional Campaigns',
+        },
+        {
+          href: `/${lang}/super-admin/category-pricing-tiers`,
+          icon: 'Layers',
+          label: 'Category Pricing Tiers',
+        },
+        {
           href: `/${lang}/super-admin/analytics`,
           icon: 'TrendingUp',
           label: 'Analytics & Reports',

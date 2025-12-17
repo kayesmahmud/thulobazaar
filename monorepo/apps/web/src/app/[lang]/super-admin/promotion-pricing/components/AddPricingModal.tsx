@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import type { AddFormData } from '../types';
-import { DEFAULT_ADD_FORM } from '../types';
+import type { AddFormData, PricingTier } from '../types';
+import { DEFAULT_ADD_FORM, pricingTierLabels, pricingTierColors } from '../types';
 
 interface AddPricingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (form: AddFormData) => Promise<boolean>;
+  selectedTier: PricingTier;
 }
 
-export default function AddPricingModal({ isOpen, onClose, onAdd }: AddPricingModalProps) {
+export default function AddPricingModal({ isOpen, onClose, onAdd, selectedTier }: AddPricingModalProps) {
   const [addForm, setAddForm] = useState<AddFormData>(DEFAULT_ADD_FORM);
 
   if (!isOpen) return null;
@@ -31,7 +32,17 @@ export default function AddPricingModal({ isOpen, onClose, onAdd }: AddPricingMo
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4">Add New Pricing</h2>
+        <h2 className="text-xl font-bold mb-2">Add New Pricing</h2>
+
+        {/* Selected Tier Badge */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Adding to tier:</span>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${pricingTierColors[selectedTier]}`}>
+              {pricingTierLabels[selectedTier]}
+            </span>
+          </div>
+        </div>
 
         <div className="space-y-4">
           <div>

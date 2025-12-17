@@ -29,7 +29,7 @@ export function createPromotionMethods(client: AxiosInstance) {
     },
 
     // New Promotion System (with pricing tiers)
-    async getPromotionPricing(): Promise<
+    async getPromotionPricing(params?: { adId?: number; tier?: string }): Promise<
       ApiResponse<{
         pricing: {
           [promotionType: string]: {
@@ -40,10 +40,33 @@ export function createPromotionMethods(client: AxiosInstance) {
             };
           };
         };
+        pricingByTier: Record<
+          string,
+          {
+            [promotionType: string]: {
+              [duration: number]: {
+                individual: { price: number; discount_percentage: number };
+                individual_verified: { price: number; discount_percentage: number };
+                business: { price: number; discount_percentage: number };
+              };
+            };
+          }
+        >;
+        adPricing?: {
+          [promotionType: string]: {
+            [duration: number]: {
+              individual: { price: number; discount_percentage: number };
+              individual_verified: { price: number; discount_percentage: number };
+              business: { price: number; discount_percentage: number };
+            };
+          };
+        };
+        adPricingTier?: string;
+        tiers: string[];
         raw: any[];
       }>
     > {
-      const response = await client.get('/api/promotion-pricing');
+      const response = await client.get('/api/promotion-pricing', { params });
       return response.data;
     },
 

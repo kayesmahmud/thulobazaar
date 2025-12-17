@@ -75,11 +75,11 @@ model ad_review_history {
   action     String    @db.VarChar(50)
   actor_id   Int
   actor_type String    @db.VarChar(20)
-  reason     String?   @db.Text
-  notes      String?   @db.Text
+  reason     String?
+  notes      String?
   created_at DateTime? @default(now()) @db.Timestamp(6)
-  ads        ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users      users     @relation(fields: [actor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ads        ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ad_review_history_ad")
+  users      users     @relation(fields: [actor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ad_review_history_user")
 
   @@index([ad_id], map: "idx_ad_review_history_ad_id")
   @@index([created_at(sort: Desc)], map: "idx_ad_review_history_created_at")
@@ -88,14 +88,14 @@ model ad_review_history {
 
 /// Phone OTPs - for phone number verification
 model phone_otps {
-  id         Int       @id @default(autoincrement())
-  phone      String    @db.VarChar(20)
-  otp_code   String    @db.VarChar(6)
-  purpose    String    @default("registration") @db.VarChar(50)  // registration, login, password_reset
-  attempts   Int       @default(0)
-  is_used    Boolean   @default(false)
-  expires_at DateTime  @db.Timestamp(6)
-  created_at DateTime  @default(now()) @db.Timestamp(6)
+  id         Int      @id @default(autoincrement())
+  phone      String   @db.VarChar(20)
+  otp_code   String   @db.VarChar(6)
+  purpose    String   @default("registration") @db.VarChar(50)
+  attempts   Int      @default(0)
+  is_used    Boolean  @default(false)
+  expires_at DateTime @db.Timestamp(6)
+  created_at DateTime @default(now()) @db.Timestamp(6)
 
   @@index([phone], map: "idx_phone_otps_phone")
   @@index([phone, otp_code], map: "idx_phone_otps_phone_code")
@@ -105,25 +105,24 @@ model phone_otps {
 /// Shop reports - for reporting shops/sellers
 model shop_reports {
   id          Int       @id @default(autoincrement())
-  shop_id     Int                                      // The user ID of the shop being reported
-  reporter_id Int                                      // The user ID of the reporter
+  shop_id     Int
+  reporter_id Int
   reason      String    @db.VarChar(100)
   details     String?
   status      String?   @default("pending") @db.VarChar(20)
   admin_notes String?
-  resolved_by Int?                                     // Editor who resolved (suspended/dismissed/restored) the report
   created_at  DateTime? @default(now()) @db.Timestamp(6)
   updated_at  DateTime? @default(now()) @db.Timestamp(6)
-  shop        users     @relation("shop_reports_shop", fields: [shop_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resolved_by Int?
   reporter    users     @relation("shop_reports_reporter", fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  resolver    users?    @relation("shop_reports_resolver", fields: [resolved_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  resolver    users?    @relation("shop_reports_resolver", fields: [resolved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shop        users     @relation("shop_reports_shop", fields: [shop_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([shop_id, reporter_id], map: "idx_shop_reports_unique")
   @@index([shop_id], map: "idx_shop_reports_shop_id")
   @@index([created_at(sort: Desc)], map: "idx_shop_reports_created_at")
   @@index([reporter_id], map: "idx_shop_reports_reporter_id")
   @@index([status], map: "idx_shop_reports_status")
-  @@index([resolved_by], map: "idx_shop_reports_resolved_by")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -171,7 +170,6 @@ model ads {
   deleted_at                   DateTime?          @db.Timestamp(6)
   deleted_by                   Int?
   deletion_reason              String?
-  suspended_until              DateTime?          @db.Timestamp(6)
   is_bumped                    Boolean?           @default(false)
   bump_expires_at              DateTime?          @db.Timestamp(6)
   is_sticky                    Boolean?           @default(false)
@@ -186,10 +184,11 @@ model ads {
   sticky_until                 DateTime?          @db.Timestamp(6)
   promoted_at                  DateTime?          @db.Timestamp(6)
   custom_fields                Json?              @default("{}")
+  suspended_until              DateTime?          @db.Timestamp(6)
   ad_images                    ad_images[]
+  ad_review_history            ad_review_history[]
   ad_promotions                ad_promotions[]
   ad_reports                   ad_reports[]
-  ad_review_history            ad_review_history[]
   categories                   categories?        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_ads_deleted_byTousers  users?             @relation("ads_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   locations                    locations?         @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -243,14 +242,14 @@ model business_verification_requests {
   business_address                                        String?
   payment_reference                                       String?   @db.VarChar(255)
   payment_amount                                          Decimal?  @db.Decimal(10, 2)
-  duration_days                                           Int?      @default(365)
-  payment_status                                          String?   @default("pending") @db.VarChar(20)
   status                                                  String?   @default("pending") @db.VarChar(20)
   reviewed_by                                             Int?
   reviewed_at                                             DateTime? @db.Timestamp(6)
   rejection_reason                                        String?
   created_at                                              DateTime? @default(now()) @db.Timestamp(6)
   updated_at                                              DateTime? @default(now()) @db.Timestamp(6)
+  duration_days                                           Int?      @default(365)
+  payment_status                                          String?   @default("pending") @db.VarChar(20)
   users_business_verification_requests_reviewed_byTousers users?    @relation("business_verification_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_business_verification_requests_user_idTousers     users     @relation("business_verification_requests_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -261,18 +260,19 @@ model business_verification_requests {
 }
 
 model categories {
-  id                          Int          @id @default(autoincrement())
-  name                        String       @db.VarChar(100)
-  slug                        String       @unique @db.VarChar(100)
-  icon                        String?      @db.VarChar(10)
-  created_at                  DateTime?    @default(now()) @db.Timestamp(6)
-  parent_id                   Int?
-  form_template               String?      @db.VarChar(50)
-  ads                         ads[]
-  categories                      categories?  @relation("categoriesTocategories", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  other_categories                categories[] @relation("categoriesTocategories")
-  users_with_default_category     users[]      @relation("users_default_category")
-  users_with_default_subcategory  users[]      @relation("users_default_subcategory")
+  id                                             Int                     @id @default(autoincrement())
+  name                                           String                  @db.VarChar(100)
+  slug                                           String                  @unique @db.VarChar(100)
+  icon                                           String?                 @db.VarChar(10)
+  created_at                                     DateTime?               @default(now()) @db.Timestamp(6)
+  parent_id                                      Int?
+  form_template                                  String?                 @db.VarChar(50)
+  ads                                            ads[]
+  categories                                     categories?             @relation("categoriesTocategories", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_categories                               categories[]            @relation("categoriesTocategories")
+  category_pricing_tiers                         category_pricing_tiers?
+  users_as_default_category                      users[]                 @relation("users_default_category")
+  users_as_default_subcategory                   users[]                 @relation("users_default_subcategory")
 
   @@index([name], map: "idx_categories_name")
   @@index([parent_id], map: "idx_categories_parent_id")
@@ -401,9 +401,45 @@ model promotion_pricing {
   is_active           Boolean?  @default(true)
   created_at          DateTime? @default(now()) @db.Timestamp(6)
   updated_at          DateTime? @default(now()) @db.Timestamp(6)
+  pricing_tier        String?   @default("default") @db.VarChar(50)
 
-  @@unique([promotion_type, duration_days, account_type])
+  @@unique([promotion_type, duration_days, account_type, pricing_tier], map: "promotion_pricing_type_duration_account_tier_unique")
   @@index([promotion_type, duration_days], map: "idx_promotion_pricing_type_duration")
+}
+
+model category_pricing_tiers {
+  id           Int        @id @default(autoincrement())
+  category_id  Int        @unique
+  pricing_tier String     @default("default") @db.VarChar(50)
+  created_at   DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?  @default(now()) @db.Timestamp(6)
+  categories   categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// Promotional campaigns for time-limited discounts on ad promotions
+model promotional_campaigns {
+  id                       Int       @id @default(autoincrement())
+  name                     String    @db.VarChar(100)
+  description              String?
+  discount_percentage      Int       @default(0)
+  promo_code               String?   @db.VarChar(50)
+  banner_text              String?   @db.VarChar(255)
+  banner_emoji             String?   @default("🎉") @db.VarChar(10)
+  start_date               DateTime  @db.Timestamp(6)
+  end_date                 DateTime  @db.Timestamp(6)
+  is_active                Boolean?  @default(true)
+  applies_to_tiers         String[]
+  applies_to_promotion_types String[]
+  min_duration_days        Int?
+  max_uses                 Int?
+  current_uses             Int?      @default(0)
+  created_by               Int?
+  created_at               DateTime? @default(now()) @db.Timestamp(6)
+  updated_at               DateTime? @default(now()) @db.Timestamp(6)
+  users                    users?    @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+
+  @@index([is_active, start_date, end_date], map: "idx_promo_campaigns_active")
+  @@index([promo_code], map: "idx_promo_campaigns_code")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -414,11 +450,7 @@ model users {
   password_hash                                                                        String                             @db.VarChar(255)
   full_name                                                                            String                             @db.VarChar(255)
   phone                                                                                String?                            @db.VarChar(20)
-  phone_verified                                                                       Boolean?                           @default(false)
-  phone_verified_at                                                                    DateTime?                          @db.Timestamp(6)
   location_id                                                                          Int?
-  default_category_id                                                                  Int?
-  default_subcategory_id                                                               Int?
   is_verified                                                                          Boolean?                           @default(false)
   is_active                                                                            Boolean?                           @default(true)
   created_at                                                                           DateTime?                          @default(now()) @db.Timestamp(6)
@@ -458,6 +490,9 @@ model users {
   verified_seller_name                                                                 String?                            @db.VarChar(255)
   individual_verification_expires_at                                                   DateTime?                          @db.Timestamp(6)
   business_verification_expires_at                                                     DateTime?                          @db.Timestamp(6)
+  latitude                                                                             Decimal?                           @db.Decimal(10, 8)
+  longitude                                                                            Decimal?                           @db.Decimal(11, 8)
+  formatted_address                                                                    String?
   google_maps_link                                                                     String?
   last_login                                                                           DateTime?                          @db.Timestamp(6)
   two_factor_enabled                                                                   Boolean?                           @default(false)
@@ -466,6 +501,11 @@ model users {
   custom_shop_slug                                                                     String?                            @unique @db.VarChar(255)
   oauth_provider                                                                       String?                            @db.VarChar(50)
   oauth_provider_id                                                                    String?                            @db.VarChar(255)
+  email_verified                                                                       Boolean?                           @default(false)
+  phone_verified                                                                       Boolean?                           @default(false)
+  phone_verified_at                                                                    DateTime?                          @db.Timestamp(6)
+  default_category_id                                                                  Int?
+  default_subcategory_id                                                               Int?
   ad_promotions                                                                        ad_promotions[]
   ad_reports                                                                           ad_reports[]
   ad_review_history                                                                    ad_review_history[]
@@ -473,6 +513,8 @@ model users {
   ads_ads_deleted_byTousers                                                            ads[]                              @relation("ads_deleted_byTousers")
   ads_ads_reviewed_byTousers                                                           ads[]                              @relation("ads_reviewed_byTousers")
   ads_ads_user_idTousers                                                               ads[]                              @relation("ads_user_idTousers")
+  announcement_read_receipts                                                           announcement_read_receipts[]
+  announcements                                                                        announcements[]
   business_subscriptions                                                               business_subscriptions[]
   business_verification_requests_business_verification_requests_reviewed_byTousers     business_verification_requests[]   @relation("business_verification_requests_reviewed_byTousers")
   business_verification_requests_business_verification_requests_user_idTousers         business_verification_requests[]   @relation("business_verification_requests_user_idTousers")
@@ -486,32 +528,30 @@ model users {
   message_read_receipts                                                                message_read_receipts[]
   messages                                                                             messages[]
   payment_transactions                                                                 payment_transactions[]
+  shop_reports_as_reporter                                                             shop_reports[]                     @relation("shop_reports_reporter")
+  shop_reports_as_resolver                                                             shop_reports[]                     @relation("shop_reports_resolver")
+  shop_reports_as_shop                                                                 shop_reports[]                     @relation("shop_reports_shop")
+  support_messages                                                                     support_messages[]
+  support_tickets_support_tickets_assigned_toTousers                                   support_tickets[]                  @relation("support_tickets_assigned_toTousers")
+  support_tickets_support_tickets_user_idTousers                                       support_tickets[]                  @relation("support_tickets_user_idTousers")
   typing_indicators                                                                    typing_indicators[]
   user_favorites                                                                       user_favorites[]
+  promotional_campaigns                                                                promotional_campaigns[]
   locations                                                                            locations?                         @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_user_location")
-  default_category                                                                     categories?                        @relation("users_default_category", fields: [default_category_id], references: [id], onUpdate: NoAction, map: "fk_user_default_category")
-  default_subcategory                                                                  categories?                        @relation("users_default_subcategory", fields: [default_subcategory_id], references: [id], onUpdate: NoAction, map: "fk_user_default_subcategory")
   users_users_business_verified_byTousers                                              users?                             @relation("users_business_verified_byTousers", fields: [business_verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_users_users_business_verified_byTousers                                        users[]                            @relation("users_business_verified_byTousers")
+  default_category                                                                     categories?                        @relation("users_default_category", fields: [default_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  default_subcategory                                                                  categories?                        @relation("users_default_subcategory", fields: [default_subcategory_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_users_individual_verified_byTousers                                            users?                             @relation("users_individual_verified_byTousers", fields: [individual_verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_users_users_individual_verified_byTousers                                      users[]                            @relation("users_individual_verified_byTousers")
   users_users_suspended_byTousers                                                      users?                             @relation("users_suspended_byTousers", fields: [suspended_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_users_users_suspended_byTousers                                                users[]                            @relation("users_suspended_byTousers")
   users_users_verified_byTousers                                                       users?                             @relation("users_verified_byTousers", fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_users_users_verified_byTousers                                                 users[]                            @relation("users_verified_byTousers")
-  support_tickets_support_tickets_user_idTousers                                       support_tickets[]                  @relation("support_tickets_user_idTousers")
-  support_tickets_support_tickets_assigned_toTousers                                   support_tickets[]                  @relation("support_tickets_assigned_toTousers")
-  support_messages                                                                     support_messages[]
-  announcements                                                                        announcements[]
-  announcement_read_receipts                                                           announcement_read_receipts[]
-  shop_reports_as_shop                                                                 shop_reports[]                     @relation("shop_reports_shop")
-  shop_reports_as_reporter                                                             shop_reports[]                     @relation("shop_reports_reporter")
-  shop_reports_as_resolver                                                             shop_reports[]                     @relation("shop_reports_resolver")
 
   @@index([location_id], map: "idx_users_location_id")
-  @@index([default_category_id], map: "idx_users_default_category_id")
-  @@index([default_subcategory_id], map: "idx_users_default_subcategory_id")
   @@index([role], map: "idx_users_role")
+  @@index([latitude, longitude], map: "idx_users_coordinates")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -615,6 +655,106 @@ model typing_indicators {
   @@index([conversation_id, expires_at], map: "idx_typing_conversation")
 }
 
+/// Support tickets table for customer support system
+model support_tickets {
+  id                                       Int                      @id @default(autoincrement())
+  ticket_number                            String                   @unique @db.VarChar(20)
+  user_id                                  Int
+  assigned_to                              Int?
+  subject                                  String                   @db.VarChar(255)
+  category                                 support_ticket_category? @default(general)
+  priority                                 support_ticket_priority? @default(normal)
+  status                                   support_ticket_status?   @default(open)
+  created_at                               DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at                               DateTime?                @default(now()) @db.Timestamp(6)
+  resolved_at                              DateTime?                @db.Timestamp(6)
+  closed_at                                DateTime?                @db.Timestamp(6)
+  support_messages                         support_messages[]
+  users_support_tickets_assigned_toTousers users?                   @relation("support_tickets_assigned_toTousers", fields: [assigned_to], references: [id], onUpdate: NoAction)
+  users_support_tickets_user_idTousers     users                    @relation("support_tickets_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_support_tickets_user_id")
+  @@index([assigned_to], map: "idx_support_tickets_assigned_to")
+  @@index([status], map: "idx_support_tickets_status")
+  @@index([priority], map: "idx_support_tickets_priority")
+  @@index([created_at(sort: Desc)], map: "idx_support_tickets_created_at")
+}
+
+/// Support messages within tickets
+model support_messages {
+  id              Int             @id @default(autoincrement())
+  ticket_id       Int
+  sender_id       Int
+  content         String
+  type            String?         @default("text") @db.VarChar(50)
+  attachment_url  String?
+  is_internal     Boolean?        @default(false)
+  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  users           users           @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  support_tickets support_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ticket_id], map: "idx_support_messages_ticket_id")
+  @@index([sender_id], map: "idx_support_messages_sender_id")
+  @@index([created_at(sort: Desc)], map: "idx_support_messages_created_at")
+}
+
+/// Verification pricing for individual and business verification
+model verification_pricing {
+  id                  Int       @id @default(autoincrement())
+  verification_type   String    @db.VarChar(20)
+  duration_days       Int
+  price               Decimal   @db.Decimal(10, 2)
+  discount_percentage Int?      @default(0)
+  is_active           Boolean?  @default(true)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([verification_type, duration_days])
+  @@index([verification_type], map: "idx_verification_pricing_type")
+}
+
+model site_settings {
+  id            Int       @id @default(autoincrement())
+  setting_key   String    @unique @db.VarChar(100)
+  setting_value String?
+  setting_type  String?   @default("string") @db.VarChar(50)
+  description   String?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// System announcements for broadcasting messages to users
+model announcements {
+  id                         Int                          @id @default(autoincrement())
+  title                      String                       @db.VarChar(255)
+  content                    String
+  target_audience            announcement_audience        @default(all_users)
+  created_by                 Int
+  created_at                 DateTime?                    @default(now()) @db.Timestamp(6)
+  expires_at                 DateTime?                    @db.Timestamp(6)
+  is_active                  Boolean?                     @default(true)
+  announcement_read_receipts announcement_read_receipts[]
+  users                      users                        @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_active, target_audience], map: "idx_announcements_active_audience")
+  @@index([created_at(sort: Desc)], map: "idx_announcements_created_at")
+  @@index([created_by], map: "idx_announcements_created_by")
+}
+
+/// Tracks which users have read which announcements
+model announcement_read_receipts {
+  id              Int           @id @default(autoincrement())
+  announcement_id Int
+  user_id         Int
+  read_at         DateTime?     @default(now()) @db.Timestamp(6)
+  announcements   announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcement_id, user_id])
+  @@index([user_id], map: "idx_announcement_receipts_user")
+  @@index([announcement_id], map: "idx_announcement_receipts_announcement")
+}
+
 enum user_role {
   user
   editor
@@ -651,118 +791,10 @@ enum support_ticket_category {
   other
 }
 
-/// Support tickets table for customer support system
-model support_tickets {
-  id                Int                      @id @default(autoincrement())
-  ticket_number     String                   @unique @db.VarChar(20)
-  user_id           Int
-  assigned_to       Int?
-  subject           String                   @db.VarChar(255)
-  category          support_ticket_category  @default(general)
-  priority          support_ticket_priority  @default(normal)
-  status            support_ticket_status    @default(open)
-  created_at        DateTime?                @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?                @default(now()) @db.Timestamp(6)
-  resolved_at       DateTime?                @db.Timestamp(6)
-  closed_at         DateTime?                @db.Timestamp(6)
-
-  // Relations
-  users_support_tickets_user_idTousers       users                    @relation("support_tickets_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users_support_tickets_assigned_toTousers   users?                   @relation("support_tickets_assigned_toTousers", fields: [assigned_to], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  support_messages                           support_messages[]
-
-  @@index([user_id], map: "idx_support_tickets_user_id")
-  @@index([assigned_to], map: "idx_support_tickets_assigned_to")
-  @@index([status], map: "idx_support_tickets_status")
-  @@index([priority], map: "idx_support_tickets_priority")
-  @@index([created_at(sort: Desc)], map: "idx_support_tickets_created_at")
-}
-
-/// Support messages within tickets
-model support_messages {
-  id              Int              @id @default(autoincrement())
-  ticket_id       Int
-  sender_id       Int
-  content         String
-  type            String?          @default("text") @db.VarChar(50)
-  attachment_url  String?
-  is_internal     Boolean?         @default(false)
-  created_at      DateTime?        @default(now()) @db.Timestamp(6)
-
-  // Relations
-  support_tickets support_tickets  @relation(fields: [ticket_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users           users            @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([ticket_id], map: "idx_support_messages_ticket_id")
-  @@index([sender_id], map: "idx_support_messages_sender_id")
-  @@index([created_at(sort: Desc)], map: "idx_support_messages_created_at")
-}
-
-/// Verification pricing for individual and business verification
-model verification_pricing {
-  id                  Int       @id @default(autoincrement())
-  verification_type   String    @db.VarChar(20)
-  duration_days       Int
-  price               Decimal   @db.Decimal(10, 2)
-  discount_percentage Int?      @default(0)
-  is_active           Boolean?  @default(true)
-  created_at          DateTime? @default(now()) @db.Timestamp(6)
-  updated_at          DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([verification_type, duration_days])
-  @@index([verification_type], map: "idx_verification_pricing_type")
-}
-
-model site_settings {
-  id            Int       @id @default(autoincrement())
-  setting_key   String    @unique @db.VarChar(100)
-  setting_value String?   @db.Text
-  setting_type  String?   @default("string") @db.VarChar(50)
-  description   String?   @db.Text
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-  updated_at    DateTime? @default(now()) @db.Timestamp(6)
-}
-
 /// Announcement target audience types
 enum announcement_audience {
   all_users
   new_users
   business_verified
   individual_verified
-}
-
-/// System announcements for broadcasting messages to users
-model announcements {
-  id                           Int                            @id @default(autoincrement())
-  title                        String                         @db.VarChar(255)
-  content                      String                         @db.Text
-  target_audience              announcement_audience          @default(all_users)
-  created_by                   Int
-  created_at                   DateTime?                      @default(now()) @db.Timestamp(6)
-  expires_at                   DateTime?                      @db.Timestamp(6)
-  is_active                    Boolean?                       @default(true)
-
-  // Relations
-  users                        users                          @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  announcement_read_receipts   announcement_read_receipts[]
-
-  @@index([is_active, target_audience], map: "idx_announcements_active_audience")
-  @@index([created_at(sort: Desc)], map: "idx_announcements_created_at")
-  @@index([created_by], map: "idx_announcements_created_by")
-}
-
-/// Tracks which users have read which announcements
-model announcement_read_receipts {
-  id              Int           @id @default(autoincrement())
-  announcement_id Int
-  user_id         Int
-  read_at         DateTime?     @default(now()) @db.Timestamp(6)
-
-  // Relations
-  announcements   announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([announcement_id, user_id])
-  @@index([user_id], map: "idx_announcement_receipts_user")
-  @@index([announcement_id], map: "idx_announcement_receipts_announcement")
 }

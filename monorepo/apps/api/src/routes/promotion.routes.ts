@@ -146,6 +146,135 @@ router.post(
   })
 );
 
+// ============================================
+// ADMIN PRICING MANAGEMENT ROUTES
+// ============================================
+
+/**
+ * GET /api/promotion-pricing/admin/all
+ * Get all promotion pricing (admin only)
+ */
+router.get(
+  '/admin/all',
+  catchAsync(async (_req: Request, res: Response) => {
+    const pricings = await prisma.promotion_pricing.findMany({
+      orderBy: [
+        { pricing_tier: 'asc' },
+        { promotion_type: 'asc' },
+        { duration_days: 'asc' },
+        { account_type: 'asc' },
+      ],
+    });
+
+    res.json({
+      success: true,
+      data: { raw: pricings },
+    });
+  })
+);
+
+/**
+ * POST /api/promotion-pricing/admin/create
+ * Create new promotion pricing (admin only)
+ */
+router.post(
+  '/admin/create',
+  catchAsync(async (req: Request, res: Response) => {
+    const { promotion_type, duration_days, account_type, pricing_tier, price, discount_percentage } = req.body;
+
+    // Check if pricing already exists for this combination
+    const existing = await prisma.promotion_pricing.findFirst({
+      where: {
+        promotion_type,
+        duration_days: parseInt(duration_days),
+        account_type,
+        pricing_tier: pricing_tier || 'default',
+      },
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Pricing for this combination already exists',
+      });
+    }
+
+    const pricing = await prisma.promotion_pricing.create({
+      data: {
+        promotion_type,
+        duration_days: parseInt(duration_days),
+        account_type,
+        pricing_tier: pricing_tier || 'default',
+        price: parseFloat(price),
+        discount_percentage: parseInt(discount_percentage) || 0,
+        is_active: true,
+      },
+    });
+
+    console.log(`✅ Created promotion pricing: ${promotion_type} ${duration_days}d ${account_type} ${pricing_tier}`);
+
+    res.status(201).json({
+      success: true,
+      data: pricing,
+    });
+  })
+);
+
+/**
+ * PUT /api/promotion-pricing/admin/:id
+ * Update promotion pricing (admin only)
+ */
+router.put(
+  '/admin/:id',
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { price, discount_percentage, is_active } = req.body;
+
+    const pricing = await prisma.promotion_pricing.update({
+      where: { id: parseInt(id) },
+      data: {
+        price: parseFloat(price),
+        discount_percentage: discount_percentage !== undefined ? parseInt(discount_percentage) : undefined,
+        is_active: is_active !== undefined ? is_active : undefined,
+        updated_at: new Date(),
+      },
+    });
+
+    console.log(`✅ Updated promotion pricing ID: ${id}`);
+
+    res.json({
+      success: true,
+      data: pricing,
+    });
+  })
+);
+
+/**
+ * DELETE /api/promotion-pricing/admin/:id
+ * Deactivate promotion pricing (admin only)
+ */
+router.delete(
+  '/admin/:id',
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const pricing = await prisma.promotion_pricing.update({
+      where: { id: parseInt(id) },
+      data: {
+        is_active: false,
+        updated_at: new Date(),
+      },
+    });
+
+    console.log(`✅ Deactivated promotion pricing ID: ${id}`);
+
+    res.json({
+      success: true,
+      data: pricing,
+    });
+  })
+);
+
 /**
  * GET /api/promotions/:id
  * Get promotion details

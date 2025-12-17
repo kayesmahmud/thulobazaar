@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { apiClient } from '@/lib/api';
-import type { PromotionPricing, EditFormData, AddFormData } from './types';
+import type { PromotionPricing, EditFormData, AddFormData, PricingTier } from './types';
+import { PRICING_TIERS } from './types';
 
 export function usePromotionPricing() {
   const [pricings, setPricings] = useState<PromotionPricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTier, setSelectedTier] = useState<PricingTier>('default');
 
   const loadPricings = useCallback(async () => {
     try {
@@ -17,7 +19,22 @@ export function usePromotionPricing() {
       console.log('💰 [Promotion Pricing] Response:', response);
 
       if (response.success && response.data) {
-        setPricings(response.data);
+        // Transform raw data to include pricing_tier
+        const responseData = response.data as { raw?: unknown[] };
+        const rawData = responseData.raw || responseData;
+        const transformedData = Array.isArray(rawData) ? rawData.map((p: Record<string, unknown>) => ({
+          id: p.id as number,
+          promotion_type: (p.promotionType || p.promotion_type) as string,
+          duration_days: (p.durationDays || p.duration_days) as number,
+          account_type: (p.accountType || p.account_type) as string,
+          pricing_tier: (p.pricingTier || p.pricing_tier || 'default') as string,
+          price: typeof p.price === 'string' ? parseFloat(p.price) : (p.price as number),
+          discount_percentage: (p.discountPercentage || p.discount_percentage || 0) as number,
+          is_active: (p.isActive ?? p.is_active ?? true) as boolean,
+          created_at: (p.createdAt || p.created_at || '') as string,
+          updated_at: (p.updatedAt || p.updated_at || '') as string,
+        })) : [];
+        setPricings(transformedData);
       }
 
       setLoading(false);
@@ -81,9 +98,10 @@ export function usePromotionPricing() {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status: number } };
       console.error('❌ [Promotion Pricing] Error creating:', error);
-      if (error.response?.status === 409) {
+      if (err.response?.status === 409) {
         alert('Pricing for this combination already exists');
       } else {
         alert('Failed to create pricing');
@@ -112,19 +130,38 @@ export function usePromotionPricing() {
     }
   }, [loadPricings]);
 
-  // Group pricings by promotion type
-  const groupedPricings = pricings.reduce((acc, pricing) => {
-    if (!acc[pricing.promotion_type]) {
-      acc[pricing.promotion_type] = [];
-    }
-    acc[pricing.promotion_type]!.push(pricing);
-    return acc;
-  }, {} as Record<string, PromotionPricing[]>);
+  // Filter pricings by selected tier
+  const filteredPricings = useMemo(() => {
+    return pricings.filter(p => p.pricing_tier === selectedTier);
+  }, [pricings, selectedTier]);
+
+  // Group filtered pricings by promotion type
+  const groupedPricings = useMemo(() => {
+    return filteredPricings.reduce((acc, pricing) => {
+      if (!acc[pricing.promotion_type]) {
+        acc[pricing.promotion_type] = [];
+      }
+      acc[pricing.promotion_type]!.push(pricing);
+      return acc;
+    }, {} as Record<string, PromotionPricing[]>);
+  }, [filteredPricings]);
+
+  // Count pricings per tier
+  const tierCounts = useMemo(() => {
+    return PRICING_TIERS.reduce((acc, tier) => {
+      acc[tier] = pricings.filter(p => p.pricing_tier === tier).length;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [pricings]);
 
   return {
     pricings,
+    filteredPricings,
     loading,
+    selectedTier,
+    setSelectedTier,
     groupedPricings,
+    tierCounts,
     loadPricings,
     updatePricing,
     toggleActive,
