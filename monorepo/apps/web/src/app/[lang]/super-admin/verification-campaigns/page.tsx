@@ -2,7 +2,7 @@
 
 import { useEffect, use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getSuperAdminNavSections } from '@/lib/navigation';
 import { useVerificationCampaigns, CampaignFormData } from './useVerificationCampaigns';
