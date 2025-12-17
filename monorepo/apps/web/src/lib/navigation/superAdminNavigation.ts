@@ -84,6 +84,11 @@ export function getSuperAdminNavSections(
           icon: 'Coins',
           label: 'Verification Pricing',
         },
+        {
+          href: `/${lang}/super-admin/verification-campaigns`,
+          icon: 'Ticket',
+          label: 'Verification Campaigns',
+        },
       ],
     },
     {
