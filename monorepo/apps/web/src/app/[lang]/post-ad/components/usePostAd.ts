@@ -35,6 +35,7 @@ export function usePostAd(lang: string) {
   // Draft state
   const [showDrafts, setShowDrafts] = useState(true);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  const isLoadingUserDefaultsRef = useRef(false);
   const pendingDraftCustomFieldsRef = useRef<Record<string, unknown> | null>(null);
 
   // Draft management
@@ -90,12 +91,18 @@ export function usePostAd(lang: string) {
       setLoading(true);
 
       const [categoriesRes] = await Promise.all([
-        apiClient.getCategories(),
+        apiClient.getCategories({ includeSubcategories: true }),
         apiClient.getLocations({ type: 'municipality' }),
       ]);
 
+      // Map other_categories to subcategories (API returns other_categories, frontend expects subcategories)
+      let mappedCategories: Category[] = [];
       if (categoriesRes.success && categoriesRes.data) {
-        setCategories(categoriesRes.data);
+        mappedCategories = categoriesRes.data.map((cat: any) => ({
+          ...cat,
+          subcategories: cat.other_categories || [],
+        }));
+        setCategories(mappedCategories);
       }
 
       // Fetch user's profile
@@ -150,6 +157,9 @@ export function usePostAd(lang: string) {
             const userCategory = userCategoryData.data.category;
             const userSubcategory = userCategoryData.data.subcategory;
 
+            // Set flag to prevent useEffect from clearing subcategoryId (use ref to avoid re-render)
+            isLoadingUserDefaultsRef.current = true;
+
             // API now returns category (main) and subcategory separately
             setFormData((prev) => ({
               ...prev,
@@ -157,6 +167,14 @@ export function usePostAd(lang: string) {
               subcategoryId: userSubcategory ? userSubcategory.id.toString() : '',
             }));
             setUserHasDefaultCategory(true);
+
+            // Load subcategories directly using mapped categories
+            const parentCategory = mappedCategories.find(
+              (cat: Category) => cat.id === userCategory.id
+            );
+            if (parentCategory?.subcategories && Array.isArray(parentCategory.subcategories)) {
+              setSubcategories(parentCategory.subcategories);
+            }
           } else {
             setUserHasDefaultCategory(false);
           }
@@ -184,14 +202,21 @@ export function usePostAd(lang: string) {
     }
   }, [status, router, lang, loadFormData]);
 
-  // Load subcategories when category changes
+  // Load subcategories when category changes (but not for user defaults - handled in loadFormData)
   useEffect(() => {
+    // Skip if loading user defaults - subcategories are already set in loadFormData
+    if (isLoadingUserDefaultsRef.current) {
+      isLoadingUserDefaultsRef.current = false;
+      return;
+    }
+
     if (formData.categoryId && formData.categoryId !== '') {
       loadSubcategories(parseInt(formData.categoryId));
     } else {
       setSubcategories([]);
     }
 
+    // Don't clear subcategory when loading from draft
     if (!isLoadingDraft) {
       if (formData.subcategoryId) {
         setFormData((prev) => ({ ...prev, subcategoryId: '' }));
