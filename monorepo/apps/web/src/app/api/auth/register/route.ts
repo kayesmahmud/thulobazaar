@@ -4,13 +4,11 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { generateUniqueShopSlug } from '@/lib/urls';
 
-// Validation schema
+// Validation schema - Phone registration only (email removed)
 const registerSchema = z.object({
-  email: z.string().email('Invalid email address').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  phone: z.string().optional(),
-  phoneVerificationToken: z.string().optional(),
+  phoneVerificationToken: z.string({ required_error: 'Phone verification is required' }),
 });
 
 // Helper to validate phone verification token
@@ -52,73 +50,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, fullName, phone, phoneVerificationToken } = validation.data;
+    const { password, fullName, phoneVerificationToken } = validation.data;
 
-    // Determine registration type: email or phone
-    let verifiedPhone: string | null = null;
-    let userEmail: string | null = email || null;
-
-    // If phone verification token provided, validate it
-    if (phoneVerificationToken) {
-      const tokenData = validatePhoneToken(phoneVerificationToken);
-      if (!tokenData) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Phone verification expired. Please verify again.',
-          },
-          { status: 400 }
-        );
-      }
-      verifiedPhone = tokenData.phone;
-    }
-
-    // Must have either email or verified phone
-    if (!userEmail && !verifiedPhone) {
+    // Validate phone verification token (required for registration)
+    const tokenData = validatePhoneToken(phoneVerificationToken);
+    if (!tokenData) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Email or verified phone number is required',
+          message: 'Phone verification expired. Please verify again.',
         },
         { status: 400 }
       );
     }
+    const verifiedPhone = tokenData.phone;
 
-    // Check if user already exists by email
-    if (userEmail) {
-      const existingEmailUser = await prisma.users.findUnique({
-        where: { email: userEmail },
-      });
+    // Check if phone already registered
+    const existingPhoneUser = await prisma.users.findFirst({
+      where: {
+        phone: verifiedPhone,
+        phone_verified: true,
+      },
+    });
 
-      if (existingEmailUser) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Email already registered',
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Check if phone already registered (for verified phone users)
-    if (verifiedPhone) {
-      const existingPhoneUser = await prisma.users.findFirst({
-        where: {
-          phone: verifiedPhone,
-          phone_verified: true,
+    if (existingPhoneUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Phone number already registered',
         },
-      });
-
-      if (existingPhoneUser) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Phone number already registered',
-          },
-          { status: 400 }
-        );
-      }
+        { status: 400 }
+      );
     }
 
     // Hash password
@@ -127,15 +89,14 @@ export async function POST(request: NextRequest) {
     // Generate unique shop slug from full name
     const shop_slug = await generateUniqueShopSlug(fullName);
 
-    // Create user with phone verified if using phone registration
+    // Create user with verified phone
     const user = await prisma.users.create({
       data: {
-        email: userEmail,
         password_hash,
         full_name: fullName,
-        phone: verifiedPhone || phone || null,
-        phone_verified: verifiedPhone ? true : false,
-        phone_verified_at: verifiedPhone ? new Date() : null,
+        phone: verifiedPhone,
+        phone_verified: true,
+        phone_verified_at: new Date(),
         role: 'user',
         is_active: true,
         shop_slug,

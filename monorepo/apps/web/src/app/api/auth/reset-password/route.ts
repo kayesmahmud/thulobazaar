@@ -7,12 +7,9 @@ import { formatPhoneNumber } from '@/lib/sms';
 const BCRYPT_SALT_ROUNDS = 12;
 
 const resetPasswordSchema = z.object({
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
+  phone: z.string().min(10, 'Phone number is required'),
   otp: z.string().length(6, 'OTP must be 6 digits'),
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-}).refine((data) => data.phone || data.email, {
-  message: 'Either phone or email is required',
 });
 
 export async function POST(request: NextRequest) {
@@ -31,15 +28,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, email, otp, newPassword } = validation.data;
+    const { phone, otp, newPassword } = validation.data;
 
-    // Format phone if provided
-    const formattedPhone = phone ? formatPhoneNumber(phone) : null;
+    // Format phone number
+    const formattedPhone = formatPhoneNumber(phone);
 
-    // Find the OTP record
+    // Find the OTP record for this specific phone number
     const otpRecord = await prisma.phone_otps.findFirst({
       where: {
-        phone: formattedPhone || undefined,
+        phone: formattedPhone,
         otp_code: otp,
         purpose: 'password_reset',
         is_used: false,
@@ -60,23 +57,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the user
-    let user;
-    if (formattedPhone) {
-      user = await prisma.users.findFirst({
-        where: {
-          phone: formattedPhone,
-          is_active: true,
-        },
-      });
-    } else if (email) {
-      user = await prisma.users.findFirst({
-        where: {
-          email,
-          is_active: true,
-        },
-      });
-    }
+    // Find the user by phone number
+    const user = await prisma.users.findFirst({
+      where: {
+        phone: formattedPhone,
+        is_active: true,
+      },
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -106,10 +93,10 @@ export async function POST(request: NextRequest) {
       data: { is_used: true },
     });
 
-    // Invalidate all other password reset OTPs for this user
+    // Invalidate all other password reset OTPs for this phone
     await prisma.phone_otps.updateMany({
       where: {
-        phone: formattedPhone || undefined,
+        phone: formattedPhone,
         purpose: 'password_reset',
         is_used: false,
       },

@@ -3,9 +3,7 @@
 import {
   useRegisterForm,
   SocialLoginButtons,
-  RegistrationTabs,
   PhoneRegistrationFlow,
-  EmailRegistrationForm,
 } from './components';
 
 interface RegisterFormProps {
@@ -14,8 +12,6 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ lang }: RegisterFormProps) {
   const {
-    registrationType,
-    setRegistrationType,
     phoneStep,
     setPhoneStep,
     phone,
@@ -27,15 +23,12 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
     formData,
     setFormData,
     error,
-    setError,
     success,
-    setSuccess,
     isLoading,
     socialLoading,
     sessionStatus,
     handleSendOtp,
     handleVerifyOtp,
-    handleEmailSubmit,
     handlePhoneSubmit,
     handleSocialLogin,
     formatTime,
@@ -83,17 +76,9 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">or register with</span>
+          <span className="px-4 bg-white text-gray-500">or register with phone</span>
         </div>
       </div>
-
-      {/* Registration Type Tabs */}
-      <RegistrationTabs
-        registrationType={registrationType}
-        setRegistrationType={setRegistrationType}
-        setPhoneStep={setPhoneStep}
-        clearMessages={clearMessages}
-      />
 
       {/* Error Message */}
       {error && (
@@ -110,36 +95,24 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
       )}
 
       {/* Phone Registration Flow */}
-      {registrationType === 'phone' && (
-        <PhoneRegistrationFlow
-          phoneStep={phoneStep}
-          setPhoneStep={setPhoneStep}
-          phone={phone}
-          setPhone={setPhone}
-          otp={otp}
-          setOtp={setOtp}
-          otpCooldown={otpCooldown}
-          otpExpiry={otpExpiry}
-          formData={formData}
-          setFormData={setFormData}
-          isLoading={isLoading}
-          onSendOtp={handleSendOtp}
-          onVerifyOtp={handleVerifyOtp}
-          onSubmit={handlePhoneSubmit}
-          formatTime={formatTime}
-          clearMessages={clearMessages}
-        />
-      )}
-
-      {/* Email Registration Form */}
-      {registrationType === 'email' && (
-        <EmailRegistrationForm
-          formData={formData}
-          setFormData={setFormData}
-          isLoading={isLoading}
-          onSubmit={handleEmailSubmit}
-        />
-      )}
+      <PhoneRegistrationFlow
+        phoneStep={phoneStep}
+        setPhoneStep={setPhoneStep}
+        phone={phone}
+        setPhone={setPhone}
+        otp={otp}
+        setOtp={setOtp}
+        otpCooldown={otpCooldown}
+        otpExpiry={otpExpiry}
+        formData={formData}
+        setFormData={setFormData}
+        isLoading={isLoading}
+        onSendOtp={handleSendOtp}
+        onVerifyOtp={handleVerifyOtp}
+        onSubmit={handlePhoneSubmit}
+        formatTime={formatTime}
+        clearMessages={clearMessages}
+      />
     </div>
   );
 }

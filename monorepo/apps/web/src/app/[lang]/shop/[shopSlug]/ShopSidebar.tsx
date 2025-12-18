@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { Phone01, Globe01, MarkerPin01, MarkerPin02, Tag01 } from '@untitledui-pro/icons/line';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSquareWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { faSquareWhatsapp, faFacebook, faInstagram, faTiktok } from '@fortawesome/free-brands-svg-icons';
 import CascadingLocationFilter from '@/components/CascadingLocationFilter';
 import ReportShopButton from './ReportShopButton';
 
@@ -36,6 +36,9 @@ interface ShopSidebarProps {
   phoneVerified?: boolean;
   businessWebsite: string | null;
   googleMapsLink: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
   locationName: string | null;
   locationSlug: string | null;
   locationFullPath: string | null;
@@ -63,6 +66,9 @@ export default function ShopSidebar({
   phoneVerified: initialPhoneVerified = false,
   businessWebsite: initialWebsite,
   googleMapsLink: initialGoogleMaps,
+  facebookUrl: initialFacebook,
+  instagramUrl: initialInstagram,
+  tiktokUrl: initialTiktok,
   locationName: initialLocationName,
   locationSlug: initialLocationSlug,
   locationFullPath: initialLocationFullPath,
@@ -96,6 +102,9 @@ export default function ShopSidebar({
     businessPhone: initialBusinessPhone || '',
     businessWebsite: initialWebsite || '',
     googleMapsLink: initialGoogleMaps || '',
+    facebookUrl: initialFacebook || '',
+    instagramUrl: initialInstagram || '',
+    tiktokUrl: initialTiktok || '',
   });
   const [contactSaving, setContactSaving] = useState(false);
 
@@ -252,6 +261,9 @@ export default function ShopSidebar({
           business_phone: whatsAppNumber || null,
           business_website: contactData.businessWebsite,
           google_maps_link: contactData.googleMapsLink,
+          facebook_url: contactData.facebookUrl || null,
+          instagram_url: contactData.instagramUrl || null,
+          tiktok_url: contactData.tiktokUrl || null,
         }),
       });
 
@@ -546,6 +558,45 @@ export default function ShopSidebar({
               />
             </div>
 
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                Facebook
+              </label>
+              <input
+                type="url"
+                value={contactData.facebookUrl}
+                onChange={(e) => setContactData({ ...contactData, facebookUrl: e.target.value })}
+                placeholder="https://facebook.com/yourpage"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                Instagram
+              </label>
+              <input
+                type="url"
+                value={contactData.instagramUrl}
+                onChange={(e) => setContactData({ ...contactData, instagramUrl: e.target.value })}
+                placeholder="https://instagram.com/yourprofile"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                TikTok
+              </label>
+              <input
+                type="url"
+                value={contactData.tiktokUrl}
+                onChange={(e) => setContactData({ ...contactData, tiktokUrl: e.target.value })}
+                placeholder="https://tiktok.com/@yourprofile"
+                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+              />
+            </div>
+
             <div className="flex gap-2 mt-3 sm:mt-4">
               <button
                 onClick={handleSaveContact}
@@ -561,6 +612,9 @@ export default function ShopSidebar({
                     businessPhone: initialBusinessPhone || '',
                     businessWebsite: initialWebsite || '',
                     googleMapsLink: initialGoogleMaps || '',
+                    facebookUrl: initialFacebook || '',
+                    instagramUrl: initialInstagram || '',
+                    tiktokUrl: initialTiktok || '',
                   });
                 }}
                 disabled={contactSaving}
@@ -632,7 +686,55 @@ export default function ShopSidebar({
                 </div>
               </div>
             )}
-            {!contactData.businessPhone && !verifiedPhone && !contactData.businessWebsite && !contactData.googleMapsLink && (
+            {contactData.facebookUrl && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <FontAwesomeIcon icon={faFacebook} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-[#1877F2] flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm text-gray-600">Facebook</div>
+                  <a
+                    href={ensureHttps(contactData.facebookUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
+                  >
+                    {contactData.facebookUrl.replace(/^https?:\/\/(www\.)?facebook\.com\/?/, '')}
+                  </a>
+                </div>
+              </div>
+            )}
+            {contactData.instagramUrl && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <FontAwesomeIcon icon={faInstagram} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-[#E4405F] flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm text-gray-600">Instagram</div>
+                  <a
+                    href={ensureHttps(contactData.instagramUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
+                  >
+                    {contactData.instagramUrl.replace(/^https?:\/\/(www\.)?instagram\.com\/?/, '@')}
+                  </a>
+                </div>
+              </div>
+            )}
+            {contactData.tiktokUrl && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <FontAwesomeIcon icon={faTiktok} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-black flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm text-gray-600">TikTok</div>
+                  <a
+                    href={ensureHttps(contactData.tiktokUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
+                  >
+                    {contactData.tiktokUrl.replace(/^https?:\/\/(www\.)?tiktok\.com\/?@?/, '@')}
+                  </a>
+                </div>
+              </div>
+            )}
+            {!contactData.businessPhone && !verifiedPhone && !contactData.businessWebsite && !contactData.googleMapsLink && !contactData.facebookUrl && !contactData.instagramUrl && !contactData.tiktokUrl && (
               <p className="text-sm sm:text-base text-gray-500 italic">
                 No contact information available. {isOwner && 'Click Edit to add your contact details.'}
               </p>

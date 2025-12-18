@@ -2,6 +2,7 @@
 
 import type { SystemSettings } from './types';
 import { ToggleSwitch } from './ToggleSwitch';
+import { SmsBroadcastSection } from './SmsBroadcastSection';
 
 interface SmsSettingsTabProps {
   settings: SystemSettings;
@@ -22,6 +23,8 @@ export function SmsSettingsTab({
 }: SmsSettingsTabProps) {
   return (
     <div className="space-y-6">
+      {/* SMS Broadcast Section - at the top for easy access */}
+      <SmsBroadcastSection />
       {/* SMS Settings */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -194,12 +197,6 @@ export function SmsSettingsTab({
           />
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-sm text-amber-800">
-            <strong>Note:</strong> To send broadcast messages, go to <strong>Announcements</strong>{' '}
-            section where you can compose and send SMS to selected user groups.
-          </p>
-        </div>
       </div>
     </div>
   );

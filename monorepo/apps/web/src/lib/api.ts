@@ -6,12 +6,11 @@ import { getSession } from 'next-auth/react';
  * API Client instance for the Next.js web app
  * This uses the shared @thulobazaar/api-client package
  *
- * Note: baseURL is empty string to use the same origin (Next.js API routes)
- * The api-client prepends /api to all routes, so /api/categories will hit
- * the Next.js API route at /api/categories/route.ts
+ * baseURL points to the Express backend for API calls
+ * Editor/admin routes like /api/editor/* are on the Express backend
  */
 export const apiClient = createApiClient({
-  baseURL: '',  // Use same origin - Next.js API routes
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
 
   // Get auth token from NextAuth session (client-side only)
   getAuthToken: async () => {

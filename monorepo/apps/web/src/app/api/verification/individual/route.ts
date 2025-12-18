@@ -170,14 +170,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate pricing matches database (with discount applied)
+    // Validate pricing matches database (with campaign discount applied)
     const pricing = await prisma.verification_pricing.findFirst({
       where: {
         verification_type: 'individual',
         duration_days: durationDays,
         is_active: true,
       },
-      select: { price: true, discount_percentage: true },
+      select: { price: true },
     });
 
     if (!pricing) {
@@ -190,10 +190,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate expected price with discount
+    // Check for active verification campaign
+    const now = new Date();
+    const activeCampaign = await prisma.verification_campaigns.findFirst({
+      where: {
+        is_active: true,
+        start_date: { lte: now },
+        end_date: { gte: now },
+      },
+      orderBy: { discount_percentage: 'desc' },
+    });
+
+    // Calculate campaign discount if applicable
+    let campaignDiscount = 0;
+    if (activeCampaign) {
+      // Check max uses
+      const hasReachedMaxUses = activeCampaign.max_uses && activeCampaign.current_uses && activeCampaign.current_uses >= activeCampaign.max_uses;
+      // Check if applies to individual type
+      const appliesToIndividual = !activeCampaign.applies_to_types || activeCampaign.applies_to_types.length === 0 || activeCampaign.applies_to_types.includes('individual');
+      // Check min duration
+      const meetsMinDuration = !activeCampaign.min_duration_days || durationDays >= activeCampaign.min_duration_days;
+
+      if (!hasReachedMaxUses && appliesToIndividual && meetsMinDuration) {
+        campaignDiscount = activeCampaign.discount_percentage;
+      }
+    }
+
+    // Calculate expected price with campaign discount
     const basePrice = parseFloat(pricing.price.toString());
-    const discountPercent = pricing.discount_percentage ? parseFloat(pricing.discount_percentage.toString()) : 0;
-    const expectedPrice = Math.round(basePrice * (1 - discountPercent / 100));
+    const expectedPrice = campaignDiscount > 0
+      ? Math.round(basePrice * (1 - campaignDiscount / 100))
+      : basePrice;
 
     // Check for free verification promotion
     const paymentStatus = formData.get('payment_status')?.toString();
@@ -404,6 +431,17 @@ export async function POST(request: NextRequest) {
         `✅ Individual verification request submitted by user ${userId}, request ID: ${verificationRequest.id}`
       );
       console.log(`   Status: ${verificationStatus}, Duration: ${durationDays} days, Payment: NPR ${paymentAmount} (Ref: ${paymentReference})`);
+
+      // Increment campaign usage if campaign discount was applied
+      if (activeCampaign && campaignDiscount > 0) {
+        await prisma.verification_campaigns.update({
+          where: { id: activeCampaign.id },
+          data: {
+            current_uses: { increment: 1 },
+          },
+        });
+        console.log(`   📊 Campaign "${activeCampaign.name}" usage incremented`);
+      }
     }
 
     // Send SMS/email notification that application is submitted and pending

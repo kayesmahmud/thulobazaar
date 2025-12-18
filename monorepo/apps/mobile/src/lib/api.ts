@@ -73,21 +73,7 @@ class ApiClient {
     }
   }
 
-  // Auth endpoints
-  async login(email: string, password: string) {
-    return this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-  }
-
-  async register(data: { fullName: string; email: string; password: string }) {
-    return this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
+  // Auth endpoints (Phone OTP only - email auth removed)
   async sendOtp(phone: string) {
     return this.request('/auth/send-otp', {
       method: 'POST',

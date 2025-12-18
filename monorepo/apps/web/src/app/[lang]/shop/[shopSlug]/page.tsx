@@ -133,6 +133,9 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
             phoneVerified={shop.phoneVerified}
             businessWebsite={shop.businessWebsite}
             googleMapsLink={shop.googleMapsLink}
+            facebookUrl={shop.facebookUrl}
+            instagramUrl={shop.instagramUrl}
+            tiktokUrl={shop.tiktokUrl}
             locationName={shop.location?.name ?? ''}
             locationSlug={shop.location?.slug ?? ''}
             locationFullPath={shop.locationFullPath ?? ''}

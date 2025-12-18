@@ -63,3 +63,51 @@ export function FreeVerificationBanner({ pricing, phoneVerified }: FreeVerificat
     </div>
   );
 }
+
+interface CampaignBannerProps {
+  pricing: VerificationPricing;
+}
+
+export function CampaignBanner({ pricing }: CampaignBannerProps) {
+  const campaign = pricing.campaign;
+
+  // Don't show if free verification is eligible (that takes priority)
+  if (!campaign || (pricing.freeVerification.enabled && pricing.freeVerification.isEligible)) {
+    return null;
+  }
+
+  return (
+    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl p-6 mb-8 -mt-16 shadow-xl animate-pulse-subtle">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="text-5xl">{campaign.bannerEmoji || '🎉'}</div>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-1">
+            <h3 className="text-2xl font-bold">{campaign.name}</h3>
+            <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold">
+              {campaign.discountPercentage}% OFF
+            </span>
+          </div>
+          <p className="text-lg opacity-90">
+            {campaign.description || campaign.bannerText}
+          </p>
+          <div className="flex items-center gap-4 mt-2 text-sm">
+            <span className="flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {campaign.daysRemaining === 1 ? 'Ends tomorrow!' : `${campaign.daysRemaining} days left`}
+            </span>
+            {campaign.appliesToTypes.length > 0 && campaign.appliesToTypes.length < 2 && (
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {campaign.appliesToTypes[0] === 'individual' ? 'Individual only' : 'Business only'}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -9,8 +9,6 @@ interface LoginFormProps {
   lang: string;
 }
 
-type LoginTab = 'email' | 'phone';
-
 // OAuth error messages
 const oauthErrorMessages: Record<string, string> = {
   OAuthCallback: 'OAuth login failed. Please clear your browser cookies and try again. If the issue persists, the session may have expired.',
@@ -18,7 +16,7 @@ const oauthErrorMessages: Record<string, string> = {
   OAuthCreateAccount: 'Could not create account with OAuth provider.',
   AccessDenied: 'Access denied. Your Google account may not be authorized. Please contact support or try a different account.',
   Callback: 'Error in OAuth callback. Please try again.',
-  google: 'Google login failed. Please try again or use email/phone login.',
+  google: 'Google login failed. Please try again or use phone login.',
   Default: 'Authentication failed. Please try again.',
 };
 
@@ -26,15 +24,6 @@ export default function LoginForm({ lang }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-
-  // Tab state
-  const [activeTab, setActiveTab] = useState<LoginTab>('email');
-
-  // Email login state
-  const [emailFormData, setEmailFormData] = useState({
-    email: '',
-    password: '',
-  });
 
   // Phone login state
   const [phoneFormData, setPhoneFormData] = useState({
@@ -63,35 +52,6 @@ export default function LoginForm({ lang }: LoginFormProps) {
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       />
     </svg>
-  );
-
-  const RememberRow = ({ id }: { id: string }) => (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center">
-        <input
-          id={id}
-          type="checkbox"
-          className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500"
-        />
-        <label htmlFor={id} className="ml-2 block text-sm text-gray-700">
-          Remember me
-        </label>
-      </div>
-      <Link href={`/${lang}/auth/forgot-password`} className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
-        Forgot password?
-      </Link>
-    </div>
-  );
-
-  const SubmitButton = ({ disabled, loading }: { disabled: boolean; loading: boolean }) => (
-    <button
-      type="submit"
-      disabled={disabled}
-      className="w-full flex justify-center items-center gap-2 py-3 px-4 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
-    >
-      {loading && <Spinner className="h-5 w-5" />}
-      {loading ? 'Signing in...' : 'Sign In'}
-    </button>
   );
 
   // Redirect if already logged in
@@ -126,32 +86,6 @@ export default function LoginForm({ lang }: LoginFormProps) {
       </div>
     );
   }
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const result = await signIn('credentials', {
-        redirect: false,
-        email: emailFormData.email,
-        password: emailFormData.password,
-      });
-
-      if (result?.error) {
-        setError(result.error);
-      } else if (result?.ok) {
-        router.push(`/${lang}`);
-        router.refresh();
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,42 +181,8 @@ export default function LoginForm({ lang }: LoginFormProps) {
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">
-            or sign in with {activeTab === 'email' ? 'email' : 'phone'}
-          </span>
+          <span className="px-4 bg-white text-gray-500">or sign in with phone</span>
         </div>
-      </div>
-
-      {/* Tab Switcher */}
-      <div className="flex rounded-lg bg-gray-100 p-1">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('email');
-            setError('');
-          }}
-          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'email'
-              ? 'bg-white text-rose-500 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Email
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('phone');
-            setError('');
-          }}
-          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'phone'
-              ? 'bg-white text-rose-500 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Phone
-        </button>
       </div>
 
       {/* Error Message */}
@@ -292,104 +192,78 @@ export default function LoginForm({ lang }: LoginFormProps) {
         </div>
       )}
 
-      {/* Email Login Form */}
-      {activeTab === 'email' && (
-        <form onSubmit={handleEmailSubmit} className="space-y-5">
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
-              placeholder="your@email.com"
-              value={emailFormData.email}
-              onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })}
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Password */}
-          <div>
-            <label htmlFor="email-password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              id="email-password"
-              type="password"
-              required
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
-              placeholder="Enter your password"
-              value={emailFormData.password}
-              onChange={(e) => setEmailFormData({ ...emailFormData, password: e.target.value })}
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Remember me & Forgot password */}
-          <RememberRow id="remember-email" />
-
-          {/* Submit Button */}
-          <SubmitButton disabled={isLoading} loading={isLoading} />
-        </form>
-      )}
-
       {/* Phone Login Form */}
-      {activeTab === 'phone' && (
-        <form onSubmit={handlePhoneSubmit} className="space-y-5">
-          {/* Phone Number */}
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <span className="text-gray-500 text-sm">+977</span>
-              </div>
-              <input
-                id="phone"
-                type="tel"
-                required
-                className="block w-full pl-14 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
-                placeholder="98XXXXXXXX"
-                value={phoneFormData.phone}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                  setPhoneFormData({ ...phoneFormData, phone: value });
-                }}
-                disabled={isLoading}
-                maxLength={10}
-              />
+      <form onSubmit={handlePhoneSubmit} className="space-y-5">
+        {/* Phone Number */}
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            Phone Number
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <span className="text-gray-500 text-sm">+977</span>
             </div>
-          </div>
-
-          {/* Password */}
-          <div>
-            <label htmlFor="phone-password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
             <input
-              id="phone-password"
-              type="password"
+              id="phone"
+              type="tel"
               required
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
-              placeholder="Enter your password"
-              value={phoneFormData.password}
-              onChange={(e) => setPhoneFormData({ ...phoneFormData, password: e.target.value })}
+              className="block w-full pl-14 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
+              placeholder="98XXXXXXXX"
+              value={phoneFormData.phone}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setPhoneFormData({ ...phoneFormData, phone: value });
+              }}
               disabled={isLoading}
+              maxLength={10}
             />
           </div>
+        </div>
 
-          {/* Remember me & Forgot password */}
-          <RememberRow id="remember-phone" />
+        {/* Password */}
+        <div>
+          <label htmlFor="phone-password" className="block text-sm font-medium text-gray-700 mb-2">
+            Password
+          </label>
+          <input
+            id="phone-password"
+            type="password"
+            required
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow"
+            placeholder="Enter your password"
+            value={phoneFormData.password}
+            onChange={(e) => setPhoneFormData({ ...phoneFormData, password: e.target.value })}
+            disabled={isLoading}
+          />
+        </div>
 
-          {/* Submit Button */}
-          <SubmitButton disabled={isLoading || phoneFormData.phone.length !== 10} loading={isLoading} />
-        </form>
-      )}
+        {/* Remember me & Forgot password */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="remember-phone"
+              type="checkbox"
+              className="h-4 w-4 text-rose-500 border-gray-300 rounded focus:ring-rose-500"
+            />
+            <label htmlFor="remember-phone" className="ml-2 block text-sm text-gray-700">
+              Remember me
+            </label>
+          </div>
+          <Link href={`/${lang}/auth/forgot-password`} className="text-sm text-rose-500 hover:text-rose-600 transition-colors">
+            Forgot password?
+          </Link>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isLoading || phoneFormData.phone.length !== 10}
+          className="w-full flex justify-center items-center gap-2 py-3 px-4 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+        >
+          {isLoading && <Spinner className="h-5 w-5" />}
+          {isLoading ? 'Signing in...' : 'Sign In'}
+        </button>
+      </form>
     </div>
   );
 }

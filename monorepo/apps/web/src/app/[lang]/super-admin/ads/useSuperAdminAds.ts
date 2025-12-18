@@ -69,7 +69,7 @@ export function useSuperAdminAds(lang: string): UseSuperAdminAdsReturn {
       setLoading(true);
 
       const response = await apiClient.getEditorAds({
-        status: statusFilter !== 'all' ? statusFilter : undefined,
+        status: statusFilter,  // Pass 'all' explicitly to get all statuses
         search: searchQuery || undefined,
         category: categoryFilter || undefined,
         location: locationFilter || undefined,
@@ -80,10 +80,15 @@ export function useSuperAdminAds(lang: string): UseSuperAdminAdsReturn {
         includeDeleted: 'false',
       });
 
-      if (response.success && response.data) {
-        setAds(response.data.data || []);
-        setTotalPages(response.data.pagination?.totalPages || 1);
-        setTotalAds(response.data.pagination?.total || 0);
+      console.log('📊 [SuperAdmin Ads] API Response:', response);
+      if (response.success) {
+        // API returns { success, data: [...ads], pagination: {...} }
+        const ads = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        const pagination = response.pagination || response.data?.pagination;
+        console.log('📊 [SuperAdmin Ads] Parsed ads:', ads?.length, 'pagination:', pagination);
+        setAds(ads);
+        setTotalPages(pagination?.totalPages || Math.ceil((pagination?.total || 0) / 20) || 1);
+        setTotalAds(pagination?.total || 0);
       }
     } catch (error) {
       console.error('Error loading ads:', error);

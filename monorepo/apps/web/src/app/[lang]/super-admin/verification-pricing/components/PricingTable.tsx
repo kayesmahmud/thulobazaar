@@ -52,8 +52,6 @@ export default function PricingTable({
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price (NPR)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount %</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Final Price</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -62,7 +60,6 @@ export default function PricingTable({
             {pricings
               .sort((a, b) => a.durationDays - b.durationDays)
               .map((pricing) => {
-                const finalPrice = pricing.price * (1 - pricing.discountPercentage / 100);
                 const isEditing = editingId === pricing.id;
 
                 return (
@@ -84,31 +81,7 @@ export default function PricingTable({
                           min="0"
                         />
                       ) : (
-                        <span>NPR {pricing.price.toLocaleString()}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={editForm.discountPercentage}
-                          onChange={(e) => onEditFormChange({ ...editForm, discountPercentage: parseInt(e.target.value) || 0 })}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded"
-                          min="0"
-                          max="100"
-                        />
-                      ) : (
-                        <span className={pricing.discountPercentage > 0 ? 'text-green-600 font-medium' : ''}>
-                          {pricing.discountPercentage}%
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-lg font-bold text-gray-900">
-                        NPR {finalPrice.toLocaleString()}
-                      </span>
-                      {pricing.discountPercentage > 0 && (
-                        <span className="ml-2 text-xs text-green-600">(Save {pricing.discountPercentage}%)</span>
+                        <span className="text-lg font-bold">NPR {pricing.price.toLocaleString()}</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">

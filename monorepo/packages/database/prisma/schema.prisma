@@ -494,6 +494,9 @@ model users {
   longitude                                                                            Decimal?                           @db.Decimal(11, 8)
   formatted_address                                                                    String?
   google_maps_link                                                                     String?
+  facebook_url                                                                         String?                            @db.VarChar(255)
+  instagram_url                                                                        String?                            @db.VarChar(255)
+  tiktok_url                                                                           String?                            @db.VarChar(255)
   last_login                                                                           DateTime?                          @db.Timestamp(6)
   two_factor_enabled                                                                   Boolean?                           @default(false)
   two_factor_secret                                                                    String?                            @db.VarChar(255)

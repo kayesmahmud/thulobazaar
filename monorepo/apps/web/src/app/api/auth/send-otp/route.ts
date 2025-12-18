@@ -9,14 +9,11 @@ import {
   getOtpExpiry,
   type OtpPurpose,
 } from '@/lib/sms';
-import { sendOtpEmail } from '@/lib/notifications/notifications';
 
+// Phone-only OTP (email registration removed)
 const sendOtpSchema = z.object({
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
+  phone: z.string().min(10, 'Phone number is required'),
   purpose: z.enum(['registration', 'login', 'password_reset', 'phone_verification']).default('registration'),
-}).refine((data) => data.phone || data.email, {
-  message: 'Either phone or email is required',
 });
 
 const MAX_OTP_ATTEMPTS = 3;
@@ -38,15 +35,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, email, purpose } = validation.data;
+    const { phone, purpose } = validation.data;
 
-    // Determine if using phone or email
-    const usePhone = !!phone;
-    const formattedPhone = phone ? formatPhoneNumber(phone) : null;
-    const identifier = usePhone ? formattedPhone : email;
+    // Format and validate phone number
+    const formattedPhone = formatPhoneNumber(phone);
 
-    // Validate phone if provided
-    if (usePhone && formattedPhone && !validateNepaliPhone(formattedPhone)) {
+    if (!validateNepaliPhone(formattedPhone)) {
       return NextResponse.json(
         {
           success: false,
@@ -56,32 +50,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For registration, check if phone/email is already registered
+    // For registration, check if phone is already registered
     if (purpose === 'registration') {
       const existingUser = await prisma.users.findFirst({
-        where: usePhone
-          ? { phone: formattedPhone!, phone_verified: true }
-          : { email: email! },
+        where: { phone: formattedPhone, phone_verified: true },
       });
 
       if (existingUser) {
         return NextResponse.json(
           {
             success: false,
-            message: usePhone
-              ? 'This phone number is already registered'
-              : 'This email is already registered',
+            message: 'This phone number is already registered',
           },
           { status: 400 }
         );
       }
     }
 
-    // For login, check if phone is registered (only for phone)
-    if (purpose === 'login' && usePhone) {
+    // For login, check if phone is registered
+    if (purpose === 'login') {
       const existingUser = await prisma.users.findFirst({
         where: {
-          phone: formattedPhone!,
+          phone: formattedPhone,
           phone_verified: true,
           is_active: true,
         },
@@ -111,16 +101,14 @@ export async function POST(request: NextRequest) {
     // For password_reset, check if account exists
     if (purpose === 'password_reset') {
       const existingUser = await prisma.users.findFirst({
-        where: usePhone
-          ? { phone: formattedPhone!, is_active: true }
-          : { email: email!, is_active: true },
+        where: { phone: formattedPhone, is_active: true },
       });
 
       if (!existingUser) {
         return NextResponse.json(
           {
             success: false,
-            message: `No account found with this ${usePhone ? 'phone number' : 'email'}`,
+            message: 'No account found with this phone number',
           },
           { status: 404 }
         );
@@ -135,24 +123,13 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         );
       }
-
-      // For email-based password reset, check if user has a password (not OAuth-only)
-      if (!usePhone && !existingUser.password_hash) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'This account uses social login (Google/Facebook). Password reset is not available.',
-          },
-          { status: 400 }
-        );
-      }
     }
 
     // For phone_verification, check if phone is already verified by another user
-    if (purpose === 'phone_verification' && usePhone) {
+    if (purpose === 'phone_verification') {
       const existingVerifiedUser = await prisma.users.findFirst({
         where: {
-          phone: formattedPhone!,
+          phone: formattedPhone,
           phone_verified: true,
         },
       });
@@ -171,7 +148,7 @@ export async function POST(request: NextRequest) {
     // Check for recent OTP (cooldown)
     const recentOtp = await prisma.phone_otps.findFirst({
       where: {
-        phone: identifier!,
+        phone: formattedPhone,
         purpose,
         created_at: {
           gte: new Date(Date.now() - OTP_COOLDOWN_SECONDS * 1000),
@@ -197,7 +174,7 @@ export async function POST(request: NextRequest) {
     // Check if user has exceeded max attempts
     const recentAttempts = await prisma.phone_otps.count({
       where: {
-        phone: identifier!,
+        phone: formattedPhone,
         purpose,
         created_at: {
           gte: new Date(Date.now() - 60 * 60 * 1000), // Last hour
@@ -218,7 +195,7 @@ export async function POST(request: NextRequest) {
     // Invalidate previous unused OTPs
     await prisma.phone_otps.updateMany({
       where: {
-        phone: identifier!,
+        phone: formattedPhone,
         purpose,
         is_used: false,
       },
@@ -234,58 +211,33 @@ export async function POST(request: NextRequest) {
     // Save OTP to database
     await prisma.phone_otps.create({
       data: {
-        phone: identifier!,
+        phone: formattedPhone,
         otp_code: otp,
         purpose,
         expires_at: expiresAt,
       },
     });
 
-    // Send OTP
-    if (usePhone && formattedPhone) {
-      // Send via SMS with purpose-specific message
-      const smsResult = await sendOtpSms(formattedPhone, otp, purpose as OtpPurpose);
+    // Send OTP via SMS
+    const smsResult = await sendOtpSms(formattedPhone, otp, purpose as OtpPurpose);
 
-      if (!smsResult.success) {
-        console.error('Failed to send OTP SMS:', smsResult.error);
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Failed to send OTP. Please try again.',
-          },
-          { status: 500 }
-        );
-      }
-      console.log(`OTP sent via SMS to ${formattedPhone} for ${purpose}`);
-    } else if (email) {
-      // Send OTP via email
-      const emailResult = await sendOtpEmail(email, otp, purpose as OtpPurpose);
-
-      if (!emailResult.success) {
-        console.error('Failed to send OTP email:', emailResult.error);
-        // If SMTP is not configured, log OTP for development
-        if (emailResult.error === 'SMTP not configured') {
-          console.log(`📧 [DEV] OTP for ${email} (${purpose}): ${otp}`);
-        } else {
-          return NextResponse.json(
-            {
-              success: false,
-              message: 'Failed to send OTP email. Please try again.',
-            },
-            { status: 500 }
-          );
-        }
-      }
-      console.log(`OTP sent via email to ${email} for ${purpose}`);
+    if (!smsResult.success) {
+      console.error('Failed to send OTP SMS:', smsResult.error);
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Failed to send OTP. Please try again.',
+        },
+        { status: 500 }
+      );
     }
+    console.log(`OTP sent via SMS to ${formattedPhone} for ${purpose}`);
 
     return NextResponse.json(
       {
         success: true,
-        message: usePhone
-          ? 'OTP sent successfully via SMS'
-          : 'OTP sent successfully to your email',
-        identifier: usePhone ? formattedPhone : email,
+        message: 'OTP sent successfully via SMS',
+        identifier: formattedPhone,
         expiresIn: 600, // 10 minutes in seconds
       },
       { status: 200 }

@@ -342,7 +342,30 @@ export interface Conversation {
   adId?: number;
 }
 
+export interface VerificationRequestInfo {
+  id: number;
+  status: string;
+  businessName?: string;
+  fullName?: string;
+  idDocumentType?: string;
+  rejectionReason?: string | null;
+  durationDays?: number;
+  createdAt?: string;
+}
+
 export interface VerificationStatusResponse {
-  business?: BusinessVerificationRequest;
-  individual?: IndividualVerificationRequest;
+  accountType: string;
+  businessVerification: {
+    status: string;
+    verified: boolean;
+    businessName?: string | null;
+    hasRequest?: boolean;
+    request?: VerificationRequestInfo;
+  };
+  individualVerification: {
+    verified: boolean;
+    fullName?: string | null;
+    hasRequest?: boolean;
+    request?: VerificationRequestInfo;
+  };
 }

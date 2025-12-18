@@ -22,6 +22,9 @@ const SHOP_SELECT = {
   business_phone: true,
   business_address: true,
   google_maps_link: true,
+  facebook_url: true,
+  instagram_url: true,
+  tiktok_url: true,
   business_verification_status: true,
   individual_verified: true,
   is_active: true,
@@ -72,6 +75,9 @@ interface RawShopRow {
   business_phone: string | null;
   business_address: string | null;
   google_maps_link: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
   business_verification_status: string | null;
   individual_verified: boolean | null;
   is_active: boolean | null;
@@ -116,6 +122,9 @@ export interface ShopProfile {
   businessPhone: string | null;
   businessAddress: string | null;
   googleMapsLink: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
   businessVerificationStatus: string | null;
   individualVerified: boolean;
   createdAt: Date | null;
@@ -191,6 +200,9 @@ const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
     businessPhone: shop.business_phone,
     businessAddress: shop.business_address,
     googleMapsLink: shop.google_maps_link,
+    facebookUrl: shop.facebook_url,
+    instagramUrl: shop.instagram_url,
+    tiktokUrl: shop.tiktok_url,
     businessVerificationStatus: shop.business_verification_status,
     individualVerified: shop.individual_verified || false,
     createdAt: shop.created_at,

@@ -7,15 +7,8 @@ export interface VerificationPricing {
   isActive: boolean;
 }
 
-export interface FreeVerificationSettings {
-  enabled: boolean;
-  durationDays: number;
-  types: string[];
-}
-
 export interface EditForm {
   price: number;
-  discountPercentage: number;
   isActive: boolean;
 }
 
@@ -26,15 +19,8 @@ export const DURATION_LABELS: Record<number, string> = {
   365: '1 Year',
 };
 
-export const DEFAULT_FREE_SETTINGS: FreeVerificationSettings = {
-  enabled: false,
-  durationDays: 180,
-  types: ['individual', 'business'],
-};
-
 export const DEFAULT_EDIT_FORM: EditForm = {
   price: 0,
-  discountPercentage: 0,
   isActive: true,
 };
 

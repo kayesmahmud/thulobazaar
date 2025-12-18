@@ -28,6 +28,9 @@ import {
   BadgeCheck,
   MessageCircle,
   FileText,
+  Ticket,
+  Gift,
+  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import { AdminTheme, getRoleLabel } from '@/lib/themes';
@@ -82,6 +85,9 @@ const iconMap: Record<string, LucideIcon> = {
   BadgeCheck,
   MessageCircle,
   FileText,
+  Ticket,
+  Gift,
+  Layers,
 };
 
 export function Sidebar({

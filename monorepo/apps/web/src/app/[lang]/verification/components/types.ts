@@ -29,6 +29,21 @@ export interface PricingOption {
   price: number;
   discountPercentage: number;
   finalPrice: number;
+  hasCampaignDiscount?: boolean;
+}
+
+export interface VerificationCampaign {
+  id: number;
+  name: string;
+  description: string | null;
+  discountPercentage: number;
+  bannerText: string;
+  bannerEmoji: string | null;
+  startDate: string;
+  endDate: string;
+  daysRemaining: number;
+  appliesToTypes: string[];
+  minDurationDays: number | null;
 }
 
 export interface VerificationPricing {
@@ -40,6 +55,7 @@ export interface VerificationPricing {
     types: string[];
     isEligible: boolean;
   };
+  campaign: VerificationCampaign | null;
 }
 
 export type VerificationType = 'individual' | 'business';

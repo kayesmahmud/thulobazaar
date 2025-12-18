@@ -22,6 +22,8 @@ router.get(
         email: true,
         full_name: true,
         phone: true,
+        phone_verified: true,
+        phone_verified_at: true,
         avatar: true,
         bio: true,
         location_id: true,
@@ -34,6 +36,7 @@ router.get(
         created_at: true,
         locations: true,
         oauth_provider: true,
+        password_hash: true,
       },
     });
 
@@ -48,9 +51,12 @@ router.get(
         email: user.email,
         fullName: user.full_name,
         phone: user.phone,
+        phoneVerified: user.phone_verified,
+        phoneVerifiedAt: user.phone_verified_at,
         avatar: user.avatar,
         bio: user.bio,
         locationId: user.location_id,
+        location: user.locations,
         locationName: (user as any).locations?.name,
         accountType: user.account_type,
         shopSlug: user.custom_shop_slug || user.shop_slug,
@@ -60,6 +66,7 @@ router.get(
         individualVerified: user.individual_verified,
         createdAt: user.created_at,
         oauthProvider: user.oauth_provider,
+        hasPassword: !!user.password_hash,
       },
     });
   })

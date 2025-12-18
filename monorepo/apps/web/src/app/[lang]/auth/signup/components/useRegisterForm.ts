@@ -95,7 +95,13 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
         body: JSON.stringify({ phone: cleanPhone, purpose: 'registration' }),
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('Server error. Please try again.');
+      }
 
       if (!response.ok) {
         if (data.cooldownRemaining) {
@@ -108,7 +114,12 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
       setPhoneStep('otp');
       setOtpExpiry(data.expiresIn || 600);
     } catch (err: any) {
-      setError(err.message);
+      // Handle network errors specifically
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -134,7 +145,13 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
         body: JSON.stringify({ phone: cleanPhone, otp, purpose: 'registration' }),
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('Server error. Please try again.');
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to verify OTP');
@@ -144,7 +161,12 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
       setSuccess('Phone verified! Complete your registration.');
       setPhoneStep('details');
     } catch (err: any) {
-      setError(err.message);
+      // Handle network errors specifically
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -231,7 +253,13 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
         }),
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('Server error. Please try again.');
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Registration failed');
@@ -242,7 +270,12 @@ export function useRegisterForm(lang: string): UseRegisterFormReturn {
         router.push(`/${lang}/auth/signin?registered=true&phone=true`);
       }, 1500);
     } catch (err: any) {
-      setError(err.message || 'An error occurred. Please try again.');
+      // Handle network errors specifically
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

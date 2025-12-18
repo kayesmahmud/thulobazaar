@@ -10,6 +10,7 @@ import {
   HeroHeader,
   PhoneVerificationBanner,
   FreeVerificationBanner,
+  CampaignBanner,
   BenefitsGrid,
   VerificationStatusCard,
   DurationSelector,
@@ -75,6 +76,11 @@ export default function VerificationPage({ params }: VerificationPageProps) {
         {/* Free Verification Promotion Banner */}
         {pricing && (
           <FreeVerificationBanner pricing={pricing} phoneVerified={phoneVerified} />
+        )}
+
+        {/* Campaign Discount Banner */}
+        {pricing && phoneVerified && (
+          <CampaignBanner pricing={pricing} />
         )}
 
         {/* Benefits Grid */}

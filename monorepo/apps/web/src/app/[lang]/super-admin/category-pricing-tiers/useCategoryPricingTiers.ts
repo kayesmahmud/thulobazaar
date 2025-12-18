@@ -4,7 +4,8 @@ import { useState, useCallback, useMemo } from 'react';
 import type { CategoryTierMapping, Category, PricingTier } from './types';
 import { PRICING_TIERS } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+// Use empty string for relative URLs - this is a Next.js API route on the same origin
+const API_BASE = '';
 
 export function useCategoryPricingTiers() {
   const [mappings, setMappings] = useState<CategoryTierMapping[]>([]);

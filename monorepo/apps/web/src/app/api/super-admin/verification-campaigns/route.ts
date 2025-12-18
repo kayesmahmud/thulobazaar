@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireSuperAdmin(request);
+    const adminUserId = await requireSuperAdmin(request);
     const body = await request.json();
     const { name, description, discountPercentage, promoCode, bannerText, bannerEmoji, startDate, endDate, appliesToTypes, minDurationDays, maxUses } = body;
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         is_active: true, applies_to_types: appliesToTypes || ['individual', 'business'],
         min_duration_days: minDurationDays ? parseInt(minDurationDays, 10) : null,
         max_uses: maxUses ? parseInt(maxUses, 10) : null,
-        current_uses: 0, created_by: admin.userId,
+        current_uses: 0, created_by: adminUserId,
       },
     });
 

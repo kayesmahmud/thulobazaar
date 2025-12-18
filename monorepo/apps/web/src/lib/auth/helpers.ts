@@ -5,27 +5,20 @@ import { userSelectForAuth } from './queries';
 
 type AuthUser = NonNullable<Awaited<ReturnType<typeof findUserForAuth>>>;
 
-// Find user for credentials authentication
-export async function findUserForAuth(email?: string, phone?: string) {
-  if (phone) {
-    let phoneNumber = phone.replace(/\D/g, '');
-    if (phoneNumber.startsWith('977')) {
-      phoneNumber = phoneNumber.slice(3);
-    }
-    return prisma.users.findFirst({
-      where: { phone: phoneNumber, phone_verified: true },
-      select: userSelectForAuth,
-    });
+// Find user for credentials authentication (phone only - email login removed)
+export async function findUserForAuth(_email?: string, phone?: string) {
+  if (!phone) {
+    return null;
   }
 
-  if (email) {
-    return prisma.users.findUnique({
-      where: { email },
-      select: userSelectForAuth,
-    });
+  let phoneNumber = phone.replace(/\D/g, '');
+  if (phoneNumber.startsWith('977')) {
+    phoneNumber = phoneNumber.slice(3);
   }
-
-  return null;
+  return prisma.users.findFirst({
+    where: { phone: phoneNumber, phone_verified: true },
+    select: userSelectForAuth,
+  });
 }
 
 // Validate user status
@@ -36,7 +29,8 @@ export function validateUserStatus(user: AuthUser): string | null {
 }
 
 // Verify password
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(password: string, hash: string | null): Promise<boolean> {
+  if (!hash) return false;
   return bcrypt.compare(password, hash);
 }
 
@@ -98,35 +92,6 @@ export async function generateBackendToken(user: {
     .setIssuedAt()
     .setExpirationTime('24h')
     .sign(JWT_SECRET);
-}
-
-// Fetch backend token from API
-export async function fetchBackendToken(
-  email: string,
-  password: string,
-  role: string
-): Promise<string | null> {
-  try {
-    const backendUrl = process.env.API_URL || 'http://localhost:5000';
-    const loginEndpoint =
-      role === 'super_admin' || role === 'editor'
-        ? `${backendUrl}/api/admin/auth/login`
-        : `${backendUrl}/api/auth/login`;
-
-    const response = await fetch(loginEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.data?.token || data.token || null;
-    }
-  } catch (error) {
-    console.error('Failed to get backend token:', error);
-  }
-  return null;
 }
 
 // Create user return object for NextAuth

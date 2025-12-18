@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getSuperAdminNavSections } from '@/lib/navigation';
-import type { VerificationPricing, FreeVerificationSettings, EditForm } from './types';
-import { DEFAULT_FREE_SETTINGS, DEFAULT_EDIT_FORM } from './types';
+import type { VerificationPricing, EditForm } from './types';
+import { DEFAULT_EDIT_FORM } from './types';
 
 export interface UseVerificationPricingReturn {
   // Auth & nav
@@ -16,7 +16,6 @@ export interface UseVerificationPricingReturn {
 
   // Data
   pricings: VerificationPricing[];
-  freeSettings: FreeVerificationSettings;
   loading: boolean;
   saving: boolean;
   groupedPricings: Record<string, VerificationPricing[]>;
@@ -28,9 +27,6 @@ export interface UseVerificationPricingReturn {
   handleCancelEdit: () => void;
   handleSaveEdit: (id: number) => Promise<void>;
   setEditForm: React.Dispatch<React.SetStateAction<EditForm>>;
-
-  // Free verification
-  handleToggleFreeVerification: () => Promise<void>;
 }
 
 export function useVerificationPricing(lang: string): UseVerificationPricingReturn {
@@ -38,7 +34,6 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
   const { staff, isLoading: authLoading, isSuperAdmin, logout } = useStaffAuth();
 
   const [pricings, setPricings] = useState<VerificationPricing[]>([]);
-  const [freeSettings, setFreeSettings] = useState<FreeVerificationSettings>(DEFAULT_FREE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<EditForm>(DEFAULT_EDIT_FORM);
@@ -64,7 +59,6 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
 
       if (data.success) {
         setPricings(data.data.pricings);
-        setFreeSettings(data.data.freeVerification);
       }
     } catch (error) {
       console.error('Error loading verification pricing:', error);
@@ -88,7 +82,6 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
     setEditingId(pricing.id);
     setEditForm({
       price: pricing.price,
-      discountPercentage: pricing.discountPercentage,
       isActive: pricing.isActive,
     });
   };
@@ -112,7 +105,6 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
         body: JSON.stringify({
           id,
           price: editForm.price,
-          discountPercentage: editForm.discountPercentage,
           isActive: editForm.isActive,
         }),
       });
@@ -128,38 +120,6 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
     } catch (error) {
       console.error('Error updating pricing:', error);
       alert('Failed to update pricing');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleToggleFreeVerification = async () => {
-    try {
-      setSaving(true);
-      const token = localStorage.getItem('editorToken');
-
-      const response = await fetch('/api/admin/site-settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          settingKey: 'free_verification_enabled',
-          value: !freeSettings.enabled,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setFreeSettings(prev => ({ ...prev, enabled: !prev.enabled }));
-      } else {
-        alert('Failed to update setting: ' + data.message);
-      }
-    } catch (error) {
-      console.error('Error updating setting:', error);
-      alert('Failed to update setting');
     } finally {
       setSaving(false);
     }
@@ -182,7 +142,6 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
     navSections,
     handleLogout,
     pricings,
-    freeSettings,
     loading,
     saving,
     groupedPricings,
@@ -192,6 +151,5 @@ export function useVerificationPricing(lang: string): UseVerificationPricingRetu
     handleCancelEdit,
     handleSaveEdit,
     setEditForm,
-    handleToggleFreeVerification,
   };
 }

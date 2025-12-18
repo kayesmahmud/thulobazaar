@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Parse request body
     const body = await request.json();
-    const { business_phone, business_website, google_maps_link } = body;
+    const { business_phone, business_website, google_maps_link, facebook_url, instagram_url, tiktok_url } = body;
 
     // Update the shop contact info
     // NOTE: Do NOT update 'phone' here - the verified phone is managed
@@ -55,6 +55,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         business_phone: business_phone || null,
         business_website: business_website || null,
         google_maps_link: google_maps_link || null,
+        facebook_url: facebook_url || null,
+        instagram_url: instagram_url || null,
+        tiktok_url: tiktok_url || null,
       },
     });
 

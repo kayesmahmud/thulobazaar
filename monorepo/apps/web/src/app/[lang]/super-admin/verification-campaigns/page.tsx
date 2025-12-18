@@ -2,7 +2,7 @@
 
 import { useEffect, use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/admin/DashboardLayout';
+import { DashboardLayout } from '@/components/admin/DashboardLayout';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getSuperAdminNavSections } from '@/lib/navigation';
 import { useVerificationCampaigns, CampaignFormData } from './useVerificationCampaigns';
@@ -10,15 +10,16 @@ import { useVerificationCampaigns, CampaignFormData } from './useVerificationCam
 const DEFAULT_FORM: CampaignFormData = {
   name: '', description: '', discountPercentage: 10, promoCode: '',
   bannerText: '', bannerEmoji: '🎉',
-  startDate: new Date().toISOString().split('T')[0],
-  endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  startDate: new Date().toISOString().split('T')[0] as string,
+  endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] as string,
   appliesToTypes: ['individual', 'business'], minDurationDays: null, maxUses: null,
 };
 
 export default function VerificationCampaignsPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
   const params = use(paramsPromise);
-  const { staff, loading: authLoading, isSuperAdmin } = useStaffAuth();
+  const { staff, isLoading: authLoading, isSuperAdmin, logout } = useStaffAuth();
   const router = useRouter();
+  const navSections = getSuperAdminNavSections(params.lang);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<CampaignFormData>(DEFAULT_FORM);
   const [formError, setFormError] = useState<string | null>(null);
@@ -60,7 +61,14 @@ export default function VerificationCampaignsPage({ params: paramsPromise }: { p
 
   if (authLoading || loading) {
     return (
-      <DashboardLayout navSections={getSuperAdminNavSections(params.lang)} lang={params.lang} staffName={staff?.full_name}>
+      <DashboardLayout
+        lang={params.lang}
+        userName={staff?.fullName}
+        userEmail={staff?.email}
+        navSections={navSections}
+        theme="superadmin"
+        onLogout={logout}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
         </div>
@@ -69,7 +77,14 @@ export default function VerificationCampaignsPage({ params: paramsPromise }: { p
   }
 
   return (
-    <DashboardLayout navSections={getSuperAdminNavSections(params.lang)} lang={params.lang} staffName={staff?.full_name}>
+    <DashboardLayout
+      lang={params.lang}
+      userName={staff?.fullName}
+      userEmail={staff?.email}
+      navSections={navSections}
+      theme="superadmin"
+      onLogout={logout}
+    >
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>

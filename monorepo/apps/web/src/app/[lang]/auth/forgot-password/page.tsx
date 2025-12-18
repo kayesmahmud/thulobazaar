@@ -4,16 +4,12 @@ import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
-type ResetMethod = 'phone' | 'email';
-
 export default function ForgotPasswordPage() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || 'en';
   const router = useRouter();
 
-  const [method, setMethod] = useState<ResetMethod>('phone');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,8 +23,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: method === 'phone' ? phone : undefined,
-          email: method === 'email' ? email : undefined,
+          phone,
           purpose: 'password_reset',
         }),
       });
@@ -36,9 +31,8 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Navigate to reset password page with the identifier
-        const identifier = method === 'phone' ? phone : email;
-        router.push(`/${lang}/auth/reset-password?method=${method}&identifier=${encodeURIComponent(identifier)}`);
+        // Navigate to reset password page with the phone number
+        router.push(`/${lang}/auth/reset-password?method=phone&identifier=${encodeURIComponent(phone)}`);
       } else {
         setError(data.message || 'Failed to send OTP. Please try again.');
       }
@@ -60,42 +54,25 @@ export default function ForgotPasswordPage() {
           Forgot your password?
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          No worries! Enter your phone number or email and we&apos;ll send you a verification code.
+          No worries! Enter your phone number and we&apos;ll send you a verification code.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-sm rounded-xl sm:px-10 border border-gray-200">
-          {/* Method Selector */}
-          <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
-            <button
-              type="button"
-              onClick={() => {
-                setMethod('phone');
-                setError('');
-              }}
-              className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all ${
-                method === 'phone'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Phone
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMethod('email');
-                setError('');
-              }}
-              className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all ${
-                method === 'email'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Email
-            </button>
+          {/* Info Box */}
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="text-sm text-blue-700">
+                <p className="font-medium">Password reset via phone only</p>
+                <p className="mt-1 text-blue-600">
+                  If you signed up with Google or Facebook, you can continue using those to sign in.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Error Message */}
@@ -106,58 +83,37 @@ export default function ForgotPasswordPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {method === 'phone' ? (
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <span className="text-gray-500 text-sm">+977</span>
-                  </div>
-                  <input
-                    id="phone"
-                    type="tel"
-                    required
-                    className="block w-full pl-14 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="98XXXXXXXX"
-                    value={phone}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setPhone(value);
-                    }}
-                    disabled={isLoading}
-                    maxLength={10}
-                  />
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <span className="text-gray-500 text-sm">+977</span>
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Enter the phone number associated with your account
-                </p>
-              </div>
-            ) : (
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
                 <input
-                  id="email"
-                  type="email"
+                  id="phone"
+                  type="tel"
                   required
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full pl-14 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="98XXXXXXXX"
+                  value={phone}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setPhone(value);
+                  }}
                   disabled={isLoading}
+                  maxLength={10}
                 />
-                <p className="mt-2 text-xs text-gray-500">
-                  Enter the email address associated with your account
-                </p>
               </div>
-            )}
+              <p className="mt-2 text-xs text-gray-500">
+                Enter the phone number associated with your account
+              </p>
+            </div>
 
             <button
               type="submit"
-              disabled={isLoading || (method === 'phone' ? phone.length !== 10 : !email)}
+              disabled={isLoading || phone.length !== 10}
               className="w-full flex justify-center items-center gap-2 py-3 px-4 bg-primary hover:bg-primary-hover disabled:bg-gray-300 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
             >
               {isLoading ? (

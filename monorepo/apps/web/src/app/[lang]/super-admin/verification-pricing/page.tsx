@@ -3,7 +3,7 @@
 import { use } from 'react';
 import { DashboardLayout } from '@/components/admin';
 import { useVerificationPricing } from './useVerificationPricing';
-import { FreeVerificationCard, StatsCards, PricingTable, InfoCard } from './components';
+import { StatsCards, PricingTable, InfoCard } from './components';
 
 export default function VerificationPricingPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
   const params = use(paramsPromise);
@@ -14,7 +14,6 @@ export default function VerificationPricingPage({ params: paramsPromise }: { par
     navSections,
     handleLogout,
     pricings,
-    freeSettings,
     loading,
     editingId,
     editForm,
@@ -23,7 +22,6 @@ export default function VerificationPricingPage({ params: paramsPromise }: { par
     handleEdit,
     handleCancelEdit,
     handleSaveEdit,
-    handleToggleFreeVerification,
     setEditForm,
   } = useVerificationPricing(params.lang);
 
@@ -57,13 +55,6 @@ export default function VerificationPricingPage({ params: paramsPromise }: { par
           <h1 className="text-2xl font-bold text-gray-800">Verification Pricing Management</h1>
           <p className="text-gray-600 mt-1">Manage pricing for user verification (Individual & Business)</p>
         </div>
-
-        {/* Free Verification Promotion Card */}
-        <FreeVerificationCard
-          settings={freeSettings}
-          saving={saving}
-          onToggle={handleToggleFreeVerification}
-        />
 
         {/* Stats */}
         <StatsCards

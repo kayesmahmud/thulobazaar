@@ -104,17 +104,30 @@ interface DurationOptionProps {
 }
 
 function DurationOption({ option, isSelected, isFreeTier, onSelect }: DurationOptionProps) {
+  const hasCampaignDiscount = option.hasCampaignDiscount && option.discountPercentage > 0;
+
   return (
     <div
       onClick={onSelect}
       className={`relative rounded-2xl p-6 cursor-pointer transition-all duration-300 ${
         isSelected
           ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xl scale-105'
+          : hasCampaignDiscount
+          ? 'bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 hover:border-purple-400'
           : 'bg-gray-50 hover:bg-gray-100 border-2 border-gray-200 hover:border-indigo-300'
       }`}
     >
-      {/* Popular/Recommended Badge */}
-      {option.durationDays === 180 && (
+      {/* Campaign Discount Badge */}
+      {hasCampaignDiscount && !isFreeTier && (
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+          <span className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+            <span>🎉</span> PROMO
+          </span>
+        </div>
+      )}
+
+      {/* Popular/Recommended Badge - only show if no campaign badge */}
+      {option.durationDays === 180 && !hasCampaignDiscount && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
           <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
             POPULAR
@@ -164,7 +177,7 @@ function DurationOption({ option, isSelected, isFreeTier, onSelect }: DurationOp
 
         {option.discountPercentage > 0 && !isFreeTier && (
           <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-            isSelected ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'
+            isSelected ? 'bg-white/20 text-white' : hasCampaignDiscount ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
           }`}>
             Save {option.discountPercentage}%
           </div>

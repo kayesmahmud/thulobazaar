@@ -7,7 +7,12 @@ const router = Router();
 
 /**
  * GET /api/verification/status
- * Get current user's verification status
+ * Get current user's verification status including pending/rejected requests
+ * Returns 4 possible states for each verification type:
+ * 1. Verified - User has approved verification
+ * 2. Pending - User has submitted, awaiting review
+ * 3. Rejected - User's verification was rejected (can resubmit)
+ * 4. Not Verified - User hasn't started verification
  */
 router.get(
   '/status',
@@ -15,29 +20,95 @@ router.get(
   catchAsync(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
 
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-      select: {
-        account_type: true,
-        business_verification_status: true,
-        individual_verified: true,
-        business_name: true,
-        business_license_document: true,
-      },
-    });
+    // Fetch user and verification requests in parallel
+    const [user, businessRequest, individualRequest] = await Promise.all([
+      prisma.users.findUnique({
+        where: { id: userId },
+        select: {
+          account_type: true,
+          business_verification_status: true,
+          individual_verified: true,
+          business_name: true,
+          full_name: true,
+        },
+      }),
+      // Get the most recent business verification request
+      prisma.business_verification_requests.findFirst({
+        where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          business_name: true,
+          rejection_reason: true,
+          duration_days: true,
+          created_at: true,
+        },
+      }),
+      // Get the most recent individual verification request
+      prisma.individual_verification_requests.findFirst({
+        where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          full_name: true,
+          id_document_type: true,
+          rejection_reason: true,
+          duration_days: true,
+          created_at: true,
+        },
+      }),
+    ]);
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
+    // Determine business verification state
+    const isBusinessVerified = user.business_verification_status === 'approved';
+    const businessVerification = {
+      status: user.business_verification_status || 'unverified',
+      verified: isBusinessVerified,
+      businessName: user.business_name,
+      hasRequest: !!businessRequest,
+      request: businessRequest
+        ? {
+            id: businessRequest.id,
+            status: businessRequest.status,
+            businessName: businessRequest.business_name,
+            rejectionReason: businessRequest.rejection_reason,
+            durationDays: businessRequest.duration_days,
+            createdAt: businessRequest.created_at?.toISOString(),
+          }
+        : undefined,
+    };
+
+    // Determine individual verification state
+    const isIndividualVerified = user.individual_verified === true;
+    const individualVerification = {
+      verified: isIndividualVerified,
+      fullName: user.full_name,
+      hasRequest: !!individualRequest,
+      request: individualRequest
+        ? {
+            id: individualRequest.id,
+            status: individualRequest.status,
+            fullName: individualRequest.full_name,
+            idDocumentType: individualRequest.id_document_type,
+            rejectionReason: individualRequest.rejection_reason,
+            durationDays: individualRequest.duration_days,
+            createdAt: individualRequest.created_at?.toISOString(),
+          }
+        : undefined,
+    };
+
     res.json({
       success: true,
       data: {
         accountType: user.account_type,
-        businessVerificationStatus: user.business_verification_status,
-        individualVerified: user.individual_verified,
-        businessName: user.business_name,
-        businessLicenseDocument: user.business_license_document,
+        businessVerification,
+        individualVerification,
       },
     });
   })

@@ -18,9 +18,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithOtp: (phone: string, otp: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: { fullName: string; email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -55,22 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await apiClient.login(email, password);
-
-      if (response.success && response.data?.token) {
-        await apiClient.setAuthToken(response.data.token);
-        setUser(response.data.user);
-        return { success: true };
-      }
-
-      return { success: false, error: response.error || 'Login failed' };
-    } catch (error) {
-      return { success: false, error: 'Network error' };
-    }
-  }, []);
-
   const loginWithOtp = useCallback(async (phone: string, otp: string) => {
     try {
       const response = await apiClient.verifyOtp(phone, otp);
@@ -82,22 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       return { success: false, error: response.error || 'OTP verification failed' };
-    } catch (error) {
-      return { success: false, error: 'Network error' };
-    }
-  }, []);
-
-  const register = useCallback(async (data: { fullName: string; email: string; password: string }) => {
-    try {
-      const response = await apiClient.register(data);
-
-      if (response.success && response.data?.token) {
-        await apiClient.setAuthToken(response.data.token);
-        setUser(response.data.user);
-        return { success: true };
-      }
-
-      return { success: false, error: response.error || 'Registration failed' };
     } catch (error) {
       return { success: false, error: 'Network error' };
     }
@@ -121,9 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
-        login,
         loginWithOtp,
-        register,
         logout,
         refreshUser,
       }}

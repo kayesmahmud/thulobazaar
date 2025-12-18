@@ -1,30 +1,82 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 
-export async function GET() {
+/**
+ * GET /api/verification-campaigns/active
+ * Get currently active verification campaigns (public endpoint)
+ *
+ * Query params:
+ * - verificationType: Filter by verification type ('individual' | 'business')
+ */
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const verificationType = searchParams.get('verificationType');
     const now = new Date();
-    const campaign = await prisma.verification_campaigns.findFirst({
-      where: { is_active: true, start_date: { lte: now }, end_date: { gte: now } },
-      orderBy: { created_at: 'desc' },
+
+    // Get all active campaigns
+    const campaigns = await prisma.verification_campaigns.findMany({
+      where: {
+        is_active: true,
+        start_date: { lte: now },
+        end_date: { gte: now },
+      },
+      orderBy: { discount_percentage: 'desc' },
     });
 
-    if (!campaign) {
-      return NextResponse.json({ success: true, data: null });
-    }
+    // Filter by verification type and check max uses
+    const filteredCampaigns = campaigns.filter((c) => {
+      // Check verification type filter
+      if (verificationType && c.applies_to_types && c.applies_to_types.length > 0) {
+        if (!c.applies_to_types.includes(verificationType)) return false;
+      }
+
+      // Check max uses
+      if (c.max_uses && c.current_uses && c.current_uses >= c.max_uses) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Transform to camelCase and calculate time remaining
+    const transformedCampaigns = filteredCampaigns.map((c) => {
+      const endDate = new Date(c.end_date);
+      const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      return {
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        discountPercentage: c.discount_percentage,
+        promoCode: c.promo_code,
+        bannerText: c.banner_text || `${c.banner_emoji} ${c.name} - ${c.discount_percentage}% OFF!`,
+        bannerEmoji: c.banner_emoji,
+        startDate: c.start_date,
+        endDate: c.end_date,
+        daysRemaining,
+        appliesToTypes: c.applies_to_types,
+        minDurationDays: c.min_duration_days,
+        usesRemaining: c.max_uses ? c.max_uses - (c.current_uses || 0) : null,
+      };
+    });
+
+    // Get the best applicable campaign (highest discount)
+    const bestCampaign = transformedCampaigns.length > 0 ? transformedCampaigns[0] : null;
 
     return NextResponse.json({
       success: true,
       data: {
-        id: campaign.id, name: campaign.name, description: campaign.description,
-        discountPercentage: campaign.discount_percentage, promoCode: campaign.promo_code,
-        bannerText: campaign.banner_text, bannerEmoji: campaign.banner_emoji,
-        startDate: campaign.start_date, endDate: campaign.end_date,
-        appliesToTypes: campaign.applies_to_types,
+        campaign: bestCampaign,
+        campaigns: transformedCampaigns,
+        hasActiveCampaign: transformedCampaigns.length > 0,
       },
     });
   } catch (error) {
-    console.error('Active campaign fetch error:', error);
-    return NextResponse.json({ success: false, message: 'Failed to fetch campaign' }, { status: 500 });
+    console.error('Active verification campaign fetch error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to fetch campaign' },
+      { status: 500 }
+    );
   }
 }

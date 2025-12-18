@@ -15,11 +15,10 @@ import {
   verifyPassword,
   verify2FA,
   generateBackendToken,
-  fetchBackendToken,
   createUserObject,
   generateShopSlug,
 } from './helpers';
-import { userSelectBase, userSelectForOAuth } from './queries';
+import { userSelectBase, userSelectForAuth, userSelectForOAuth } from './queries';
 
 export const authOptions: NextAuthOptions = {
   debug: true,
@@ -85,39 +84,84 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // Credentials Provider (Email/Phone Login)
+    // Credentials Provider (Phone for users, Email for staff only)
     CredentialsProvider({
       id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
+        phone: { label: 'Phone', type: 'tel' },
         password: { label: 'Password', type: 'password' },
         twoFactorCode: { label: '2FA Code', type: 'text' },
-        phone: { label: 'Phone', type: 'tel' },
         loginType: { label: 'Login Type', type: 'text' },
       },
       async authorize(credentials) {
         const isPhoneLogin = credentials?.loginType === 'phone';
 
-        // Validate required fields
+        // Phone login for regular users
         if (isPhoneLogin) {
           if (!credentials?.phone || !credentials?.password) {
             throw new Error('Phone and password are required');
           }
-        } else {
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error('Email and password are required');
+
+          try {
+            const user = await findUserForAuth(undefined, credentials.phone);
+
+            if (!user) {
+              throw new Error('No account found with this phone number');
+            }
+
+            const statusError = validateUserStatus(user);
+            if (statusError) throw new Error(statusError);
+
+            const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
+            if (!isValidPassword) throw new Error('Invalid phone number or password');
+
+            // Handle 2FA
+            if (user.two_factor_enabled && user.two_factor_secret) {
+              if (!credentials.twoFactorCode) throw new Error('2FA_REQUIRED');
+
+              const { valid } = await verify2FA(user, credentials.twoFactorCode);
+              if (!valid) throw new Error('Invalid 2FA code');
+            }
+
+            const previousLastLogin = user.last_login;
+            await prisma.users.update({
+              where: { id: user.id },
+              data: { last_login: new Date() },
+            });
+
+            const backendToken = await generateBackendToken(user);
+
+            return {
+              ...createUserObject(user as any, backendToken),
+              lastLogin: previousLastLogin?.toISOString() || null,
+            };
+          } catch (error) {
+            console.error('Phone authentication error:', error);
+            throw error;
           }
         }
 
+        // Email login for staff (editor/super_admin) only
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password are required');
+        }
+
         try {
-          const user = await findUserForAuth(
-            isPhoneLogin ? undefined : credentials.email,
-            isPhoneLogin ? credentials.phone : undefined
-          );
+          // Find user by email - only allow staff roles
+          const user = await prisma.users.findUnique({
+            where: { email: credentials.email },
+            select: userSelectForAuth,
+          });
 
           if (!user) {
-            throw new Error(isPhoneLogin ? 'No account found with this phone number' : 'Invalid email or password');
+            throw new Error('Invalid email or password');
+          }
+
+          // Only allow editor and super_admin to login with email
+          if (!['editor', 'super_admin'].includes(user.role)) {
+            throw new Error('Email login is only available for staff. Please use phone login.');
           }
 
           const statusError = validateUserStatus(user);
@@ -140,20 +184,14 @@ export const authOptions: NextAuthOptions = {
             data: { last_login: new Date() },
           });
 
-          // Generate backend token
-          let backendToken: string | null = null;
-          if (isPhoneLogin || !credentials.email) {
-            backendToken = await generateBackendToken(user);
-          } else {
-            backendToken = await fetchBackendToken(credentials.email, credentials.password, user.role);
-          }
+          const backendToken = await generateBackendToken(user);
 
           return {
             ...createUserObject(user as any, backendToken),
             lastLogin: previousLastLogin?.toISOString() || null,
           };
         } catch (error) {
-          console.error('Authentication error:', error);
+          console.error('Staff authentication error:', error);
           throw error;
         }
       },
