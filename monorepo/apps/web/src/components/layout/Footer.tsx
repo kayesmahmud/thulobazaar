@@ -208,23 +208,29 @@ export default function Footer({ lang }: FooterProps) {
               <div className="flex flex-col space-y-2">
                 <a
                   href="#"
-                  className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+                  className="hover:opacity-80 transition-opacity"
                 >
-                  <span className="text-xl">📱</span>
-                  <div>
-                    <div className="text-xs text-gray-400">Download on</div>
-                    <div className="font-semibold">App Store</div>
-                  </div>
+                  <Image
+                    src="/Appstore.png"
+                    alt="Download on App Store"
+                    width={140}
+                    height={42}
+                    className="h-11 w-auto"
+                    unoptimized
+                  />
                 </a>
                 <a
                   href="#"
-                  className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm"
+                  className="hover:opacity-80 transition-opacity"
                 >
-                  <span className="text-xl">🤖</span>
-                  <div>
-                    <div className="text-xs text-gray-400">Get it on</div>
-                    <div className="font-semibold">Google Play</div>
-                  </div>
+                  <Image
+                    src="/PlayStore.png"
+                    alt="Get it on Google Play"
+                    width={140}
+                    height={42}
+                    className="h-11 w-auto"
+                    unoptimized
+                  />
                 </a>
               </div>
             </div>
