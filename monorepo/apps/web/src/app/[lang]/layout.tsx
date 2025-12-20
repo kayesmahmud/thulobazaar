@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { Header } from '@/components/layout';
+import { Header, Footer } from '@/components/layout';
 import GoogleAdSense from '@/components/ads/GoogleAdSense';
 
 const supportedLanguages = ['en', 'ne'] as const;
@@ -44,6 +44,7 @@ export default async function LanguageLayout({
       <GoogleAdSense />
       <Header lang={lang} />
       {children}
+      <Footer lang={lang} />
     </>
   );
 }

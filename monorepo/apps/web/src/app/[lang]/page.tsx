@@ -320,16 +320,6 @@ export default async function HomePage({ params }: HomePageProps) {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 text-center">
-        <div className="max-w-7xl mx-auto px-4">
-          <p className="text-gray-300">&copy; 2025 Thulobazaar. All rights reserved.</p>
-          <p className="text-sm mt-2 text-gray-400">
-            Built with Next.js 15 + TypeScript + Tailwind CSS
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
