@@ -58,7 +58,10 @@ export function getImageUrl(
     return imagePath;
   }
 
-  // Already has full path with 'uploads/' prefix
+  // Already has full path with 'uploads/' prefix (with or without leading slash)
+  if (imagePath.startsWith('/uploads/')) {
+    return `${API_URL}${imagePath}`;
+  }
   if (imagePath.startsWith('uploads/')) {
     return `${API_URL}/${imagePath}`;
   }
