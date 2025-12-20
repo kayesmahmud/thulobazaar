@@ -21,6 +21,8 @@ import verificationRoutes from './routes/verification.routes.js';
 import areasRoutes from './routes/areas.routes.js';
 import promotionRoutes from './routes/promotion.routes.js';
 import mockPaymentRoutes from './routes/mockPayment.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
+import categoryPricingTiersRoutes from './routes/categoryPricingTiers.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -118,6 +120,8 @@ export function createApp(): Express {
   app.use('/api/promotions', promotionRoutes);
   app.use('/api/promotion-pricing', promotionRoutes);
   app.use('/api/mock-payment', mockPaymentRoutes);
+  app.use('/api/payments', paymentRoutes);
+  app.use('/api/category-pricing-tiers', categoryPricingTiersRoutes);
 
   // 404 handler
   app.use(notFound);
