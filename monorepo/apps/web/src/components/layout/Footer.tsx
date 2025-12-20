@@ -41,37 +41,37 @@ export default function Footer({ lang }: FooterProps) {
                 href="https://facebook.com/thulobazaar"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-blue-600 hover:bg-blue-700 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
+                className="bg-blue-600 hover:bg-blue-700 p-2 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="Facebook"
               >
-                <FontAwesomeIcon icon={faFacebookF} className="w-[18px] h-[18px]" />
+                <FontAwesomeIcon icon={faFacebookF} className="w-4 h-4" />
               </a>
               <a
                 href="https://instagram.com/thulobazaar"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
+                className="bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 p-2 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="Instagram"
               >
-                <FontAwesomeIcon icon={faInstagram} className="w-[18px] h-[18px]" />
+                <FontAwesomeIcon icon={faInstagram} className="w-4 h-4" />
               </a>
               <a
                 href="https://tiktok.com/@thulobazaar"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-black hover:bg-gray-800 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
+                className="bg-black hover:bg-gray-800 p-2 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="TikTok"
               >
-                <FontAwesomeIcon icon={faTiktok} className="w-[18px] h-[18px]" />
+                <FontAwesomeIcon icon={faTiktok} className="w-4 h-4" />
               </a>
               <a
                 href="https://youtube.com/thulobazaar"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-red-600 hover:bg-red-700 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
+                className="bg-red-600 hover:bg-red-700 p-2 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="YouTube"
               >
-                <FontAwesomeIcon icon={faYoutube} className="w-[18px] h-[18px]" />
+                <FontAwesomeIcon icon={faYoutube} className="w-4 h-4" />
               </a>
             </div>
           </div>
