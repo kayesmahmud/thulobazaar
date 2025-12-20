@@ -26,6 +26,7 @@ export function AdItem({ ad, lang, onDelete, onMarkAsSold }: AdItemProps) {
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-300"
             sizes="112px"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

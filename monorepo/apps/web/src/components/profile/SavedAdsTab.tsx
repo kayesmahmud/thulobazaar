@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@thulobazaar/utils';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { getImageUrl } from '@/lib/images/imageUrl';
 
 interface FavoriteAd {
   id: number;
@@ -91,11 +90,12 @@ function FavoriteAdCard({ favorite, lang, onRemove }: FavoriteAdCardProps) {
       <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
         {favorite.ad.primaryImage ? (
           <Image
-            src={favorite.ad.primaryImage.startsWith('http') ? favorite.ad.primaryImage : `${API_URL}/${favorite.ad.primaryImage}`}
+            src={getImageUrl(favorite.ad.primaryImage, 'ads') || ''}
             alt={favorite.ad.title}
             fill
             className="object-cover"
             sizes="80px"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { formatPrice, formatDateTime } from '@thulobazaar/utils';
+import { getImageUrl } from '@/lib/images/imageUrl';
 
 interface AdCardProps {
   ad: {
@@ -31,12 +32,7 @@ export default function AdCard({ ad, lang = 'en' }: AdCardProps) {
   const adUrl = ad.seoSlug || ad.slug || `ad-${ad.id}`;
 
   // Construct image URL - images are served from Express API server
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  const imageUrl = ad.primaryImage
-    ? (ad.primaryImage.startsWith('http')
-        ? ad.primaryImage
-        : `${API_URL}/${ad.primaryImage}`)
-    : null;
+  const imageUrl = ad.primaryImage ? getImageUrl(ad.primaryImage, 'ads') : null;
 
   return (
     <Link

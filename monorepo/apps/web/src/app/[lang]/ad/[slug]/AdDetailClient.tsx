@@ -69,6 +69,7 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
                 isTransitioning ? 'opacity-0' : 'opacity-100'
               }`}
               priority
+              unoptimized
             />
           )}
         </div>
@@ -131,6 +132,7 @@ export default function AdDetailClient({ images, lang }: AdDetailClientProps) {
                   width={100}
                   height={100}
                   className="w-full h-full object-cover"
+                  unoptimized
                 />
               )}
 

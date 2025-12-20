@@ -394,7 +394,7 @@ router.post(
     const condition = parsedAttributes.condition || 'used';
     const { condition: _cond, ...customFields } = parsedAttributes;
 
-    // Generate SEO-friendly slug with "for-sale" pattern (like Bikroy)
+    // Generate SEO-friendly slug with "for-sale" pattern and sequential counter
     const slugify = (text: string) =>
       text
         .toLowerCase()
@@ -417,11 +417,39 @@ router.post(
       }
     }
 
-    // Build slug: title-for-sale-in-location-timestamp
-    // Example: "basket-ball-for-sale-in-anamnagar-1702567890123"
-    const slug = locationSlug
-      ? `${titleSlug}-for-sale-in-${locationSlug}-${Date.now()}`
-      : `${titleSlug}-for-sale-${Date.now()}`;
+    // Build base slug: title-for-sale-in-location
+    // Example: "basket-ball-for-sale-in-anamnagar"
+    const baseSlug = locationSlug
+      ? `${titleSlug}-for-sale-in-${locationSlug}`
+      : `${titleSlug}-for-sale`;
+
+    // Find existing slugs with this base pattern to get highest counter
+    const existingSlugs = await prisma.ads.findMany({
+      where: {
+        slug: {
+          startsWith: `${baseSlug}-`,
+        },
+      },
+      select: { slug: true },
+    });
+
+    // Extract counters and find the highest one
+    let maxCounter = 0;
+    const counterRegex = new RegExp(`^${baseSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d+)$`);
+
+    for (const ad of existingSlugs) {
+      if (!ad.slug) continue;
+      const match = ad.slug.match(counterRegex);
+      if (match?.[1]) {
+        const counter = parseInt(match[1], 10);
+        if (counter > maxCounter) {
+          maxCounter = counter;
+        }
+      }
+    }
+
+    // Use next sequential counter: baseSlug-1, baseSlug-2, etc.
+    const slug = `${baseSlug}-${maxCounter + 1}`;
 
     // Create ad with pending status
     // Use subcategoryId if provided, otherwise use categoryId

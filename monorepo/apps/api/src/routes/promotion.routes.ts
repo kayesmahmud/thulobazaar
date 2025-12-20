@@ -5,9 +5,162 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
+// Valid pricing tiers
+const VALID_TIERS = ['default', 'electronics', 'vehicles', 'property'];
+
 /**
- * GET /api/promotions/pricing or /api/promotion-pricing
- * Get promotion pricing plans
+ * GET /api/promotion-pricing (root route)
+ * Get all active promotion pricing with tier support
+ *
+ * Query params:
+ * - tier: Filter by pricing tier (optional)
+ * - adId: Ad ID to determine tier from ad's category (optional)
+ */
+router.get(
+  '/',
+  catchAsync(async (req: Request, res: Response) => {
+    const { tier, adId } = req.query;
+
+    // If adId is provided, determine tier from ad's category
+    let adPricingTier = 'default';
+    if (adId) {
+      const ad = await prisma.ads.findUnique({
+        where: { id: parseInt(adId as string, 10) },
+        select: {
+          category_id: true,
+          categories: {
+            select: {
+              id: true,
+              name: true,
+              categories: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (ad?.categories) {
+        // Get the parent category ID (or current if it's a root category)
+        const parentCategoryId = ad.categories.categories?.id || ad.categories.id;
+
+        // Look up tier mapping by category_id
+        const tierMapping = await prisma.category_pricing_tiers.findFirst({
+          where: {
+            category_id: parentCategoryId,
+          },
+          select: { pricing_tier: true },
+        });
+
+        if (tierMapping) {
+          adPricingTier = tierMapping.pricing_tier;
+        }
+      }
+    }
+
+    // Build where clause
+    const whereClause: Record<string, unknown> = { is_active: true };
+    if (tier && VALID_TIERS.includes(tier as string)) {
+      whereClause.pricing_tier = tier;
+    }
+
+    // Fetch all active promotion pricing
+    const pricing = await prisma.promotion_pricing.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        promotion_type: true,
+        duration_days: true,
+        account_type: true,
+        pricing_tier: true,
+        price: true,
+        discount_percentage: true,
+        is_active: true,
+      },
+      orderBy: [
+        { pricing_tier: 'asc' },
+        { promotion_type: 'asc' },
+        { duration_days: 'asc' },
+        { account_type: 'desc' },
+      ],
+    });
+
+    // Group by tier, then by promotion type and duration
+    const pricingByTier: Record<string, Record<string, Record<number, Record<string, unknown>>>> = {};
+    const pricingMap: Record<string, Record<number, Record<string, unknown>>> = {};
+
+    pricing.forEach((row) => {
+      const pricingTier = row.pricing_tier || 'default';
+      const promotionType = row.promotion_type || 'unknown';
+      const durationDays = row.duration_days || 0;
+      const accountType = row.account_type || 'individual';
+
+      const priceData = {
+        id: row.id,
+        price: parseFloat(row.price.toString()),
+        discountPercentage: row.discount_percentage,
+      };
+
+      // Group by tier
+      if (!pricingByTier[pricingTier]) {
+        pricingByTier[pricingTier] = {};
+      }
+      if (!pricingByTier[pricingTier][promotionType]) {
+        pricingByTier[pricingTier][promotionType] = {};
+      }
+      if (!pricingByTier[pricingTier][promotionType][durationDays]) {
+        pricingByTier[pricingTier][promotionType][durationDays] = {};
+      }
+      pricingByTier[pricingTier][promotionType][durationDays][accountType] = priceData;
+
+      // Backwards compatible format (default tier only)
+      if (pricingTier === 'default') {
+        if (!pricingMap[promotionType]) {
+          pricingMap[promotionType] = {};
+        }
+        if (!pricingMap[promotionType][durationDays]) {
+          pricingMap[promotionType][durationDays] = {};
+        }
+        pricingMap[promotionType][durationDays][accountType] = priceData;
+      }
+    });
+
+    // Transform raw data to camelCase
+    const transformedRaw = pricing.map((p) => ({
+      id: p.id,
+      promotionType: p.promotion_type,
+      durationDays: p.duration_days,
+      accountType: p.account_type,
+      pricingTier: p.pricing_tier,
+      price: parseFloat(p.price.toString()),
+      discountPercentage: p.discount_percentage,
+      isActive: p.is_active,
+    }));
+
+    // If adId was provided, include ad-specific pricing using its tier
+    let adPricing: Record<string, Record<number, Record<string, unknown>>> | null = null;
+    if (adId && pricingByTier[adPricingTier]) {
+      adPricing = pricingByTier[adPricingTier];
+    }
+
+    res.json({
+      success: true,
+      data: {
+        pricing: pricingMap, // Backwards compatible (default tier)
+        pricingByTier, // New: grouped by tier
+        tiers: VALID_TIERS,
+        raw: transformedRaw,
+        // Ad-specific data when adId is provided
+        adPricingTier: adId ? adPricingTier : undefined,
+        adPricing: adPricing || pricingMap, // Use ad's tier pricing or fallback to default
+      },
+    });
+  })
+);
+
+/**
+ * GET /api/promotions/pricing or /api/promotion-pricing/pricing
+ * Get promotion pricing plans (simple format)
  */
 router.get(
   '/pricing',

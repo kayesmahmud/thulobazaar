@@ -15,8 +15,7 @@ import {
   SellerCard,
   SafetyTips,
 } from './components';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { getImageUrl } from '@/lib/images/imageUrl';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
@@ -113,9 +112,7 @@ export async function generateMetadata({ params }: AdDetailPageProps): Promise<M
     if (ad) {
       const imagePath = ad.ad_images?.[0]?.file_path;
       const imageUrl = imagePath
-        ? imagePath.startsWith('http')
-          ? imagePath
-          : `${API_URL}/${imagePath}`
+        ? getImageUrl(imagePath, 'ads') || `${baseUrl}/placeholder-ad.png`
         : `${baseUrl}/placeholder-ad.png`;
 
       const description = ad.description?.substring(0, 160) || `View details for ${ad.title}`;
@@ -187,7 +184,7 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
   const fullLocation = buildFullLocation(ad.locations);
   const fullCategory = buildFullCategory(ad.categories);
   const images = ad.ad_images.map(img =>
-    img.file_path.startsWith('http') ? img.file_path : `${API_URL}/${img.file_path}`
+    getImageUrl(img.file_path, 'ads') || ''
   );
   const customFields = ad.custom_fields as Record<string, any> | null;
 
