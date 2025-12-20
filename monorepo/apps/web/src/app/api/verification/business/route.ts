@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { requireAuth } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { sendNotificationByUserId } from '@/lib/notifications';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 /**
  * POST /api/verification/business
@@ -295,22 +295,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create upload directory if it doesn't exist
-    const uploadDir = path.join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'business_verification'
-    );
-    await mkdir(uploadDir, { recursive: true });
+    // Upload file to Express API
+    const uploadFormData = new FormData();
+    uploadFormData.append('business_license_document', businessLicenseDoc);
 
-    // Save file
-    const timestamp = Date.now();
-    const random = Math.round(Math.random() * 1e9);
-    const filename = `biz-${timestamp}-${random}${path.extname(businessLicenseDoc.name)}`;
-    const filePath = path.join(uploadDir, filename);
-    const buffer = Buffer.from(await businessLicenseDoc.arrayBuffer());
-    await writeFile(filePath, buffer);
+    const uploadResponse = await fetch(`${API_URL}/api/verification/business/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${request.headers.get('authorization')?.replace('Bearer ', '')}`,
+      },
+      body: uploadFormData,
+    });
+
+    if (!uploadResponse.ok) {
+      const uploadError = await uploadResponse.json();
+      return NextResponse.json(
+        {
+          success: false,
+          message: uploadError.message || 'Failed to upload document',
+        },
+        { status: uploadResponse.status }
+      );
+    }
+
+    const uploadResult = await uploadResponse.json();
+    const filename = uploadResult.data.filename;
 
     // Determine status based on payment
     // - 'pending' for free verifications or resubmissions (ready for review)

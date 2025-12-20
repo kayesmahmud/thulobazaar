@@ -4,6 +4,8 @@
  * These will be transformed FROM database types
  */
 
+import type { CrossPlatformFile } from './upload';
+
 // ============================================
 // API USER TYPES
 // ============================================
@@ -298,7 +300,7 @@ export interface PostAdFormData {
   latitude?: number;
   longitude?: number;
   googleMapsLink?: string;
-  images: File[] | string[];
+  images: (File | CrossPlatformFile | string)[];
   attributes?: Record<string, any>;
   status?: string;
 }

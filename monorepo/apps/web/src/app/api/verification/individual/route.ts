@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { requireAuth } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { sendNotificationByUserId } from '@/lib/notifications';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 /**
  * POST /api/verification/individual
@@ -348,36 +348,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create upload directory if it doesn't exist
-    const uploadDir = path.join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'individual_verification'
-    );
-    await mkdir(uploadDir, { recursive: true });
-
-    // Save files
-    const timestamp = Date.now();
-    const random = Math.round(Math.random() * 1e9);
-
-    const frontFilename = `id-front-${timestamp}-${random}${path.extname(idDocumentFront.name)}`;
-    const frontPath = path.join(uploadDir, frontFilename);
-    const frontBuffer = Buffer.from(await idDocumentFront.arrayBuffer());
-    await writeFile(frontPath, frontBuffer);
-
-    const selfieFilename = `selfie-${timestamp}-${random}${path.extname(selfieWithId.name)}`;
-    const selfiePath = path.join(uploadDir, selfieFilename);
-    const selfieBuffer = Buffer.from(await selfieWithId.arrayBuffer());
-    await writeFile(selfiePath, selfieBuffer);
-
-    let backFilename: string | null = null;
+    // Upload files to Express API
+    const uploadFormData = new FormData();
+    uploadFormData.append('id_document_front', idDocumentFront);
+    uploadFormData.append('selfie_with_id', selfieWithId);
     if (idDocumentBack) {
-      backFilename = `id-back-${timestamp}-${random}${path.extname(idDocumentBack.name)}`;
-      const backPath = path.join(uploadDir, backFilename);
-      const backBuffer = Buffer.from(await idDocumentBack.arrayBuffer());
-      await writeFile(backPath, backBuffer);
+      uploadFormData.append('id_document_back', idDocumentBack);
     }
+
+    const uploadResponse = await fetch(`${API_URL}/api/verification/individual/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${request.headers.get('authorization')?.replace('Bearer ', '')}`,
+      },
+      body: uploadFormData,
+    });
+
+    if (!uploadResponse.ok) {
+      const uploadError = await uploadResponse.json();
+      return NextResponse.json(
+        {
+          success: false,
+          message: uploadError.message || 'Failed to upload documents',
+        },
+        { status: uploadResponse.status }
+      );
+    }
+
+    const uploadResult = await uploadResponse.json();
+    const frontFilename = uploadResult.data.id_document_front.filename;
+    const selfieFilename = uploadResult.data.selfie_with_id.filename;
+    const backFilename = uploadResult.data.id_document_back?.filename || null;
 
     // Determine status based on payment
     // - 'pending' for free verifications or resubmissions (ready for review)

@@ -2,6 +2,8 @@
 
 import type { BusinessVerification, TabStatus } from './types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 interface VerificationCardProps {
   verification: BusinessVerification;
   activeTab: TabStatus;
@@ -147,7 +149,7 @@ function LicenseDocument({ verification }: { verification: BusinessVerification 
       </h4>
       <div className="flex gap-4 items-start">
         <a
-          href={`/uploads/business_verification/${verification.businessLicense}`}
+          href={`${API_URL}/uploads/business_verification/${verification.businessLicense}`}
           target="_blank"
           rel="noopener noreferrer"
           className="block group"
@@ -155,7 +157,7 @@ function LicenseDocument({ verification }: { verification: BusinessVerification 
           <div className="relative w-32 h-32 bg-white border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-colors">
             {isImage ? (
               <img
-                src={`/uploads/business_verification/${verification.businessLicense}`}
+                src={`${API_URL}/uploads/business_verification/${verification.businessLicense}`}
                 alt="Business License"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               />
@@ -178,7 +180,7 @@ function LicenseDocument({ verification }: { verification: BusinessVerification 
           <div className="text-sm font-medium text-gray-900 mb-2 break-all">{verification.businessLicense}</div>
           <div className="flex flex-wrap gap-2">
             <a
-              href={`/uploads/business_verification/${verification.businessLicense}`}
+              href={`${API_URL}/uploads/business_verification/${verification.businessLicense}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
@@ -189,7 +191,7 @@ function LicenseDocument({ verification }: { verification: BusinessVerification 
               Open in New Tab
             </a>
             <a
-              href={`/uploads/business_verification/${verification.businessLicense}`}
+              href={`${API_URL}/uploads/business_verification/${verification.businessLicense}`}
               download={verification.businessLicense}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white text-xs font-semibold rounded-lg hover:bg-gray-700 transition-colors"
             >

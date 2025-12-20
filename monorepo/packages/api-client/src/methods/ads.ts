@@ -10,7 +10,9 @@ import type {
   PaginatedResponse,
   SearchFilters,
   PostAdFormData,
+  CrossPlatformFile,
 } from '@thulobazaar/types';
+import { appendFileToFormData } from '@thulobazaar/upload-utils';
 
 export function createAdMethods(client: AxiosInstance) {
   return {
@@ -72,10 +74,17 @@ export function createAdMethods(client: AxiosInstance) {
         formData.append('attributes', JSON.stringify(data.attributes));
       }
 
-      // Append images
+      // Append images - handle File, CrossPlatformFile, and string (existing URLs)
       data.images.forEach((image) => {
+        if (typeof image === 'string') {
+          // Skip strings (these are existing image URLs, handled differently)
+          return;
+        }
         if (image instanceof File) {
           formData.append('images', image);
+        } else if ('uri' in image) {
+          // CrossPlatformFile (React Native)
+          appendFileToFormData(formData, 'images', image);
         }
       });
 
@@ -137,11 +146,18 @@ export function createAdMethods(client: AxiosInstance) {
         formData.append('existingImages', JSON.stringify(data.existingImages));
       }
 
-      // Append new image files
+      // Append new image files - handle File, CrossPlatformFile, and string
       if (data.images && Array.isArray(data.images)) {
         data.images.forEach((image) => {
+          if (typeof image === 'string') {
+            // Skip strings (existing image URLs are handled via existingImages)
+            return;
+          }
           if (image instanceof File) {
             formData.append('images', image);
+          } else if ('uri' in image) {
+            // CrossPlatformFile (React Native)
+            appendFileToFormData(formData, 'images', image);
           }
         });
       }

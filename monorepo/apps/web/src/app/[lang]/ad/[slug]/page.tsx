@@ -16,6 +16,8 @@ import {
   SafetyTips,
 } from './components';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
   searchParams?: Promise<{ promoted?: string; txnId?: string }>;
@@ -113,7 +115,7 @@ export async function generateMetadata({ params }: AdDetailPageProps): Promise<M
       const imageUrl = imagePath
         ? imagePath.startsWith('http')
           ? imagePath
-          : `${baseUrl}/${imagePath}`
+          : `${API_URL}/${imagePath}`
         : `${baseUrl}/placeholder-ad.png`;
 
       const description = ad.description?.substring(0, 160) || `View details for ${ad.title}`;
@@ -184,7 +186,9 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
 
   const fullLocation = buildFullLocation(ad.locations);
   const fullCategory = buildFullCategory(ad.categories);
-  const images = ad.ad_images.map(img => `/${img.file_path}`);
+  const images = ad.ad_images.map(img =>
+    img.file_path.startsWith('http') ? img.file_path : `${API_URL}/${img.file_path}`
+  );
   const customFields = ad.custom_fields as Record<string, any> | null;
 
   // Build breadcrumb items

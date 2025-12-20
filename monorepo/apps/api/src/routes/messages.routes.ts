@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '@thulobazaar/database';
 import { catchAsync, NotFoundError } from '../middleware/errorHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { uploadMessageImage } from '../middleware/upload.js';
 
 const router = Router();
 
@@ -283,6 +284,41 @@ router.get(
     res.json({
       success: true,
       data: { unread_messages: Number(result[0]?.count || 0) },
+    });
+  })
+);
+
+/**
+ * POST /api/messages/upload
+ * Upload image for messaging
+ */
+router.post(
+  '/upload',
+  authenticateToken,
+  uploadMessageImage.single('image'),
+  catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided',
+      });
+    }
+
+    const imageUrl = `/uploads/messages/${req.file.filename}`;
+
+    console.log(`📸 Message image uploaded: ${imageUrl} by user ${userId}`);
+
+    res.json({
+      success: true,
+      data: {
+        url: imageUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype,
+      },
     });
   })
 );

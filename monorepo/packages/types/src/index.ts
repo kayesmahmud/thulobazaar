@@ -21,3 +21,6 @@ export * from './transformers';
 
 // Export type guards (2025 best practice for runtime type checking)
 export * from './guards';
+
+// Export upload types and constants (platform-agnostic for web + mobile)
+export * from './upload';

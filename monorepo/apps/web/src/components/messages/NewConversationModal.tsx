@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBackendToken } from '@/hooks/useBackendToken';
 import { messagingApi } from '@/lib/messaging';
+import { getAvatarUrl } from '@/lib/images';
 
 interface User {
   id: number;
@@ -185,7 +186,7 @@ export default function NewConversationModal({ isOpen, onClose }: NewConversatio
                     {/* Avatar */}
                     {user.avatar ? (
                       <img
-                        src={user.avatar.startsWith('http') ? user.avatar : `/uploads/avatars/${user.avatar}`}
+                        src={getAvatarUrl(user.avatar) || ''}
                         alt={user.full_name}
                         className="h-12 w-12 rounded-full object-cover flex-shrink-0"
                       />

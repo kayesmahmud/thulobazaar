@@ -12,6 +12,8 @@ import {
 import { getStatusBadge, getAvailableActions } from '@/utils/editorUtils';
 import type { Ad } from '../types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 interface AdCardProps {
   ad: Ad;
   lang: string;
@@ -49,7 +51,7 @@ export default function AdCard({
           <div className="flex-shrink-0">
             {ad.images && ad.images.length > 0 ? (
               <img
-                src={`/${ad.images[0]}`}
+                src={`${API_URL}/${ad.images[0]}`}
                 alt={ad.title}
                 className="w-48 h-36 object-cover rounded-lg"
               />

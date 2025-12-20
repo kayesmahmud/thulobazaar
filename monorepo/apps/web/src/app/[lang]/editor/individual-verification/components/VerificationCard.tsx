@@ -2,6 +2,8 @@
 
 import type { IndividualVerification, TabStatus } from './types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 interface VerificationCardProps {
   verification: IndividualVerification;
   activeTab: TabStatus;
@@ -204,14 +206,14 @@ function DocumentImages({ verification }: { verification: IndividualVerification
           <div key={label}>
             <div className="text-xs text-blue-600 mb-2 font-medium">{label}</div>
             <a
-              href={`/uploads/individual_verification/${filename}`}
+              href={`${API_URL}/uploads/individual_verification/${filename}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block group"
             >
               <div className="relative aspect-[4/3] bg-white border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-colors">
                 <img
-                  src={`/uploads/individual_verification/${filename}`}
+                  src={`${API_URL}/uploads/individual_verification/${filename}`}
                   alt={alt}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />

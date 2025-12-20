@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@thulobazaar/types": "*",
+    "@thulobazaar/upload-utils": "*",
     "@thulobazaar/utils": "*",
     "axios": "^1.13.2"
   },

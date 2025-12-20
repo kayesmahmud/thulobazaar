@@ -3,7 +3,8 @@
  */
 
 import type { AxiosInstance } from 'axios';
-import type { User, AdWithDetails, ApiResponse, PaginatedResponse } from '@thulobazaar/types';
+import type { User, AdWithDetails, ApiResponse, PaginatedResponse, CrossPlatformFile } from '@thulobazaar/types';
+import { appendFileToFormData, isReactNative } from '@thulobazaar/upload-utils';
 
 export function createProfileMethods(client: AxiosInstance) {
   return {
@@ -51,9 +52,14 @@ export function createProfileMethods(client: AxiosInstance) {
       return response.data;
     },
 
-    async uploadAvatar(file: File): Promise<ApiResponse<{ avatar: string }>> {
+    async uploadAvatar(file: CrossPlatformFile | File): Promise<ApiResponse<{ avatar: string }>> {
       const formData = new FormData();
-      formData.append('avatar', file);
+      // Handle both CrossPlatformFile and native File objects
+      if ('uri' in file) {
+        appendFileToFormData(formData, 'avatar', file);
+      } else {
+        formData.append('avatar', file);
+      }
       const response = await client.post('/api/profile/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });

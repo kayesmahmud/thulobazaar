@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 interface ImageUploadProps {
   images: File[];
   onChange: (images: File[]) => void;
@@ -176,7 +178,7 @@ export default function ImageUpload({
               >
                 {/* Image */}
                 <img
-                  src={`/${imageUrl}`}
+                  src={imageUrl.startsWith('http') ? imageUrl : `${API_URL}/${imageUrl}`}
                   alt={`Existing ${index + 1}`}
                   className="absolute top-0 left-0 w-full h-full object-cover"
                 />

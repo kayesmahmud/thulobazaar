@@ -11,6 +11,7 @@ import {
   FormTips,
   OrderSummary,
 } from '@/components/verification';
+import { validateFile, UPLOAD_CONFIGS, formatFileSize } from '@thulobazaar/upload-utils';
 
 interface FormData {
   businessName: string;
@@ -88,9 +89,12 @@ export default function BusinessVerificationForm({
     if (files && files[0]) {
       const file = files[0];
 
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
+      // Validate file using shared utilities
+      const uploadFile = { name: file.name, type: file.type, size: file.size, uri: URL.createObjectURL(file), file };
+      const validation = validateFile(uploadFile, UPLOAD_CONFIGS.verificationDoc!);
+      if (!validation.valid) {
+        setError(validation.errors.join(', '));
+        URL.revokeObjectURL(uploadFile.uri);
         return;
       }
 
@@ -107,6 +111,9 @@ export default function BusinessVerificationForm({
       } else {
         setImagePreview(null);
       }
+
+      // Clean up object URL
+      URL.revokeObjectURL(uploadFile.uri);
     }
   };
 
@@ -413,7 +420,7 @@ export default function BusinessVerificationForm({
                           {formData.licenseFile.name}
                         </p>
                         <p className="text-xs sm:text-sm text-gray-500">
-                          {(formData.licenseFile.size / 1024).toFixed(2)} KB
+                          {formatFileSize(formData.licenseFile.size)}
                         </p>
                       </div>
                     </div>

@@ -9,6 +9,7 @@ import Cropper from 'react-easy-crop';
 import { Point, Area } from 'react-easy-crop/types';
 import { Button } from '@/components/ui';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { getCoverUrl } from '@/lib/images';
 
 interface ShopProfileClientProps {
   shopId: number;
@@ -289,6 +290,9 @@ export default function ShopProfileClient({
     }
   };
 
+  // Get proper cover photo URL using centralized utility
+  const coverPhotoUrl = getCoverUrl(initialCover);
+
   return (
     <>
       {/* Cover Photo & Avatar Card */}
@@ -297,11 +301,11 @@ export default function ShopProfileClient({
         <div className="relative">
           <div
             className={`w-full h-[180px] sm:h-[240px] md:h-[300px] rounded-t-xl bg-cover bg-center ${
-              initialCover
+              coverPhotoUrl
                 ? ''
                 : 'bg-gradient-to-br from-primary to-purple-600'
             }`}
-            style={initialCover ? { backgroundImage: `url(/uploads/covers/${initialCover})` } : undefined}
+            style={coverPhotoUrl ? { backgroundImage: `url(${coverPhotoUrl})` } : undefined}
           />
 
           {/* Cover Edit Buttons - Only show for owner */}
@@ -316,9 +320,9 @@ export default function ShopProfileClient({
                   icon={uploading ? '⏳' : '📷'}
                   className="shadow-lg"
                 >
-                  <span className="hidden sm:inline">{initialCover ? 'Change Cover' : 'Add Cover'}</span>
+                  <span className="hidden sm:inline">{coverPhotoUrl ? 'Change Cover' : 'Add Cover'}</span>
                 </Button>
-                {initialCover && (
+                {coverPhotoUrl && (
                   <Button
                     onClick={handleRemoveCover}
                     variant="danger"

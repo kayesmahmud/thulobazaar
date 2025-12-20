@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getAvatarUrl } from '@/lib/images';
 
 interface UserAvatarProps {
   src: string | null | undefined;
@@ -46,16 +47,8 @@ export function UserAvatar({
     return fullName.substring(0, 2).toUpperCase();
   };
 
-  // Determine the image URL
-  const getImageUrl = (avatar: string | null | undefined): string | null => {
-    if (!avatar) return null;
-    // External URL (Google, Facebook, etc.)
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-      return avatar;
-    }
-    // Local upload
-    return `/uploads/avatars/${avatar}`;
-  };
+  // Get the proper image URL using centralized utility
+  const imageUrl = getAvatarUrl(src);
 
   // Size classes
   const sizeClasses: Record<string, { container: string; text: string }> = {
@@ -75,7 +68,6 @@ export function UserAvatar({
     none: 'border-transparent',
   };
 
-  const imageUrl = getImageUrl(src);
   const initials = getInitials(name);
   const defaultSize = { container: 'w-10 h-10', text: 'text-sm' };
   const sizeClass = sizeClasses[size] ?? defaultSize;
@@ -108,26 +100,6 @@ export function UserAvatar({
       />
     </div>
   );
-}
-
-/**
- * Helper function to get avatar URL (for use outside of React components)
- * Returns the proper URL for display
- */
-export function getAvatarUrl(avatar: string | null | undefined): string | null {
-  if (!avatar) return null;
-  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-    return avatar;
-  }
-  return `/uploads/avatars/${avatar}`;
-}
-
-/**
- * Helper function to check if avatar is external (OAuth provider)
- */
-export function isExternalAvatar(avatar: string | null | undefined): boolean {
-  if (!avatar) return false;
-  return avatar.startsWith('http://') || avatar.startsWith('https://');
 }
 
 export default UserAvatar;

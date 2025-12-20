@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '@thulobazaar/database';
 import { catchAsync, NotFoundError } from '../middleware/errorHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { uploadBusinessVerification, uploadIndividualVerification } from '../middleware/upload.js';
 
 const router = Router();
 
@@ -291,6 +292,93 @@ router.put(
     res.json({
       success: true,
       message: 'Verification rejected',
+    });
+  })
+);
+
+/**
+ * POST /api/verification/business/upload
+ * Upload business verification document
+ */
+router.post(
+  '/business/upload',
+  authenticateToken,
+  uploadBusinessVerification.single('business_license_document'),
+  catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    console.log(`📄 Business verification document uploaded by user ${userId}: ${req.file.filename}`);
+
+    res.json({
+      success: true,
+      data: {
+        filename: req.file.filename,
+        url: `/uploads/business_verification/${req.file.filename}`,
+        size: req.file.size,
+        type: req.file.mimetype,
+      },
+    });
+  })
+);
+
+/**
+ * POST /api/verification/individual/upload
+ * Upload individual verification documents (supports multiple files)
+ */
+router.post(
+  '/individual/upload',
+  authenticateToken,
+  uploadIndividualVerification.fields([
+    { name: 'id_document_front', maxCount: 1 },
+    { name: 'id_document_back', maxCount: 1 },
+    { name: 'selfie_with_id', maxCount: 1 },
+  ]),
+  catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    if (!files || Object.keys(files).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No files uploaded',
+      });
+    }
+
+    const uploadedFiles: any = {};
+
+    if (files.id_document_front) {
+      uploadedFiles.id_document_front = {
+        filename: files.id_document_front[0].filename,
+        url: `/uploads/individual_verification/${files.id_document_front[0].filename}`,
+      };
+    }
+
+    if (files.id_document_back) {
+      uploadedFiles.id_document_back = {
+        filename: files.id_document_back[0].filename,
+        url: `/uploads/individual_verification/${files.id_document_back[0].filename}`,
+      };
+    }
+
+    if (files.selfie_with_id) {
+      uploadedFiles.selfie_with_id = {
+        filename: files.selfie_with_id[0].filename,
+        url: `/uploads/individual_verification/${files.selfie_with_id[0].filename}`,
+      };
+    }
+
+    console.log(`📄 Individual verification documents uploaded by user ${userId}:`, Object.keys(uploadedFiles));
+
+    res.json({
+      success: true,
+      data: uploadedFiles,
     });
   })
 );

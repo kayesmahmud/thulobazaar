@@ -30,13 +30,12 @@ export default function AdCard({ ad, lang = 'en' }: AdCardProps) {
   // Generate ad URL using seo_slug or slug
   const adUrl = ad.seoSlug || ad.slug || `ad-${ad.id}`;
 
-  // Construct image URL - images are served from public folder
-  // Database stores paths like "uploads/ads/filename.webp"
-  // Next.js public folder serves at root, so "/uploads/ads/filename.webp"
+  // Construct image URL - images are served from Express API server
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const imageUrl = ad.primaryImage
     ? (ad.primaryImage.startsWith('http')
         ? ad.primaryImage
-        : `/${ad.primaryImage}`)
+        : `${API_URL}/${ad.primaryImage}`)
     : null;
 
   return (

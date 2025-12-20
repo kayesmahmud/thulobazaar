@@ -6,6 +6,8 @@ import { formatPrice, formatDateTime } from '@thulobazaar/utils';
 import { StatusBadge } from '@/components/ui';
 import type { Ad } from './types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 interface AdItemProps {
   ad: Ad;
   lang: string;
@@ -20,7 +22,7 @@ export function AdItem({ ad, lang, onDelete, onMarkAsSold }: AdItemProps) {
       <div className="w-full md:w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 relative shadow-md group-hover:shadow-xl transition-shadow duration-300">
         {ad.images && ad.images.length > 0 ? (
           <Image
-            src={`/${ad.images[0]?.file_path || ad.images[0]?.filePath || ad.images[0]?.filename}`}
+            src={`${API_URL}/${ad.images[0]?.file_path || ad.images[0]?.filePath || ad.images[0]?.filename}`}
             alt={ad.title}
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-300"

@@ -37,6 +37,7 @@
     "@thulobazaar/database": "*",
     "@thulobazaar/messaging-core": "*",
     "@thulobazaar/types": "*",
+    "@thulobazaar/upload-utils": "*",
     "@thulobazaar/utils": "*",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",

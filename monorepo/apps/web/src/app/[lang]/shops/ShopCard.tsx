@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getAvatarUrl, getCoverUrl } from '@/lib/images';
 
 interface ShopCardProps {
   shop: {
@@ -25,15 +26,9 @@ interface ShopCardProps {
 }
 
 export default function ShopCard({ shop, lang }: ShopCardProps) {
-  // Construct avatar URL
-  const avatarUrl = shop.avatar
-    ? (shop.avatar.startsWith('http') ? shop.avatar : `/${shop.avatar}`)
-    : null;
-
-  // Construct cover URL
-  const coverUrl = shop.coverPhoto
-    ? (shop.coverPhoto.startsWith('http') ? shop.coverPhoto : `/${shop.coverPhoto}`)
-    : null;
+  // Get proper image URLs using centralized utilities
+  const avatarUrl = getAvatarUrl(shop.avatar);
+  const coverUrl = getCoverUrl(shop.coverPhoto);
 
   // Determine verification badge
   const isVerifiedBusiness = shop.accountType === 'business' && shop.businessVerificationStatus === 'approved';
