@@ -2,20 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
-
-// Custom TikTok icon (not available in lucide-react)
-const TikTokIcon = ({ size = 18 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-  </svg>
-);
+import { Mail, Phone, MapPin } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFacebookF, faInstagram, faTiktok, faYoutube } from '@fortawesome/free-brands-svg-icons';
 
 interface FooterProps {
   lang: string;
@@ -55,16 +44,16 @@ export default function Footer({ lang }: FooterProps) {
                 className="bg-gray-800 hover:bg-blue-600 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="Facebook"
               >
-                <Facebook size={18} />
+                <FontAwesomeIcon icon={faFacebookF} className="w-[18px] h-[18px]" />
               </a>
               <a
                 href="https://instagram.com/thulobazaar"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-gray-800 hover:bg-pink-600 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
+                className="bg-gray-800 hover:bg-gradient-to-br hover:from-purple-600 hover:via-pink-600 hover:to-orange-500 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="Instagram"
               >
-                <Instagram size={18} />
+                <FontAwesomeIcon icon={faInstagram} className="w-[18px] h-[18px]" />
               </a>
               <a
                 href="https://tiktok.com/@thulobazaar"
@@ -73,7 +62,7 @@ export default function Footer({ lang }: FooterProps) {
                 className="bg-gray-800 hover:bg-black p-2.5 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="TikTok"
               >
-                <TikTokIcon size={18} />
+                <FontAwesomeIcon icon={faTiktok} className="w-[18px] h-[18px]" />
               </a>
               <a
                 href="https://youtube.com/thulobazaar"
@@ -82,7 +71,7 @@ export default function Footer({ lang }: FooterProps) {
                 className="bg-gray-800 hover:bg-red-600 p-2.5 rounded-full transition-all duration-300 hover:scale-110"
                 aria-label="YouTube"
               >
-                <Youtube size={18} />
+                <FontAwesomeIcon icon={faYoutube} className="w-[18px] h-[18px]" />
               </a>
             </div>
           </div>
