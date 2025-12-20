@@ -21,11 +21,11 @@ export default function Footer({ lang }: FooterProps) {
           <div className="space-y-4">
             <Link href={`/${lang}`} className="inline-block">
               <Image
-                src="/logo.png"
+                src="/logo-footer.png"
                 alt="ThuluBazaar"
-                width={120}
-                height={56}
-                className="h-14 w-auto object-contain"
+                width={140}
+                height={100}
+                className="h-20 w-auto object-contain"
                 unoptimized
               />
             </Link>
