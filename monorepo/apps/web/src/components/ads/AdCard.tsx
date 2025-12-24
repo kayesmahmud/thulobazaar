@@ -13,7 +13,8 @@ interface AdCardProps {
     primaryImage?: string | null;
     categoryName?: string | null;
     categoryIcon?: string | null;
-    createdAt: string | Date;
+    createdAt?: string | Date;
+    publishedAt?: string | Date; // When editor approved (use this for display)
     sellerName: string;
     isFeatured?: boolean;
     isUrgent?: boolean;
@@ -102,10 +103,10 @@ export default function AdCard({ ad, lang = 'en' }: AdCardProps) {
           )}
         </div>
 
-        {/* Meta Info */}
+        {/* Meta Info - Show when ad was approved (publishedAt), not when submitted */}
         <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
           <span>🕒</span>
-          <span>{formatDateTime(ad.createdAt)}</span>
+          <span>{formatDateTime(ad.publishedAt || ad.createdAt || new Date())}</span>
         </div>
 
         {/* Seller */}

@@ -237,7 +237,8 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800 mb-2">{ad.title}</h1>
                   <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
-                    <span>{formatRelativeTime(ad.created_at || new Date())}</span>
+                    {/* Show when ad was approved (reviewed_at), not when submitted */}
+                    <span>{formatRelativeTime(ad.reviewed_at || ad.created_at || new Date())}</span>
                     <span>•</span>
                     <span>{ad.view_count || 0} views</span>
                   </div>

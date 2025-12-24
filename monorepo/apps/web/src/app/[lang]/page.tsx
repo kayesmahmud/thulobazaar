@@ -103,7 +103,7 @@ export default async function HomePage({ params }: HomePageProps) {
         },
       },
       orderBy: {
-        created_at: 'desc',
+        reviewed_at: 'desc', // Sort by approval time, not submission time
       },
       take: 6,
     }),
@@ -121,6 +121,8 @@ export default async function HomePage({ params }: HomePageProps) {
     primaryImage: ad.ad_images && ad.ad_images.length > 0 ? ad.ad_images[0]?.file_path || null : null,
     categoryName: ad.categories?.name || null,
     categoryIcon: ad.categories?.icon || null,
+    // publishedAt = when editor approved (use this for "time ago" display)
+    publishedAt: ad.reviewed_at || ad.created_at || new Date(),
     createdAt: ad.created_at || new Date(),
     sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
     isFeatured: ad.is_featured || false,

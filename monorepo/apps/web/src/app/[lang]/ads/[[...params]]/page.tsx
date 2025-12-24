@@ -247,6 +247,8 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
                             : null,
                           categoryName: ad.categories?.name || null,
                           categoryIcon: ad.categories?.icon || null,
+                          // publishedAt = when editor approved (use this for "time ago" display)
+                          publishedAt: ad.reviewed_at || ad.created_at || new Date(),
                           createdAt: ad.created_at || new Date(),
                           sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
                           isFeatured: ad.is_featured || false,

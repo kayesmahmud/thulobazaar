@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/admin';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
@@ -15,13 +15,47 @@ import type { Ad, TabStatus } from './types';
 export default function AdManagementPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
   const params = use(paramsPromise);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { staff, isLoading: authLoading, logout } = useStaffAuth();
 
-  const { ads, loading, page, totalPages, setPage, loadAds } = useAdManagement();
+  // Read initial values from URL
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+  const initialTab = (searchParams.get('status') as TabStatus) || 'pending';
+  const initialSearch = searchParams.get('search') || '';
 
-  const [activeTab, setActiveTab] = useState<TabStatus>('pending');
-  const [searchTerm, setSearchTerm] = useState('');
+  const { ads, loading, page, totalPages, setPage, loadAds } = useAdManagement(initialPage);
+
+  const [activeTab, setActiveTab] = useState<TabStatus>(initialTab);
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
+
+  // Update URL when filters change
+  const updateUrl = useCallback((newPage: number, newTab: TabStatus, newSearch: string) => {
+    const urlParams = new URLSearchParams();
+    if (newPage > 1) urlParams.set('page', newPage.toString());
+    if (newTab !== 'pending') urlParams.set('status', newTab);
+    if (newSearch) urlParams.set('search', newSearch);
+    const queryString = urlParams.toString();
+    router.push(`/${params.lang}/editor/ad-management${queryString ? `?${queryString}` : ''}`, { scroll: false });
+  }, [router, params.lang]);
+
+  // Handle page change with URL update
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+    updateUrl(newPage, activeTab, searchTerm);
+  }, [setPage, updateUrl, activeTab, searchTerm]);
+
+  // Handle tab change with URL update
+  const handleTabChange = useCallback((newTab: TabStatus) => {
+    setActiveTab(newTab);
+    setPage(1);
+    updateUrl(1, newTab, searchTerm);
+  }, [setPage, updateUrl, searchTerm]);
+
+  // Handle search change with URL update (debounced effect handles the actual search)
+  const handleSearchChange = useCallback((newSearch: string) => {
+    setSearchTerm(newSearch);
+  }, []);
 
   // Modal states
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -45,9 +79,16 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
     }
   }, [staff, activeTab, searchTerm, page, loadAds]);
 
+  // Update URL when search changes (with debounce effect)
   useEffect(() => {
-    setPage(1);
-  }, [activeTab, searchTerm, setPage]);
+    const timer = setTimeout(() => {
+      if (searchTerm !== initialSearch) {
+        setPage(1);
+        updateUrl(1, activeTab, searchTerm);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, initialSearch, activeTab, setPage, updateUrl]);
 
   // Modal handlers
   const openRejectModal = (ad: Ad) => {
@@ -115,10 +156,10 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
         </div>
 
         {/* Tabs */}
-        <AdTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <AdTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Search */}
-        <AdSearchBar value={searchTerm} onChange={setSearchTerm} />
+        <AdSearchBar value={searchTerm} onChange={handleSearchChange} />
 
         {/* Ads List */}
         <AdsList
@@ -133,7 +174,7 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
         />
 
         {/* Pagination */}
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
 
       {/* Modals */}

@@ -4,10 +4,10 @@ import { useState, useCallback } from 'react';
 import { getAds } from '@/lib/editorApi';
 import { transformAd, type Ad, type TabStatus } from './types';
 
-export function useAdManagement() {
+export function useAdManagement(initialPage: number = 1) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
 
   const loadAds = useCallback(async (activeTab: TabStatus, searchTerm: string, currentPage: number) => {

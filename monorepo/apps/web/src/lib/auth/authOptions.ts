@@ -149,13 +149,18 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          console.log('🔐 [Staff Auth] Attempting email login for:', credentials.email);
+
           // Find user by email - only allow staff roles
           const user = await prisma.users.findUnique({
             where: { email: credentials.email },
             select: userSelectForAuth,
           });
 
+          console.log('🔐 [Staff Auth] User found:', user ? { id: user.id, email: user.email, role: user.role, hasHash: !!user.password_hash } : 'NOT FOUND');
+
           if (!user) {
+            console.log('🔐 [Staff Auth] User not found for email:', credentials.email);
             throw new Error('Invalid email or password');
           }
 
@@ -165,9 +170,12 @@ export const authOptions: NextAuthOptions = {
           }
 
           const statusError = validateUserStatus(user);
+          console.log('🔐 [Staff Auth] Status check:', statusError || 'OK');
           if (statusError) throw new Error(statusError);
 
+          console.log('🔐 [Staff Auth] Verifying password...');
           const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
+          console.log('🔐 [Staff Auth] Password valid:', isValidPassword);
           if (!isValidPassword) throw new Error('Invalid email or password');
 
           // Handle 2FA

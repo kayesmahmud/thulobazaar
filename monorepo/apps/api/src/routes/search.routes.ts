@@ -82,7 +82,7 @@ router.get(
             take: 1,
           },
         },
-        orderBy: { created_at: 'desc' },
+        orderBy: { reviewed_at: 'desc' }, // Sort by approval time, not submission time
         take: limitNum,
         skip: offsetNum,
       }),
@@ -97,6 +97,8 @@ router.get(
       business_verification_status: ad.users_ads_user_idTousers?.business_verification_status,
       individual_verified: ad.users_ads_user_idTousers?.individual_verified,
       primary_image: ad.ad_images[0]?.filename,
+      // publishedAt = when editor approved (use this for "time ago" display)
+      publishedAt: ad.reviewed_at || ad.created_at,
     }));
 
     console.log(`🔍 Search for "${searchTerm}": Found ${total} results`);

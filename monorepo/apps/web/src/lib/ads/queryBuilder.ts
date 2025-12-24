@@ -96,6 +96,8 @@ export function buildAdsWhereClause(options: AdsFilterOptions) {
 
 /**
  * Build Prisma orderBy clause for ads queries
+ * Uses reviewed_at (when editor approved) for chronological sorting,
+ * not created_at (when user submitted)
  *
  * @param sortBy - Sort option
  * @returns Prisma orderBy clause
@@ -103,14 +105,14 @@ export function buildAdsWhereClause(options: AdsFilterOptions) {
 export function buildAdsOrderBy(sortBy: AdsSortBy = 'newest') {
   switch (sortBy) {
     case 'oldest':
-      return { created_at: 'asc' as const };
+      return { reviewed_at: 'asc' as const };
     case 'price_asc':
       return { price: 'asc' as const };
     case 'price_desc':
       return { price: 'desc' as const };
     case 'newest':
     default:
-      return { created_at: 'desc' as const };
+      return { reviewed_at: 'desc' as const };
   }
 }
 

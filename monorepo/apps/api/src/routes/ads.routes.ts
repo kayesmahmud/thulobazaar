@@ -62,11 +62,12 @@ router.get(
       where.condition = condition as string;
     }
 
-    // Sorting
-    let orderBy: any = { created_at: 'desc' };
+    // Sorting - use reviewed_at for approved ads (when editor approved, not when user posted)
+    // This ensures newly approved ads appear at the top, not ads that were pending for days
+    let orderBy: any = { reviewed_at: 'desc' };
     if (sortBy === 'price-low') orderBy = { price: 'asc' };
     else if (sortBy === 'price-high') orderBy = { price: 'desc' };
-    else if (sortBy === 'oldest') orderBy = { created_at: 'asc' };
+    else if (sortBy === 'oldest') orderBy = { reviewed_at: 'asc' };
 
     const limitNum = Math.min(parseInt(limit as string) || PAGINATION.DEFAULT_LIMIT, PAGINATION.MAX_LIMIT);
     const offsetNum = parseInt(offset as string) || 0;
@@ -119,6 +120,9 @@ router.get(
       accountType: ad.users_ads_user_idTousers?.account_type,
       businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status,
       individualVerified: ad.users_ads_user_idTousers?.individual_verified,
+      // publishedAt = when editor approved (use this for "time ago" display)
+      publishedAt: ad.reviewed_at || ad.created_at,
+      reviewedAt: ad.reviewed_at,
       primaryImage: ad.ad_images.find((img) => img.is_primary)?.filename || ad.ad_images[0]?.filename,
       images: ad.ad_images.map((img) => ({
         id: img.id,

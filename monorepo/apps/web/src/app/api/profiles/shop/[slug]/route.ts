@@ -82,6 +82,7 @@ export async function GET(
         condition: true,
         description: true,
         created_at: true,
+        reviewed_at: true,
         view_count: true,
         is_featured: true,
         is_bumped: true,
@@ -110,7 +111,7 @@ export async function GET(
       orderBy: [
         { is_sticky: 'desc' },
         { is_bumped: 'desc' },
-        { created_at: 'desc' },
+        { reviewed_at: 'desc' }, // Sort by approval time, not submission time
       ],
     });
 
@@ -126,7 +127,10 @@ export async function GET(
       price: ad.price ? parseFloat(ad.price.toString()) : 0,
       condition: ad.condition,
       description: ad.description,
+      // publishedAt = when editor approved (use this for "time ago" display)
+      publishedAt: ad.reviewed_at || ad.created_at,
       createdAt: ad.created_at,
+      reviewedAt: ad.reviewed_at,
       viewCount: ad.view_count,
       isFeatured: ad.is_featured,
       isBumped: ad.is_bumped,

@@ -57,7 +57,11 @@ router.get(
   '/',
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
-    const { status, includeDeleted = 'false', limit = '20', offset = '0' } = req.query;
+    const { status, includeDeleted = 'false', limit = '20', offset = '0', page, search, sortBy = 'created_at', sortOrder = 'DESC' } = req.query;
+
+    // Support both page-based and offset-based pagination
+    const effectiveLimit = parseInt(limit as string);
+    const effectiveOffset = page ? (parseInt(page as string) - 1) * effectiveLimit : parseInt(offset as string);
 
     const where: any = {};
 
@@ -72,6 +76,14 @@ router.get(
       // Include all ads
     } else {
       where.deleted_at = null;
+    }
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } },
+      ];
     }
 
     const [ads, total] = await Promise.all([
@@ -92,12 +104,15 @@ router.get(
           },
           ad_images: { take: 1 },
         },
-        orderBy: { created_at: 'desc' },
-        take: parseInt(limit as string),
-        skip: parseInt(offset as string),
+        orderBy: { [sortBy as string]: sortOrder === 'ASC' ? 'asc' : 'desc' },
+        take: effectiveLimit,
+        skip: effectiveOffset,
       }),
       prisma.ads.count({ where }),
     ]);
+
+    const totalPages = Math.ceil(total / effectiveLimit);
+    const currentPage = page ? parseInt(page as string) : Math.floor(effectiveOffset / effectiveLimit) + 1;
 
     res.json({
       success: true,
@@ -135,9 +150,13 @@ router.get(
       })),
       pagination: {
         total,
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
-        hasMore: parseInt(offset as string) + parseInt(limit as string) < total,
+        limit: effectiveLimit,
+        offset: effectiveOffset,
+        page: currentPage,
+        totalPages,
+        hasMore: effectiveOffset + effectiveLimit < total,
+        hasPrev: currentPage > 1,
+        hasNext: currentPage < totalPages,
       },
     });
   })
