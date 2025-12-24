@@ -4,6 +4,7 @@ import { optionalAuth, requireAuth } from '@/lib/auth';
 import { generateSlug, generateSeoSlug } from '@/lib/urls';
 import { processMultipleImages } from '@/lib/utils';
 import { indexAd } from '@/lib/search';
+import { cleanupExpiredPromotionFlags } from '@/lib/promotion/cleanupExpired';
 
 /**
  * GET /api/ads
@@ -25,6 +26,10 @@ import { indexAd } from '@/lib/search';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+
+    // Clean up any expired promotion flags before querying
+    // This ensures sorting is accurate even if cron hasn't run
+    await cleanupExpiredPromotionFlags();
 
     // Optional auth - to check if user is viewing their own ads
     const userId = await optionalAuth(request);

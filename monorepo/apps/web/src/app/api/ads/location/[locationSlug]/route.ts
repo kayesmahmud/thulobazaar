@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { cleanupExpiredPromotionFlags } from '@/lib/promotion/cleanupExpired';
 
 /**
  * GET /api/ads/location/:locationSlug
@@ -15,6 +16,9 @@ export async function GET(
   { params }: { params: Promise<{ locationSlug: string }> }
 ) {
   try {
+    // Clean up expired promotions before querying
+    await cleanupExpiredPromotionFlags();
+
     const { locationSlug } = await params;
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);

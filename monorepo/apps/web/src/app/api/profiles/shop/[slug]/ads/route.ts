@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { cleanupExpiredPromotionFlags } from '@/lib/promotion/cleanupExpired';
 
 /**
  * GET /api/profiles/shop/:slug/ads
@@ -15,6 +16,9 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Clean up expired promotions before querying
+    await cleanupExpiredPromotionFlags();
+
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
 

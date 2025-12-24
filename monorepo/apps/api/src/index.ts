@@ -2,6 +2,7 @@ import http from 'http';
 import { createApp } from './app.js';
 import config, { validateConfig } from './config/index.js';
 import { initializeSocketIO } from './socket/index.js';
+import { schedulePromotionCleanup } from './jobs/promotionCleanup.js';
 
 // Validate required environment variables
 validateConfig();
@@ -44,4 +45,7 @@ httpServer.listen(config.PORT, () => {
   console.log(`   - http://localhost:${config.PORT}/api/categories`);
   console.log(`   - http://localhost:${config.PORT}/api/search`);
   console.log(`💬 Socket.IO messaging ready on ws://localhost:${config.PORT}`);
+
+  // Start cron jobs
+  schedulePromotionCleanup();
 });
