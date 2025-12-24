@@ -337,7 +337,7 @@ export default function ShopProfileClient({
 
               {/* Recommended Cover Dimensions - hide on mobile */}
               <div className="hidden md:block absolute bottom-4 right-4 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded">
-                Recommended: 1280 x 720
+                Recommended: 1600 x 400 (4:1 ratio)
               </div>
             </>
           )}
@@ -485,7 +485,7 @@ export default function ShopProfileClient({
                 image={cropperModal.imageSrc}
                 crop={crop}
                 zoom={zoom}
-                aspect={cropperModal.type === 'avatar' ? 1 : 16 / 9}
+                aspect={cropperModal.type === 'avatar' ? 1 : 4 / 1}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropComplete}

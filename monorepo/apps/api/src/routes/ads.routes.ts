@@ -174,8 +174,9 @@ router.get(
       description: ad.description,
       price: ad.price,
       condition: ad.condition,
-      status: ad.status,
+      status: ad.status === 'approved' ? 'active' : ad.status, // Map 'approved' to 'active' for dashboard
       slug: ad.slug,
+      views: ad.view_count, // Alias for dashboard compatibility
       viewCount: ad.view_count,
       isFeatured: ad.is_featured,
       isUrgent: ad.is_urgent,
