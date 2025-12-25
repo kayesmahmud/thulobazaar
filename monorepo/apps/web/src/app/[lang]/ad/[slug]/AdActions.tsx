@@ -214,10 +214,13 @@ export default function AdActions({
     <div className="relative share-menu-container flex-1">
       <button
         onClick={() => setShowShareMenu(!showShareMenu)}
-        className="w-full px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium shadow-sm border border-gray-200"
+        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors text-base font-medium shadow-sm border border-gray-200"
         title="Share this ad"
       >
-        Share
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+        </svg>
+        <span>Share</span>
       </button>
 
       {/* Share Dropdown Menu */}
@@ -252,24 +255,24 @@ export default function AdActions({
   );
 
   const renderFavoriteButton = () => (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
       {/* Heart Icon Button */}
       <button
         onClick={toggleFavorite}
         disabled={isLoading}
-        className={`flex items-center justify-center transition-all duration-200 ${
-          isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'
+        className={`flex items-center justify-center px-3 py-2 transition-all duration-200 hover:bg-gray-50 ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : ''
         }`}
         title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
       >
         {isFavorited ? (
-          <HeartSolid className="w-6 h-6 text-rose-500" />
+          <HeartSolid className="w-5 h-5 text-rose-500" />
         ) : (
-          <Heart className="w-6 h-6 text-gray-700 hover:text-rose-500" />
+          <Heart className="w-5 h-5 text-gray-700 hover:text-rose-500" />
         )}
       </button>
-      {/* Count Badge */}
-      <span className="min-w-[40px] px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 text-center shadow-sm">
+      {/* Count Display */}
+      <span className="px-3 py-2 text-base font-medium text-gray-700 border-l border-gray-200 bg-white">
         {formatCount(favoritesCount)}
       </span>
     </div>
@@ -278,7 +281,7 @@ export default function AdActions({
   // If showShareFavoriteOnly, only render Share & Favorite buttons
   if (showShareFavoriteOnly) {
     return (
-      <div className="flex gap-2 mt-3">
+      <div className="flex gap-3 mt-3">
         {renderFavoriteButton()}
         {renderShareButton()}
       </div>
