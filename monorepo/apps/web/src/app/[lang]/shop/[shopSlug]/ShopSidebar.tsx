@@ -18,6 +18,36 @@ const ensureHttps = (url: string): string => {
   return `https://${trimmed}`;
 };
 
+// Helper to extract username from social media URLs
+const extractSocialUsername = (url: string | null, platform: 'facebook' | 'instagram' | 'tiktok'): string => {
+  if (!url) return '';
+  const patterns: Record<'facebook' | 'instagram' | 'tiktok', RegExp> = {
+    facebook: /^(?:https?:\/\/)?(?:www\.)?facebook\.com\/(.+?)\/?$/i,
+    instagram: /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(.+?)\/?$/i,
+    tiktok: /^(?:https?:\/\/)?(?:www\.)?tiktok\.com\/@?(.+?)\/?$/i,
+  };
+  const pattern = patterns[platform];
+  const match = url.match(pattern);
+  if (match && match[1]) {
+    return match[1].replace(/^@/, ''); // Remove @ if present
+  }
+  // If no match, return as-is (might be just the username)
+  return url.replace(/^@/, '');
+};
+
+// Helper to build full social media URL from username
+const buildSocialUrl = (username: string, platform: 'facebook' | 'instagram' | 'tiktok'): string => {
+  if (!username) return '';
+  const cleanUsername = username.replace(/^@/, '').trim();
+  if (!cleanUsername) return '';
+  const bases: Record<string, string> = {
+    facebook: 'https://www.facebook.com/',
+    instagram: 'https://www.instagram.com/',
+    tiktok: 'https://www.tiktok.com/@',
+  };
+  return bases[platform] + cleanUsername;
+};
+
 // Extended user type with backendToken (added by UserAuthContext from NextAuth session)
 type UserWithToken = {
   id: number;
@@ -102,9 +132,10 @@ export default function ShopSidebar({
     businessPhone: initialBusinessPhone || '',
     businessWebsite: initialWebsite || '',
     googleMapsLink: initialGoogleMaps || '',
-    facebookUrl: initialFacebook || '',
-    instagramUrl: initialInstagram || '',
-    tiktokUrl: initialTiktok || '',
+    // Store usernames, not full URLs - extract from initial values
+    facebookUsername: extractSocialUsername(initialFacebook, 'facebook'),
+    instagramUsername: extractSocialUsername(initialInstagram, 'instagram'),
+    tiktokUsername: extractSocialUsername(initialTiktok, 'tiktok'),
   });
   const [contactSaving, setContactSaving] = useState(false);
 
@@ -261,9 +292,10 @@ export default function ShopSidebar({
           business_phone: whatsAppNumber || null,
           business_website: contactData.businessWebsite,
           google_maps_link: contactData.googleMapsLink,
-          facebook_url: contactData.facebookUrl || null,
-          instagram_url: contactData.instagramUrl || null,
-          tiktok_url: contactData.tiktokUrl || null,
+          // Build full URLs from usernames
+          facebook_url: buildSocialUrl(contactData.facebookUsername, 'facebook') || null,
+          instagram_url: buildSocialUrl(contactData.instagramUsername, 'instagram') || null,
+          tiktok_url: buildSocialUrl(contactData.tiktokUsername, 'tiktok') || null,
         }),
       });
 
@@ -562,39 +594,54 @@ export default function ShopSidebar({
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 Facebook
               </label>
-              <input
-                type="url"
-                value={contactData.facebookUrl}
-                onChange={(e) => setContactData({ ...contactData, facebookUrl: e.target.value })}
-                placeholder="https://facebook.com/yourpage"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg whitespace-nowrap">
+                  facebook.com/
+                </span>
+                <input
+                  type="text"
+                  value={contactData.facebookUsername}
+                  onChange={(e) => setContactData({ ...contactData, facebookUsername: e.target.value.replace(/\s/g, '') })}
+                  placeholder="yourpage"
+                  className="flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 Instagram
               </label>
-              <input
-                type="url"
-                value={contactData.instagramUrl}
-                onChange={(e) => setContactData({ ...contactData, instagramUrl: e.target.value })}
-                placeholder="https://instagram.com/yourprofile"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg whitespace-nowrap">
+                  instagram.com/
+                </span>
+                <input
+                  type="text"
+                  value={contactData.instagramUsername}
+                  onChange={(e) => setContactData({ ...contactData, instagramUsername: e.target.value.replace(/\s/g, '') })}
+                  placeholder="yourprofile"
+                  className="flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 TikTok
               </label>
-              <input
-                type="url"
-                value={contactData.tiktokUrl}
-                onChange={(e) => setContactData({ ...contactData, tiktokUrl: e.target.value })}
-                placeholder="https://tiktok.com/@yourprofile"
-                className="w-full p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              />
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg whitespace-nowrap">
+                  tiktok.com/@
+                </span>
+                <input
+                  type="text"
+                  value={contactData.tiktokUsername}
+                  onChange={(e) => setContactData({ ...contactData, tiktokUsername: e.target.value.replace(/\s/g, '').replace(/^@/, '') })}
+                  placeholder="yourprofile"
+                  className="flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             <div className="flex gap-2 mt-3 sm:mt-4">
@@ -612,9 +659,9 @@ export default function ShopSidebar({
                     businessPhone: initialBusinessPhone || '',
                     businessWebsite: initialWebsite || '',
                     googleMapsLink: initialGoogleMaps || '',
-                    facebookUrl: initialFacebook || '',
-                    instagramUrl: initialInstagram || '',
-                    tiktokUrl: initialTiktok || '',
+                    facebookUsername: extractSocialUsername(initialFacebook, 'facebook'),
+                    instagramUsername: extractSocialUsername(initialInstagram, 'instagram'),
+                    tiktokUsername: extractSocialUsername(initialTiktok, 'tiktok'),
                   });
                 }}
                 disabled={contactSaving}
@@ -686,55 +733,55 @@ export default function ShopSidebar({
                 </div>
               </div>
             )}
-            {contactData.facebookUrl && (
+            {contactData.facebookUsername && (
               <div className="flex items-center gap-2 sm:gap-3">
                 <FontAwesomeIcon icon={faFacebook} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-[#1877F2] flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Facebook</div>
                   <a
-                    href={ensureHttps(contactData.facebookUrl)}
+                    href={buildSocialUrl(contactData.facebookUsername, 'facebook')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
                   >
-                    {contactData.facebookUrl.replace(/^https?:\/\/(www\.)?facebook\.com\/?/, '')}
+                    {contactData.facebookUsername}
                   </a>
                 </div>
               </div>
             )}
-            {contactData.instagramUrl && (
+            {contactData.instagramUsername && (
               <div className="flex items-center gap-2 sm:gap-3">
                 <FontAwesomeIcon icon={faInstagram} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-[#E4405F] flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">Instagram</div>
                   <a
-                    href={ensureHttps(contactData.instagramUrl)}
+                    href={buildSocialUrl(contactData.instagramUsername, 'instagram')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
                   >
-                    {contactData.instagramUrl.replace(/^https?:\/\/(www\.)?instagram\.com\/?/, '@')}
+                    @{contactData.instagramUsername}
                   </a>
                 </div>
               </div>
             )}
-            {contactData.tiktokUrl && (
+            {contactData.tiktokUsername && (
               <div className="flex items-center gap-2 sm:gap-3">
                 <FontAwesomeIcon icon={faTiktok} className="!w-5 !h-5 sm:!w-[30px] sm:!h-[30px] text-black flex-shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm text-gray-600">TikTok</div>
                   <a
-                    href={ensureHttps(contactData.tiktokUrl)}
+                    href={buildSocialUrl(contactData.tiktokUsername, 'tiktok')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-rose-500 hover:underline font-semibold text-sm sm:text-base break-all"
                   >
-                    {contactData.tiktokUrl.replace(/^https?:\/\/(www\.)?tiktok\.com\/?@?/, '@')}
+                    @{contactData.tiktokUsername}
                   </a>
                 </div>
               </div>
             )}
-            {!contactData.businessPhone && !verifiedPhone && !contactData.businessWebsite && !contactData.googleMapsLink && !contactData.facebookUrl && !contactData.instagramUrl && !contactData.tiktokUrl && (
+            {!contactData.businessPhone && !verifiedPhone && !contactData.businessWebsite && !contactData.googleMapsLink && !contactData.facebookUsername && !contactData.instagramUsername && !contactData.tiktokUsername && (
               <p className="text-sm sm:text-base text-gray-500 italic">
                 No contact information available. {isOwner && 'Click Edit to add your contact details.'}
               </p>
