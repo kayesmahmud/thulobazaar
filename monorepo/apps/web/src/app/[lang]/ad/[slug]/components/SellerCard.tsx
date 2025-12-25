@@ -14,6 +14,7 @@ export function SellerCard({
   adTitle,
   adSlug,
   lang,
+  favoritesCount = 0,
 }: SellerCardProps) {
   const isVerifiedBusiness = seller?.account_type === 'business' && seller?.business_verification_status === 'approved';
   const isVerifiedIndividual = seller?.account_type === 'individual' &&
@@ -150,6 +151,7 @@ export function SellerCard({
         whatsappNumber={seller?.business_phone || seller?.phone || null}
         phoneNumber={seller?.phone || null}
         showShareFavoriteOnly={true}
+        initialFavoritesCount={favoritesCount}
       />
 
       <div style={{

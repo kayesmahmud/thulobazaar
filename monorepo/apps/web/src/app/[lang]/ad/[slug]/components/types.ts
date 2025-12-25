@@ -41,4 +41,5 @@ export interface SellerCardProps {
   adTitle: string;
   adSlug: string;
   lang: string;
+  favoritesCount?: number;
 }

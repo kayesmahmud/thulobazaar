@@ -227,6 +227,11 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
     data: { view_count: { increment: 1 } },
   }).catch(console.error);
 
+  // Get favorites count for this ad
+  const favoritesCount = await prisma.user_favorites.count({
+    where: { ad_id: ad.id },
+  });
+
   // Fetch related ads from same category
   const relatedAdsRaw = await getRelatedAds(ad.category_id, ad.id);
   const relatedAds = relatedAdsRaw.map((relAd) => ({
@@ -358,6 +363,7 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
               adTitle={ad.title}
               adSlug={slug}
               lang={lang}
+              favoritesCount={favoritesCount}
             />
 
             <PromoteSection ad={{

@@ -16,6 +16,7 @@ interface AdActionsProps {
   phoneNumber: string | null;
   showWhatsAppOnly?: boolean;
   showShareFavoriteOnly?: boolean;
+  initialFavoritesCount?: number;
 }
 
 export default function AdActions({
@@ -27,9 +28,11 @@ export default function AdActions({
   phoneNumber,
   showWhatsAppOnly = false,
   showShareFavoriteOnly = false,
+  initialFavoritesCount = 0,
 }: AdActionsProps) {
   const { user, isAuthenticated } = useUserAuth();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(initialFavoritesCount);
   const [isLoading, setIsLoading] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -96,6 +99,7 @@ export default function AdActions({
         const data = await response.json();
         if (data.success) {
           setIsFavorited(false);
+          setFavoritesCount((prev) => Math.max(0, prev - 1));
         }
       } else {
         // Add to favorites
@@ -108,6 +112,7 @@ export default function AdActions({
         const data = await response.json();
         if (data.success) {
           setIsFavorited(true);
+          setFavoritesCount((prev) => prev + 1);
         }
       }
     } catch (error) {
@@ -197,16 +202,22 @@ export default function AdActions({
     ) : null;
   }
 
+  // Format count for display (e.g., 1.2k for 1200)
+  const formatCount = (count: number): string => {
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return count.toString();
+  };
+
   const renderShareButton = () => (
-    <div className="relative flex-1 share-menu-container">
+    <div className="relative share-menu-container flex-1">
       <button
         onClick={() => setShowShareMenu(!showShareMenu)}
-        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+        className="w-full px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium shadow-sm border border-gray-200"
+        title="Share this ad"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-        </svg>
-        <span>Share</span>
+        Share
       </button>
 
       {/* Share Dropdown Menu */}
@@ -214,26 +225,26 @@ export default function AdActions({
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
           <button
             onClick={handleCopyLink}
-            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+            className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <span className="text-gray-700">{copied ? 'Copied!' : 'Copy Link'}</span>
+            <span className="text-sm text-gray-700">{copied ? 'Copied!' : 'Copy Link'}</span>
           </button>
           <button
             onClick={handleShareFacebook}
-            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+            className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
           >
-            <FontAwesomeIcon icon={faFacebook} className="w-5 h-5 text-[#1877F2]" />
-            <span className="text-gray-700">Facebook</span>
+            <FontAwesomeIcon icon={faFacebook} className="w-4 h-4 text-[#1877F2]" />
+            <span className="text-sm text-gray-700">Facebook</span>
           </button>
           <button
             onClick={handleShareTwitter}
-            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+            className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
           >
-            <FontAwesomeIcon icon={faXTwitter} className="w-5 h-5 text-black" />
-            <span className="text-gray-700">X (Twitter)</span>
+            <FontAwesomeIcon icon={faXTwitter} className="w-4 h-4 text-black" />
+            <span className="text-sm text-gray-700">X (Twitter)</span>
           </button>
         </div>
       )}
@@ -241,22 +252,27 @@ export default function AdActions({
   );
 
   const renderFavoriteButton = () => (
-    <button
-      onClick={toggleFavorite}
-      disabled={isLoading}
-      className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-        isFavorited
-          ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-      } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-      title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
-    >
-      {isFavorited ? (
-        <HeartSolid className="w-5 h-5 text-rose-500" />
-      ) : (
-        <Heart className="w-5 h-5" />
-      )}
-    </button>
+    <div className="flex items-center gap-1">
+      {/* Heart Icon Button */}
+      <button
+        onClick={toggleFavorite}
+        disabled={isLoading}
+        className={`flex items-center justify-center transition-all duration-200 ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'
+        }`}
+        title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
+      >
+        {isFavorited ? (
+          <HeartSolid className="w-6 h-6 text-rose-500" />
+        ) : (
+          <Heart className="w-6 h-6 text-gray-700 hover:text-rose-500" />
+        )}
+      </button>
+      {/* Count Badge */}
+      <span className="min-w-[40px] px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 text-center shadow-sm">
+        {formatCount(favoritesCount)}
+      </span>
+    </div>
   );
 
   // If showShareFavoriteOnly, only render Share & Favorite buttons
