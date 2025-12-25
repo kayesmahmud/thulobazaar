@@ -115,11 +115,44 @@ export default function AdBanner({ slot, size, className = '', autoExpand = fals
     };
   }, [autoExpand, isProduction]);
 
-  // Development: show placeholder for visual debugging
+  // Development: show realistic dummy ad banners
   if (showPlaceholder) {
+    // Dummy ad data for different sizes
+    const dummyAds: Record<string, { bg: string; title: string; subtitle: string; cta: string; accent: string }[]> = {
+      leaderboard: [
+        { bg: 'from-blue-600 to-blue-800', title: '🎉 MEGA SALE', subtitle: 'Up to 70% OFF on Electronics', cta: 'Shop Now', accent: 'bg-yellow-400 text-black' },
+        { bg: 'from-purple-600 to-pink-600', title: '✨ New Arrivals', subtitle: 'Fashion Collection 2025', cta: 'Explore', accent: 'bg-white text-purple-600' },
+        { bg: 'from-green-600 to-emerald-700', title: '🏠 Dream Home', subtitle: 'Best Property Deals in Nepal', cta: 'View Listings', accent: 'bg-yellow-400 text-green-800' },
+      ],
+      mobileBanner: [
+        { bg: 'from-orange-500 to-red-600', title: '🔥 Flash Sale', subtitle: 'Limited Time Only', cta: 'Buy Now', accent: 'bg-white text-red-600' },
+        { bg: 'from-teal-500 to-cyan-600', title: '📱 Tech Deals', subtitle: 'Smartphones & More', cta: 'Shop', accent: 'bg-yellow-300 text-teal-800' },
+      ],
+      skyscraper: [
+        { bg: 'from-indigo-600 to-violet-700', title: '🚗', subtitle: 'Find Your Perfect Car', cta: 'Browse Cars', accent: 'bg-yellow-400 text-indigo-800' },
+        { bg: 'from-rose-500 to-pink-600', title: '💼', subtitle: 'Job Opportunities', cta: 'Apply Now', accent: 'bg-white text-rose-600' },
+      ],
+      mediumRectangle: [
+        { bg: 'from-amber-500 to-orange-600', title: '🎁 Special Offer', subtitle: 'Free Delivery on Orders Above Rs. 1000', cta: 'Order Now', accent: 'bg-white text-orange-600' },
+        { bg: 'from-cyan-600 to-blue-700', title: '💻 Work From Home', subtitle: 'Best Laptops & Accessories', cta: 'Shop Now', accent: 'bg-yellow-400 text-cyan-800' },
+      ],
+      largeRectangle: [
+        { bg: 'from-slate-700 to-slate-900', title: '⭐ Premium Membership', subtitle: 'Get exclusive benefits and priority listing', cta: 'Join Now', accent: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-900' },
+        { bg: 'from-emerald-500 to-teal-600', title: '🏪 Sell Your Items', subtitle: 'Reach millions of buyers', cta: 'Post Ad Free', accent: 'bg-white text-emerald-700' },
+      ],
+    };
+
+    // Get ads for current size or use default
+    const sizeKey = Object.keys(dummyAds).find(key => size.toLowerCase().includes(key.toLowerCase())) || 'mediumRectangle';
+    const ads = dummyAds[sizeKey] || dummyAds.mediumRectangle;
+    const randomAd = ads[Math.floor(Math.random() * ads.length)];
+
+    const isVertical = sizeConfig.height > sizeConfig.width;
+    const isSmall = sizeConfig.height < 100;
+
     return (
       <div
-        className={`flex items-center justify-center bg-gray-200 border-2 border-dashed border-gray-400 rounded-lg ${className}`}
+        className={`relative overflow-hidden rounded-lg bg-gradient-to-r ${randomAd.bg} ${className}`}
         style={{
           width: sizeConfig.width,
           height: sizeConfig.height,
@@ -127,11 +160,29 @@ export default function AdBanner({ slot, size, className = '', autoExpand = fals
           minHeight: sizeConfig.height,
         }}
       >
-        <div className="text-center text-gray-500">
-          <div className="text-xs font-medium">AD BANNER</div>
-          <div className="text-sm font-bold">{sizeConfig.label}</div>
-          <div className="text-xs text-gray-400 mt-1">Slot: {slot}</div>
+        {/* Ad Content */}
+        <div className={`h-full flex ${isVertical ? 'flex-col justify-center items-center text-center p-4' : 'items-center justify-between px-6'}`}>
+          <div className={isVertical ? 'space-y-3' : 'flex items-center gap-4'}>
+            <div className={`font-bold text-white ${isSmall ? 'text-sm' : isVertical ? 'text-xl' : 'text-lg'}`}>
+              {randomAd.title}
+            </div>
+            <div className={`text-white/90 ${isSmall ? 'text-xs' : isVertical ? 'text-sm' : 'text-sm'}`}>
+              {randomAd.subtitle}
+            </div>
+          </div>
+          <button className={`${randomAd.accent} ${isSmall ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm'} font-semibold rounded-full ${isVertical ? 'mt-4' : ''} hover:opacity-90 transition-opacity`}>
+            {randomAd.cta}
+          </button>
         </div>
+
+        {/* "Ad" badge */}
+        <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-black/40 text-white text-[10px] font-medium rounded">
+          Ad
+        </div>
+
+        {/* Decorative elements */}
+        <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
+        <div className="absolute -top-8 -left-8 w-32 h-32 bg-white/5 rounded-full" />
       </div>
     );
   }
