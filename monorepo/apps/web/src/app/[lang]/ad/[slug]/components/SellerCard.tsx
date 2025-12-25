@@ -4,6 +4,7 @@ import AdActions from '../AdActions';
 import ReportAdButton from '../ReportAdButton';
 import SendMessageButton from '@/components/messages/SendMessageButton';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { MaskedPhoneButton } from './MaskedPhoneButton';
 import type { SellerCardProps } from './types';
 
 export function SellerCard({
@@ -125,14 +126,9 @@ export function SellerCard({
         showWhatsAppOnly={true}
       />
 
-      {/* 2. Phone Number Button */}
+      {/* 2. Phone Number Button (masked until clicked) */}
       {seller?.phone && (
-        <a
-          href={`tel:${seller.phone}`}
-          className="block w-full px-3 py-3 bg-emerald-500 text-white rounded-lg font-semibold mb-3 text-center no-underline transition-all duration-200 hover:bg-emerald-600 hover:-translate-y-0.5 active:translate-y-0"
-        >
-          {seller.phone}
-        </a>
+        <MaskedPhoneButton phone={seller.phone} />
       )}
 
       {/* 3. Send Message Button */}

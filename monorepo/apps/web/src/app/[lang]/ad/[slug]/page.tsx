@@ -14,6 +14,7 @@ import {
   LocationSection,
   SellerCard,
   SafetyTips,
+  RelatedAds,
 } from './components';
 import { getImageUrl } from '@/lib/images/imageUrl';
 
@@ -21,6 +22,51 @@ interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
   searchParams?: Promise<{ promoted?: string; txnId?: string }>;
 }
+
+// Get related ads from same category (excluding current ad)
+const getRelatedAds = cache(async (categoryId: number | null, currentAdId: number, limit = 3) => {
+  if (!categoryId) return [];
+
+  return prisma.ads.findMany({
+    where: {
+      category_id: categoryId,
+      id: { not: currentAdId },
+      status: 'approved',
+      deleted_at: null,
+      users_ads_user_idTousers: {
+        is_active: true,
+      },
+    },
+    include: {
+      ad_images: {
+        where: { is_primary: true },
+        take: 1,
+        select: {
+          file_path: true,
+        },
+      },
+      categories: {
+        select: {
+          name: true,
+          icon: true,
+        },
+      },
+      users_ads_user_idTousers: {
+        select: {
+          full_name: true,
+          business_name: true,
+          account_type: true,
+          business_verification_status: true,
+          individual_verified: true,
+        },
+      },
+    },
+    orderBy: {
+      reviewed_at: 'desc',
+    },
+    take: limit,
+  });
+});
 
 const getAdBySlug = cache(async (slug: string) => {
   return prisma.ads.findFirst({
@@ -181,6 +227,26 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
     data: { view_count: { increment: 1 } },
   }).catch(console.error);
 
+  // Fetch related ads from same category
+  const relatedAdsRaw = await getRelatedAds(ad.category_id, ad.id);
+  const relatedAds = relatedAdsRaw.map((relAd) => ({
+    id: relAd.id,
+    title: relAd.title,
+    price: relAd.price ? parseFloat(relAd.price.toString()) : 0,
+    primaryImage: relAd.ad_images?.[0]?.file_path || null,
+    categoryName: relAd.categories?.name || null,
+    categoryIcon: relAd.categories?.icon || null,
+    publishedAt: relAd.reviewed_at || relAd.created_at || new Date(),
+    sellerName: relAd.users_ads_user_idTousers?.business_name || relAd.users_ads_user_idTousers?.full_name || 'Unknown',
+    isFeatured: relAd.is_featured || false,
+    isUrgent: relAd.is_urgent || false,
+    condition: relAd.condition || null,
+    slug: relAd.slug,
+    accountType: relAd.users_ads_user_idTousers?.account_type || null,
+    businessVerificationStatus: relAd.users_ads_user_idTousers?.business_verification_status || null,
+    individualVerified: relAd.users_ads_user_idTousers?.individual_verified || false,
+  }));
+
   const fullLocation = buildFullLocation(ad.locations);
   const fullCategory = buildFullCategory(ad.categories);
   const images = ad.ad_images.map(img =>
@@ -269,6 +335,13 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
               <SpecificationsSection customFields={customFields} />
               <LocationSection fullLocation={fullLocation} locationType={ad.locations?.type || null} />
             </div>
+
+            {/* Related Ads */}
+            {relatedAds.length > 0 && (
+              <div className="mt-8">
+                <RelatedAds ads={relatedAds} lang={lang} />
+              </div>
+            )}
 
             {/* Bottom Banner */}
             <div className="flex justify-center mt-8">
