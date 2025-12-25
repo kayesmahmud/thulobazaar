@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
 import { AdCard, AdBanner } from '@/components/ads';
 import HeroSearch from './HeroSearch';
+import FeaturedAdsCarousel from './FeaturedAdsCarousel';
 
 interface HomePageProps {
   params: Promise<{ lang: string }>;
@@ -26,11 +27,30 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   };
 }
 
+// Custom category display order for homepage grid (same as filter panels)
+const CATEGORY_DISPLAY_ORDER = [
+  'Mobiles',
+  'Electronics',
+  'Vehicles',
+  'Property',
+  'Home & Living',
+  "Men's Fashion & Grooming",
+  "Women's Fashion & Beauty",
+  'Hobbies, Sports & Kids',
+  'Essentials',
+  'Jobs',
+  'Overseas Jobs',
+  'Pets & Animals',
+  'Services',
+  'Education',
+  'Business & Industry',
+];
+
 export default async function HomePage({ params }: HomePageProps) {
   const { lang } = await params;
 
   // ✅ Fetch real data from database using Prisma (parallel queries for performance)
-  const [categories, latestAds] = await Promise.all([
+  const [categories, featuredAds, latestAds] = await Promise.all([
     // Get all top-level categories (no parent)
     prisma.categories.findMany({
       where: {
@@ -40,6 +60,43 @@ export default async function HomePage({ params }: HomePageProps) {
         id: 'asc',
       },
       // Get all 16 categories instead of limiting to 8
+    }),
+    // Get featured ads (is_featured = true and not expired)
+    prisma.ads.findMany({
+      where: {
+        status: 'approved',
+        deleted_at: null,
+        is_featured: true,
+        featured_until: { gt: new Date() },
+        ad_images: {
+          some: {},
+        },
+        users_ads_user_idTousers: {
+          is_active: true,
+        },
+      },
+      include: {
+        ad_images: {
+          where: { is_primary: true },
+          take: 1,
+        },
+        locations: true,
+        categories: true,
+        users_ads_user_idTousers: {
+          select: {
+            id: true,
+            full_name: true,
+            business_name: true,
+            account_type: true,
+            business_verification_status: true,
+            individual_verified: true,
+          },
+        },
+      },
+      orderBy: {
+        featured_until: 'desc',
+      },
+      take: 10,
     }),
     // Get latest 6 approved ads with images (exclude ads from suspended users)
     prisma.ads.findMany({
@@ -109,9 +166,37 @@ export default async function HomePage({ params }: HomePageProps) {
     }),
   ]);
 
-  const normalizedCategories = categories.map((category) => ({
+  // Sort categories by custom display order
+  const sortedCategories = [...categories].sort((a, b) => {
+    const indexA = CATEGORY_DISPLAY_ORDER.indexOf(a.name);
+    const indexB = CATEGORY_DISPLAY_ORDER.indexOf(b.name);
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const normalizedCategories = sortedCategories.map((category) => ({
     ...category,
     slug: category.slug || category.name.toLowerCase().replace(/\s+/g, '-'),
+  }));
+
+  // Transform featured ads for carousel
+  const featuredAdCards = featuredAds.map((ad) => ({
+    id: ad.id,
+    title: ad.title,
+    price: ad.price ? parseFloat(ad.price.toString()) : 0,
+    primaryImage: ad.ad_images?.[0]?.file_path || null,
+    categoryName: ad.categories?.name || null,
+    categoryIcon: ad.categories?.icon || null,
+    locationName: ad.locations?.name || null,
+    slug: ad.slug || undefined,
+    condition: ad.condition || null,
+    publishedAt: ad.reviewed_at || ad.created_at || new Date(),
+    sellerName: ad.users_ads_user_idTousers?.business_name || ad.users_ads_user_idTousers?.full_name || 'Unknown',
+    accountType: ad.users_ads_user_idTousers?.account_type || undefined,
+    businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
+    individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
   }));
 
   const latestAdCards = latestAds.map((ad) => ({
@@ -307,6 +392,26 @@ export default async function HomePage({ params }: HomePageProps) {
                 </div>
               )}
             </div>
+
+            {/* Featured Ads Carousel */}
+            {featuredAdCards.length > 0 && (
+              <div className="py-8 md:py-12 mb-8">
+                <div className="flex justify-between items-end mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">⭐</span>
+                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                        Featured Ads
+                      </h2>
+                    </div>
+                    <p className="text-gray-500">
+                      Premium listings from verified sellers
+                    </p>
+                  </div>
+                </div>
+                <FeaturedAdsCarousel ads={featuredAdCards} lang={lang} />
+              </div>
+            )}
 
             {/* Bottom Banner (336x280) - Before Footer */}
             <div className="flex justify-center mb-12">
