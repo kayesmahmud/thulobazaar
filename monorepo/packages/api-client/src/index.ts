@@ -114,6 +114,7 @@ export class ApiClient extends BaseApiClient {
   getConversations: ReturnType<typeof createMessagingMethods>['getConversations'];
   getMessages: ReturnType<typeof createMessagingMethods>['getMessages'];
   getContactMessages: ReturnType<typeof createMessagingMethods>['getContactMessages'];
+  getUnreadCount: ReturnType<typeof createMessagingMethods>['getUnreadCount'];
 
   // Super Admin
   getSuperAdminStats: ReturnType<typeof createSuperAdminMethods>['getSuperAdminStats'];
@@ -239,6 +240,7 @@ export class ApiClient extends BaseApiClient {
     this.getConversations = messagingMethods.getConversations;
     this.getMessages = messagingMethods.getMessages;
     this.getContactMessages = messagingMethods.getContactMessages;
+    this.getUnreadCount = messagingMethods.getUnreadCount;
 
     // Bind super admin methods
     const superAdminMethods = createSuperAdminMethods(this.client);

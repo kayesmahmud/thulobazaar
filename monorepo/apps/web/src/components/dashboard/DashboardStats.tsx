@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import type { DashboardStats as Stats } from './types';
 
 interface DashboardStatsProps {
@@ -10,7 +9,7 @@ interface DashboardStatsProps {
 
 export function DashboardStats({ stats, lang }: DashboardStatsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 -mt-8 mb-12 relative z-20">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 -mt-8 mb-12 relative z-20">
       {/* Total Ads Card */}
       <div className="group bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
         <div className="flex items-center justify-between mb-4">
@@ -85,40 +84,6 @@ export function DashboardStats({ stats, lang }: DashboardStatsProps) {
         <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Views</div>
         <div className="mt-2 text-xs text-gray-500">People interested</div>
       </div>
-
-      {/* Messages Card */}
-      <Link href={`/${lang}/messages`} className="block">
-        <div className="group bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 cursor-pointer">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-            </div>
-            <div className="text-right flex flex-col items-center">
-              {stats.totalMessages > 0 ? (
-                <>
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <span className="text-lg font-bold text-white">{stats.totalMessages}</span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    {stats.totalMessages === 1 ? 'unread message' : 'unread messages'}
-                  </p>
-                </>
-              ) : (
-                <div className="text-4xl font-bold text-gray-300">0</div>
-              )}
-            </div>
-          </div>
-          <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Messages</div>
-          <div className="mt-2 text-xs text-gray-500">From buyers</div>
-        </div>
-      </Link>
     </div>
   );
 }

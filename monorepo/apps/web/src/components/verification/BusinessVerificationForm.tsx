@@ -301,12 +301,12 @@ export default function BusinessVerificationForm({
                 Business Website
               </label>
               <input
-                type="url"
+                type="text"
                 id="businessWebsite"
                 name="businessWebsite"
                 value={formData.businessWebsite}
                 onChange={handleInputChange}
-                placeholder="https://..."
+                placeholder="https://... (optional)"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth, createToken } from '@/lib/auth';
 import { sendNotificationByUserId } from '@/lib/notifications';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -299,10 +299,21 @@ export async function POST(request: NextRequest) {
     const uploadFormData = new FormData();
     uploadFormData.append('business_license_document', businessLicenseDoc);
 
+    // Get token for forwarding to Express API
+    // Priority: Authorization header > editorToken cookie > create new token
+    let forwardToken = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!forwardToken) {
+      forwardToken = request.cookies.get('editorToken')?.value;
+    }
+    if (!forwardToken) {
+      // Create a temporary token for the authenticated user
+      forwardToken = await createToken({ userId, email: '', role: 'user' });
+    }
+
     const uploadResponse = await fetch(`${API_URL}/api/verification/business/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${request.headers.get('authorization')?.replace('Bearer ', '')}`,
+        'Authorization': `Bearer ${forwardToken}`,
       },
       body: uploadFormData,
     });

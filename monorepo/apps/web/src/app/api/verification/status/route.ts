@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
           isExpiringSoon: isVerificationExpiringSoon(user, 'business'),
         },
         individualVerification: {
+          status: user.individual_verified ? 'verified' : 'unverified',
           verified: user.individual_verified || false,
           isActive: individualActive,
           fullName: user.full_name || null,
@@ -67,12 +68,12 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Get pending/rejected business verification requests
+    // Get pending/rejected/pending_payment business verification requests
     const businessRequest = await prisma.business_verification_requests.findFirst({
       where: {
         user_id: userId,
         status: {
-          in: ['pending', 'rejected'],
+          in: ['pending', 'pending_payment', 'rejected'],
         },
       },
       select: {
@@ -104,16 +105,24 @@ export async function GET(request: NextRequest) {
         canResubmitFree: businessRequest.status === 'rejected' &&
           (businessRequest.payment_status === 'paid' || businessRequest.payment_status === 'free'),
       };
+      // Update status based on request (if not already verified)
+      if (response.data.businessVerification.status !== 'approved') {
+        if (businessRequest.status === 'pending' || businessRequest.status === 'pending_payment') {
+          response.data.businessVerification.status = 'pending';
+        } else if (businessRequest.status === 'rejected') {
+          response.data.businessVerification.status = 'rejected';
+        }
+      }
     } else {
       response.data.businessVerification.hasRequest = false;
     }
 
-    // Get pending/rejected individual verification requests
+    // Get pending/rejected/pending_payment individual verification requests
     const individualRequest = await prisma.individual_verification_requests.findFirst({
       where: {
         user_id: userId,
         status: {
-          in: ['pending', 'rejected'],
+          in: ['pending', 'pending_payment', 'rejected'],
         },
       },
       select: {
@@ -147,6 +156,14 @@ export async function GET(request: NextRequest) {
         canResubmitFree: individualRequest.status === 'rejected' &&
           (individualRequest.payment_status === 'paid' || individualRequest.payment_status === 'free'),
       };
+      // Update status based on request (if not already verified)
+      if (!response.data.individualVerification.verified) {
+        if (individualRequest.status === 'pending' || individualRequest.status === 'pending_payment') {
+          response.data.individualVerification.status = 'pending';
+        } else if (individualRequest.status === 'rejected') {
+          response.data.individualVerification.status = 'rejected';
+        }
+      }
     } else {
       response.data.individualVerification.hasRequest = false;
     }

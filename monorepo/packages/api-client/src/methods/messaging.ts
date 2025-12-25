@@ -30,5 +30,10 @@ export function createMessagingMethods(client: AxiosInstance) {
       const response = await client.get(`/api/contact-messages/${type}`);
       return response.data;
     },
+
+    async getUnreadCount(): Promise<ApiResponse<{ unread_messages: number }>> {
+      const response = await client.get('/api/messages/unread-count');
+      return response.data;
+    },
   };
 }

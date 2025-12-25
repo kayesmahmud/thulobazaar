@@ -28,7 +28,9 @@ router.get(
         select: {
           account_type: true,
           business_verification_status: true,
+          business_verification_expires_at: true,
           individual_verified: true,
+          individual_verification_expires_at: true,
           business_name: true,
           full_name: true,
         },
@@ -44,6 +46,8 @@ router.get(
           rejection_reason: true,
           duration_days: true,
           created_at: true,
+          payment_status: true,
+          payment_amount: true,
         },
       }),
       // Get the most recent individual verification request
@@ -58,6 +62,8 @@ router.get(
           rejection_reason: true,
           duration_days: true,
           created_at: true,
+          payment_status: true,
+          payment_amount: true,
         },
       }),
     ]);
@@ -67,11 +73,36 @@ router.get(
     }
 
     // Determine business verification state
+    // Status priority: verified > request status (pending/rejected/pending_payment) > unverified
     const isBusinessVerified = user.business_verification_status === 'approved';
+
+    // Derive the display status
+    let businessStatus: string = 'unverified';
+    if (isBusinessVerified) {
+      businessStatus = 'verified';
+    } else if (businessRequest) {
+      // Map request status to display status
+      if (businessRequest.status === 'pending' || businessRequest.status === 'pending_payment') {
+        businessStatus = 'pending';
+      } else if (businessRequest.status === 'rejected') {
+        businessStatus = 'rejected';
+      }
+    }
+
+    // Calculate days remaining for business verification
+    const businessExpiresAt = user.business_verification_expires_at;
+    const businessDaysRemaining = businessExpiresAt
+      ? Math.ceil((new Date(businessExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : null;
+    const businessIsExpiringSoon = businessDaysRemaining !== null && businessDaysRemaining <= 30 && businessDaysRemaining > 0;
+
     const businessVerification = {
-      status: user.business_verification_status || 'unverified',
+      status: businessStatus,
       verified: isBusinessVerified,
       businessName: user.business_name,
+      expiresAt: businessExpiresAt?.toISOString() || null,
+      daysRemaining: businessDaysRemaining,
+      isExpiringSoon: businessIsExpiringSoon,
       hasRequest: !!businessRequest,
       request: businessRequest
         ? {
@@ -81,15 +112,45 @@ router.get(
             rejectionReason: businessRequest.rejection_reason,
             durationDays: businessRequest.duration_days,
             createdAt: businessRequest.created_at?.toISOString(),
+            paymentStatus: businessRequest.payment_status,
+            paymentAmount: businessRequest.payment_amount ? Number(businessRequest.payment_amount) : null,
+            canResubmitFree: businessRequest.status === 'rejected' &&
+              (businessRequest.payment_status === 'paid' || businessRequest.payment_status === 'free'),
           }
         : undefined,
     };
 
     // Determine individual verification state
+    // Status priority: verified > request status (pending/rejected/pending_payment) > unverified
     const isIndividualVerified = user.individual_verified === true;
+
+    // Derive the display status
+    let individualStatus: string = 'unverified';
+    if (isIndividualVerified) {
+      individualStatus = 'verified';
+    } else if (individualRequest) {
+      // Map request status to display status
+      if (individualRequest.status === 'pending' || individualRequest.status === 'pending_payment') {
+        individualStatus = 'pending';
+      } else if (individualRequest.status === 'rejected') {
+        individualStatus = 'rejected';
+      }
+    }
+
+    // Calculate days remaining for individual verification
+    const individualExpiresAt = user.individual_verification_expires_at;
+    const individualDaysRemaining = individualExpiresAt
+      ? Math.ceil((new Date(individualExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : null;
+    const individualIsExpiringSoon = individualDaysRemaining !== null && individualDaysRemaining <= 30 && individualDaysRemaining > 0;
+
     const individualVerification = {
+      status: individualStatus,
       verified: isIndividualVerified,
       fullName: user.full_name,
+      expiresAt: individualExpiresAt?.toISOString() || null,
+      daysRemaining: individualDaysRemaining,
+      isExpiringSoon: individualIsExpiringSoon,
       hasRequest: !!individualRequest,
       request: individualRequest
         ? {
@@ -100,6 +161,10 @@ router.get(
             rejectionReason: individualRequest.rejection_reason,
             durationDays: individualRequest.duration_days,
             createdAt: individualRequest.created_at?.toISOString(),
+            paymentStatus: individualRequest.payment_status,
+            paymentAmount: individualRequest.payment_amount ? Number(individualRequest.payment_amount) : null,
+            canResubmitFree: individualRequest.status === 'rejected' &&
+              (individualRequest.payment_status === 'paid' || individualRequest.payment_status === 'free'),
           }
         : undefined,
     };

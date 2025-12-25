@@ -24,16 +24,16 @@ export function DurationSelector({
   const options = selectedType === 'individual' ? pricing.individual : pricing.business;
 
   return (
-    <div className="bg-white rounded-3xl p-8 shadow-xl mb-12">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl mb-8 sm:mb-12">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Select Verification Duration
         </h2>
         <button
           onClick={onClear}
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-500 hover:text-gray-700 p-1"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -41,12 +41,12 @@ export function DurationSelector({
 
       {/* Free Verification Notice */}
       {isFreeVerification && (
-        <div className="bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-300 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">🎉</span>
+        <div className="bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-300 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-2xl sm:text-3xl">🎉</span>
             <div>
-              <div className="font-bold text-green-800">You&apos;re Eligible for FREE Verification!</div>
-              <div className="text-green-700 text-sm">
+              <div className="font-bold text-green-800 text-sm sm:text-base">You&apos;re Eligible for FREE Verification!</div>
+              <div className="text-green-700 text-xs sm:text-sm">
                 Get {pricing.freeVerification.durationDays / 30} months free as a new user.
               </div>
             </div>
@@ -55,7 +55,7 @@ export function DurationSelector({
       )}
 
       {/* Duration Options */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         {options.map((option) => (
           <DurationOption
             key={option.id}
@@ -69,23 +69,23 @@ export function DurationSelector({
 
       {/* Selected Summary & Proceed Button */}
       {selectedDuration && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <div className="text-gray-600 mb-1">Selected Plan:</div>
-              <div className="text-xl font-bold text-gray-900">
-                {selectedType === 'individual' ? 'Individual' : 'Business'} Verification - {selectedDuration.durationLabel}
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+            <div className="text-center md:text-left w-full md:w-auto">
+              <div className="text-gray-600 text-sm mb-1">Selected Plan:</div>
+              <div className="text-base sm:text-lg md:text-xl font-bold text-gray-900">
+                {selectedType === 'individual' ? 'Individual' : 'Business'} - {selectedDuration.durationLabel}
               </div>
-              <div className="text-2xl font-bold text-indigo-600">
+              <div className="text-xl sm:text-2xl font-bold text-indigo-600">
                 {isFreeVerification ? 'FREE' : `NPR ${selectedDuration.finalPrice}`}
               </div>
             </div>
             <button
               onClick={onProceed}
-              className="w-full md:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-4 px-8 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2"
+              className="w-full md:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <span>Proceed to Verification</span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span>Proceed</span>
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </button>
@@ -109,9 +109,9 @@ function DurationOption({ option, isSelected, isFreeTier, onSelect }: DurationOp
   return (
     <div
       onClick={onSelect}
-      className={`relative rounded-2xl p-6 cursor-pointer transition-all duration-300 ${
+      className={`relative rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 cursor-pointer transition-all duration-300 ${
         isSelected
-          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xl scale-105'
+          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xl scale-[1.02] sm:scale-105'
           : hasCampaignDiscount
           ? 'bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 hover:border-purple-400'
           : 'bg-gray-50 hover:bg-gray-100 border-2 border-gray-200 hover:border-indigo-300'
@@ -119,17 +119,17 @@ function DurationOption({ option, isSelected, isFreeTier, onSelect }: DurationOp
     >
       {/* Campaign Discount Badge */}
       {hasCampaignDiscount && !isFreeTier && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <span className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-            <span>🎉</span> PROMO
+        <div className="absolute -top-2 sm:-top-3 left-1/2 transform -translate-x-1/2">
+          <span className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg flex items-center gap-1">
+            <span className="hidden sm:inline">🎉</span> PROMO
           </span>
         </div>
       )}
 
       {/* Popular/Recommended Badge - only show if no campaign badge */}
       {option.durationDays === 180 && !hasCampaignDiscount && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+        <div className="absolute -top-2 sm:-top-3 left-1/2 transform -translate-x-1/2">
+          <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg">
             POPULAR
           </span>
         </div>
@@ -137,46 +137,46 @@ function DurationOption({ option, isSelected, isFreeTier, onSelect }: DurationOp
 
       {/* Free Badge */}
       {isFreeTier && (
-        <div className="absolute -top-3 right-4">
-          <span className="bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+        <div className="absolute -top-2 sm:-top-3 right-2 sm:right-4">
+          <span className="bg-gradient-to-r from-green-400 to-emerald-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg">
             FREE
           </span>
         </div>
       )}
 
-      <div className="text-center">
-        <div className={`text-lg font-bold mb-2 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+      <div className="text-center pt-1">
+        <div className={`text-sm sm:text-base md:text-lg font-bold mb-1 sm:mb-2 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
           {option.durationLabel}
         </div>
 
         {isFreeTier ? (
-          <div className="mb-2">
-            <span className="text-3xl font-bold text-green-500">FREE</span>
-            <div className={`text-sm line-through ${isSelected ? 'text-white/60' : 'text-gray-400'}`}>
+          <div className="mb-1 sm:mb-2">
+            <span className="text-xl sm:text-2xl md:text-3xl font-bold text-green-500">FREE</span>
+            <div className={`text-xs sm:text-sm line-through ${isSelected ? 'text-white/60' : 'text-gray-400'}`}>
               NPR {option.price}
             </div>
           </div>
         ) : (
-          <div className="mb-2">
+          <div className="mb-1 sm:mb-2">
             {option.discountPercentage > 0 ? (
               <>
-                <span className={`text-3xl font-bold ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
-                  NPR {option.finalPrice}
+                <span className={`text-xl sm:text-2xl md:text-3xl font-bold ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
+                  {option.finalPrice}
                 </span>
-                <div className={`text-sm line-through ${isSelected ? 'text-white/60' : 'text-gray-400'}`}>
+                <div className={`text-xs sm:text-sm line-through ${isSelected ? 'text-white/60' : 'text-gray-400'}`}>
                   NPR {option.price}
                 </div>
               </>
             ) : (
-              <span className={`text-3xl font-bold ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
-                NPR {option.price}
+              <span className={`text-xl sm:text-2xl md:text-3xl font-bold ${isSelected ? 'text-white' : 'text-indigo-600'}`}>
+                {option.price}
               </span>
             )}
           </div>
         )}
 
         {option.discountPercentage > 0 && !isFreeTier && (
-          <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+          <div className={`inline-block px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
             isSelected ? 'bg-white/20 text-white' : hasCampaignDiscount ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
           }`}>
             Save {option.discountPercentage}%

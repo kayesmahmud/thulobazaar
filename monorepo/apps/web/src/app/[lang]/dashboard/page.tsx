@@ -8,7 +8,6 @@ import {
 } from '@/components/verification';
 import {
   DashboardStats,
-  VerificationBanner,
   AdsList,
   useDashboardData,
 } from '@/components/dashboard';
@@ -149,14 +148,6 @@ export default function DashboardPage() {
 
         {/* Stats Cards */}
         <DashboardStats stats={stats} lang={lang} />
-
-        {/* Verification Banner */}
-        <VerificationBanner
-          verificationStatus={verificationStatus}
-          lang={lang}
-          userName={session?.user?.name}
-          onResubmit={openResubmitModal}
-        />
 
         {/* Ads List */}
         <AdsList

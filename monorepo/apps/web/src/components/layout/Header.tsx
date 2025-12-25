@@ -1,13 +1,14 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { apiClient } from '@/lib/api';
 
 interface HeaderProps {
   lang: string;
@@ -17,6 +18,7 @@ export default function Header({ lang }: HeaderProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check both user and staff auth
@@ -65,6 +67,26 @@ export default function Header({ lang }: HeaderProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch unread message count
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isUserAuthenticated || staff) return;
+    try {
+      const response = await apiClient.getUnreadCount();
+      if (response.success && response.data) {
+        setUnreadCount(response.data.unread_messages || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  }, [isUserAuthenticated, staff]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll for new messages every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
 
   // Get user initials for avatar fallback
   const getInitials = (name?: string) => {
@@ -146,6 +168,31 @@ export default function Header({ lang }: HeaderProps) {
                 >
                   Search
                 </Link>
+
+                <Link
+                  href={`/${lang}/verification`}
+                  className={`no-underline font-medium text-sm ${
+                    pathname?.includes('/verification') ? 'text-rose-500' : 'text-gray-600 hover:text-rose-500'
+                  } transition-colors`}
+                >
+                  Get Verified
+                </Link>
+
+                {isAuthenticated && (
+                  <Link
+                    href={`/${lang}/messages`}
+                    className={`relative no-underline font-medium text-sm ${
+                      pathname?.includes('/messages') ? 'text-rose-500' : 'text-gray-600 hover:text-rose-500'
+                    } transition-colors`}
+                  >
+                    Inbox
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                )}
               </>
             )}
 
@@ -349,6 +396,19 @@ export default function Header({ lang }: HeaderProps) {
                   <Link href={`/${lang}/search`} className="text-gray-600 hover:text-rose-500 py-2">
                     Search
                   </Link>
+                  <Link href={`/${lang}/verification`} className="text-gray-600 hover:text-rose-500 py-2">
+                    Get Verified
+                  </Link>
+                  {isAuthenticated && (
+                    <Link href={`/${lang}/messages`} className="text-gray-600 hover:text-rose-500 py-2 flex items-center gap-2">
+                      Inbox
+                      {unreadCount > 0 && (
+                        <span className="min-w-[20px] h-[20px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                  )}
                 </>
               )}
 

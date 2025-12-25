@@ -55,7 +55,29 @@ export function useVerificationPage(lang: string) {
       ]);
 
       if (verificationResponse.success && verificationResponse.data) {
-        setVerificationStatus(verificationResponse.data);
+        // Transform API response to match frontend types
+        // API returns: { businessVerification, individualVerification }
+        // Frontend expects: { business, individual }
+        const apiData = verificationResponse.data as any;
+        const transformed: VerificationStatus = {
+          business: apiData.businessVerification ? {
+            status: apiData.businessVerification.status || 'unverified',
+            rejectionReason: apiData.businessVerification.request?.rejectionReason,
+            expiresAt: apiData.businessVerification.expiresAt,
+            daysRemaining: apiData.businessVerification.daysRemaining,
+            isExpiringSoon: apiData.businessVerification.isExpiringSoon,
+            request: apiData.businessVerification.request,
+          } : undefined,
+          individual: apiData.individualVerification ? {
+            status: apiData.individualVerification.status || 'unverified',
+            rejectionReason: apiData.individualVerification.request?.rejectionReason,
+            expiresAt: apiData.individualVerification.expiresAt,
+            daysRemaining: apiData.individualVerification.daysRemaining,
+            isExpiringSoon: apiData.individualVerification.isExpiringSoon,
+            request: apiData.individualVerification.request,
+          } : undefined,
+        };
+        setVerificationStatus(transformed);
       }
 
       if (pricingResponse.success && pricingResponse.data) {
@@ -89,7 +111,14 @@ export function useVerificationPage(lang: string) {
       ? verificationStatus?.business
       : verificationStatus?.individual;
 
-    if (verificationData?.request?.canResubmitFree && verificationData.request.durationDays) {
+    // Check if this is a free resubmission (rejected with already paid)
+    // canResubmitFree is true when status is 'rejected' and payment_status is 'paid' or 'free'
+    const canResubmitFree = verificationData?.request?.canResubmitFree ||
+      (verificationData?.status === 'rejected' &&
+        verificationData?.request?.paymentStatus &&
+        ['paid', 'free'].includes(verificationData.request.paymentStatus));
+
+    if (canResubmitFree && verificationData?.request?.durationDays) {
       setIsResubmission(true);
       setResubmissionDuration(verificationData.request.durationDays);
       setShowForm(true);

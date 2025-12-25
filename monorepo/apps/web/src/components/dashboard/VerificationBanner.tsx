@@ -521,22 +521,7 @@ export function VerificationBanner({
             </div>
           </div>
         </div>
-        <div>
-          <Link
-            href={`/${lang}/verification`}
-            className="inline-flex items-center gap-3 px-8 py-4 bg-white text-purple-600 font-bold rounded-2xl hover:bg-gray-100 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            Get Verified Now
-          </Link>
-        </div>
+        {/* Button removed - users access verification from header */}
       </div>
     </div>
   );
