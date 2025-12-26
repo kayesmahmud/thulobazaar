@@ -32,4 +32,5 @@ export {
   standardAdInclude,
   type AdsFilterOptions,
   type AdsSortBy,
+  type OrderByOptions,
 } from './queryBuilder';

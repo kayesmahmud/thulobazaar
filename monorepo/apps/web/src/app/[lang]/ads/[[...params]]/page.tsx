@@ -78,8 +78,15 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
     userId,
   });
 
+  // Determine if we should apply promotion priority
+  // Only apply on subcategory pages (not parent categories, not all ads, not location-only)
+  const isSubcategoryPage = Boolean(parsed.categoryId && !parsed.isParentCategory);
+
   // Build order by clause using shared helper
-  const orderBy = buildAdsOrderBy(sortBy as 'newest' | 'oldest' | 'price_asc' | 'price_desc');
+  const orderBy = buildAdsOrderBy({
+    sortBy: sortBy as 'newest' | 'oldest' | 'price_asc' | 'price_desc',
+    applyPromotionPriority: isSubcategoryPage,
+  });
 
   // Fetch ads and total count in parallel
   const [ads, totalAds, categories, locationHierarchy] = await Promise.all([

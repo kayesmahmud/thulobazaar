@@ -93,7 +93,11 @@ export default async function AllAdsPage({ params, searchParams }: AllAdsPagePro
     maxPrice,
   });
 
-  const orderBy = buildAdsOrderBy(sortBy as AdsSortBy);
+  // All-ads page: no promotion priority (all ads equal)
+  const orderBy = buildAdsOrderBy({
+    sortBy: sortBy as AdsSortBy,
+    applyPromotionPriority: false,
+  });
 
   // Fetch ads with images and hierarchical data
   const [ads, totalAds, locationHierarchy, rootCategories] = await Promise.all([

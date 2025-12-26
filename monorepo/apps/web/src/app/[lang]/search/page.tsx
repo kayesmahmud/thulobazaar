@@ -104,7 +104,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
     searchQuery: query,
   });
 
-  const orderBy = buildAdsOrderBy(sortBy as AdsSortBy);
+  // Search page: no promotion priority (all ads equal)
+  const orderBy = buildAdsOrderBy({
+    sortBy: sortBy as AdsSortBy,
+    applyPromotionPriority: false,
+  });
 
   // Fetch ads and total count in parallel
   const [ads, totalAds, categories, locationHierarchy] = await Promise.all([

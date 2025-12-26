@@ -130,23 +130,31 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
     if (!pricing || !pricing[selectedType]) return 0;
     const typePrice = pricing[selectedType][selectedDuration];
     if (!typePrice) return 0;
-    const pricingAccountType = getPricingAccountType();
 
-    let basePrice = 0;
-    // For individual_verified, apply 20% discount on individual price
+    const originalPrice = typePrice.individual?.price || 0;
+
+    // Calculate ADDITIVE total discount (not compound)
+    let totalDiscountPercent = 0;
+
+    // Account type discount
     if (userAccountType === 'individual_verified') {
-      basePrice = Math.round((typePrice.individual?.price || 0) * 0.8); // 20% discount
-    } else {
-      basePrice = typePrice[pricingAccountType]?.price || 0;
+      totalDiscountPercent += 20; // 20% for verified individual
+    } else if (userAccountType === 'business') {
+      totalDiscountPercent += 40; // 40% for verified business
     }
 
-    // Apply campaign discount if active
+    // Campaign discount (additive)
     if (activeCampaign && activeCampaign.discountPercentage > 0) {
-      const campaignDiscount = activeCampaign.discountPercentage / 100;
-      basePrice = Math.round(basePrice * (1 - campaignDiscount));
+      totalDiscountPercent += activeCampaign.discountPercentage;
     }
 
-    return basePrice;
+    // Cap total discount at 90% (don't allow free promotions)
+    totalDiscountPercent = Math.min(totalDiscountPercent, 90);
+
+    // Apply combined discount
+    const finalPrice = Math.round(originalPrice * (1 - totalDiscountPercent / 100));
+
+    return finalPrice;
   };
 
   const getDiscountPercentage = () => {
@@ -173,24 +181,38 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
     if (!pricing || !pricing[selectedType]) return 0;
     const typePrice = pricing[selectedType][selectedDuration];
     if (!typePrice) return 0;
-    const pricingAccountType = getPricingAccountType();
 
+    const originalPrice = typePrice.individual?.price || 0;
+
+    // Calculate account type discount only (no campaign)
+    let accountDiscountPercent = 0;
     if (userAccountType === 'individual_verified') {
-      return Math.round((typePrice.individual?.price || 0) * 0.8);
+      accountDiscountPercent = 20;
+    } else if (userAccountType === 'business') {
+      accountDiscountPercent = 40;
     }
-    return typePrice[pricingAccountType]?.price || 0;
+
+    return Math.round(originalPrice * (1 - accountDiscountPercent / 100));
   };
 
-  // Get total combined discount percentage
+  // Get total combined discount percentage (ADDITIVE, not compound)
   const getTotalDiscountPercentage = () => {
-    let total = discountPercent;
-    if (activeCampaign) {
-      // Compound discount: (1 - d1) * (1 - d2) = remaining
-      // total discount = 1 - remaining
-      const remaining = (1 - discountPercent / 100) * (1 - activeCampaign.discountPercentage / 100);
-      total = Math.round((1 - remaining) * 100);
+    let total = 0;
+
+    // Account type discount
+    if (userAccountType === 'individual_verified') {
+      total += 20;
+    } else if (userAccountType === 'business') {
+      total += 40;
     }
-    return total;
+
+    // Campaign discount (additive)
+    if (activeCampaign && activeCampaign.discountPercentage > 0) {
+      total += activeCampaign.discountPercentage;
+    }
+
+    // Cap at 90% max discount
+    return Math.min(total, 90);
   };
 
   const handleProceedToPayment = () => {
