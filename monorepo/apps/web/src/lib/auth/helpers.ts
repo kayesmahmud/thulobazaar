@@ -5,6 +5,9 @@ import { userSelectForAuth } from './queries';
 
 type AuthUser = NonNullable<Awaited<ReturnType<typeof findUserForAuth>>>;
 
+// Constants for account deletion
+const RECOVERY_PERIOD_DAYS = 30;
+
 // Find user for credentials authentication (phone only - email login removed)
 export async function findUserForAuth(_email?: string, phone?: string) {
   if (!phone) {
@@ -21,11 +24,42 @@ export async function findUserForAuth(_email?: string, phone?: string) {
   });
 }
 
-// Validate user status
+// Validate user status - returns error message or null
+// Also returns special 'PENDING_DELETION' status for accounts that can be reactivated
 export function validateUserStatus(user: AuthUser): string | null {
-  if (!user.is_active) return 'Account is deactivated';
   if (user.is_suspended) return 'Account is suspended';
+
+  // Check if account is pending deletion
+  if (user.deleted_at && user.deletion_requested_at) {
+    const deletionRequestedAt = new Date(user.deletion_requested_at);
+    const daysSinceDeletion = Math.floor(
+      (Date.now() - deletionRequestedAt.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // If within recovery period, allow login (will be reactivated)
+    if (daysSinceDeletion < RECOVERY_PERIOD_DAYS) {
+      return 'PENDING_DELETION'; // Special status that triggers reactivation
+    }
+
+    // Past recovery period - account should be permanently deleted
+    return 'Account has been permanently deleted';
+  }
+
+  if (!user.is_active) return 'Account is deactivated';
   return null;
+}
+
+// Reactivate a deleted account
+export async function reactivateAccount(userId: number): Promise<void> {
+  await prisma.users.update({
+    where: { id: userId },
+    data: {
+      deleted_at: null,
+      deletion_requested_at: null,
+      is_active: true,
+    },
+  });
+  console.log(`✅ Account ${userId} has been reactivated`);
 }
 
 // Verify password

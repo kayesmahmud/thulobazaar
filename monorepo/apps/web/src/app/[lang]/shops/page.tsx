@@ -80,9 +80,10 @@ export default async function ShopsPage({ params, searchParams }: ShopsPageProps
     locationIds = [selectedLocation.id, ...childLocations];
   }
 
-  // Build where clause for shops
+  // Build where clause for shops (exclude soft-deleted users)
   const where: any = {
     is_active: true,
+    deleted_at: null,
   };
 
   // Filter by category (either default_category_id or default_subcategory_id)

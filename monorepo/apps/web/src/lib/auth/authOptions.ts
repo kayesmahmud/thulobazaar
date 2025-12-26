@@ -17,6 +17,7 @@ import {
   generateBackendToken,
   createUserObject,
   generateShopSlug,
+  reactivateAccount,
 } from './helpers';
 import { userSelectBase, userSelectForAuth, userSelectForOAuth } from './queries';
 
@@ -112,10 +113,23 @@ export const authOptions: NextAuthOptions = {
             }
 
             const statusError = validateUserStatus(user);
-            if (statusError) throw new Error(statusError);
 
-            const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
-            if (!isValidPassword) throw new Error('Invalid phone number or password');
+            // Handle account reactivation for pending deletion accounts
+            if (statusError === 'PENDING_DELETION') {
+              // Verify password first before reactivating
+              const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
+              if (!isValidPassword) throw new Error('Invalid phone number or password');
+
+              // Reactivate the account
+              await reactivateAccount(user.id);
+              console.log(`🔐 [Auth] Account ${user.id} reactivated during login`);
+            } else if (statusError) {
+              throw new Error(statusError);
+            } else {
+              // Normal login - verify password
+              const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
+              if (!isValidPassword) throw new Error('Invalid phone number or password');
+            }
 
             // Handle 2FA
             if (user.two_factor_enabled && user.two_factor_secret) {
@@ -171,12 +185,23 @@ export const authOptions: NextAuthOptions = {
 
           const statusError = validateUserStatus(user);
           console.log('🔐 [Staff Auth] Status check:', statusError || 'OK');
-          if (statusError) throw new Error(statusError);
 
-          console.log('🔐 [Staff Auth] Verifying password...');
-          const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
-          console.log('🔐 [Staff Auth] Password valid:', isValidPassword);
-          if (!isValidPassword) throw new Error('Invalid email or password');
+          // Handle account reactivation for pending deletion accounts
+          if (statusError === 'PENDING_DELETION') {
+            console.log('🔐 [Staff Auth] Verifying password for reactivation...');
+            const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
+            if (!isValidPassword) throw new Error('Invalid email or password');
+
+            await reactivateAccount(user.id);
+            console.log(`🔐 [Staff Auth] Account ${user.id} reactivated during login`);
+          } else if (statusError) {
+            throw new Error(statusError);
+          } else {
+            console.log('🔐 [Staff Auth] Verifying password...');
+            const isValidPassword = await verifyPassword(credentials.password, user.password_hash);
+            console.log('🔐 [Staff Auth] Password valid:', isValidPassword);
+            if (!isValidPassword) throw new Error('Invalid email or password');
+          }
 
           // Handle 2FA
           if (user.two_factor_enabled && user.two_factor_secret) {
@@ -221,6 +246,24 @@ export const authOptions: NextAuthOptions = {
           let dbUser = await prisma.users.findUnique({ where: { email } });
 
           if (dbUser) {
+            // Check if account is pending deletion - if so, reactivate it
+            if (dbUser.deleted_at && dbUser.deletion_requested_at) {
+              const deletionRequestedAt = new Date(dbUser.deletion_requested_at);
+              const daysSinceDeletion = Math.floor(
+                (Date.now() - deletionRequestedAt.getTime()) / (1000 * 60 * 60 * 24)
+              );
+
+              if (daysSinceDeletion < 30) {
+                // Reactivate account
+                await reactivateAccount(dbUser.id);
+                console.log(`🔐 [OAuth] Account ${dbUser.id} reactivated during OAuth login`);
+              } else {
+                // Account is past recovery period
+                console.error('🔐 [OAUTH] ERROR: Account has been permanently deleted');
+                return false;
+              }
+            }
+
             const updateData: any = {
               last_login: new Date(),
               oauth_provider: account.provider,

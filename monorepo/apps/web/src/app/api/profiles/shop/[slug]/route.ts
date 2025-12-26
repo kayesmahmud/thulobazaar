@@ -18,13 +18,15 @@ export async function GET(
 
     const { slug } = await params;
 
-    // Find user by shop_slug
+    // Find user by shop_slug (exclude soft-deleted users)
     const user = await prisma.users.findFirst({
       where: {
         OR: [
           { shop_slug: slug },
           { custom_shop_slug: slug },
         ],
+        deleted_at: null, // Exclude soft-deleted users
+        is_active: true,
       },
       select: {
         id: true,

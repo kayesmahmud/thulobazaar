@@ -509,6 +509,10 @@ model users {
   phone_verified_at                                                                    DateTime?                          @db.Timestamp(6)
   default_category_id                                                                  Int?
   default_subcategory_id                                                               Int?
+  /// Soft delete: when user requested account deletion (NULL = not deleted)
+  deleted_at                                                                           DateTime?                          @db.Timestamp(6)
+  /// When deletion was requested (for 30-day recovery window)
+  deletion_requested_at                                                                DateTime?                          @db.Timestamp(6)
   ad_promotions                                                                        ad_promotions[]
   ad_reports                                                                           ad_reports[]
   ad_review_history                                                                    ad_review_history[]
@@ -556,6 +560,7 @@ model users {
   @@index([location_id], map: "idx_users_location_id")
   @@index([role], map: "idx_users_role")
   @@index([latitude, longitude], map: "idx_users_coordinates")
+  @@index([deleted_at], map: "idx_users_deleted_at")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments

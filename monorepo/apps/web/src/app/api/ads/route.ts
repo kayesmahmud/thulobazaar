@@ -52,10 +52,11 @@ export async function GET(request: NextRequest) {
     const where: any = {
       status: status,
       deleted_at: null, // Exclude deleted ads
-      // Exclude ads from suspended or inactive users
+      // Exclude ads from suspended, inactive, or soft-deleted users
       users_ads_user_idTousers: {
         is_suspended: false,
         is_active: true,
+        deleted_at: null,
       },
     };
 

@@ -23,11 +23,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Search users by name or email (exclude current user)
+    // Search users by name or email (exclude current user and soft-deleted users)
     const users = await prisma.users.findMany({
       where: {
         id: { not: userId },
         is_active: true,
+        deleted_at: null,
         OR: [
           { full_name: { contains: query, mode: 'insensitive' } },
           { email: { contains: query, mode: 'insensitive' } },

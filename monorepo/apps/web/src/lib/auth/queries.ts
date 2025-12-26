@@ -24,6 +24,8 @@ export const userSelectForAuth = {
   two_factor_enabled: true,
   two_factor_secret: true,
   two_factor_backup_codes: true,
+  deleted_at: true,
+  deletion_requested_at: true,
 } as const;
 
 export const userSelectForOAuth = {
