@@ -72,6 +72,7 @@ export function useEditAd(adId: number, lang: string) {
   // Tracking states
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [lastCategoryId, setLastCategoryId] = useState<string>('');
+  const [fieldsInitialized, setFieldsInitialized] = useState(false);
 
   // Ad status tracking
   const [adStatus, setAdStatus] = useState<string>('');
@@ -199,8 +200,10 @@ export function useEditAd(adId: number, lang: string) {
       let subcategoryId = '';
       let loadedSubcategories: Category[] = [];
 
-      const adCategoryId = ad.category?.id || ad.category_id || ad.categoryId;
-      const adCategoryParentId = ad.category?.parentId || ad.category?.parent_id;
+      // API returns 'categories' (plural) for the relation
+      const adCategory = ad.categories || ad.category;
+      const adCategoryId = adCategory?.id || ad.category_id || ad.categoryId;
+      const adCategoryParentId = adCategory?.parentId || adCategory?.parent_id;
 
       if (adCategoryId) {
         if (adCategoryParentId) {
@@ -241,18 +244,32 @@ export function useEditAd(adId: number, lang: string) {
         extractedCustomFields.condition = normalizedCondition;
       }
 
-      // Step 5: Get location info
-      const locationSlug = ad.location?.slug || '';
-      const locationName = ad.location?.name || '';
+      // Step 5: Get location info (API returns 'locations' plural for the relation)
+      const adLocation = ad.locations || ad.location;
+      const locationSlug = adLocation?.slug || '';
+      const locationName = adLocation?.name || '';
+
+      console.log('📊 [useEditAd] Loading ad data:', {
+        parentCategoryId,
+        subcategoryId,
+        locationSlug,
+        locationName,
+        adCategory,
+        adLocation,
+        parentCategoriesCount: parentCategories.length,
+        loadedSubcategoriesCount: loadedSubcategories.length,
+      });
 
       // Step 6: Set states
+      console.log('📊 [useEditAd] Parent categories:', parentCategories.map(c => ({ id: c.id, name: c.name })));
+      console.log('📊 [useEditAd] Category ID 3 exists?', parentCategories.some(c => c.id === 3));
       setCategories(parentCategories as Category[]);
 
       if (loadedSubcategories.length > 0) {
         setSubcategories(loadedSubcategories);
       }
 
-      setFormData({
+      const newFormData = {
         title: ad.title || '',
         description: ad.description || '',
         price: ad.price?.toString() || '',
@@ -263,7 +280,9 @@ export function useEditAd(adId: number, lang: string) {
         condition: (ad.condition || '').toLowerCase() === 'used' ? 'used' : 'new',
         isNegotiable: adCustomFields?.isNegotiable ?? ad.isNegotiable ?? false,
         status: ad.status || 'active',
-      });
+      };
+      console.log('📊 [useEditAd] Setting formData:', newFormData);
+      setFormData(newFormData);
 
       setLastCategoryId(parentCategoryId);
 
@@ -321,13 +340,18 @@ export function useEditAd(adId: number, lang: string) {
     }
   }, [formData.categoryId, initialLoadComplete, lastCategoryId, loadSubcategories]);
 
-  // Initialize custom fields when template fields change
+  // Initialize custom fields when template fields change (only after initial load and only once per category change)
   useEffect(() => {
-    if (fields.length > 0 && getInitialValues && !loading) {
+    // Skip during initial load - custom fields are loaded from the ad data in loadData()
+    if (!initialLoadComplete || loading) return;
+
+    // If we have fields and they haven't been initialized yet, merge initial values
+    if (fields.length > 0 && getInitialValues && !fieldsInitialized) {
       const initialValues = getInitialValues();
       setCustomFields((prev) => ({ ...initialValues, ...prev }));
+      setFieldsInitialized(true);
     }
-  }, [fields.length, loading, getInitialValues]);
+  }, [fields.length, loading, getInitialValues, initialLoadComplete, fieldsInitialized]);
 
   // Handlers
   const handleFormChange = useCallback((updates: Partial<EditAdFormData>) => {
@@ -344,6 +368,7 @@ export function useEditAd(adId: number, lang: string) {
       }
       setCustomFields({});
       setCustomFieldsErrors({});
+      setFieldsInitialized(false); // Reset so new category's fields get initialized
     },
     [loadSubcategories]
   );

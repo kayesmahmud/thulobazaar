@@ -62,7 +62,7 @@ const getRelatedAds = cache(async (categoryId: number | null, currentAdId: numbe
       },
     },
     orderBy: {
-      reviewed_at: 'desc',
+      reviewed_at: { sort: 'desc', nulls: 'last' },
     },
     take: limit,
   });

@@ -64,10 +64,11 @@ router.get(
 
     // Sorting - use reviewed_at for approved ads (when editor approved, not when user posted)
     // This ensures newly approved ads appear at the top, not ads that were pending for days
-    let orderBy: any = { reviewed_at: 'desc' };
+    // Use nulls: 'last' to ensure ads with NULL reviewed_at appear at the end
+    let orderBy: any = { reviewed_at: { sort: 'desc', nulls: 'last' } };
     if (sortBy === 'price-low') orderBy = { price: 'asc' };
     else if (sortBy === 'price-high') orderBy = { price: 'desc' };
-    else if (sortBy === 'oldest') orderBy = { reviewed_at: 'asc' };
+    else if (sortBy === 'oldest') orderBy = { reviewed_at: { sort: 'asc', nulls: 'last' } };
 
     const limitNum = Math.min(parseInt(limit as string) || PAGINATION.DEFAULT_LIMIT, PAGINATION.MAX_LIMIT);
     const offsetNum = parseInt(offset as string) || 0;
@@ -510,43 +511,160 @@ router.post(
 
 /**
  * PUT /api/ads/:id
- * Update an ad
+ * Update an ad (supports multipart/form-data for image uploads)
  */
 router.put(
   '/:id',
   authenticateToken,
+  uploadAdImages.array('images', 10), // Handle up to 10 new images
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.userId;
-    const { title, description, price, category_id, location_id, condition } = req.body;
+
+    // Frontend sends camelCase, map to snake_case for database
+    const {
+      title,
+      description,
+      price,
+      categoryId,
+      subcategoryId,
+      locationId,
+      isNegotiable,
+      attributes, // JSON string containing condition and custom fields
+      existingImages, // JSON array of image paths to keep
+      status,
+    } = req.body;
+
+    console.log('📥 Ad update request:', {
+      adId: id,
+      userId,
+      body: req.body,
+      files: req.files ? (req.files as Express.Multer.File[]).length : 0,
+    });
 
     // Check ownership
     const existingAd = await prisma.ads.findFirst({
       where: { id: parseInt(id), user_id: userId },
+      include: { ad_images: true },
     });
 
     if (!existingAd) {
       throw new NotFoundError('Ad not found or you do not have permission to edit it');
     }
 
+    // Check if ad is approved - approved ads cannot be edited
+    if (existingAd.status === 'approved') {
+      throw new ValidationError('Approved ads cannot be edited. Please contact support if you need to make changes.');
+    }
+
+    // Parse attributes (contains condition and custom fields)
+    let parsedAttributes: any = {};
+    if (attributes) {
+      try {
+        parsedAttributes = JSON.parse(attributes);
+      } catch (err) {
+        console.error('❌ Failed to parse attributes:', err);
+      }
+    }
+
+    // Extract condition from attributes
+    const condition = parsedAttributes.condition || existingAd.condition;
+    const { condition: _cond, ...customFields } = parsedAttributes;
+
+    // Parse existing images to keep
+    let imagesToKeep: string[] = [];
+    if (existingImages) {
+      try {
+        imagesToKeep = JSON.parse(existingImages);
+      } catch (err) {
+        console.error('❌ Failed to parse existingImages:', err);
+      }
+    }
+
+    // Determine final category ID (prefer subcategory if provided)
+    const finalCategoryId = subcategoryId
+      ? parseInt(subcategoryId)
+      : categoryId
+        ? parseInt(categoryId)
+        : existingAd.category_id;
+
+    // When editing a rejected ad, reset status to pending for re-review
+    let newStatus = existingAd.status;
+    if (existingAd.status === 'rejected') {
+      newStatus = 'pending';
+      console.log(`📝 Rejected ad ${id} resubmitted - status changed to pending`);
+    }
+
+    // Update the ad
     const ad = await prisma.ads.update({
       where: { id: parseInt(id) },
       data: {
         title: title || existingAd.title,
         description: description || existingAd.description,
         price: price !== undefined ? parseFloat(price) : existingAd.price,
-        category_id: category_id ? parseInt(category_id) : existingAd.category_id,
-        location_id: location_id ? parseInt(location_id) : existingAd.location_id,
-        condition: condition || existingAd.condition,
+        category_id: finalCategoryId,
+        location_id: locationId ? parseInt(locationId) : existingAd.location_id,
+        condition: condition,
+        custom_fields: Object.keys(customFields).length > 0 ? customFields : existingAd.custom_fields,
+        status: newStatus,
+        status_reason: newStatus === 'pending' ? null : existingAd.status_reason, // Clear rejection reason when resubmitting
         updated_at: new Date(),
       },
     });
 
-    console.log(`✅ Ad updated: ${ad.title} (ID: ${ad.id})`);
+    // Handle images: delete removed ones, add new ones
+    // Normalize paths for comparison
+    const normalizePath = (p: string) => p.replace(/^https?:\/\/[^/]+\//, '').replace(/^\/+/, '');
+
+    // Get current image paths
+    const currentImagePaths = existingAd.ad_images.map((img) => normalizePath(img.file_path || ''));
+
+    // Normalize paths to keep
+    const normalizedKeepPaths = imagesToKeep.map(normalizePath);
+
+    // Find images to delete (not in imagesToKeep)
+    const imagesToDelete = existingAd.ad_images.filter((img) => {
+      const normalizedPath = normalizePath(img.file_path || '');
+      return !normalizedKeepPaths.includes(normalizedPath);
+    });
+
+    // Delete removed images from database
+    if (imagesToDelete.length > 0) {
+      await prisma.ad_images.deleteMany({
+        where: {
+          id: { in: imagesToDelete.map((img) => img.id) },
+        },
+      });
+      console.log(`🗑️ Deleted ${imagesToDelete.length} images for ad ${id}`);
+    }
+
+    // Add new uploaded images
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      // Check if there are any existing images left
+      const remainingImages = existingAd.ad_images.length - imagesToDelete.length;
+      const shouldSetPrimary = remainingImages === 0;
+
+      const imageRecords = req.files.map((file: Express.Multer.File, index: number) => ({
+        ad_id: ad.id,
+        filename: file.filename,
+        original_name: file.originalname,
+        file_path: `/uploads/ads/${file.filename}`,
+        file_size: file.size,
+        mime_type: file.mimetype,
+        is_primary: shouldSetPrimary && index === 0, // First new image is primary only if no existing images
+      }));
+
+      await prisma.ad_images.createMany({
+        data: imageRecords,
+      });
+      console.log(`✅ Added ${req.files.length} new images for ad ${id}`);
+    }
+
+    console.log(`✅ Ad updated: ${ad.title} (ID: ${ad.id}) - Status: ${newStatus}`);
 
     res.json({
       success: true,
-      message: 'Ad updated successfully',
+      message: newStatus === 'pending' ? 'Ad updated and resubmitted for review' : 'Ad updated successfully',
       data: ad,
     });
   })

@@ -68,7 +68,7 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
       // Urgent > Sticky (Featured has its own homepage section)
       { is_urgent: 'desc' },
       { is_sticky: 'desc' },
-      { reviewed_at: 'desc' }, // Sort by approval time, not submission time
+      { reviewed_at: { sort: 'desc', nulls: 'last' } }, // Sort by approval time, nulls last
     ],
   });
 

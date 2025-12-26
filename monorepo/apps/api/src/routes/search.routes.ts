@@ -82,7 +82,7 @@ router.get(
             take: 1,
           },
         },
-        orderBy: { reviewed_at: 'desc' }, // Sort by approval time, not submission time
+        orderBy: { reviewed_at: { sort: 'desc', nulls: 'last' } }, // Sort by approval time, nulls last
         take: limitNum,
         skip: offsetNum,
       }),

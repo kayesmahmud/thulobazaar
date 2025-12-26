@@ -160,7 +160,7 @@ export default async function HomePage({ params }: HomePageProps) {
         },
       },
       orderBy: {
-        reviewed_at: 'desc', // Sort by approval time, not submission time
+        reviewed_at: { sort: 'desc', nulls: 'last' }, // Sort by approval time, nulls last
       },
       take: 6,
     }),

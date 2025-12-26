@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { FORM_TEMPLATES, getApplicableFields } from '@/config/formTemplates';
 import { getFieldsForSubcategory, hasSubcategoryConfig } from '@/config/formTemplates/subcategories';
 import type { FormField, TemplateName } from '@/config/formTemplates';
@@ -102,8 +102,8 @@ export function useFormTemplate(
     };
   };
 
-  // Get initial empty values for all fields
-  const getInitialValues = () => {
+  // Get initial empty values for all fields - memoized to prevent infinite loops
+  const getInitialValues = useCallback(() => {
     const initialValues: Record<string, any> = {};
 
     applicableFields.forEach(field => {
@@ -124,7 +124,7 @@ export function useFormTemplate(
     });
 
     return initialValues;
-  };
+  }, [applicableFields]);
 
   // Auto-lock gender field for fashion categories (matches old site)
   const getAutoLockedFields = () => {

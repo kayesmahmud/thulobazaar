@@ -94,20 +94,39 @@ export function buildAdsWhereClause(options: AdsFilterOptions) {
   return where;
 }
 
+export interface OrderByOptions {
+  sortBy?: AdsSortBy;
+  /**
+   * Apply promotion priority sorting (Urgent > Sticky > newest)
+   * Should only be true for:
+   * - Subcategory pages (not parent categories)
+   * - Shop pages
+   * Should be false for:
+   * - All ads page (/ads)
+   * - Search page (/search)
+   * - Parent category pages
+   */
+  applyPromotionPriority?: boolean;
+}
+
 /**
  * Build Prisma orderBy clause for ads queries
  * Uses reviewed_at (when editor approved) for chronological sorting,
  * not created_at (when user submitted)
  *
- * Sorting priority for promoted ads:
+ * Sorting priority for promoted ads (only when applyPromotionPriority is true):
  * - Urgent: Appears at TOP of listings (highest priority)
  * - Sticky: Stays at top of listings (below Urgent)
  * - Featured: Has its own section on homepage, not prioritized in regular listings
  *
- * @param sortBy - Sort option
+ * @param options - Sort options including whether to apply promotion priority
  * @returns Prisma orderBy clause
  */
-export function buildAdsOrderBy(sortBy: AdsSortBy = 'newest') {
+export function buildAdsOrderBy(options: OrderByOptions | AdsSortBy = 'newest') {
+  // Handle legacy usage where just sortBy string is passed
+  const sortBy = typeof options === 'string' ? options : (options.sortBy || 'newest');
+  const applyPromotionPriority = typeof options === 'string' ? false : (options.applyPromotionPriority || false);
+
   switch (sortBy) {
     case 'oldest':
       return { reviewed_at: 'asc' as const };
@@ -117,13 +136,17 @@ export function buildAdsOrderBy(sortBy: AdsSortBy = 'newest') {
       return { price: 'desc' as const };
     case 'newest':
     default:
-      // Promoted ads appear first: Urgent > Sticky, then by approval time
-      // Note: Featured has its own homepage section, not prioritized in listings
-      return [
-        { is_urgent: 'desc' as const },
-        { is_sticky: 'desc' as const },
-        { reviewed_at: 'desc' as const },
-      ];
+      // Only apply promotion priority on subcategory pages and shop pages
+      if (applyPromotionPriority) {
+        // Promoted ads appear first: Urgent > Sticky, then by approval time
+        return [
+          { is_urgent: 'desc' as const },
+          { is_sticky: 'desc' as const },
+          { reviewed_at: { sort: 'desc' as const, nulls: 'last' as const } },
+        ];
+      }
+      // Default: just sort by approval time (no promotion priority), nulls last
+      return { reviewed_at: { sort: 'desc' as const, nulls: 'last' as const } };
   }
 }
 

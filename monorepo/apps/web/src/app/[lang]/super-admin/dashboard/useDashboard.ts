@@ -67,18 +67,24 @@ export function useDashboard(): UseDashboardReturn {
       }
 
       setUserLoading(true);
-      const usersResponse = await apiClient.getAllUsers({ limit: 500 });
-      if (usersResponse.success && usersResponse.data) {
-        setUsers(
-          usersResponse.data.map((u: any) => ({
-            id: u.id,
-            fullName: u.full_name || u.fullName || '',
-            email: u.email || '',
-            phone: u.phone || null,
-            businessVerificationStatus: u.business_verification_status || u.businessVerificationStatus || null,
-            individualVerified: Boolean(u.individual_verified ?? u.individualVerified),
-          }))
-        );
+      // Use fetch for Next.js API route instead of apiClient (which points to Express)
+      const usersRes = await fetch('/api/super-admin/users?limit=500', {
+        credentials: 'include',
+      });
+      if (usersRes.ok) {
+        const usersResponse = await usersRes.json();
+        if (usersResponse.success && usersResponse.data) {
+          setUsers(
+            usersResponse.data.map((u: any) => ({
+              id: u.id,
+              fullName: u.full_name || u.fullName || '',
+              email: u.email || '',
+              phone: u.phone || null,
+              businessVerificationStatus: u.business_verification_status || u.businessVerificationStatus || null,
+              individualVerified: Boolean(u.individual_verified ?? u.individualVerified),
+            }))
+          );
+        }
       }
       setUserLoading(false);
       setLoading(false);
