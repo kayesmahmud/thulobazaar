@@ -437,7 +437,7 @@ export default function PromoteAdModal({ isOpen, onClose, ad, onPromote }: Promo
                     }`}
                   >
                     <div className="text-2xl sm:text-3xl mb-2">📌</div>
-                    <h4 className="font-bold text-base sm:text-lg mb-1 sm:mb-2">STICKY/BUMP</h4>
+                    <h4 className="font-bold text-base sm:text-lg mb-1 sm:mb-2">STICKY</h4>
                     <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Stay at top of category listings</p>
                     <ul className="text-xs text-gray-500 space-y-1 hidden sm:block">
                       <li>✓ Category visibility</li>

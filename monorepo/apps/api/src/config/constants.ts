@@ -62,7 +62,6 @@ export const AD_CONDITION = {
 } as const;
 
 export const PROMOTION_TYPES = {
-  BUMP: 'bump',
   FEATURED: 'featured',
   URGENT: 'urgent',
   STICKY: 'sticky',

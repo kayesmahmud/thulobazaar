@@ -7,7 +7,7 @@ import { requireAuth } from '@/lib/auth';
  * Calculate price for a specific promotion
  *
  * Query params:
- * - promotionType: 'featured' | 'urgent' | 'sticky' | 'bump_up'
+ * - promotionType: 'featured' | 'urgent' | 'sticky'
  * - durationDays: number (3, 7, 15, 30)
  */
 export async function GET(request: NextRequest) {

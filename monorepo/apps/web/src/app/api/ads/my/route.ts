@@ -27,7 +27,6 @@ export async function GET(request: NextRequest) {
         status: true,
         view_count: true,
         is_featured: true,
-        is_bumped: true,
         is_sticky: true,
         is_urgent: true,
         created_at: true,
@@ -72,7 +71,6 @@ export async function GET(request: NextRequest) {
       views: ad.view_count, // Map view_count to views
       viewCount: ad.view_count,
       isFeatured: ad.is_featured,
-      isBumped: ad.is_bumped,
       isSticky: ad.is_sticky,
       isUrgent: ad.is_urgent,
       // Support both snake_case and camelCase for compatibility

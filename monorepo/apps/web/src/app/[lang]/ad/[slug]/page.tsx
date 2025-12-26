@@ -245,6 +245,7 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
     sellerName: relAd.users_ads_user_idTousers?.business_name || relAd.users_ads_user_idTousers?.full_name || 'Unknown',
     isFeatured: relAd.is_featured || false,
     isUrgent: relAd.is_urgent || false,
+    isSticky: relAd.is_sticky || false,
     condition: relAd.condition || null,
     slug: relAd.slug,
     accountType: relAd.users_ads_user_idTousers?.account_type || null,

@@ -63,8 +63,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       case 'newest':
       default:
         orderBy = [
+          // Urgent > Sticky (Featured has its own homepage section)
+          { is_urgent: 'desc' },
           { is_sticky: 'desc' },
-          { is_bumped: 'desc' },
           { created_at: 'desc' },
         ];
         break;
@@ -97,7 +98,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         is_featured: true,
         is_urgent: true,
         is_sticky: true,
-        is_bumped: true,
         created_at: true,
         ad_images: {
           where: { is_primary: true },
@@ -134,7 +134,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isFeatured: ad.is_featured,
       isUrgent: ad.is_urgent,
       isSticky: ad.is_sticky,
-      isBumped: ad.is_bumped,
       createdAt: ad.created_at,
       primaryImage: ad.ad_images[0]
         ? {

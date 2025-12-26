@@ -16,15 +16,36 @@ export interface CategoryWithSubcategories {
 }
 
 /**
+ * Custom category display order for filter panels
+ * Categories not in this list will appear at the end alphabetically
+ */
+const CATEGORY_DISPLAY_ORDER = [
+  'Mobiles',
+  'Electronics',
+  'Vehicles',
+  'Property',
+  'Home & Living',
+  "Men's Fashion & Grooming",
+  "Women's Fashion & Beauty",
+  'Hobbies, Sports & Kids',
+  'Essentials',
+  'Jobs',
+  'Overseas Jobs',
+  'Pets & Animals',
+  'Services',
+  'Education',
+  'Business & Industry',
+];
+
+/**
  * Fetch all root categories with their subcategories
  * Used by filter components across /ads, /search, and /all-ads pages
  *
- * @returns Array of categories with subcategories
+ * @returns Array of categories with subcategories (sorted by custom order)
  */
 export async function getRootCategoriesWithChildren(): Promise<CategoryWithSubcategories[]> {
   const categories = await prisma.categories.findMany({
     where: { parent_id: null },
-    orderBy: { name: 'asc' },
     select: {
       id: true,
       name: true,
@@ -41,7 +62,23 @@ export async function getRootCategoriesWithChildren(): Promise<CategoryWithSubca
     },
   });
 
-  return categories.map((cat) => ({
+  // Sort categories by custom display order
+  const sortedCategories = categories.sort((a, b) => {
+    const indexA = CATEGORY_DISPLAY_ORDER.indexOf(a.name);
+    const indexB = CATEGORY_DISPLAY_ORDER.indexOf(b.name);
+
+    // If both are in the order list, sort by their position
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    // If only one is in the list, it comes first
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    // If neither is in the list, sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
+
+  return sortedCategories.map((cat) => ({
     id: cat.id,
     name: cat.name,
     slug: cat.slug,

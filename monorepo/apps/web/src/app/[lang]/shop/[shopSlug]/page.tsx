@@ -65,8 +65,9 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
       },
     },
     orderBy: [
+      // Urgent > Sticky (Featured has its own homepage section)
+      { is_urgent: 'desc' },
       { is_sticky: 'desc' },
-      { is_bumped: 'desc' },
       { reviewed_at: 'desc' }, // Sort by approval time, not submission time
     ],
   });
@@ -183,6 +184,7 @@ export default async function ShopProfilePage({ params }: ShopProfilePageProps) 
                       sellerName: shop.businessName || shop.fullName,
                       isFeatured: ad.is_featured || false,
                       isUrgent: ad.is_urgent || false,
+                      isSticky: ad.is_sticky || false,
                       condition: ad.condition || null,
                       slug: ad.slug || undefined,
                       accountType: shop.accountType || undefined,

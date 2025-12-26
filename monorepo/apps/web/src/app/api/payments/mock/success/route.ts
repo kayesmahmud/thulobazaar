@@ -64,9 +64,6 @@ export async function GET(request: NextRequest) {
         } else if (promotionType === 'sticky') {
           updateData.is_sticky = true;
           updateData.sticky_until = expiresAt;
-        } else if (promotionType === 'bump_up') {
-          updateData.is_bumped = true;
-          updateData.bump_expires_at = expiresAt;
         }
 
         await prisma.ads.update({

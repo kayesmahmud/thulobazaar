@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [
         {
-          promotion_type: 'asc', // featured, sticky, urgent, bump_up
+          promotion_type: 'asc', // featured, sticky, urgent
         },
         {
           duration_days: 'asc',

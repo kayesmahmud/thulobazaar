@@ -99,6 +99,11 @@ export function buildAdsWhereClause(options: AdsFilterOptions) {
  * Uses reviewed_at (when editor approved) for chronological sorting,
  * not created_at (when user submitted)
  *
+ * Sorting priority for promoted ads:
+ * - Urgent: Appears at TOP of listings (highest priority)
+ * - Sticky: Stays at top of listings (below Urgent)
+ * - Featured: Has its own section on homepage, not prioritized in regular listings
+ *
  * @param sortBy - Sort option
  * @returns Prisma orderBy clause
  */
@@ -112,7 +117,13 @@ export function buildAdsOrderBy(sortBy: AdsSortBy = 'newest') {
       return { price: 'desc' as const };
     case 'newest':
     default:
-      return { reviewed_at: 'desc' as const };
+      // Promoted ads appear first: Urgent > Sticky, then by approval time
+      // Note: Featured has its own homepage section, not prioritized in listings
+      return [
+        { is_urgent: 'desc' as const },
+        { is_sticky: 'desc' as const },
+        { reviewed_at: 'desc' as const },
+      ];
   }
 }
 

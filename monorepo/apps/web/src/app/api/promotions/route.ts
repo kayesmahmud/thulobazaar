@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
  *
  * Body:
  * - adId: number (required)
- * - promotionType: string (required) - 'featured' | 'urgent' | 'sticky' | 'bump_up'
+ * - promotionType: string (required) - 'featured' | 'urgent' | 'sticky'
  * - durationDays: number (required) - 3, 7, 15, 30
  * - paymentReference: string (optional)
  * - paymentMethod: string (optional)
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate promotion type
-    const validTypes = ['featured', 'urgent', 'sticky', 'bump_up'];
+    const validTypes = ['featured', 'urgent', 'sticky'];
     if (!validTypes.includes(promotionType)) {
       return NextResponse.json(
         {
@@ -254,9 +254,6 @@ export async function POST(request: NextRequest) {
     if (promotionType === 'featured') {
       updateData.is_featured = true;
       updateData.featured_until = expiresAt;
-    } else if (promotionType === 'bump_up') {
-      updateData.is_bumped = true;
-      updateData.bump_expires_at = expiresAt;
     } else if (promotionType === 'sticky') {
       updateData.is_sticky = true;
       updateData.sticky_until = expiresAt;

@@ -594,16 +594,16 @@ export default function ShopSidebar({
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 Facebook
               </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg whitespace-nowrap">
-                  facebook.com/
+              <div className="flex w-full">
+                <span className="inline-flex items-center px-2 sm:px-3 text-xs sm:text-sm text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg flex-shrink-0">
+                  fb.com/
                 </span>
                 <input
                   type="text"
                   value={contactData.facebookUsername}
                   onChange={(e) => setContactData({ ...contactData, facebookUsername: e.target.value.replace(/\s/g, '') })}
                   placeholder="yourpage"
-                  className="flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="min-w-0 flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -612,16 +612,16 @@ export default function ShopSidebar({
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 Instagram
               </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg whitespace-nowrap">
-                  instagram.com/
+              <div className="flex w-full">
+                <span className="inline-flex items-center px-2 sm:px-3 text-xs sm:text-sm text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg flex-shrink-0">
+                  ig.com/
                 </span>
                 <input
                   type="text"
                   value={contactData.instagramUsername}
                   onChange={(e) => setContactData({ ...contactData, instagramUsername: e.target.value.replace(/\s/g, '') })}
                   placeholder="yourprofile"
-                  className="flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="min-w-0 flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -630,8 +630,8 @@ export default function ShopSidebar({
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 TikTok
               </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 text-sm sm:text-base text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg whitespace-nowrap">
+              <div className="flex w-full">
+                <span className="inline-flex items-center px-2 sm:px-3 text-xs sm:text-sm text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg flex-shrink-0">
                   tiktok.com/@
                 </span>
                 <input
@@ -639,7 +639,7 @@ export default function ShopSidebar({
                   value={contactData.tiktokUsername}
                   onChange={(e) => setContactData({ ...contactData, tiktokUsername: e.target.value.replace(/\s/g, '').replace(/^@/, '') })}
                   placeholder="yourprofile"
-                  className="flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="min-w-0 flex-1 p-2.5 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                 />
               </div>
             </div>

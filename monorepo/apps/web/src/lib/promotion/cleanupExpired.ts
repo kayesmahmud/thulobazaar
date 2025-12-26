@@ -50,8 +50,6 @@ export async function cleanupExpiredPromotionFlags(): Promise<void> {
         data: {
           is_sticky: false,
           sticky_until: null,
-          is_bumped: false,
-          bump_expires_at: null,
         },
       }),
     ]);

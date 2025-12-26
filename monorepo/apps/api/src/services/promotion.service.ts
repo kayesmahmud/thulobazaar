@@ -6,7 +6,7 @@
  * Promotion Types:
  * - Featured: Homepage + Search + Category visibility
  * - Urgent: Priority placement, quick sales
- * - Sticky/Bump Up: Move to top of listings, cost-effective boost
+ * - Sticky: Move to top of listings, cost-effective boost
  *
  * Duration Options: 3, 7, 15 days
  * Pricing by User Type: Individual, Individual Verified, Business Verified
@@ -198,8 +198,6 @@ class PromotionService {
         urgent_until: null,
         is_sticky: false,
         sticky_until: null,
-        is_bumped: false,
-        bump_expires_at: null,
       };
 
       // Set the specific promotion flag
@@ -212,8 +210,6 @@ class PromotionService {
       } else if (promotionType === 'sticky') {
         updateData.is_sticky = true;
         updateData.sticky_until = expiryDate;
-        updateData.is_bumped = true;
-        updateData.bump_expires_at = expiryDate;
       }
 
       await tx.ads.update({
@@ -284,8 +280,6 @@ class PromotionService {
           } else if (promo.promotion_type === 'sticky') {
             updateData.is_sticky = false;
             updateData.sticky_until = null;
-            updateData.is_bumped = false;
-            updateData.bump_expires_at = null;
           }
 
           await tx.ads.update({

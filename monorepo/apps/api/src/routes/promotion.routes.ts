@@ -276,10 +276,9 @@ router.post(
       updateData.is_urgent = true;
       updateData.urgent_until = expiresAt;
     }
-    if (promotionType === 'bump') {
-      updateData.is_bumped = true;
-      updateData.bump_expires_at = expiresAt;
-      updateData.promoted_at = new Date();
+    if (promotionType === 'sticky') {
+      updateData.is_sticky = true;
+      updateData.sticky_until = expiresAt;
     }
 
     if (Object.keys(updateData).length > 0) {

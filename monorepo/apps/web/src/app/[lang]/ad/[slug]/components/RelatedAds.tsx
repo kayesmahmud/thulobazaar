@@ -11,6 +11,7 @@ export interface RelatedAd {
   sellerName: string;
   isFeatured: boolean;
   isUrgent: boolean;
+  isSticky: boolean;
   condition: string | null;
   slug: string | null;
   accountType: string | null;
@@ -47,6 +48,7 @@ export function RelatedAds({ ads, lang }: RelatedAdsProps) {
               sellerName: ad.sellerName,
               isFeatured: ad.isFeatured,
               isUrgent: ad.isUrgent,
+              isSticky: ad.isSticky,
               condition: ad.condition,
               slug: ad.slug || undefined,
               accountType: ad.accountType || undefined,

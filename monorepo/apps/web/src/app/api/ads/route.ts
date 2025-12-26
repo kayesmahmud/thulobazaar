@@ -110,8 +110,7 @@ export async function GET(request: NextRequest) {
       case 'newest':
       default:
         orderBy = [
-          // Promoted ads first
-          { is_featured: 'desc' },
+          // Promoted ads first: Urgent > Sticky (Featured has its own homepage section)
           { is_urgent: 'desc' },
           { is_sticky: 'desc' },
           { created_at: 'desc' },

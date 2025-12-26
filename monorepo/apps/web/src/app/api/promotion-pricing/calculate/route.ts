@@ -11,7 +11,7 @@ const VALID_TIERS = ['default', 'electronics', 'vehicles', 'property'];
  * Requires: Authentication
  *
  * Query params:
- * - promotionType: 'featured' | 'urgent' | 'sticky' | 'bump_up' (required)
+ * - promotionType: 'featured' | 'urgent' | 'sticky' (required)
  * - durationDays: number (required)
  * - adId: number (required for category-based pricing)
  * - tier: string (optional, override tier lookup)

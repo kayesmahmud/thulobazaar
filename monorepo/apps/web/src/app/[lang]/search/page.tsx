@@ -247,6 +247,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                           sellerName: ad.users_ads_user_idTousers?.full_name || 'Unknown',
                           isFeatured: ad.is_featured || false,
                           isUrgent: ad.is_urgent || false,
+                          isSticky: ad.is_sticky || false,
                           condition: ad.condition || null,
                           slug: ad.slug || undefined,
                           accountType: ad.users_ads_user_idTousers?.account_type || undefined,

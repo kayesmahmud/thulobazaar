@@ -178,8 +178,6 @@ describe('Transformers', () => {
       deleted_at: null,
       deleted_by: null,
       deletion_reason: null,
-      is_bumped: false,
-      bump_expires_at: null,
       is_sticky: true,
       sticky_expires_at: new Date('2024-02-01'),
       is_urgent: false,

@@ -61,8 +61,6 @@ export async function cleanupExpiredPromotions(): Promise<{ deactivated: number 
           } else if (promo.promotion_type === 'sticky') {
             updateData.is_sticky = false;
             updateData.sticky_until = null;
-            updateData.is_bumped = false;
-            updateData.bump_expires_at = null;
           }
 
           await tx.ads.update({
@@ -139,8 +137,6 @@ export async function cleanupOrphanedPromotionFlags(): Promise<{ cleaned: number
       if (ad.is_sticky && ad.sticky_until && ad.sticky_until < now) {
         updateData.is_sticky = false;
         updateData.sticky_until = null;
-        updateData.is_bumped = false;
-        updateData.bump_expires_at = null;
       }
 
       if (Object.keys(updateData).length > 0) {

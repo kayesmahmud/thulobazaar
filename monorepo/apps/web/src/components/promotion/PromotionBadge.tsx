@@ -56,7 +56,7 @@ export default function PromotionBadge({ ad, size = 'medium', iconOnly = false }
     return (
       <span className={`${baseClass} bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md`}>
         <span className="text-base">📌</span>
-        {!iconOnly && 'PROMOTED'}
+        {!iconOnly && 'STICKY'}
       </span>
     );
   }

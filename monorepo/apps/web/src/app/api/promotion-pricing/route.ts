@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
  * Requires: Editor or Super Admin role
  *
  * Body:
- * - promotion_type: 'featured' | 'urgent' | 'sticky' | 'bump_up' (required)
+ * - promotion_type: 'featured' | 'urgent' | 'sticky' (required)
  * - duration_days: number (required)
  * - account_type: 'individual' | 'individual_verified' | 'business' (required)
  * - pricing_tier: 'default' | 'electronics' | 'vehicles' | 'property' (optional, default: 'default')
@@ -210,12 +210,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate promotion type
-    const validPromotionTypes = ['featured', 'urgent', 'sticky', 'bump_up'];
+    const validPromotionTypes = ['featured', 'urgent', 'sticky'];
     if (!validPromotionTypes.includes(promotion_type)) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid promotion type. Must be: featured, urgent, sticky, or bump_up',
+          message: 'Invalid promotion type. Must be: featured, urgent, or sticky',
         },
         { status: 400 }
       );

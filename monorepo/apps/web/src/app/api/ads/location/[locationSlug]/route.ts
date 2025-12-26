@@ -65,7 +65,6 @@ export async function GET(
         condition: true,
         view_count: true,
         is_featured: true,
-        is_bumped: true,
         is_sticky: true,
         is_urgent: true,
         created_at: true,
@@ -102,9 +101,9 @@ export async function GET(
         },
       },
       orderBy: [
+        // Urgent > Sticky (Featured has its own homepage section)
+        { is_urgent: 'desc' },
         { is_sticky: 'desc' },
-        { is_bumped: 'desc' },
-        { is_featured: 'desc' },
         { created_at: 'desc' },
       ],
       skip: offset,
@@ -120,7 +119,6 @@ export async function GET(
       condition: ad.condition,
       viewCount: ad.view_count,
       isFeatured: ad.is_featured,
-      isBumped: ad.is_bumped,
       isSticky: ad.is_sticky,
       isUrgent: ad.is_urgent,
       createdAt: ad.created_at,

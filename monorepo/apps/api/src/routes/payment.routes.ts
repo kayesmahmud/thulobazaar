@@ -685,11 +685,9 @@ async function handlePaymentSuccess(
         } else if (promotionType === 'urgent') {
           updateData.is_urgent = true;
           updateData.urgent_until = expiresAt;
-        } else if (promotionType === 'sticky' || promotionType === 'bump_up') {
+        } else if (promotionType === 'sticky') {
           updateData.is_sticky = true;
           updateData.sticky_until = expiresAt;
-          updateData.is_bumped = true;
-          updateData.bump_expires_at = expiresAt;
         }
 
         await prisma.ads.update({

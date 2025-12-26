@@ -78,7 +78,7 @@ export function AdBadges({
           fontWeight: '600',
           boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
         }}>
-          Promoted
+          Sticky
         </span>
       )}
     </div>

@@ -18,6 +18,7 @@ interface AdCardProps {
     sellerName: string;
     isFeatured?: boolean;
     isUrgent?: boolean;
+    isSticky?: boolean;
     condition?: string | null;
     seoSlug?: string;
     slug?: string;
@@ -51,6 +52,13 @@ export default function AdCard({ ad, lang = 'en' }: AdCardProps) {
         {ad.isUrgent && (
           <div className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded text-xs font-semibold z-10">
             🔥 URGENT
+          </div>
+        )}
+
+        {/* Show STICKY badge for sticky ads (only if not already featured or urgent) */}
+        {ad.isSticky && !ad.isFeatured && !ad.isUrgent && (
+          <div className="absolute top-2 left-2 bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold z-10">
+            📌 STICKY
           </div>
         )}
 

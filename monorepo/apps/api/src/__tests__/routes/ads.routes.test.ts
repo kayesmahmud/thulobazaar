@@ -40,7 +40,7 @@ const mockAd = {
   view_count: 10,
   is_featured: false,
   is_urgent: false,
-  is_bumped: false,
+  is_sticky: false,
   created_at: new Date('2024-01-01'),
   updated_at: new Date('2024-01-01'),
   category_id: 1,
