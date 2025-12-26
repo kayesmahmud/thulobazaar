@@ -178,7 +178,7 @@ model ads {
   urgent_expires_at            DateTime?          @db.Timestamp(6)
   total_promotions             Int?               @default(0)
   last_promoted_at             DateTime?          @db.Timestamp(6)
-  slug                         String?            @unique @db.VarChar(255)
+  slug                         String             @unique @db.VarChar(255)
   featured_until               DateTime?          @db.Timestamp(6)
   urgent_until                 DateTime?          @db.Timestamp(6)
   sticky_until                 DateTime?          @db.Timestamp(6)
