@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - ThuluBazaar</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      text-align: center;
+      color: white;
+      max-width: 500px;
+    }
+
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+
+    p {
+      font-size: 18px;
+      margin-bottom: 32px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    .retry-btn {
+      display: inline-block;
+      background: white;
+      color: #667eea;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+    }
+
+    .retry-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+
+    .features {
+      margin-top: 48px;
+      text-align: left;
+      background: rgba(255,255,255,0.1);
+      padding: 24px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .feature:last-child {
+      margin-bottom: 0;
+    }
+
+    .feature-icon {
+      margin-right: 12px;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>
+      It looks like you've lost your internet connection. 
+      Don't worry, you can still browse cached pages.
+    </p>
+    <button class="retry-btn" onclick="location.reload()">
+      Try Again
+    </button>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">✨</span>
+        <span>Some pages are available offline</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">⚡</span>
+        <span>App works faster when online</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔄</span>
+        <span>Check your connection and try again</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
