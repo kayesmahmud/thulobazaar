@@ -1,0 +1,506 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@thulobazaar/database';
+import { requireAuth, createToken } from '@/lib/auth';
+import { sendNotificationByUserId } from '@/lib/notifications';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+/**
+ * POST /api/verification/individual
+ * Submit individual seller verification request
+ *
+ * Requires files:
+ * - id_document_front (required)
+ * - selfie_with_id (required)
+ * - id_document_back (optional)
+ *
+ * Body:
+ * - full_name (required)
+ * - id_document_type (required) - 'citizenship' | 'passport' | 'driving_license'
+ * - id_document_number (optional)
+ * - duration_days (required) - 30 | 90 | 180 | 365
+ * - payment_amount (required) - price from verification_pricing table
+ * - payment_reference (required) - mock payment reference number
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authenticate user
+    const userId = await requireAuth(request);
+
+    const formData = await request.formData();
+
+    // Extract fields
+    const fullName = formData.get('full_name')?.toString();
+    const idDocumentType = formData.get('id_document_type')?.toString();
+    const idDocumentNumber = formData.get('id_document_number')?.toString();
+    const durationDays = parseInt(formData.get('duration_days')?.toString() || '365', 10);
+    const paymentAmount = parseFloat(formData.get('payment_amount')?.toString() || '0');
+    const paymentReference = formData.get('payment_reference')?.toString();
+
+    // Extract files
+    const idDocumentFront = formData.get('id_document_front') as File | null;
+    const idDocumentBack = formData.get('id_document_back') as File | null;
+    const selfieWithId = formData.get('selfie_with_id') as File | null;
+
+    // Check if user exists
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        account_type: true,
+        individual_verified: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if already verified
+    if (user.individual_verified) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Your account is already verified',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check for existing requests
+    const existingRequest = await prisma.individual_verification_requests.findFirst({
+      where: {
+        user_id: userId,
+        status: { in: ['pending', 'pending_payment', 'rejected'] },
+      },
+      select: { id: true, status: true, payment_amount: true, duration_days: true },
+    });
+
+    if (existingRequest && existingRequest.status === 'pending') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'You already have a pending verification request',
+        },
+        { status: 400 }
+      );
+    }
+
+    // If there's a pending_payment request, delete it so user can start fresh
+    if (existingRequest && existingRequest.status === 'pending_payment') {
+      await prisma.individual_verification_requests.delete({
+        where: { id: existingRequest.id },
+      });
+    }
+
+    // Check if this is a resubmission of a rejected request
+    const isResubmission = existingRequest && existingRequest.status === 'rejected';
+
+    // Validate required files
+    if (!idDocumentFront || !selfieWithId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'ID document front and selfie with ID are required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate full name
+    if (!fullName || fullName.trim() === '') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Full name is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate document type
+    const validDocTypes = ['citizenship', 'passport', 'driving_license'];
+    if (!idDocumentType || !validDocTypes.includes(idDocumentType)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Document type must be one of: ${validDocTypes.join(', ')}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate duration
+    const validDurations = [30, 90, 180, 365];
+    if (!validDurations.includes(durationDays)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Duration must be one of: ${validDurations.join(', ')} days`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate payment reference
+    if (!paymentReference || paymentReference.trim() === '') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Payment reference is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Get payment status to check if it's free verification
+    const paymentStatusCheck = formData.get('payment_status')?.toString();
+    const isFreeCheck = paymentStatusCheck === 'free';
+
+    // Validate payment amount (allow 0 for free verifications)
+    if (!isFreeCheck && paymentAmount <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Payment amount is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate pricing matches database (with campaign discount applied)
+    const pricing = await prisma.verification_pricing.findFirst({
+      where: {
+        verification_type: 'individual',
+        duration_days: durationDays,
+        is_active: true,
+      },
+      select: { price: true },
+    });
+
+    if (!pricing) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid verification duration selected',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check for active verification campaign
+    const now = new Date();
+    const activeCampaign = await prisma.verification_campaigns.findFirst({
+      where: {
+        is_active: true,
+        start_date: { lte: now },
+        end_date: { gte: now },
+      },
+      orderBy: { discount_percentage: 'desc' },
+    });
+
+    // Calculate campaign discount if applicable
+    let campaignDiscount = 0;
+    if (activeCampaign) {
+      // Check max uses
+      const hasReachedMaxUses = activeCampaign.max_uses && activeCampaign.current_uses && activeCampaign.current_uses >= activeCampaign.max_uses;
+      // Check if applies to individual type
+      const appliesToIndividual = !activeCampaign.applies_to_types || activeCampaign.applies_to_types.length === 0 || activeCampaign.applies_to_types.includes('individual');
+      // Check min duration
+      const meetsMinDuration = !activeCampaign.min_duration_days || durationDays >= activeCampaign.min_duration_days;
+
+      if (!hasReachedMaxUses && appliesToIndividual && meetsMinDuration) {
+        campaignDiscount = activeCampaign.discount_percentage;
+      }
+    }
+
+    // Calculate expected price with campaign discount
+    const basePrice = parseFloat(pricing.price.toString());
+    const expectedPrice = campaignDiscount > 0
+      ? Math.round(basePrice * (1 - campaignDiscount / 100))
+      : basePrice;
+
+    // Check for free verification promotion
+    const paymentStatus = formData.get('payment_status')?.toString();
+    const isFreeVerification = paymentStatus === 'free';
+
+    // If it's a free verification, payment amount should be 0
+    if (isFreeVerification) {
+      // For resubmissions, skip free verification check (user already paid previously)
+      if (!isResubmission) {
+        // Verify free verification is actually enabled
+        const freeVerificationSetting = await prisma.site_settings.findUnique({
+          where: { setting_key: 'free_verification_enabled' },
+        });
+
+        const freeVerificationEnabled = freeVerificationSetting?.setting_value === 'true';
+
+        if (!freeVerificationEnabled) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Free verification promotion is not currently available',
+            },
+            { status: 400 }
+          );
+        }
+      }
+      // Free verification or resubmission is valid, skip price check
+    } else if (Math.abs(paymentAmount - expectedPrice) > 1) {
+      // Allow for small rounding differences for paid verification
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Payment amount does not match expected price (NPR ${expectedPrice})`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate file types
+    // Support common image formats including HEIC (iPhone), WEBP, and PDF
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'application/pdf',
+    ];
+
+    // Helper to check if file type is allowed
+    const isAllowedType = (file: File): boolean => {
+      // Check MIME type
+      if (allowedTypes.includes(file.type.toLowerCase())) {
+        return true;
+      }
+      // Also check file extension for cases where MIME type is not set correctly
+      const extension = file.name.toLowerCase().split('.').pop();
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'pdf'];
+      return extension ? allowedExtensions.includes(extension) : false;
+    };
+
+    if (!isAllowedType(idDocumentFront)) {
+      console.log('🔍 ID Front file type:', idDocumentFront.type, 'name:', idDocumentFront.name);
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'ID document front must be JPEG, PNG, WEBP, HEIC, or PDF',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isAllowedType(selfieWithId)) {
+      console.log('🔍 Selfie file type:', selfieWithId.type, 'name:', selfieWithId.name);
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Selfie with ID must be JPEG, PNG, WEBP, HEIC, or PDF',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (idDocumentBack && !isAllowedType(idDocumentBack)) {
+      console.log('🔍 ID Back file type:', idDocumentBack.type, 'name:', idDocumentBack.name);
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'ID document back must be JPEG, PNG, WEBP, HEIC, or PDF',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate file sizes (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (idDocumentFront.size > maxSize) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'ID document front must be less than 5MB',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (selfieWithId.size > maxSize) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Selfie with ID must be less than 5MB',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (idDocumentBack && idDocumentBack.size > maxSize) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'ID document back must be less than 5MB',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Upload files to Express API
+    const uploadFormData = new FormData();
+    uploadFormData.append('id_document_front', idDocumentFront);
+    uploadFormData.append('selfie_with_id', selfieWithId);
+    if (idDocumentBack) {
+      uploadFormData.append('id_document_back', idDocumentBack);
+    }
+
+    // Get token for forwarding to Express API
+    // Priority: Authorization header > editorToken cookie > create new token
+    let forwardToken = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!forwardToken) {
+      forwardToken = request.cookies.get('editorToken')?.value;
+    }
+    if (!forwardToken) {
+      // Create a temporary token for the authenticated user
+      forwardToken = await createToken({ userId, email: '', role: 'user' });
+    }
+
+    const uploadResponse = await fetch(`${API_URL}/api/verification/individual/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${forwardToken}`,
+      },
+      body: uploadFormData,
+    });
+
+    if (!uploadResponse.ok) {
+      const uploadError = await uploadResponse.json();
+      return NextResponse.json(
+        {
+          success: false,
+          message: uploadError.message || 'Failed to upload documents',
+        },
+        { status: uploadResponse.status }
+      );
+    }
+
+    const uploadResult = await uploadResponse.json();
+    const frontFilename = uploadResult.data.id_document_front.filename;
+    const selfieFilename = uploadResult.data.selfie_with_id.filename;
+    const backFilename = uploadResult.data.id_document_back?.filename || null;
+
+    // Determine status based on payment
+    // - 'pending' for free verifications or resubmissions (ready for review)
+    // - 'pending_payment' for paid verifications (waiting for payment)
+    const verificationStatus = (isFreeVerification || isResubmission) ? 'pending' : 'pending_payment';
+
+    let verificationRequest;
+
+    if (isResubmission && existingRequest) {
+      // Update the existing rejected request with new data
+      verificationRequest = await prisma.individual_verification_requests.update({
+        where: { id: existingRequest.id },
+        data: {
+          full_name: fullName.trim(),
+          id_document_type: idDocumentType,
+          id_document_number: idDocumentNumber || '',
+          id_document_front: frontFilename,
+          id_document_back: backFilename,
+          selfie_with_id: selfieFilename,
+          status: verificationStatus,
+          // Keep the original payment info for resubmissions
+          rejection_reason: null, // Clear rejection reason
+          updated_at: new Date(),
+        },
+      });
+
+      console.log(
+        `🔄 Individual verification RESUBMITTED by user ${userId}, request ID: ${verificationRequest.id}`
+      );
+      console.log(`   Status: ${verificationStatus}, Original Duration: ${existingRequest.duration_days} days`);
+    } else {
+      // Create new verification request with payment info
+      verificationRequest = await prisma.individual_verification_requests.create({
+        data: {
+          user_id: userId,
+          full_name: fullName.trim(),
+          id_document_type: idDocumentType,
+          id_document_number: idDocumentNumber || '',
+          id_document_front: frontFilename,
+          id_document_back: backFilename,
+          selfie_with_id: selfieFilename,
+          status: verificationStatus,
+          duration_days: durationDays,
+          payment_amount: paymentAmount,
+          payment_reference: paymentReference.trim(),
+          payment_status: isFreeVerification ? 'free' : 'pending', // 'pending' until payment confirmed
+        },
+      });
+
+      console.log(
+        `✅ Individual verification request submitted by user ${userId}, request ID: ${verificationRequest.id}`
+      );
+      console.log(`   Status: ${verificationStatus}, Duration: ${durationDays} days, Payment: NPR ${paymentAmount} (Ref: ${paymentReference})`);
+
+      // Increment campaign usage if campaign discount was applied
+      if (activeCampaign && campaignDiscount > 0) {
+        await prisma.verification_campaigns.update({
+          where: { id: activeCampaign.id },
+          data: {
+            current_uses: { increment: 1 },
+          },
+        });
+        console.log(`   📊 Campaign "${activeCampaign.name}" usage incremented`);
+      }
+    }
+
+    // Send SMS/email notification that application is submitted and pending
+    // Only send if status is 'pending' (ready for review, not waiting for payment)
+    if (verificationStatus === 'pending') {
+      sendNotificationByUserId(userId, 'individual_verification_submitted')
+        .then((result) => {
+          if (result.success) {
+            console.log(`📱 Verification submitted notification sent to user ${userId}`);
+          }
+        })
+        .catch((err) => console.error('Failed to send submitted notification:', err));
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: isResubmission
+          ? 'Verification resubmitted successfully. Our team will review it shortly.'
+          : isFreeVerification
+            ? 'Verification request submitted successfully. Our team will review it shortly.'
+            : 'Verification request submitted. Please complete payment to proceed.',
+        data: {
+          requestId: verificationRequest.id,
+          status: verificationStatus,
+          isResubmission,
+        },
+      },
+      { status: isResubmission ? 200 : 201 }
+    );
+  } catch (error: any) {
+    console.error('Individual verification error:', error);
+
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Failed to submit verification request',
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}

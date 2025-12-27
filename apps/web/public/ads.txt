@@ -1,0 +1,13 @@
+# Google AdSense Verification File
+# Replace YOUR_PUBLISHER_ID with your actual AdSense Publisher ID (e.g., pub-1234567890123456)
+#
+# Format: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+#
+# Instructions:
+# 1. Log in to your Google AdSense account
+# 2. Go to Sites > "Get ads.txt snippet"
+# 3. Copy your publisher ID
+# 4. Replace YOUR_PUBLISHER_ID below with your actual ID
+# 5. Remove this comment block in production
+
+google.com, pub-YOUR_PUBLISHER_ID, DIRECT, f08c47fec0942fa0

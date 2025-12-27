@@ -1,0 +1,38 @@
+{
+  "name": "@thulobazaar/database",
+  "version": "1.0.0",
+  "description": "Shared database access layer using Prisma",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:pull": "prisma db pull",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx src/seed.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:check-drift": "./scripts/check-schema-drift.sh",
+    "db:init-migrations": "./scripts/init-migrations.sh"
+  },
+  "devDependencies": {
+    "@prisma/client": "^7.0.1",
+    "@types/pg": "^8.15.6",
+    "prisma": "^7.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.0.1",
+    "dotenv": "^16.4.5",
+    "pg": "^8.16.3"
+  }
+}

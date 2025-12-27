@@ -1,0 +1,834 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ad_images {
+  id            Int       @id @default(autoincrement())
+  ad_id         Int
+  filename      String    @db.VarChar(255)
+  original_name String    @db.VarChar(255)
+  file_path     String    @db.VarChar(500)
+  file_size     Int?
+  mime_type     String?   @db.VarChar(100)
+  is_primary    Boolean?  @default(false)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  ads           ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ad_id], map: "idx_ad_images_ad_id")
+  @@index([created_at], map: "idx_ad_images_created_at")
+  @@index([ad_id, is_primary], map: "idx_ad_images_primary")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ad_promotions {
+  id                Int       @id @default(autoincrement())
+  ad_id             Int
+  user_id           Int
+  promotion_type    String    @db.VarChar(20)
+  duration_days     Int
+  price_paid        Decimal   @db.Decimal(10, 2)
+  account_type      String    @db.VarChar(20)
+  payment_reference String?   @db.VarChar(255)
+  payment_method    String?   @db.VarChar(50)
+  starts_at         DateTime? @default(now()) @db.Timestamp(6)
+  expires_at        DateTime  @db.Timestamp(6)
+  is_active         Boolean?  @default(true)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  ads               ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ad_id], map: "idx_ad_promotions_ad_id")
+  @@index([expires_at], map: "idx_ad_promotions_expires_at")
+  @@index([user_id], map: "idx_ad_promotions_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model ad_reports {
+  id          Int       @id @default(autoincrement())
+  ad_id       Int
+  reporter_id Int
+  reason      String    @db.VarChar(100)
+  details     String?
+  status      String?   @default("pending") @db.VarChar(20)
+  admin_notes String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  ads         ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users     @relation(fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([ad_id, reporter_id], map: "idx_ad_reports_unique")
+  @@unique([ad_id, reporter_id], map: "idx_unique_ad_report")
+  @@index([ad_id], map: "idx_ad_reports_ad_id")
+  @@index([created_at(sort: Desc)], map: "idx_ad_reports_created_at")
+  @@index([reporter_id], map: "idx_ad_reports_reporter_id")
+  @@index([status], map: "idx_ad_reports_status")
+}
+
+/// Ad review history - tracks all status changes for ads
+model ad_review_history {
+  id         Int       @id @default(autoincrement())
+  ad_id      Int
+  action     String    @db.VarChar(50)
+  actor_id   Int
+  actor_type String    @db.VarChar(20)
+  reason     String?
+  notes      String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  ads        ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ad_review_history_ad")
+  users      users     @relation(fields: [actor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ad_review_history_user")
+
+  @@index([ad_id], map: "idx_ad_review_history_ad_id")
+  @@index([created_at(sort: Desc)], map: "idx_ad_review_history_created_at")
+  @@index([action], map: "idx_ad_review_history_action")
+}
+
+/// Phone OTPs - for phone number verification
+model phone_otps {
+  id         Int      @id @default(autoincrement())
+  phone      String   @db.VarChar(20)
+  otp_code   String   @db.VarChar(6)
+  purpose    String   @default("registration") @db.VarChar(50)
+  attempts   Int      @default(0)
+  is_used    Boolean  @default(false)
+  expires_at DateTime @db.Timestamp(6)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([phone], map: "idx_phone_otps_phone")
+  @@index([phone, otp_code], map: "idx_phone_otps_phone_code")
+  @@index([expires_at], map: "idx_phone_otps_expires")
+}
+
+/// Shop reports - for reporting shops/sellers
+model shop_reports {
+  id          Int       @id @default(autoincrement())
+  shop_id     Int
+  reporter_id Int
+  reason      String    @db.VarChar(100)
+  details     String?
+  status      String?   @default("pending") @db.VarChar(20)
+  admin_notes String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  resolved_by Int?
+  reporter    users     @relation("shop_reports_reporter", fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resolver    users?    @relation("shop_reports_resolver", fields: [resolved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shop        users     @relation("shop_reports_shop", fields: [shop_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([shop_id, reporter_id], map: "idx_shop_reports_unique")
+  @@index([shop_id], map: "idx_shop_reports_shop_id")
+  @@index([created_at(sort: Desc)], map: "idx_shop_reports_created_at")
+  @@index([reporter_id], map: "idx_shop_reports_reporter_id")
+  @@index([status], map: "idx_shop_reports_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model admin_activity_logs {
+  id          Int       @id @default(autoincrement())
+  admin_id    Int
+  action_type String    @db.VarChar(50)
+  target_type String    @db.VarChar(50)
+  target_id   Int
+  details     Json?
+  ip_address  String?   @db.VarChar(45)
+  user_agent  String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users     @relation(fields: [admin_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([action_type], map: "idx_activity_logs_action_type")
+  @@index([admin_id], map: "idx_activity_logs_admin_id")
+  @@index([created_at(sort: Desc)], map: "idx_activity_logs_created_at")
+  @@index([target_type, target_id], map: "idx_activity_logs_target")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model ads {
+  id                           Int                @id @default(autoincrement())
+  title                        String             @db.VarChar(255)
+  description                  String?
+  price                        Decimal?           @db.Decimal(12, 2)
+  category_id                  Int?
+  location_id                  Int?
+  seller_name                  String?            @db.VarChar(100)
+  seller_phone                 String?            @db.VarChar(20)
+  condition                    String?            @default("used") @db.VarChar(20)
+  status                       String?            @default("pending") @db.VarChar(20)
+  view_count                   Int?               @default(0)
+  is_featured                  Boolean?           @default(false)
+  created_at                   DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at                   DateTime?          @default(now()) @db.Timestamp(6)
+  user_id                      Int?
+  status_reason                String?
+  reviewed_by                  Int?
+  reviewed_at                  DateTime?          @db.Timestamp(6)
+  latitude                     Decimal?           @db.Decimal(10, 8)
+  longitude                    Decimal?           @db.Decimal(11, 8)
+  deleted_at                   DateTime?          @db.Timestamp(6)
+  deleted_by                   Int?
+  deletion_reason              String?
+  is_bumped                    Boolean?           @default(false)
+  bump_expires_at              DateTime?          @db.Timestamp(6)
+  is_sticky                    Boolean?           @default(false)
+  sticky_expires_at            DateTime?          @db.Timestamp(6)
+  is_urgent                    Boolean?           @default(false)
+  urgent_expires_at            DateTime?          @db.Timestamp(6)
+  total_promotions             Int?               @default(0)
+  last_promoted_at             DateTime?          @db.Timestamp(6)
+  slug                         String             @unique @db.VarChar(255)
+  featured_until               DateTime?          @db.Timestamp(6)
+  urgent_until                 DateTime?          @db.Timestamp(6)
+  sticky_until                 DateTime?          @db.Timestamp(6)
+  promoted_at                  DateTime?          @db.Timestamp(6)
+  custom_fields                Json?              @default("{}")
+  suspended_until              DateTime?          @db.Timestamp(6)
+  ad_images                    ad_images[]
+  ad_review_history            ad_review_history[]
+  ad_promotions                ad_promotions[]
+  ad_reports                   ad_reports[]
+  categories                   categories?        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_ads_deleted_byTousers  users?             @relation("ads_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  locations                    locations?         @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_ads_reviewed_byTousers users?             @relation("ads_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_ads_user_idTousers     users?             @relation("ads_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  contact_messages             contact_messages[]
+  conversations                conversations[]
+  user_favorites               user_favorites[]
+
+  @@index([category_id], map: "idx_ads_category_id")
+  @@index([created_at(sort: Desc)], map: "idx_ads_created_at")
+  @@index([location_id], map: "idx_ads_location_id")
+  @@index([price], map: "idx_ads_price")
+  @@index([slug], map: "idx_ads_slug")
+  @@index([status, category_id, location_id], map: "idx_ads_status_category_location")
+  @@index([status, created_at(sort: Desc)], map: "idx_ads_status_created")
+  @@index([user_id], map: "idx_ads_user_id")
+  @@index([view_count(sort: Desc)], map: "idx_ads_view_count")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model business_subscriptions {
+  id                Int       @id @default(autoincrement())
+  user_id           Int
+  plan_name         String    @db.VarChar(100)
+  amount_paid       Decimal   @db.Decimal(10, 2)
+  payment_reference String?   @db.VarChar(255)
+  payment_method    String?   @db.VarChar(50)
+  start_date        DateTime? @default(now()) @db.Timestamp(6)
+  end_date          DateTime  @db.Timestamp(6)
+  status            String?   @default("active") @db.VarChar(20)
+  auto_renew        Boolean?  @default(false)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([end_date], map: "idx_business_subs_end_date")
+  @@index([status], map: "idx_business_subs_status")
+  @@index([user_id], map: "idx_business_subs_user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model business_verification_requests {
+  id                                                      Int       @id @default(autoincrement())
+  user_id                                                 Int
+  business_name                                           String    @db.VarChar(255)
+  business_license_document                               String    @db.VarChar(255)
+  business_category                                       String?   @db.VarChar(100)
+  business_description                                    String?
+  business_website                                        String?   @db.VarChar(255)
+  business_phone                                          String?   @db.VarChar(20)
+  business_address                                        String?
+  payment_reference                                       String?   @db.VarChar(255)
+  payment_amount                                          Decimal?  @db.Decimal(10, 2)
+  status                                                  String?   @default("pending") @db.VarChar(20)
+  reviewed_by                                             Int?
+  reviewed_at                                             DateTime? @db.Timestamp(6)
+  rejection_reason                                        String?
+  created_at                                              DateTime? @default(now()) @db.Timestamp(6)
+  updated_at                                              DateTime? @default(now()) @db.Timestamp(6)
+  duration_days                                           Int?      @default(365)
+  payment_status                                          String?   @default("pending") @db.VarChar(20)
+  users_business_verification_requests_reviewed_byTousers users?    @relation("business_verification_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_business_verification_requests_user_idTousers     users     @relation("business_verification_requests_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_business_requests_created_at")
+  @@index([status], map: "idx_business_requests_status")
+  @@index([user_id], map: "idx_business_requests_user_id")
+  @@index([payment_status], map: "idx_business_verification_payment")
+}
+
+model categories {
+  id                                             Int                     @id @default(autoincrement())
+  name                                           String                  @db.VarChar(100)
+  slug                                           String                  @unique @db.VarChar(100)
+  icon                                           String?                 @db.VarChar(10)
+  created_at                                     DateTime?               @default(now()) @db.Timestamp(6)
+  parent_id                                      Int?
+  form_template                                  String?                 @db.VarChar(50)
+  ads                                            ads[]
+  categories                                     categories?             @relation("categoriesTocategories", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_categories                               categories[]            @relation("categoriesTocategories")
+  category_pricing_tiers                         category_pricing_tiers?
+  users_as_default_category                      users[]                 @relation("users_default_category")
+  users_as_default_subcategory                   users[]                 @relation("users_default_subcategory")
+
+  @@index([name], map: "idx_categories_name")
+  @@index([parent_id], map: "idx_categories_parent_id")
+}
+
+model contact_messages {
+  id                                      Int                @id @default(autoincrement())
+  ad_id                                   Int
+  buyer_id                                Int
+  seller_id                               Int
+  buyer_name                              String             @db.VarChar(255)
+  buyer_email                             String             @db.VarChar(255)
+  buyer_phone                             String?            @db.VarChar(20)
+  message                                 String
+  is_read                                 Boolean?           @default(false)
+  created_at                              DateTime?          @default(now()) @db.Timestamp(6)
+  is_reply                                Boolean?           @default(false)
+  reply_to_message_id                     Int?
+  ads                                     ads                @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_contact_messages_buyer_idTousers  users              @relation("contact_messages_buyer_idTousers", fields: [buyer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contact_messages                        contact_messages?  @relation("contact_messagesTocontact_messages", fields: [reply_to_message_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_contact_messages                  contact_messages[] @relation("contact_messagesTocontact_messages")
+  users_contact_messages_seller_idTousers users              @relation("contact_messages_seller_idTousers", fields: [seller_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ad_id], map: "idx_contact_messages_ad_id")
+  @@index([buyer_id], map: "idx_contact_messages_buyer_id")
+  @@index([created_at(sort: Desc)], map: "idx_contact_messages_created_at")
+  @@index([seller_id], map: "idx_contact_messages_seller_id")
+}
+
+model editor_permissions {
+  id                                         Int       @id @default(autoincrement())
+  editor_id                                  Int
+  permission                                 String    @db.VarChar(100)
+  granted_by                                 Int?
+  granted_at                                 DateTime? @default(now()) @db.Timestamp(6)
+  users_editor_permissions_editor_idTousers  users     @relation("editor_permissions_editor_idTousers", fields: [editor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_editor_permissions_granted_byTousers users?    @relation("editor_permissions_granted_byTousers", fields: [granted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([editor_id, permission])
+  @@index([editor_id], map: "idx_editor_permissions_editor_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model individual_verification_requests {
+  id                                                        Int       @id @default(autoincrement())
+  user_id                                                   Int
+  id_document_type                                          String    @db.VarChar(50)
+  id_document_number                                        String    @db.VarChar(100)
+  id_document_front                                         String?   @db.VarChar(255)
+  id_document_back                                          String?   @db.VarChar(255)
+  selfie_with_id                                            String?   @db.VarChar(255)
+  status                                                    String?   @default("pending") @db.VarChar(50)
+  reviewed_by                                               Int?
+  reviewed_at                                               DateTime? @db.Timestamp(6)
+  rejection_reason                                          String?
+  created_at                                                DateTime? @default(now()) @db.Timestamp(6)
+  updated_at                                                DateTime? @default(now()) @db.Timestamp(6)
+  full_name                                                 String?   @db.VarChar(255)
+  duration_days                                             Int?      @default(365)
+  payment_amount                                            Decimal?  @db.Decimal(10, 2)
+  payment_reference                                         String?   @db.VarChar(255)
+  payment_status                                            String?   @default("pending") @db.VarChar(20)
+  users_individual_verification_requests_reviewed_byTousers users?    @relation("individual_verification_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_individual_verification_requests_user_idTousers     users     @relation("individual_verification_requests_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, status], map: "unique_user_pending_request")
+  @@index([status], map: "idx_individual_verification_status")
+  @@index([user_id], map: "idx_individual_verification_user_id")
+  @@index([payment_status], map: "idx_individual_verification_payment")
+}
+
+model locations {
+  id              Int         @id @default(autoincrement())
+  name            String      @db.VarChar(100)
+  type            String      @db.VarChar(20)
+  parent_id       Int?
+  created_at      DateTime?   @default(now()) @db.Timestamp(6)
+  slug            String?     @unique(map: "idx_locations_slug") @db.VarChar(100)
+  latitude        Decimal?    @db.Decimal(10, 8)
+  longitude       Decimal?    @db.Decimal(11, 8)
+  ads             ads[]
+  locations       locations?  @relation("locationsTolocations", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_locations locations[] @relation("locationsTolocations")
+  users           users[]
+
+  @@index([name], map: "idx_locations_name")
+  @@index([parent_id], map: "idx_locations_parent_id")
+  @@index([type], map: "idx_locations_type")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model payment_transactions {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  payment_type    String    @db.VarChar(50)
+  payment_gateway String    @db.VarChar(20)
+  amount          Decimal   @db.Decimal(10, 2)
+  transaction_id  String    @unique @db.VarChar(255)
+  reference_id    String?   @db.VarChar(255)
+  related_id      Int?
+  status          String?   @default("pending") @db.VarChar(20)
+  metadata        Json?     @default("{}")
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  verified_at     DateTime? @db.Timestamp(6)
+  payment_url     String?
+  failure_reason  String?
+  users           users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_payment_transactions_created")
+  @@index([payment_gateway], map: "idx_payment_transactions_gateway")
+  @@index([status], map: "idx_payment_transactions_status")
+  @@index([transaction_id], map: "idx_payment_transactions_txn_id")
+  @@index([payment_type], map: "idx_payment_transactions_type")
+  @@index([user_id], map: "idx_payment_transactions_user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model promotion_pricing {
+  id                  Int       @id @default(autoincrement())
+  promotion_type      String    @db.VarChar(20)
+  duration_days       Int
+  account_type        String    @db.VarChar(20)
+  price               Decimal   @db.Decimal(10, 2)
+  discount_percentage Int?      @default(0)
+  is_active           Boolean?  @default(true)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+  pricing_tier        String?   @default("default") @db.VarChar(50)
+
+  @@unique([promotion_type, duration_days, account_type, pricing_tier], map: "promotion_pricing_type_duration_account_tier_unique")
+  @@index([promotion_type, duration_days], map: "idx_promotion_pricing_type_duration")
+}
+
+model category_pricing_tiers {
+  id           Int        @id @default(autoincrement())
+  category_id  Int        @unique
+  pricing_tier String     @default("default") @db.VarChar(50)
+  created_at   DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?  @default(now()) @db.Timestamp(6)
+  categories   categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// Promotional campaigns for time-limited discounts on ad promotions
+model promotional_campaigns {
+  id                       Int       @id @default(autoincrement())
+  name                     String    @db.VarChar(100)
+  description              String?
+  discount_percentage      Int       @default(0)
+  promo_code               String?   @db.VarChar(50)
+  banner_text              String?   @db.VarChar(255)
+  banner_emoji             String?   @default("🎉") @db.VarChar(10)
+  start_date               DateTime  @db.Timestamp(6)
+  end_date                 DateTime  @db.Timestamp(6)
+  is_active                Boolean?  @default(true)
+  applies_to_tiers         String[]
+  applies_to_promotion_types String[]
+  min_duration_days        Int?
+  max_uses                 Int?
+  current_uses             Int?      @default(0)
+  created_by               Int?
+  created_at               DateTime? @default(now()) @db.Timestamp(6)
+  updated_at               DateTime? @default(now()) @db.Timestamp(6)
+  users                    users?    @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+
+  @@index([is_active, start_date, end_date], map: "idx_promo_campaigns_active")
+  @@index([promo_code], map: "idx_promo_campaigns_code")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  id                                                                                   Int                                @id @default(autoincrement())
+  email                                                                                String?                            @unique @db.VarChar(255)
+  password_hash                                                                        String                             @db.VarChar(255)
+  full_name                                                                            String                             @db.VarChar(255)
+  phone                                                                                String?                            @db.VarChar(20)
+  location_id                                                                          Int?
+  is_verified                                                                          Boolean?                           @default(false)
+  is_active                                                                            Boolean?                           @default(true)
+  created_at                                                                           DateTime?                          @default(now()) @db.Timestamp(6)
+  updated_at                                                                           DateTime?                          @default(now()) @db.Timestamp(6)
+  role                                                                                 user_role?                         @default(user)
+  bio                                                                                  String?
+  avatar                                                                               String?                            @db.VarChar(255)
+  cover_photo                                                                          String?                            @db.VarChar(255)
+  verified_at                                                                          DateTime?                          @db.Timestamp(6)
+  verified_by                                                                          Int?
+  is_suspended                                                                         Boolean?                           @default(false)
+  suspended_at                                                                         DateTime?                          @db.Timestamp(6)
+  suspended_until                                                                      DateTime?                          @db.Timestamp(6)
+  suspended_by                                                                         Int?
+  suspension_reason                                                                    String?
+  account_type                                                                         String?                            @default("individual") @db.VarChar(20)
+  business_name                                                                        String?                            @db.VarChar(255)
+  business_license_document                                                            String?                            @db.VarChar(255)
+  business_verification_status                                                         String?                            @db.VarChar(20)
+  business_verified_at                                                                 DateTime?                          @db.Timestamp(6)
+  business_verified_by                                                                 Int?
+  business_rejection_reason                                                            String?
+  business_payment_reference                                                           String?                            @db.VarChar(255)
+  business_payment_amount                                                              Decimal?                           @db.Decimal(10, 2)
+  business_category                                                                    String?                            @db.VarChar(100)
+  business_description                                                                 String?
+  business_website                                                                     String?                            @db.VarChar(255)
+  business_phone                                                                       String?                            @db.VarChar(20)
+  business_address                                                                     String?
+  business_subscription_start                                                          DateTime?                          @db.Timestamp(6)
+  business_subscription_end                                                            DateTime?                          @db.Timestamp(6)
+  business_subscription_status                                                         String?                            @db.VarChar(20)
+  shop_slug                                                                            String?                            @unique @db.VarChar(255)
+  individual_verified                                                                  Boolean?                           @default(false)
+  individual_verified_at                                                               DateTime?                          @db.Timestamp(6)
+  individual_verified_by                                                               Int?
+  verified_seller_name                                                                 String?                            @db.VarChar(255)
+  individual_verification_expires_at                                                   DateTime?                          @db.Timestamp(6)
+  business_verification_expires_at                                                     DateTime?                          @db.Timestamp(6)
+  latitude                                                                             Decimal?                           @db.Decimal(10, 8)
+  longitude                                                                            Decimal?                           @db.Decimal(11, 8)
+  formatted_address                                                                    String?
+  google_maps_link                                                                     String?
+  facebook_url                                                                         String?                            @db.VarChar(255)
+  instagram_url                                                                        String?                            @db.VarChar(255)
+  tiktok_url                                                                           String?                            @db.VarChar(255)
+  last_login                                                                           DateTime?                          @db.Timestamp(6)
+  two_factor_enabled                                                                   Boolean?                           @default(false)
+  two_factor_secret                                                                    String?                            @db.VarChar(255)
+  two_factor_backup_codes                                                              Json?
+  custom_shop_slug                                                                     String?                            @unique @db.VarChar(255)
+  oauth_provider                                                                       String?                            @db.VarChar(50)
+  oauth_provider_id                                                                    String?                            @db.VarChar(255)
+  email_verified                                                                       Boolean?                           @default(false)
+  phone_verified                                                                       Boolean?                           @default(false)
+  phone_verified_at                                                                    DateTime?                          @db.Timestamp(6)
+  default_category_id                                                                  Int?
+  default_subcategory_id                                                               Int?
+  /// Soft delete: when user requested account deletion (NULL = not deleted)
+  deleted_at                                                                           DateTime?                          @db.Timestamp(6)
+  /// When deletion was requested (for 30-day recovery window)
+  deletion_requested_at                                                                DateTime?                          @db.Timestamp(6)
+  ad_promotions                                                                        ad_promotions[]
+  ad_reports                                                                           ad_reports[]
+  ad_review_history                                                                    ad_review_history[]
+  admin_activity_logs                                                                  admin_activity_logs[]
+  ads_ads_deleted_byTousers                                                            ads[]                              @relation("ads_deleted_byTousers")
+  ads_ads_reviewed_byTousers                                                           ads[]                              @relation("ads_reviewed_byTousers")
+  ads_ads_user_idTousers                                                               ads[]                              @relation("ads_user_idTousers")
+  announcement_read_receipts                                                           announcement_read_receipts[]
+  announcements                                                                        announcements[]
+  business_subscriptions                                                               business_subscriptions[]
+  business_verification_requests_business_verification_requests_reviewed_byTousers     business_verification_requests[]   @relation("business_verification_requests_reviewed_byTousers")
+  business_verification_requests_business_verification_requests_user_idTousers         business_verification_requests[]   @relation("business_verification_requests_user_idTousers")
+  contact_messages_contact_messages_buyer_idTousers                                    contact_messages[]                 @relation("contact_messages_buyer_idTousers")
+  contact_messages_contact_messages_seller_idTousers                                   contact_messages[]                 @relation("contact_messages_seller_idTousers")
+  conversation_participants                                                            conversation_participants[]
+  editor_permissions_editor_permissions_editor_idTousers                               editor_permissions[]               @relation("editor_permissions_editor_idTousers")
+  editor_permissions_editor_permissions_granted_byTousers                              editor_permissions[]               @relation("editor_permissions_granted_byTousers")
+  individual_verification_requests_individual_verification_requests_reviewed_byTousers individual_verification_requests[] @relation("individual_verification_requests_reviewed_byTousers")
+  individual_verification_requests_individual_verification_requests_user_idTousers     individual_verification_requests[] @relation("individual_verification_requests_user_idTousers")
+  message_read_receipts                                                                message_read_receipts[]
+  messages                                                                             messages[]
+  payment_transactions                                                                 payment_transactions[]
+  shop_reports_as_reporter                                                             shop_reports[]                     @relation("shop_reports_reporter")
+  shop_reports_as_resolver                                                             shop_reports[]                     @relation("shop_reports_resolver")
+  shop_reports_as_shop                                                                 shop_reports[]                     @relation("shop_reports_shop")
+  support_messages                                                                     support_messages[]
+  support_tickets_support_tickets_assigned_toTousers                                   support_tickets[]                  @relation("support_tickets_assigned_toTousers")
+  support_tickets_support_tickets_user_idTousers                                       support_tickets[]                  @relation("support_tickets_user_idTousers")
+  typing_indicators                                                                    typing_indicators[]
+  user_favorites                                                                       user_favorites[]
+  promotional_campaigns                                                                promotional_campaigns[]
+  verification_campaigns                                                               verification_campaigns[]           @relation("verification_campaigns_created_by")
+  locations                                                                            locations?                         @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_user_location")
+  users_users_business_verified_byTousers                                              users?                             @relation("users_business_verified_byTousers", fields: [business_verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_users_users_business_verified_byTousers                                        users[]                            @relation("users_business_verified_byTousers")
+  default_category                                                                     categories?                        @relation("users_default_category", fields: [default_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  default_subcategory                                                                  categories?                        @relation("users_default_subcategory", fields: [default_subcategory_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_users_individual_verified_byTousers                                            users?                             @relation("users_individual_verified_byTousers", fields: [individual_verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_users_users_individual_verified_byTousers                                      users[]                            @relation("users_individual_verified_byTousers")
+  users_users_suspended_byTousers                                                      users?                             @relation("users_suspended_byTousers", fields: [suspended_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_users_users_suspended_byTousers                                                users[]                            @relation("users_suspended_byTousers")
+  users_users_verified_byTousers                                                       users?                             @relation("users_verified_byTousers", fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_users_users_verified_byTousers                                                 users[]                            @relation("users_verified_byTousers")
+
+  @@index([location_id], map: "idx_users_location_id")
+  @@index([role], map: "idx_users_role")
+  @@index([latitude, longitude], map: "idx_users_coordinates")
+  @@index([deleted_at], map: "idx_users_deleted_at")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_favorites {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  ad_id      Int
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  ads        ads       @relation(fields: [ad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, ad_id])
+  @@index([ad_id], map: "idx_user_favorites_ad_id")
+  @@index([created_at(sort: Desc)], map: "idx_user_favorites_created_at")
+  @@index([user_id], map: "idx_user_favorites_user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model conversation_participants {
+  id              Int           @id @default(autoincrement())
+  conversation_id Int
+  user_id         Int
+  joined_at       DateTime?     @default(now()) @db.Timestamp(6)
+  last_read_at    DateTime?     @default(now()) @db.Timestamp(6)
+  is_muted        Boolean?      @default(false)
+  is_archived     Boolean?      @default(false)
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([conversation_id, user_id])
+  @@index([conversation_id], map: "idx_participants_conversation")
+  @@index([user_id, last_read_at], map: "idx_participants_unread")
+  @@index([user_id], map: "idx_participants_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model conversations {
+  id                        Int                         @id @default(autoincrement())
+  type                      String                      @default("direct") @db.VarChar(50)
+  title                     String?                     @db.VarChar(255)
+  ad_id                     Int?
+  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  updated_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  last_message_at           DateTime?                   @default(now()) @db.Timestamp(6)
+  conversation_participants conversation_participants[]
+  ads                       ads?                        @relation(fields: [ad_id], references: [id], onUpdate: NoAction)
+  messages                  messages[]
+  typing_indicators         typing_indicators[]
+
+  @@index([ad_id], map: "idx_conversations_ad_id")
+  @@index([last_message_at(sort: Desc)], map: "idx_conversations_last_message")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model message_read_receipts {
+  id         Int       @id @default(autoincrement())
+  message_id Int
+  user_id    Int
+  read_at    DateTime? @default(now()) @db.Timestamp(6)
+  messages   messages  @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([message_id, user_id])
+  @@index([message_id], map: "idx_receipts_message")
+  @@index([user_id], map: "idx_receipts_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model messages {
+  id                    Int                     @id @default(autoincrement())
+  conversation_id       Int
+  sender_id             Int
+  content               String
+  type                  String?                 @default("text") @db.VarChar(50)
+  attachment_url        String?
+  is_edited             Boolean?                @default(false)
+  edited_at             DateTime?               @db.Timestamp(6)
+  is_deleted            Boolean?                @default(false)
+  deleted_at            DateTime?               @db.Timestamp(6)
+  created_at            DateTime?               @default(now()) @db.Timestamp(6)
+  message_read_receipts message_read_receipts[]
+  conversations         conversations           @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users                   @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id, created_at(sort: Desc)], map: "idx_messages_conversation")
+  @@index([created_at(sort: Desc)], map: "idx_messages_created")
+  @@index([sender_id], map: "idx_messages_sender")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model typing_indicators {
+  id              Int           @id @default(autoincrement())
+  conversation_id Int
+  user_id         Int
+  started_at      DateTime?     @default(now()) @db.Timestamp(6)
+  expires_at      DateTime      @db.Timestamp(6)
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([conversation_id, user_id])
+  @@index([conversation_id, expires_at], map: "idx_typing_conversation")
+}
+
+/// Support tickets table for customer support system
+model support_tickets {
+  id                                       Int                      @id @default(autoincrement())
+  ticket_number                            String                   @unique @db.VarChar(20)
+  user_id                                  Int
+  assigned_to                              Int?
+  subject                                  String                   @db.VarChar(255)
+  category                                 support_ticket_category? @default(general)
+  priority                                 support_ticket_priority? @default(normal)
+  status                                   support_ticket_status?   @default(open)
+  created_at                               DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at                               DateTime?                @default(now()) @db.Timestamp(6)
+  resolved_at                              DateTime?                @db.Timestamp(6)
+  closed_at                                DateTime?                @db.Timestamp(6)
+  support_messages                         support_messages[]
+  users_support_tickets_assigned_toTousers users?                   @relation("support_tickets_assigned_toTousers", fields: [assigned_to], references: [id], onUpdate: NoAction)
+  users_support_tickets_user_idTousers     users                    @relation("support_tickets_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_support_tickets_user_id")
+  @@index([assigned_to], map: "idx_support_tickets_assigned_to")
+  @@index([status], map: "idx_support_tickets_status")
+  @@index([priority], map: "idx_support_tickets_priority")
+  @@index([created_at(sort: Desc)], map: "idx_support_tickets_created_at")
+}
+
+/// Support messages within tickets
+model support_messages {
+  id              Int             @id @default(autoincrement())
+  ticket_id       Int
+  sender_id       Int
+  content         String
+  type            String?         @default("text") @db.VarChar(50)
+  attachment_url  String?
+  is_internal     Boolean?        @default(false)
+  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  users           users           @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  support_tickets support_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ticket_id], map: "idx_support_messages_ticket_id")
+  @@index([sender_id], map: "idx_support_messages_sender_id")
+  @@index([created_at(sort: Desc)], map: "idx_support_messages_created_at")
+}
+
+/// Verification pricing for individual and business verification
+model verification_pricing {
+  id                  Int       @id @default(autoincrement())
+  verification_type   String    @db.VarChar(20)
+  duration_days       Int
+  price               Decimal   @db.Decimal(10, 2)
+  discount_percentage Int?      @default(0)
+  is_active           Boolean?  @default(true)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([verification_type, duration_days])
+  @@index([verification_type], map: "idx_verification_pricing_type")
+}
+
+/// Promotional campaigns for verification discounts
+model verification_campaigns {
+  id                  Int       @id @default(autoincrement())
+  name                String    @db.VarChar(100)
+  description         String?
+  discount_percentage Int       @default(0)
+  promo_code          String?   @db.VarChar(50)
+  banner_text         String?   @db.VarChar(255)
+  banner_emoji        String?   @default("🎉") @db.VarChar(10)
+  start_date          DateTime  @db.Timestamp(6)
+  end_date            DateTime  @db.Timestamp(6)
+  is_active           Boolean?  @default(true)
+  applies_to_types    String[]  // ['individual', 'business']
+  min_duration_days   Int?
+  max_uses            Int?
+  current_uses        Int?      @default(0)
+  created_by          Int?
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+  users               users?    @relation("verification_campaigns_created_by", fields: [created_by], references: [id], onUpdate: NoAction)
+
+  @@index([is_active, start_date, end_date], map: "idx_verif_campaigns_active")
+  @@index([promo_code], map: "idx_verif_campaigns_code")
+}
+
+model site_settings {
+  id            Int       @id @default(autoincrement())
+  setting_key   String    @unique @db.VarChar(100)
+  setting_value String?
+  setting_type  String?   @default("string") @db.VarChar(50)
+  description   String?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// System announcements for broadcasting messages to users
+model announcements {
+  id                         Int                          @id @default(autoincrement())
+  title                      String                       @db.VarChar(255)
+  content                    String
+  target_audience            announcement_audience        @default(all_users)
+  created_by                 Int
+  created_at                 DateTime?                    @default(now()) @db.Timestamp(6)
+  expires_at                 DateTime?                    @db.Timestamp(6)
+  is_active                  Boolean?                     @default(true)
+  announcement_read_receipts announcement_read_receipts[]
+  users                      users                        @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_active, target_audience], map: "idx_announcements_active_audience")
+  @@index([created_at(sort: Desc)], map: "idx_announcements_created_at")
+  @@index([created_by], map: "idx_announcements_created_by")
+}
+
+/// Tracks which users have read which announcements
+model announcement_read_receipts {
+  id              Int           @id @default(autoincrement())
+  announcement_id Int
+  user_id         Int
+  read_at         DateTime?     @default(now()) @db.Timestamp(6)
+  announcements   announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcement_id, user_id])
+  @@index([user_id], map: "idx_announcement_receipts_user")
+  @@index([announcement_id], map: "idx_announcement_receipts_announcement")
+}
+
+enum user_role {
+  user
+  editor
+  super_admin
+  root
+}
+
+/// Support ticket statuses
+enum support_ticket_status {
+  open
+  in_progress
+  waiting_on_user
+  resolved
+  closed
+}
+
+/// Support ticket priority levels
+enum support_ticket_priority {
+  low
+  normal
+  high
+  urgent
+}
+
+/// Support ticket categories
+enum support_ticket_category {
+  general
+  account
+  payment
+  ads
+  verification
+  technical
+  report
+  other
+}
+
+/// Announcement target audience types
+enum announcement_audience {
+  all_users
+  new_users
+  business_verified
+  individual_verified
+}

@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 */node_modules/
+.pnp
+.pnp.js
 
 # Environment variables
 .env
@@ -8,12 +10,19 @@ node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
+!.env.example
 
 # Build outputs
 dist/
 build/
 */dist/
 */build/
+/build
+out/
+
+# Next.js
+.next/
 
 # Logs
 *.log
@@ -28,7 +37,7 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Testing
 coverage/
 *.lcov
 
@@ -56,23 +65,16 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env.test
-
-# parcel-bundler cache (https://parceljs.org/)
+# parcel-bundler cache
 .cache
 .parcel-cache
 
-# Next.js build output
-.next
-
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
-public
+# NOTE: Removed 'public' - Next.js public folder should be committed (PWA manifest, icons, etc.)
 
 # Storybook build outputs
 .out
@@ -102,7 +104,7 @@ Thumbs.db
 *.sqlite
 *.db
 
-# Uploads directory (if you have file uploads)
+# Uploads directory
 uploads/
 
 # Typesense
@@ -117,5 +119,18 @@ backups/
 monorepo-backup/
 monorepo-for-github/
 
-# Markdown files (documentation)
-*.md
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# TypeScript
+*.tsbuildinfo
+
+# Expo
+.expo/
+client_secret_*.json
+
+# Misc
+*.pem
