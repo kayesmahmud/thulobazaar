@@ -76,7 +76,6 @@ UPDATE categories SET name_ne = 'व्यापारिक भवन बिक
 UPDATE categories SET name_ne = 'कोठा भाडा' WHERE slug = 'room-rentals';
 UPDATE categories SET name_ne = 'घर भाडा' WHERE slug = 'house-rentals';
 UPDATE categories SET name_ne = 'जग्गा भाडा' WHERE slug = 'land-rentals';
-UPDATE categories SET name_ne = 'प्रोपर्टी गाइडमा नयाँ परियोजना' WHERE slug = 'new-projects-propertyguide';
 
 -- Pets & Animals Subcategories
 UPDATE categories SET name_ne = 'पाल्तु जनावर' WHERE slug = 'pets';
