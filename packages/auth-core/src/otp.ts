@@ -357,6 +357,13 @@ export async function canChangePhone(
   // forced update, so enforcing this immediately would lock every existing
   // user out of changing their number. Turn it on once the new app is adopted.
   if (!(await isPhoneChangeProofRequired())) {
+    // Deliberate, temporary fail-open — and audited, so it cannot be forgotten.
+    // This is the behaviour that already existed before the check was added; it
+    // is not a new hole. It closes the moment the setting is turned on.
+    console.warn(
+      `[security] phone change allowed WITHOUT proof for user ${userId} — ` +
+        'require_phone_change_proof is off (old app builds cannot send proof)'
+    );
     return { allowed: true };
   }
 

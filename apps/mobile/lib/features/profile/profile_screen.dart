@@ -190,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _openPhoneChange() async {
     final authProvider = context.read<AuthProvider>();
-    final currentPhone = authProvider.user?.phone;
+    final currentPhone = authProvider.user?['phone'] as String?;
     await Navigator.push(
       context,
       MaterialPageRoute(
