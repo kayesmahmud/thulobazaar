@@ -6,6 +6,9 @@
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '@thulobazaar/database';
+// Aliased: apps/api/src/lib/ai/policies.ts exports an unrelated getCategoryPolicy
+// (the AI moderation markdown loader).
+import { getCategoryPolicy as getCommercePolicy } from '@thulobazaar/types';
 import config from '../config/index.js';
 import { PAGINATION } from '../config/constants.js';
 import { clearExpiredPromotionFlags } from '../jobs/promotionCleanup.js';
@@ -60,12 +63,19 @@ export interface UpdateAdInput {
 // ============================================================================
 
 export function transformAdForList(ad: any) {
+  const policed = applyCategoryPolicyToResponse(
+    ad.custom_fields,
+    ad.condition,
+    ad.categories?.categories?.slug ?? ad.categories?.slug,
+    ad.categories?.categories ? ad.categories.slug : undefined
+  );
+
   return {
     id: ad.id,
     title: ad.title,
     description: ad.description,
     price: ad.price,
-    condition: ad.condition,
+    condition: policed.condition,
     status: ad.status === 'approved' ? 'active' : ad.status,
     slug: ad.slug,
     viewCount: ad.view_count,
@@ -107,12 +117,19 @@ export function transformAdForList(ad: any) {
 }
 
 export function transformAdForDashboard(ad: any) {
+  const policed = applyCategoryPolicyToResponse(
+    ad.custom_fields,
+    ad.condition,
+    ad.categories?.categories?.slug ?? ad.categories?.slug,
+    ad.categories?.categories ? ad.categories.slug : undefined
+  );
+
   return {
     id: ad.id,
     title: ad.title,
     description: ad.description,
     price: ad.price,
-    condition: ad.condition,
+    condition: policed.condition,
     status: ad.status === 'approved' ? 'active' : ad.status,
     // Owner-only surface (my-ads): seller-facing AI hold category. The raw
     // ai_reason text stays editor-only; clients map the code to a bilingual
@@ -147,7 +164,39 @@ export function transformAdForDashboard(ad: any) {
       filePath: img.file_path,
       isPrimary: img.is_primary,
     })) || [],
-    attributes: ad.custom_fields,
+    attributes: policed.attributes,
+  };
+}
+
+/**
+ * Strip the flags a category no longer offers before the ad leaves the server.
+ *
+ * Clients render these straight off the payload — the shipped app draws its COD
+ * badge from `attributes.isCodAvailable` alone — so doing this here retires the
+ * flag on every client at once, including builds already on people's phones.
+ * The stored `custom_fields` are untouched; only the response is filtered.
+ */
+function applyCategoryPolicyToResponse(
+  attributes: any,
+  condition: string | null | undefined,
+  parentSlug: string | undefined,
+  subcategorySlug: string | undefined
+): { attributes: any; condition: string | null } {
+  const policy = getCommercePolicy(parentSlug ?? '', subcategorySlug);
+
+  let cleaned = attributes;
+  if (attributes && typeof attributes === 'object') {
+    const { isCodAvailable, isNegotiable, ...rest } = attributes;
+    cleaned = {
+      ...rest,
+      ...(policy.cod && isCodAvailable !== undefined ? { isCodAvailable } : {}),
+      ...(policy.negotiable && isNegotiable !== undefined ? { isNegotiable } : {}),
+    };
+  }
+
+  return {
+    attributes: cleaned,
+    condition: policy.condition === 'hidden' ? null : condition ?? null,
   };
 }
 
@@ -156,6 +205,9 @@ export async function transformAdForDetail(ad: any) {
   const catNameNe = ad.categories?.categories?.name_ne ?? ad.categories?.name_ne;
   const subName = ad.categories?.categories ? ad.categories.name : undefined;
   const subNameNe = ad.categories?.categories ? ad.categories.name_ne : undefined;
+  const parentSlug = ad.categories?.categories?.slug ?? ad.categories?.slug;
+  const subSlug = ad.categories?.categories ? ad.categories.slug : undefined;
+  const policed = applyCategoryPolicyToResponse(ad.custom_fields, ad.condition, parentSlug, subSlug);
   const locationLevels = await getLocationLevels(ad.location_id);
   const locName = locationLevels.map((l) => l.name).join(', ');
 
@@ -229,7 +281,10 @@ export async function transformAdForDetail(ad: any) {
     accountType: ad.users_ads_user_idTousers?.account_type,
     seller: ad.users_ads_user_idTousers,
     images: ad.ad_images,
-    attributes: ad.custom_fields,
+    // Both filtered by the category policy — see applyCategoryPolicyToResponse.
+    // These must stay after the ...safeAd spread, which carries the raw column.
+    condition: policed.condition,
+    attributes: policed.attributes,
     favoritesCount: favoritesCount,
     favorites_count: favoritesCount,
     locationType: locationRecord?.type || null,
@@ -514,8 +569,10 @@ function buildAdWhereClause(filters: AdFilters) {
 
 function buildAdOrderBy(sortBy: string = 'newest', pinPromotions: boolean = false) {
   let base: any;
-  if (sortBy === 'price-low') base = { price: 'asc' };
-  else if (sortBy === 'price-high') base = { price: 'desc' };
+  // Jobs salaries are optional, so price is nullable now — without nulls:last
+  // a blank salary wins every ascending price sort.
+  if (sortBy === 'price-low') base = { price: { sort: 'asc', nulls: 'last' } };
+  else if (sortBy === 'price-high') base = { price: { sort: 'desc', nulls: 'last' } };
   else if (sortBy === 'oldest') base = { published_at: { sort: 'asc', nulls: 'last' } };
   else base = { published_at: { sort: 'desc', nulls: 'last' } };
 
@@ -639,7 +696,17 @@ export function resolveDistrictName(location: any): string | null {
 
 const adListSelect = {
   include: {
-    categories: { select: { name: true, name_ne: true, icon: true } },
+    // slug + parent slug drive the category policy that filters condition/COD
+    // off the card response (see applyCategoryPolicyToResponse).
+    categories: {
+      select: {
+        name: true,
+        name_ne: true,
+        icon: true,
+        slug: true,
+        categories: { select: { slug: true } },
+      },
+    },
     locations: { select: adCardLocationSelect },
     users_ads_user_idTousers: {
       select: {
@@ -756,7 +823,15 @@ export async function getUserAds(userId: number) {
   const ads = await prisma.ads.findMany({
     where: { user_id: userId },
     include: {
-      categories: { select: { name: true, name_ne: true, icon: true } },
+      categories: {
+        select: {
+          name: true,
+          name_ne: true,
+          icon: true,
+          slug: true,
+          categories: { select: { slug: true } },
+        },
+      },
       locations: { select: adCardLocationSelect },
       ad_images: {
         orderBy: [{ is_primary: 'desc' }, { created_at: 'asc' }],
@@ -1128,8 +1203,13 @@ export async function updateAd(
       price: input.price !== undefined ? input.price : existingAd.price,
       category_id: finalCategoryId,
       location_id: input.locationId || existingAd.location_id,
-      condition: normalizeCondition(input.condition || existingAd.condition),
-      custom_fields: input.customFields && Object.keys(input.customFields).length > 0
+      // Sent-but-empty means "clear it" — categories where the policy hides
+      // Condition strip the field on edit, and `||` would restore the stale
+      // value instead. Absent (undefined) still means "leave alone".
+      condition: input.condition !== undefined
+        ? normalizeCondition(input.condition) ?? null
+        : existingAd.condition,
+      custom_fields: input.customFields !== undefined
         ? input.customFields
         : existingAd.custom_fields,
       status: newStatus,

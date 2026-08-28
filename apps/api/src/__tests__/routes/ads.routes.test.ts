@@ -207,7 +207,7 @@ describe('Ads Routes', () => {
       expect(response.status).toBe(200);
       expect(prisma.ads.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: { price: 'asc' },
+          orderBy: { price: { sort: 'asc', nulls: 'last' } },
         })
       );
     });
@@ -223,7 +223,7 @@ describe('Ads Routes', () => {
       expect(response.status).toBe(200);
       expect(prisma.ads.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: { price: 'desc' },
+          orderBy: { price: { sort: 'desc', nulls: 'last' } },
         })
       );
     });

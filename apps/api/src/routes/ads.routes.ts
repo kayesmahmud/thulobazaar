@@ -631,7 +631,12 @@ router.put(
 
     // Parse attributes
     const parsedAttributes = parseAttributes(attributes);
-    const condition = (parsedAttributes.condition as string) || existingAd.condition;
+    // An attributes payload that omits condition is the client clearing it —
+    // categories where the policy hides Condition strip it on edit. Only a
+    // request with no attributes at all leaves the stored value alone.
+    const condition = attributes !== undefined
+      ? ((parsedAttributes.condition as string | undefined) ?? null)
+      : undefined;
     const { condition: _cond, ...customFields } = parsedAttributes;
 
     // Parse existing images to keep
