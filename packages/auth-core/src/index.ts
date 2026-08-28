@@ -29,6 +29,7 @@ export {
   sendOtp,
   verifyOtp,
   updatePhone,
+  canChangePhone,
   MAX_OTP_ATTEMPTS,
   OTP_COOLDOWN_SECONDS,
   MAX_VERIFY_ATTEMPTS,

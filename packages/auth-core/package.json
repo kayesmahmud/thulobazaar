@@ -24,11 +24,13 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@thulobazaar/database": "*"
+    "@thulobazaar/database": "*",
+    "bcrypt": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "^5.3.0",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.15",
+    "@types/bcrypt": "^6.0.0"
   }
 }

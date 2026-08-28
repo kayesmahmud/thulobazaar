@@ -6,6 +6,7 @@
  */
 
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import { prisma } from '@thulobazaar/database';
 import {
   formatPhoneNumber,
@@ -280,61 +281,115 @@ export async function verifyOtp(
  * account, then persists. The duplicate check excludes the user themselves.
  */
 /**
- * Decides whether a signed-in user is allowed to move their account to a new
- * phone number.
+ * Decides whether a signed-in user may move their account to a new phone number.
  *
- * WHY THIS EXISTS: updatePhone() below currently accepts a verification token
- * proving control of the NEW number and nothing else. Because the phone number
- * is both the login identity and the password-reset channel, that means anyone
- * holding a live session can permanently take the account: they point it at
- * their own number and the original owner can no longer log in OR reset.
+ * WHY: updatePhone() below only ever proved control of the NEW number. Because
+ * the phone is both the login identity and the password-reset channel, anyone
+ * holding a live session could point the account at their own number and lock
+ * the owner out permanently.
  *
- * THE TRADE-OFF (this is the decision, and it is a product decision, not a
- * technical one):
+ * POLICY (chosen by the owner) — split on whether a verified phone already exists:
  *
- *   - Requiring the CURRENT PASSWORD locks out Google-only accounts, which have
- *     password_hash = null. They would have no way to change their number.
+ *   No verified phone yet   -> ALLOW on the new-number OTP alone.
+ *                              This is a Google/email buyer adding their first
+ *                              number to unlock posting. There is no old number
+ *                              to steal the account from, so nothing to protect.
  *
- *   - Requiring an OTP TO THE OLD NUMBER locks out the single most common
- *     legitimate reason people change their number: they lost the SIM or
- *     switched carrier. In Nepal that is a large share of real requests.
+ *   Has a verified phone    -> REQUIRE proof of entitlement: an OTP sent to the
+ *                              EXISTING number, or the current password.
  *
- *   - Accepting EITHER covers both populations, but a Google user who has lost
- *     their old SIM has neither proof and must go to support.
+ * This deliberately avoids locking out OAuth users. Their password_hash is
+ * bcrypt(Math.random()) — see auth.service.ts:373 — so it can never be matched
+ * by anyone, including them. For those accounts the password branch is not
+ * offered at all and the old-number OTP is the only route.
  *
- *   - Requiring BOTH is the strongest, and produces the most lockouts.
+ * Fails CLOSED: any unexpected state returns allowed:false.
  *
- * Whatever this returns, updatePhone() must refuse to proceed on `false`, and
- * the old number should be SMS'd either way so a silent takeover is impossible.
- *
- * @param userId          the signed-in user attempting the change
- * @param currentPassword supplied by the client; undefined if not collected
- * @param oldNumberOtpToken a verification token for the user's EXISTING number;
- *                          undefined if not collected
- * @returns allowed: false plus a user-facing reason, or allowed: true
+ * @param userId            the signed-in user attempting the change
+ * @param currentPassword   supplied by the client; undefined if not collected
+ * @param oldNumberOtpToken a verification token for the user's EXISTING number
  */
 export async function canChangePhone(
   userId: number,
   currentPassword?: string,
   oldNumberOtpToken?: string
-): Promise<{ allowed: boolean; reason?: string }> {
-  // TODO(owner): implement the policy chosen above.
-  //
-  // The pieces you need are already in this file and in auth.service.ts:
-  //   - prisma.users.findUnique({ where: { id: userId } })  -> .password_hash, .phone
-  //   - bcrypt.compare(currentPassword, user.password_hash)
-  //   - validateVerificationToken(token, phone, 'phone_verification')
-  //
-  // Fail CLOSED: if you cannot positively establish the user is entitled,
-  // return { allowed: false, reason: ... }.
-  throw new Error('canChangePhone: policy not yet implemented');
+): Promise<{ allowed: boolean; reason?: string; requires?: 'otp' | 'otp_or_password' }> {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      phone: true,
+      phone_verified: true,
+      password_hash: true,
+      oauth_provider: true,
+    },
+  });
+
+  if (!user) {
+    return { allowed: false, reason: 'Account not found.' };
+  }
+
+  // --- Case 1: adding a first number. Nothing to protect yet. ---
+  if (!user.phone || !user.phone_verified) {
+    return { allowed: true };
+  }
+
+  // --- Case 2: changing an existing verified number. Prove entitlement. ---
+  // An OAuth account cannot use the password branch: its hash is random.
+  const passwordUsable = !user.oauth_provider && !!user.password_hash;
+  const requires = passwordUsable ? 'otp_or_password' : 'otp';
+
+  if (oldNumberOtpToken) {
+    const check = validateVerificationToken(
+      oldNumberOtpToken,
+      user.phone,
+      'phone_verification'
+    );
+    if (check.valid) return { allowed: true };
+    return {
+      allowed: false,
+      requires,
+      reason: check.error || 'That code did not match your current number.',
+    };
+  }
+
+  if (currentPassword && passwordUsable) {
+    const ok = await bcrypt.compare(currentPassword, user.password_hash!);
+    if (ok) return { allowed: true };
+    return { allowed: false, requires, reason: 'Current password is incorrect.' };
+  }
+
+  // No proof supplied — say which one this account can actually provide.
+  return {
+    allowed: false,
+    requires,
+    reason: passwordUsable
+      ? 'To change your number, confirm your password or enter the code sent to your current number.'
+      : 'To change your number, enter the code sent to your current number.',
+  };
 }
 
 export async function updatePhone(
   userId: number,
   phone: string,
-  verificationToken: string
+  verificationToken: string,
+  /**
+   * Proof that the caller is entitled to move THIS account, as opposed to
+   * merely controlling the destination number. Required only when the account
+   * already has a verified phone — see canChangePhone.
+   */
+  proof?: { currentPassword?: string; oldNumberOtpToken?: string }
 ): Promise<UpdatePhoneResult> {
+  // Entitlement first: the verificationToken below only proves control of the
+  // NEW number, which is not the same as being allowed to move the account.
+  const entitlement = await canChangePhone(
+    userId,
+    proof?.currentPassword,
+    proof?.oldNumberOtpToken
+  );
+  if (!entitlement.allowed) {
+    return { success: false, error: entitlement.reason || 'Not allowed.' };
+  }
+
   const formattedPhone = formatPhoneNumber(phone);
 
   if (!validateNepaliPhone(formattedPhone)) {
