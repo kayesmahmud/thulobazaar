@@ -279,6 +279,57 @@ export async function verifyOtp(
  * OTP. Validates the signed token, re-checks the number isn't taken by another
  * account, then persists. The duplicate check excludes the user themselves.
  */
+/**
+ * Decides whether a signed-in user is allowed to move their account to a new
+ * phone number.
+ *
+ * WHY THIS EXISTS: updatePhone() below currently accepts a verification token
+ * proving control of the NEW number and nothing else. Because the phone number
+ * is both the login identity and the password-reset channel, that means anyone
+ * holding a live session can permanently take the account: they point it at
+ * their own number and the original owner can no longer log in OR reset.
+ *
+ * THE TRADE-OFF (this is the decision, and it is a product decision, not a
+ * technical one):
+ *
+ *   - Requiring the CURRENT PASSWORD locks out Google-only accounts, which have
+ *     password_hash = null. They would have no way to change their number.
+ *
+ *   - Requiring an OTP TO THE OLD NUMBER locks out the single most common
+ *     legitimate reason people change their number: they lost the SIM or
+ *     switched carrier. In Nepal that is a large share of real requests.
+ *
+ *   - Accepting EITHER covers both populations, but a Google user who has lost
+ *     their old SIM has neither proof and must go to support.
+ *
+ *   - Requiring BOTH is the strongest, and produces the most lockouts.
+ *
+ * Whatever this returns, updatePhone() must refuse to proceed on `false`, and
+ * the old number should be SMS'd either way so a silent takeover is impossible.
+ *
+ * @param userId          the signed-in user attempting the change
+ * @param currentPassword supplied by the client; undefined if not collected
+ * @param oldNumberOtpToken a verification token for the user's EXISTING number;
+ *                          undefined if not collected
+ * @returns allowed: false plus a user-facing reason, or allowed: true
+ */
+export async function canChangePhone(
+  userId: number,
+  currentPassword?: string,
+  oldNumberOtpToken?: string
+): Promise<{ allowed: boolean; reason?: string }> {
+  // TODO(owner): implement the policy chosen above.
+  //
+  // The pieces you need are already in this file and in auth.service.ts:
+  //   - prisma.users.findUnique({ where: { id: userId } })  -> .password_hash, .phone
+  //   - bcrypt.compare(currentPassword, user.password_hash)
+  //   - validateVerificationToken(token, phone, 'phone_verification')
+  //
+  // Fail CLOSED: if you cannot positively establish the user is entitled,
+  // return { allowed: false, reason: ... }.
+  throw new Error('canChangePhone: policy not yet implemented');
+}
+
 export async function updatePhone(
   userId: number,
   phone: string,
