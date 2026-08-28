@@ -43,6 +43,8 @@ export interface VerifyOtpResult {
 export interface UpdatePhoneResult {
   success: boolean;
   error?: string;
+  /** Which proof this account can supply, when the change was denied. */
+  requires?: 'otp' | 'otp_or_password';
   phone?: string;
   phoneVerified?: boolean;
   phoneVerifiedAt?: Date | null;
@@ -309,6 +311,23 @@ export async function verifyOtp(
  * @param currentPassword   supplied by the client; undefined if not collected
  * @param oldNumberOtpToken a verification token for the user's EXISTING number
  */
+/**
+ * Defaults to FALSE — deploying the stricter check must never break the
+ * installed base. Flip `require_phone_change_proof` to 'true' in site_settings
+ * once enough users are on an app version that sends proof.
+ */
+async function isPhoneChangeProofRequired(): Promise<boolean> {
+  try {
+    const setting = await prisma.site_settings.findUnique({
+      where: { setting_key: 'require_phone_change_proof' },
+      select: { setting_value: true },
+    });
+    return setting?.setting_value === 'true';
+  } catch {
+    return false;
+  }
+}
+
 export async function canChangePhone(
   userId: number,
   currentPassword?: string,
@@ -334,6 +353,13 @@ export async function canChangePhone(
   }
 
   // --- Case 2: changing an existing verified number. Prove entitlement. ---
+  // Rollout switch: apps already installed cannot send proof, and there is no
+  // forced update, so enforcing this immediately would lock every existing
+  // user out of changing their number. Turn it on once the new app is adopted.
+  if (!(await isPhoneChangeProofRequired())) {
+    return { allowed: true };
+  }
+
   // An OAuth account cannot use the password branch: its hash is random.
   const passwordUsable = !user.oauth_provider && !!user.password_hash;
   const requires = passwordUsable ? 'otp_or_password' : 'otp';
@@ -387,7 +413,11 @@ export async function updatePhone(
     proof?.oldNumberOtpToken
   );
   if (!entitlement.allowed) {
-    return { success: false, error: entitlement.reason || 'Not allowed.' };
+    return {
+      success: false,
+      error: entitlement.reason || 'Not allowed.',
+      requires: entitlement.requires,
+    };
   }
 
   const formattedPhone = formatPhoneNumber(phone);

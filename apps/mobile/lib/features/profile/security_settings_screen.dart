@@ -413,6 +413,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => PhoneVerificationScreen(
+                                isChanging: _isPhoneVerified,
+                                currentPhone: _isPhoneVerified ? _phone : null,
                                 onVerified: _fetchSecurityData,
                               ),
                             ),

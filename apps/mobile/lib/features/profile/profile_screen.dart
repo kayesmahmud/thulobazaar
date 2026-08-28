@@ -190,11 +190,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _openPhoneChange() async {
     final authProvider = context.read<AuthProvider>();
+    final currentPhone = authProvider.user?.phone;
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PhoneVerificationScreen(
           isChanging: true,
+          currentPhone: currentPhone,
           onVerified: () async {
             await authProvider.refreshProfile();
             if (mounted) _populateControllers();

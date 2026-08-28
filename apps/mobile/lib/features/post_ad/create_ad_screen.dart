@@ -3052,8 +3052,10 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     final verified = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            PhoneVerificationScreen(isChanging: _verifiedPhone.isNotEmpty),
+        builder: (_) => PhoneVerificationScreen(
+          isChanging: _verifiedPhone.isNotEmpty,
+          currentPhone: _verifiedPhone.isNotEmpty ? _verifiedPhone : null,
+        ),
       ),
     );
     // The screen pops `true` after a successful verify+save. Reload the profile

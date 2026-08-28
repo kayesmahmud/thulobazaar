@@ -518,18 +518,27 @@ router.post(
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const { phone, verificationToken } = req.body;
+    const { phone, verificationToken, currentPassword, oldNumberOtpToken } = req.body;
 
     if (!phone || !verificationToken) {
       throw new ValidationError('Phone number and verification token are required');
     }
 
-    const result = await updatePhone(userId, phone, verificationToken);
+    // Proof that the caller may move THIS account — the verificationToken only
+    // proves control of the NEW number. Dropping it here was the bug: every
+    // request looked proof-less and canChangePhone denied it.
+    const result = await updatePhone(userId, phone, verificationToken, {
+      currentPassword,
+      oldNumberOtpToken,
+    });
 
     if (!result.success) {
       return res.status(400).json({
         success: false,
         message: result.error,
+        // Tells the client WHICH proof this account can supply, so it can show
+        // the right step instead of a dead end.
+        requires: result.requires,
       });
     }
 

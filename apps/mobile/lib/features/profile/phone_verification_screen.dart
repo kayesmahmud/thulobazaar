@@ -8,10 +8,15 @@ class PhoneVerificationScreen extends StatefulWidget {
   final VoidCallback? onVerified;
   final bool isChanging;
 
+  /// The number being replaced. Required to prove ownership before a verified
+  /// number can be changed; null means there is nothing to prove yet.
+  final String? currentPhone;
+
   const PhoneVerificationScreen({
     super.key,
     this.onVerified,
     this.isChanging = false,
+    this.currentPhone,
   });
 
   @override
@@ -28,6 +33,23 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   bool _otpSent = false;
   int _cooldown = 0;
   Timer? _timer;
+
+  /// Stage 1 of changing a verified number: confirm the CURRENT number first.
+  /// Verifying the new number only proves you control the new SIM, not that the
+  /// account is yours — so without this, anyone with a stolen session could
+  /// move the account to their own phone.
+  bool _provingOwnership = false;
+  String? _oldNumberOtpToken;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = widget.currentPhone?.trim() ?? '';
+    if (widget.isChanging && current.isNotEmpty) {
+      _provingOwnership = true;
+      _phoneController.text = current;
+    }
+  }
 
   @override
   void dispose() {
@@ -148,8 +170,28 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         throw Exception('No verification token received');
       }
 
+      // Stage 1 done: we have proof of the OLD number. Reset the form and ask
+      // for the new one — nothing is saved until stage 2 completes.
+      if (_provingOwnership) {
+        _timer?.cancel();
+        setState(() {
+          _oldNumberOtpToken = token;
+          _provingOwnership = false;
+          _otpSent = false;
+          _isLoading = false;
+          _cooldown = 0;
+          _phoneController.clear();
+          _otpController.clear();
+        });
+        return;
+      }
+
       // 2. Update Phone
-      final updateResult = await _authClient.updatePhone(phone, token);
+      final updateResult = await _authClient.updatePhone(
+        phone,
+        token,
+        oldNumberOtpToken: _oldNumberOtpToken,
+      );
 
       if (updateResult['success'] == true) {
         if (mounted) {
@@ -184,7 +226,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isChanging
+          _provingOwnership
+              ? (context.locale.languageCode == 'ne'
+                    ? 'यो तपाईं नै हो भनी पुष्टि गर्नुहोस्'
+                    : 'Confirm it\'s you')
+              : widget.isChanging
               ? (context.locale.languageCode == 'ne'
                     ? 'फोन नम्बर परिवर्तन गर्नुहोस्'
                     : 'Change Phone Number')
@@ -202,7 +248,11 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.isChanging
+              _provingOwnership
+                  ? (context.locale.languageCode == 'ne'
+                        ? 'पहिले तपाईंको हालको नम्बरमा पठाइएको कोड प्रविष्ट गर्नुहोस्। त्यसपछि मात्र नयाँ नम्बर राख्न सकिन्छ।'
+                        : 'First confirm the number on your account. We will send a code to your current number, then you can enter the new one.')
+                  : widget.isChanging
                   ? (context.locale.languageCode == 'ne'
                         ? 'नयाँ फोन नम्बर प्रविष्ट गर्नुहोस्। हामी OTP पठाउनेछौं।'
                         : 'Enter your new phone number. We will send an OTP to verify it.')
@@ -216,12 +266,18 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: context.locale.languageCode == 'ne'
-                    ? 'मोबाइल नम्बर'
-                    : 'Mobile Number',
+                labelText: _provingOwnership
+                    ? (context.locale.languageCode == 'ne'
+                          ? 'हालको नम्बर'
+                          : 'Current number')
+                    : (context.locale.languageCode == 'ne'
+                          ? 'मोबाइल नम्बर'
+                          : 'Mobile Number'),
                 prefixText: '+977 ',
                 border: const OutlineInputBorder(),
-                enabled: !_otpSent, // Disable editing after OTP sent
+                // Locked while proving ownership: stage 1 must target the
+                // number already on the account, not one the user types.
+                enabled: !_otpSent && !_provingOwnership,
               ),
             ),
             if (_otpSent) ...[

@@ -206,14 +206,22 @@ class AuthClient {
   }
 
   // Update Phone
+  /// [oldNumberOtpToken] proves the caller controls the number being replaced.
+  /// The server requires it to change an already-verified number; it is null
+  /// for a first-time verification, where there is nothing to protect yet.
   Future<Map<String, dynamic>> updatePhone(
     String phone,
-    String verificationToken,
-  ) async {
+    String verificationToken, {
+    String? oldNumberOtpToken,
+  }) async {
     try {
       final response = await _dio.post(
         '/auth/update-phone',
-        data: {'phone': phone, 'verificationToken': verificationToken},
+        data: {
+          'phone': phone,
+          'verificationToken': verificationToken,
+          if (oldNumberOtpToken != null) 'oldNumberOtpToken': oldNumberOtpToken,
+        },
       );
       return response.data;
     } on DioException catch (e) {
