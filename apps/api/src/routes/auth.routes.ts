@@ -336,7 +336,11 @@ router.post(
       const err = result.error || '';
       // 🔒 AUTH-M2: return an identical response for unknown-account vs wrong-password
       // so an attacker can't enumerate which phone numbers have accounts.
-      if (err.includes('not found') || err.includes('Invalid password')) {
+      // Case-insensitive and matched on both spellings: the old `includes('not
+      // found')` never matched auth.service.ts's actual "No account found with
+      // this phone number", so unknown numbers fell through to the 403 branch
+      // below and answered differently from a wrong password.
+      if (/no account found|not found|invalid password/i.test(err)) {
         return res.status(401).json({
           success: false,
           message: 'Invalid phone number or password',
