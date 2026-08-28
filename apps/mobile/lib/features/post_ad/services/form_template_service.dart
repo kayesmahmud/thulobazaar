@@ -1,7 +1,12 @@
-/// Form Template Service
-///
-/// Provides subcategory-specific form field configurations for the post ad flow.
-/// Ported from web: apps/web/src/config/formTemplates/subcategories/
+// Form Template Service
+//
+// Provides subcategory-specific form field configurations for the post ad flow.
+// Mirrors web: apps/web/src/config/formTemplates/
+//
+// Condition is NOT declared here as a rule of its own — it is governed by
+// [getCategoryPolicy] (category_policy.dart). See [getApplicableFields].
+
+import 'package:mobile/features/post_ad/services/category_policy.dart';
 
 enum FieldType { text, number, select, multiselect, checkbox, date }
 
@@ -50,12 +55,40 @@ class FormFieldModel {
 }
 
 class FormTemplateService {
+  /// Option lists made of brand names, capacities, currency codes or model
+  /// numbers read the same in both languages. Naming the fallback keeps a null
+  /// optionsNe from looking like a forgotten translation (B-11/B-12).
+  static const List<String>? _sameInNepali = null;
+
   // ============================================
   // COMMON FIELDS
   // ============================================
 
+  // Only two values survive a save: the server collapses anything that is not
+  // "Brand New" to "Used" (normalizeCondition, B-08). Extra options such as
+  // "Like New" or "Reconditioned" must not be offered until that is fixed.
   static const _conditionOptions = ['Brand New', 'Used'];
   static const _conditionOptionsNe = ['नयाँ', 'पुरानो'];
+
+  static const _conditionRequired = FormFieldModel(
+    name: 'condition',
+    label: 'Condition',
+    labelNe: 'अवस्था',
+    type: FieldType.select,
+    required: true,
+    options: _conditionOptions,
+    optionsNe: _conditionOptionsNe,
+  );
+
+  static const _conditionOptional = FormFieldModel(
+    name: 'condition',
+    label: 'Condition',
+    labelNe: 'अवस्था',
+    type: FieldType.select,
+    options: _conditionOptions,
+    optionsNe: _conditionOptionsNe,
+  );
+
   static const _warrantyOptions = [
     'No Warranty',
     'Under Warranty (< 6 months)',
@@ -69,26 +102,32 @@ class FormTemplateService {
     'वारेन्टी अन्तर्गत (१+ वर्ष)',
   ];
 
-  static FormFieldModel _condition([List<String>? opts]) => FormFieldModel(
-    name: 'condition',
-    label: 'Condition',
-    labelNe: 'अवस्था',
+  static const _warranty = FormFieldModel(
+    name: 'warranty',
+    label: 'Warranty',
+    labelNe: 'वारेन्टी',
     type: FieldType.select,
-    required: true,
-    options: opts ?? _conditionOptions,
-    optionsNe: opts != null ? null : _conditionOptionsNe,
+    options: _warrantyOptions,
+    optionsNe: _warrantyOptionsNe,
   );
 
-  static FormFieldModel _brand(String placeholder, {bool required = false}) =>
-      FormFieldModel(
-        name: 'brand',
-        label: 'Brand',
-        labelNe: 'ब्रान्ड',
-        type: FieldType.text,
-        required: required,
-        placeholder: placeholder,
-        placeholderNe: 'ब्रान्ड लेख्नुहोस्',
-      );
+  static FormFieldModel _brand(String placeholder) => FormFieldModel(
+    name: 'brand',
+    label: 'Brand',
+    labelNe: 'ब्रान्ड',
+    type: FieldType.text,
+    placeholder: placeholder,
+    placeholderNe: 'ब्रान्ड लेख्नुहोस्',
+  );
+
+  static FormFieldModel _brandSelect(List<String> options) => FormFieldModel(
+    name: 'brand',
+    label: 'Brand',
+    labelNe: 'ब्रान्ड',
+    type: FieldType.select,
+    options: options,
+    optionsNe: _sameInNepali,
+  );
 
   static FormFieldModel _model(String placeholder) => FormFieldModel(
     name: 'model',
@@ -99,55 +138,146 @@ class FormTemplateService {
     placeholderNe: 'मोडेल लेख्नुहोस्',
   );
 
-  static const _warranty = FormFieldModel(
-    name: 'warranty',
-    label: 'Warranty',
-    labelNe: 'वारेन्टी',
-    type: FieldType.select,
-    options: _warrantyOptions,
-    optionsNe: _warrantyOptionsNe,
+  static const _color = FormFieldModel(
+    name: 'color',
+    label: 'Color',
+    labelNe: 'रङ',
+    type: FieldType.text,
+    placeholder: 'e.g., Black, White, Red',
+    placeholderNe: 'जस्तै, कालो, सेतो, रातो',
   );
 
-  static FormFieldModel _color([String? label, String? placeholder]) =>
-      FormFieldModel(
-        name: 'color',
-        label: label ?? 'Color',
-        labelNe: label != null ? null : 'रङ',
-        type: FieldType.text,
-        placeholder: placeholder ?? 'e.g., Black, White, Red',
-        placeholderNe: 'जस्तै, कालो, सेतो, रातो',
-      );
+  static const _quantity = FormFieldModel(
+    name: 'quantity',
+    label: 'Quantity Available',
+    labelNe: 'उपलब्ध मात्रा',
+    type: FieldType.number,
+    placeholder: 'Enter quantity',
+    placeholderNe: 'मात्रा लेख्नुहोस्',
+  );
+
+  static FormFieldModel _expiryDate({
+    String label = 'Expiry Date',
+    String labelNe = 'म्याद सकिने मिति',
+  }) => FormFieldModel(
+    name: 'expiryDate',
+    label: label,
+    labelNe: labelNe,
+    type: FieldType.date,
+  );
+
+  static FormFieldModel _productWeight({
+    String label = 'Weight / Volume',
+    String labelNe = 'तौल / आयतन',
+  }) => FormFieldModel(
+    name: 'productWeight',
+    label: label,
+    labelNe: labelNe,
+    type: FieldType.text,
+    placeholder: 'e.g., 250ml, 100gm, 1kg',
+    placeholderNe: 'जस्तै, २५० मिली, १०० ग्राम, १ के.जी.',
+  );
+
+  static FormFieldModel _productType(
+    List<String> options,
+    List<String> optionsNe, {
+    String label = 'Product Type',
+    String labelNe = 'उत्पादन प्रकार',
+  }) => FormFieldModel(
+    name: 'productType',
+    label: label,
+    labelNe: labelNe,
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static FormFieldModel _priceUnit(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'priceUnit',
+    label: 'Price Unit',
+    labelNe: 'मूल्य एकाइ',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static FormFieldModel _pricePeriod(
+    List<String> options,
+    List<String> optionsNe, {
+    String label = 'Price Period',
+    String labelNe = 'मूल्य अवधि',
+  }) => FormFieldModel(
+    name: 'pricePeriod',
+    label: label,
+    labelNe: labelNe,
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static FormFieldModel _serviceType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'serviceType',
+    label: 'Service Type',
+    labelNe: 'सेवा प्रकार',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static const _ageGroupOptions = [
+    '0-3 months',
+    '3-6 months',
+    '6-12 months',
+    '1-2 years',
+    '2-4 years',
+    '4-6 years',
+    '6-10 years',
+  ];
+  static const _ageGroupOptionsNe = [
+    '०-३ महिना',
+    '३-६ महिना',
+    '६-१२ महिना',
+    '१-२ वर्ष',
+    '२-४ वर्ष',
+    '४-६ वर्ष',
+    '६-१० वर्ष',
+  ];
+
+  static const _ageGroup = FormFieldModel(
+    name: 'ageGroup',
+    label: 'Age Group',
+    labelNe: 'उमेर समूह',
+    type: FieldType.select,
+    options: _ageGroupOptions,
+    optionsNe: _ageGroupOptionsNe,
+  );
 
   // ============================================
   // ELECTRONICS FIELDS
   // ============================================
 
-  static const _storage = FormFieldModel(
+  static FormFieldModel _storage(List<String> options) => FormFieldModel(
     name: 'storage',
     label: 'Storage Capacity',
     labelNe: 'भण्डारण क्षमता',
     type: FieldType.select,
-    required: true,
-    options: ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'],
+    options: options,
+    optionsNe: _sameInNepali,
   );
 
-  static const _ram = FormFieldModel(
+  static FormFieldModel _ram(List<String> options) => FormFieldModel(
     name: 'ram',
     label: 'RAM',
     labelNe: 'र्‍याम',
     type: FieldType.select,
-    required: true,
-    options: [
-      '2GB',
-      '3GB',
-      '4GB',
-      '6GB',
-      '8GB',
-      '12GB',
-      '16GB',
-      '32GB',
-      '64GB',
-    ],
+    options: options,
+    optionsNe: _sameInNepali,
   );
 
   static const _batteryHealth = FormFieldModel(
@@ -164,7 +294,6 @@ class FormTemplateService {
     label: 'Processor',
     labelNe: 'प्रोसेसर',
     type: FieldType.text,
-    required: true,
     placeholder: 'e.g., Intel Core i5 12th Gen, AMD Ryzen 7',
     placeholderNe: 'जस्तै, Intel Core i5 12th Gen, AMD Ryzen 7',
   );
@@ -178,22 +307,22 @@ class FormTemplateService {
     placeholderNe: 'जस्तै, NVIDIA RTX 3060, Integrated',
   );
 
+  static FormFieldModel _screenSize(List<String> options) => FormFieldModel(
+    name: 'screenSize',
+    label: 'Screen Size',
+    labelNe: 'स्क्रिन साइज',
+    type: FieldType.select,
+    options: options,
+    optionsNe: _sameInNepali,
+  );
+
   static const _screenResolution = FormFieldModel(
     name: 'screenResolution',
     label: 'Screen Resolution',
     labelNe: 'स्क्रिन रिजोलुसन',
     type: FieldType.select,
-    options: ['HD (1366x768)', 'Full HD (1920x1080)', '2K', '4K', 'Retina'],
-  );
-
-  static FormFieldModel _screenSize([String? placeholder]) => FormFieldModel(
-    name: 'screenSize',
-    label: 'Screen Size',
-    labelNe: 'स्क्रिन साइज',
-    type: FieldType.text,
-    required: true,
-    placeholder: placeholder ?? 'e.g., 55 inches',
-    placeholderNe: 'जस्तै, ५५ इन्च',
+    options: ['HD Ready', 'Full HD', '4K UHD', '8K'],
+    optionsNe: _sameInNepali,
   );
 
   static const _smartFeatures = FormFieldModel(
@@ -201,15 +330,41 @@ class FormTemplateService {
     label: 'Smart Features',
     labelNe: 'स्मार्ट सुविधाहरू',
     type: FieldType.multiselect,
-    options: ['Smart TV', '4K', 'HDR', 'Android TV', 'WebOS', 'Voice Control'],
+    options: [
+      'Smart TV',
+      'HDR',
+      'Android TV',
+      'WebOS',
+      'Tizen',
+      'Built-in WiFi',
+      'Voice Control',
+    ],
     optionsNe: [
       'स्मार्ट टिभी',
-      '4K',
       'HDR',
       'एन्ड्रोइड टिभी',
       'WebOS',
+      'Tizen',
+      'बिल्ट-इन वाइफाइ',
       'भ्वाइस कन्ट्रोल',
     ],
+  );
+
+  static const _sensorSize = FormFieldModel(
+    name: 'sensorSize',
+    label: 'Sensor Size',
+    labelNe: 'सेन्सर साइज',
+    type: FieldType.select,
+    options: [
+      'Full Frame',
+      'APS-C',
+      'Micro 4/3',
+      '1 inch',
+      'Medium Format',
+      'Action/Compact',
+      'N/A',
+    ],
+    optionsNe: _sameInNepali,
   );
 
   static const _megapixels = FormFieldModel(
@@ -217,45 +372,81 @@ class FormTemplateService {
     label: 'Megapixels',
     labelNe: 'मेगापिक्सेल',
     type: FieldType.number,
-    placeholder: 'e.g., 24, 48, 108',
-    placeholderNe: 'जस्तै, २४, ४८, १०८',
+    placeholder: 'leave blank for lenses & accessories',
+    placeholderNe: 'लेन्स र सामानका लागि खाली छोड्नुहोस्',
+  );
+
+  static FormFieldModel _accessoryType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'accessoryType',
+    label: 'Accessory Type',
+    labelNe: 'सामान प्रकार',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static FormFieldModel _applianceType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'applianceType',
+    label: 'Appliance Type',
+    labelNe: 'उपकरण प्रकार',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
   );
 
   // ============================================
   // VEHICLE FIELDS
   // ============================================
 
-  static const _vehicleYear = FormFieldModel(
+  /// A model-year ahead of the calendar year is a normal listing, so the
+  /// ceiling tracks the clock instead of a hardcoded 2025 (B-07).
+  static double get _maxYear => (DateTime.now().year + 1).toDouble();
+
+  static FormFieldModel get _vehicleYear => FormFieldModel(
     name: 'year',
     label: 'Year of Manufacture',
     labelNe: 'निर्माण वर्ष',
     type: FieldType.number,
-    required: true,
     placeholder: 'e.g., 2020',
     placeholderNe: 'जस्तै, २०२०',
     min: 1980,
-    max: 2025,
+    max: _maxYear,
+  );
+
+  static FormFieldModel get _registrationYear => FormFieldModel(
+    name: 'registrationYear',
+    label: 'Registration Year',
+    labelNe: 'दर्ता वर्ष',
+    type: FieldType.number,
+    min: 1980,
+    max: _maxYear,
   );
 
   static const _mileage = FormFieldModel(
     name: 'mileage',
-    label: 'Mileage/Kilometers Driven',
-    labelNe: 'माइलेज/कि.मी.',
+    label: 'Kilometers Driven',
+    labelNe: 'चलेको किलोमिटर',
     type: FieldType.number,
     placeholder: 'in km',
     placeholderNe: 'कि.मी. मा',
   );
 
-  static FormFieldModel _fuelType([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _fuelType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'fuelType',
     label: 'Fuel Type',
     labelNe: 'इन्धन प्रकार',
     type: FieldType.select,
-    required: true,
-    options: opts ?? ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'CNG', 'LPG'],
-    optionsNe: opts != null
-        ? null
-        : ['पेट्रोल', 'डिजेल', 'इलेक्ट्रिक', 'हाइब्रिड', 'सीएनजी', 'एलपीजी'],
+    options: options,
+    optionsNe: optionsNe,
   );
 
   static const _transmission = FormFieldModel(
@@ -263,20 +454,18 @@ class FormTemplateService {
     label: 'Transmission',
     labelNe: 'ट्रान्समिसन',
     type: FieldType.select,
-    required: true,
     options: ['Manual', 'Automatic', 'Semi-Automatic'],
     optionsNe: ['म्यानुअल', 'अटोम्याटिक', 'सेमी-अटोम्याटिक'],
   );
 
-  static FormFieldModel _engineCapacity([String? placeholder]) =>
-      FormFieldModel(
-        name: 'engineCapacity',
-        label: 'Engine Capacity (cc)',
-        labelNe: 'इन्जिन क्षमता (cc)',
-        type: FieldType.number,
-        placeholder: placeholder ?? 'e.g., 1500',
-        placeholderNe: 'जस्तै, १५००',
-      );
+  static FormFieldModel _engineCapacity(String placeholder) => FormFieldModel(
+    name: 'engineCapacity',
+    label: 'Engine Capacity (cc)',
+    labelNe: 'इन्जिन क्षमता (cc)',
+    type: FieldType.number,
+    placeholder: placeholder,
+    placeholderNe: 'जस्तै, १५००',
+  );
 
   static const _owners = FormFieldModel(
     name: 'owners',
@@ -292,60 +481,111 @@ class FormTemplateService {
     ],
   );
 
-  static const _registrationYear = FormFieldModel(
-    name: 'registrationYear',
-    label: 'Registration Year',
-    labelNe: 'दर्ता वर्ष',
-    type: FieldType.number,
-    min: 1980,
-    max: 2025,
-  );
-
   static const _registrationLocation = FormFieldModel(
     name: 'registrationLocation',
-    label: 'Registration Location',
-    labelNe: 'दर्ता स्थान',
-    type: FieldType.text,
-    placeholder: 'e.g., Bagmati, Kathmandu',
-    placeholderNe: 'जस्तै, बागमती, काठमाडौं',
+    label: 'Registration Zone',
+    labelNe: 'दर्ता क्षेत्र',
+    type: FieldType.select,
+    options: [
+      'Koshi',
+      'Madhesh',
+      'Bagmati',
+      'Gandaki',
+      'Lumbini',
+      'Karnali',
+      'Sudurpashchim',
+    ],
+    optionsNe: [
+      'कोशी',
+      'मधेश',
+      'बागमती',
+      'गण्डकी',
+      'लुम्बिनी',
+      'कर्णाली',
+      'सुदूरपश्चिम',
+    ],
   );
 
-  static FormFieldModel _bodyType([List<String>? opts, String? label]) =>
+  static const _plateType = FormFieldModel(
+    name: 'plateType',
+    label: 'Plate Type',
+    labelNe: 'नम्बर प्लेट प्रकार',
+    type: FieldType.select,
+    options: [
+      'Private',
+      'Public/Commercial',
+      'Government',
+      'Corporation',
+      'Tourist',
+    ],
+    optionsNe: ['निजी', 'सार्वजनिक/व्यावसायिक', 'सरकारी', 'संस्थान', 'पर्यटक'],
+  );
+
+  static FormFieldModel _vehicleType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'vehicleType',
+    label: 'Vehicle Type',
+    labelNe: 'सवारी प्रकार',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static const _bodyType = FormFieldModel(
+    name: 'bodyType',
+    label: 'Body Type',
+    labelNe: 'बडी प्रकार',
+    type: FieldType.select,
+    options: ['Sedan', 'SUV', 'Hatchback', 'Coupe', 'Convertible', 'Pickup'],
+    optionsNe: ['सेडान', 'एसयूभी', 'ह्याचब्याक', 'कूपे', 'कन्भर्टिबल', 'पिकअप'],
+  );
+
+  static FormFieldModel _seats(List<String> options, List<String> optionsNe) =>
       FormFieldModel(
-        name: 'bodyType',
-        label: label ?? 'Body Type',
-        labelNe: label != null ? null : 'बडी प्रकार',
+        name: 'seats',
+        label: 'Number of Seats',
+        labelNe: 'सिट संख्या',
         type: FieldType.select,
-        options:
-            opts ??
-            [
-              'Sedan',
-              'SUV',
-              'Hatchback',
-              'Coupe',
-              'Convertible',
-              'Pickup',
-              'Van',
-            ],
-        optionsNe: opts != null
-            ? null
-            : [
-                'सेडान',
-                'एसयूभी',
-                'ह्याचब्याक',
-                'कूपे',
-                'कन्भर्टिबल',
-                'पिकअप',
-                'भ्यान',
-              ],
+        options: options,
+        optionsNe: optionsNe,
       );
 
-  static const _seats = FormFieldModel(
-    name: 'seats',
-    label: 'Number of Seats',
-    labelNe: 'सिट संख्या',
-    type: FieldType.select,
-    options: ['2', '4', '5', '7', '8+'],
+  static const _passengerCapacity = FormFieldModel(
+    name: 'passengerCapacity',
+    label: 'Passenger Capacity',
+    labelNe: 'यात्रु क्षमता',
+    type: FieldType.number,
+    placeholder: 'e.g., 32',
+    placeholderNe: 'जस्तै, ३२',
+  );
+
+  static const _payloadCapacity = FormFieldModel(
+    name: 'payloadCapacity',
+    label: 'Load Capacity (tons)',
+    labelNe: 'भार क्षमता (टन)',
+    type: FieldType.number,
+    placeholder: 'e.g., 10',
+    placeholderNe: 'जस्तै, १०',
+  );
+
+  static const _operatingHours = FormFieldModel(
+    name: 'operatingHours',
+    label: 'Operating Hours',
+    labelNe: 'सञ्चालन घण्टा',
+    type: FieldType.number,
+    placeholder: 'e.g., 4500',
+    placeholderNe: 'जस्तै, ४५००',
+  );
+
+  static const _routePermit = FormFieldModel(
+    name: 'routePermit',
+    label: 'Route Permit',
+    labelNe: 'रुट परमिट',
+    type: FieldType.text,
+    placeholder: 'e.g., Kathmandu-Pokhara, none',
+    placeholderNe: 'जस्तै, काठमाडौं-पोखरा, छैन',
   );
 
   static const _bicycleType = FormFieldModel(
@@ -353,38 +593,311 @@ class FormTemplateService {
     label: 'Bicycle Type',
     labelNe: 'साइकल प्रकार',
     type: FieldType.select,
-    options: ['Mountain Bike', 'Road Bike', 'Hybrid', 'Electric', 'Kids Bike'],
+    options: [
+      'Mountain Bike',
+      'Road Bike',
+      'Hybrid',
+      'Gravel/Touring',
+      'BMX',
+      'Folding',
+      'Electric',
+      'Kids Bike',
+    ],
     optionsNe: [
       'माउन्टेन बाइक',
       'रोड बाइक',
       'हाइब्रिड',
+      'ग्राभेल/टुरिङ',
+      'बीएमएक्स',
+      'फोल्डिङ',
       'इलेक्ट्रिक',
       'बच्चाको बाइक',
     ],
   );
 
+  static const _frameSize = FormFieldModel(
+    name: 'frameSize',
+    label: 'Frame Size',
+    labelNe: 'फ्रेम साइज',
+    type: FieldType.select,
+    options: [
+      'Kids',
+      'XS (13-14 in)',
+      'S (15-16 in)',
+      'M (17-18 in)',
+      'L (19-20 in)',
+      'XL (21 in+)',
+    ],
+    optionsNe: [
+      'बच्चा',
+      'XS (13-14 in)',
+      'S (15-16 in)',
+      'M (17-18 in)',
+      'L (19-20 in)',
+      'XL (21 in+)',
+    ],
+  );
+
+  static const _gears = FormFieldModel(
+    name: 'gears',
+    label: 'Number of Gears',
+    labelNe: 'गियर संख्या',
+    type: FieldType.number,
+    placeholder: 'e.g., 21 (leave blank for single speed)',
+    placeholderNe: 'जस्तै, २१ (सिंगल स्पिडका लागि खाली छोड्नुहोस्)',
+  );
+
+  static const _boatType = FormFieldModel(
+    name: 'boatType',
+    label: 'Boat Type',
+    labelNe: 'डुङ्गा प्रकार',
+    type: FieldType.select,
+    options: [
+      'Wooden',
+      'Fiber',
+      'Motor Boat',
+      'Pedal Boat',
+      'Raft',
+      'Kayak',
+      'Ferry',
+      'Other',
+    ],
+    optionsNe: [
+      'काठको',
+      'फाइबर',
+      'मोटर बोट',
+      'प्याडल बोट',
+      'र्‍याफ्ट',
+      'कायाक',
+      'फेरी',
+      'अन्य',
+    ],
+  );
+
+  static const _partType = FormFieldModel(
+    name: 'partType',
+    label: 'Part Type',
+    labelNe: 'पार्ट्स प्रकार',
+    type: FieldType.select,
+    options: [
+      'Engine/Transmission',
+      'Brakes/Suspension',
+      'Tyres/Wheels',
+      'Battery',
+      'Lights/Electricals',
+      'Body Parts',
+      'Interior',
+      'Mirrors/Glass',
+      'Audio',
+      'Filters/Fluids',
+      'Helmets',
+      'Car Care',
+      'Other',
+    ],
+    optionsNe: [
+      'इन्जिन/ट्रान्समिसन',
+      'ब्रेक/सस्पेन्सन',
+      'टायर/पाङ्ग्रा',
+      'ब्याट्री',
+      'लाइट/इलेक्ट्रिकल',
+      'बडी पार्ट्स',
+      'भित्री सजावट',
+      'ऐना/सिसा',
+      'अडियो',
+      'फिल्टर/तेल',
+      'हेल्मेट',
+      'कार केयर',
+      'अन्य',
+    ],
+  );
+
+  static const _compatibleVehicle = FormFieldModel(
+    name: 'compatibleVehicle',
+    label: 'Compatible Vehicle',
+    labelNe: 'मिल्ने सवारी साधन',
+    type: FieldType.text,
+    placeholder: 'e.g., Suzuki Swift 2015-2020, Pulsar 150',
+    placeholderNe: 'जस्तै, Suzuki Swift 2015-2020, Pulsar 150',
+  );
+
+  static const _rentalPeriod = FormFieldModel(
+    name: 'rentalPeriod',
+    label: 'Rental Period',
+    labelNe: 'भाडा अवधि',
+    type: FieldType.select,
+    options: ['Per Hour', 'Per Day', 'Per Week', 'Per Month', 'Per Trip'],
+    optionsNe: [
+      'प्रति घण्टा',
+      'प्रति दिन',
+      'प्रति हप्ता',
+      'प्रति महिना',
+      'प्रति यात्रा',
+    ],
+  );
+
+  static const _withDriver = FormFieldModel(
+    name: 'withDriver',
+    label: 'Driver',
+    labelNe: 'चालक',
+    type: FieldType.select,
+    options: ['With Driver', 'Self-Drive', 'Both'],
+    optionsNe: ['चालक सहित', 'आफैं चलाउने', 'दुवै'],
+  );
+
+  static const _vehicleTypesServiced = FormFieldModel(
+    name: 'vehicleTypesServiced',
+    label: 'Vehicles Serviced',
+    labelNe: 'सेवा दिइने सवारी',
+    type: FieldType.multiselect,
+    options: [
+      'Car',
+      'Motorbike',
+      'Scooter',
+      'Truck',
+      'Bus',
+      'Three Wheeler',
+      'Heavy Equipment',
+    ],
+    optionsNe: [
+      'कार',
+      'मोटरसाइकल',
+      'स्कुटर',
+      'ट्रक',
+      'बस',
+      'तीन पाङ्ग्रे',
+      'भारी उपकरण',
+    ],
+  );
+
+  static const _serviceOptions = FormFieldModel(
+    name: 'serviceOptions',
+    label: 'Service Options',
+    labelNe: 'सेवा सुविधा',
+    type: FieldType.multiselect,
+    options: [
+      'Pickup/Drop',
+      'On-site Service',
+      '24hr Service',
+      'Warranty',
+      'Genuine Parts',
+    ],
+    optionsNe: [
+      'पिकअप/ड्रप',
+      'घरमै सेवा',
+      '२४ घण्टा सेवा',
+      'वारेन्टी',
+      'जेनुइन पार्ट्स',
+    ],
+  );
+
+  static const _autoServiceTypes = [
+    'Servicing/Oil Change',
+    'Denting/Painting',
+    'Mechanical',
+    'Electrical',
+    'AC Service',
+    'Tyre/Alignment',
+    'Battery',
+    'Car Wash',
+    'Insurance',
+    'Bluebook/Renewal',
+    'Towing',
+    'Other',
+  ];
+  static const _autoServiceTypesNe = [
+    'सर्भिसिङ/मोबिल',
+    'डेन्टिङ/पेन्टिङ',
+    'मेकानिकल',
+    'इलेक्ट्रिकल',
+    'एसी सर्भिस',
+    'टायर/अलाइनमेन्ट',
+    'ब्याट्री',
+    'कार वास',
+    'बीमा',
+    'ब्लुबुक/नवीकरण',
+    'टोइङ',
+    'अन्य',
+  ];
+
   // ============================================
   // PROPERTY FIELDS
   // ============================================
 
-  static const _totalArea = FormFieldModel(
+  static FormFieldModel _propertyType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'propertyType',
+    label: 'Property Type',
+    labelNe: 'सम्पत्ति प्रकार',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static const _roomType = FormFieldModel(
+    name: 'roomType',
+    label: 'Room Type',
+    labelNe: 'कोठा प्रकार',
+    type: FieldType.select,
+    options: [
+      'Single Room',
+      '1 Room + Kitchen',
+      '2 Rooms + Kitchen',
+      'Shared Room',
+      'Master Bedroom',
+      'Hostel Bed',
+      'Flat',
+    ],
+    optionsNe: [
+      'एकल कोठा',
+      '१ कोठा + भान्सा',
+      '२ कोठा + भान्सा',
+      'साझा कोठा',
+      'मास्टर बेडरूम',
+      'होस्टेल बेड',
+      'फ्ल्याट',
+    ],
+  );
+
+  static FormFieldModel _totalArea({
+    String label = 'Total Area',
+    String labelNe = 'कुल क्षेत्रफल',
+  }) => FormFieldModel(
     name: 'totalArea',
-    label: 'Total Area',
-    labelNe: 'कुल क्षेत्रफल',
+    label: label,
+    labelNe: labelNe,
     type: FieldType.number,
-    required: true,
     placeholder: 'Enter area',
     placeholderNe: 'क्षेत्रफल लेख्नुहोस्',
   );
 
+  // Terai land is sold in dhur/kattha/bigha; without them those ads cannot be
+  // listed correctly at all.
   static const _areaUnit = FormFieldModel(
     name: 'areaUnit',
     label: 'Area Unit',
     labelNe: 'क्षेत्रफल एकाइ',
     type: FieldType.select,
-    required: true,
-    options: ['sq ft', 'aana', 'ropani', 'sq meter'],
-    optionsNe: ['वर्ग फिट', 'आना', 'रोपनी', 'वर्ग मिटर'],
+    options: ['aana', 'ropani', 'dhur', 'kattha', 'bigha', 'sq ft', 'sq meter'],
+    optionsNe: [
+      'आना',
+      'रोपनी',
+      'धुर',
+      'कट्ठा',
+      'बिघा',
+      'वर्ग फिट',
+      'वर्ग मिटर',
+    ],
+  );
+
+  static const _builtUpArea = FormFieldModel(
+    name: 'builtUpArea',
+    label: 'Built-up Area (sq ft)',
+    labelNe: 'निर्मित क्षेत्रफल (वर्ग फिट)',
+    type: FieldType.number,
+    placeholder: 'e.g., 1800',
+    placeholderNe: 'जस्तै, १८००',
   );
 
   static const _bedrooms = FormFieldModel(
@@ -392,7 +905,6 @@ class FormTemplateService {
     label: 'Bedrooms',
     labelNe: 'शयनकोठा',
     type: FieldType.select,
-    required: true,
     options: ['Studio', '1', '2', '3', '4', '5', '6+'],
     optionsNe: ['स्टुडियो', '१', '२', '३', '४', '५', '६+'],
   );
@@ -402,28 +914,71 @@ class FormTemplateService {
     label: 'Bathrooms',
     labelNe: 'स्नानकोठा',
     type: FieldType.select,
-    required: true,
     options: ['1', '2', '3', '4', '5+'],
     optionsNe: ['१', '२', '३', '४', '५+'],
   );
 
-  static const _furnishing = FormFieldModel(
+  static FormFieldModel _furnishing({
+    String label = 'Furnishing',
+    String labelNe = 'फर्निचर',
+  }) => FormFieldModel(
     name: 'furnishing',
-    label: 'Furnishing Status',
-    labelNe: 'फर्निचर अवस्था',
+    label: label,
+    labelNe: labelNe,
     type: FieldType.select,
     options: ['Fully Furnished', 'Semi Furnished', 'Unfurnished'],
     optionsNe: ['पूर्ण सुसज्जित', 'आंशिक सुसज्जित', 'सुसज्जित नभएको'],
   );
 
-  static const _parking = FormFieldModel(
-    name: 'parking',
-    label: 'Number of Parking Spaces',
-    labelNe: 'पार्किङ स्थान',
+  static const _constructionType = FormFieldModel(
+    name: 'constructionType',
+    label: 'Construction Type',
+    labelNe: 'निर्माण प्रकार',
     type: FieldType.select,
-    options: ['None', '1', '2', '3', '4+'],
-    optionsNe: ['छैन', '१', '२', '३', '४+'],
+    options: ['RCC Pillar', 'Semi-Pillar', 'Load Bearing', 'Wooden'],
+    optionsNe: ['आरसीसी पिलर', 'सेमी-पिलर', 'लोड बेयरिङ', 'काठको'],
   );
+
+  static FormFieldModel _parking(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'parking',
+    label: 'Parking',
+    labelNe: 'पार्किङ',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static const _parkingOptions = [
+    'None',
+    'Bike',
+    'Car',
+    'Bike + Car',
+    '2+ Vehicles',
+  ];
+  static const _parkingOptionsNe = [
+    'छैन',
+    'मोटरसाइकल',
+    'कार',
+    'मोटरसाइकल + कार',
+    '२+ सवारी',
+  ];
+  static const _commercialParkingOptions = [
+    'None',
+    'Bike',
+    'Car',
+    'Bike + Car',
+    'Truck / Loading Bay',
+  ];
+  static const _commercialParkingOptionsNe = [
+    'छैन',
+    'मोटरसाइकल',
+    'कार',
+    'मोटरसाइकल + कार',
+    'ट्रक / लोडिङ बे',
+  ];
 
   static const _floorNumber = FormFieldModel(
     name: 'floorNumber',
@@ -445,7 +1000,7 @@ class FormTemplateService {
 
   static const _facing = FormFieldModel(
     name: 'facing',
-    label: 'Facing Direction',
+    label: 'Facing',
     labelNe: 'मुख दिशा',
     type: FieldType.select,
     options: [
@@ -470,120 +1025,278 @@ class FormTemplateService {
     ],
   );
 
-  static const _propertyAge = FormFieldModel(
-    name: 'propertyAge',
-    label: 'Property Age',
-    labelNe: 'सम्पत्ति उमेर',
-    type: FieldType.select,
-    options: [
-      'Under Construction',
-      '0-1 years',
-      '1-5 years',
-      '5-10 years',
-      '10-20 years',
-      '20+ years',
-    ],
-    optionsNe: [
-      'निर्माणाधीन',
-      '०-१ वर्ष',
-      '१-५ वर्ष',
-      '५-१० वर्ष',
-      '१०-२० वर्ष',
-      '२०+ वर्ष',
-    ],
+  /// Replaces the old `propertyAge` range picker. A new key, not a relabel: ads
+  /// posted before this store '0-1 years', which cannot become a year — they
+  /// keep rendering under the legacy label instead.
+  /// Years are AD. The cap runs a few years ahead so an under-construction
+  /// building can quote its expected completion year.
+  static FormFieldModel get _buildYear => FormFieldModel(
+    name: 'buildYear',
+    label: 'Build Year',
+    labelNe: 'निर्माण वर्ष',
+    type: FieldType.number,
+    placeholder: 'e.g. 2019',
+    placeholderNe: 'जस्तै २०१९',
+    min: 1950,
+    max: (DateTime.now().year + 5).toDouble(),
   );
 
-  static FormFieldModel _amenities([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _amenities(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'amenities',
     label: 'Amenities',
     labelNe: 'सुविधाहरू',
     type: FieldType.multiselect,
-    options:
-        opts ??
-        [
-          'Lift/Elevator',
-          'Power Backup',
-          'Water Supply',
-          'Security/Gated',
-          'Gym',
-          'Swimming Pool',
-          'Garden',
-          'Playground',
-          'Club House',
-          'Visitor Parking',
-        ],
-    optionsNe: opts != null
-        ? null
-        : [
-            'लिफ्ट/एलिभेटर',
-            'पावर ब्याकअप',
-            'पानी आपूर्ति',
-            'सुरक्षा/गेटेड',
-            'जिम',
-            'स्विमिङ पुल',
-            'बगैंचा',
-            'खेल मैदान',
-            'क्लब हाउस',
-            'आगन्तुक पार्किङ',
-          ],
+    options: options,
+    optionsNe: optionsNe,
   );
 
-  static FormFieldModel _landType([String? label, List<String>? opts]) =>
-      FormFieldModel(
-        name: 'landType',
-        label: label ?? 'Land Type',
-        labelNe: label != null ? null : 'जमिन प्रकार',
-        type: FieldType.select,
-        options:
-            opts ??
-            [
-              'Residential',
-              'Commercial',
-              'Agricultural',
-              'Industrial',
-              'Mixed Use',
-            ],
-        optionsNe: opts != null
-            ? null
-            : ['आवासीय', 'व्यापारिक', 'कृषि', 'औद्योगिक', 'मिश्रित प्रयोग'],
-      );
+  static const _apartmentAmenities = [
+    'Lift/Elevator',
+    'Power Backup',
+    '24hr Water',
+    'Security/Gated',
+    'Balcony',
+    'Modular Kitchen',
+    'Gym',
+    'Swimming Pool',
+    'Kids Play Area',
+    'Club House',
+    'Visitor Parking',
+  ];
+  static const _apartmentAmenitiesNe = [
+    'लिफ्ट',
+    'पावर ब्याकअप',
+    '२४ घण्टा पानी',
+    'सुरक्षा/गेटेड',
+    'बाल्कनी',
+    'मोड्युलर भान्सा',
+    'जिम',
+    'स्विमिङ पुल',
+    'बालबालिका खेल्ने ठाउँ',
+    'क्लब हाउस',
+    'आगन्तुक पार्किङ',
+  ];
+
+  static const _houseAmenities = [
+    'Boring/Well',
+    'Overhead Tank',
+    'Solar Heater',
+    'Inverter',
+    'Compound Wall',
+    'Garden',
+    'Garage',
+    'CCTV',
+    'Modular Kitchen',
+    'Terrace',
+  ];
+  static const _houseAmenitiesNe = [
+    'बोरिङ/इनार',
+    'ओभरहेड ट्यांकी',
+    'सोलार हिटर',
+    'इन्भर्टर',
+    'कम्पाउन्ड पर्खाल',
+    'बगैंचा',
+    'ग्यारेज',
+    'सीसीटीभी',
+    'मोड्युलर भान्सा',
+    'कौसी',
+  ];
+
+  static const _houseRentalAmenities = [
+    '24hr Water',
+    'Overhead Tank',
+    'Solar Heater',
+    'Inverter',
+    'Separate Electricity Meter',
+    'Compound Wall',
+    'Garden',
+    'Garage',
+    'CCTV',
+    'Terrace',
+  ];
+  static const _houseRentalAmenitiesNe = [
+    '२४ घण्टा पानी',
+    'ओभरहेड ट्यांकी',
+    'सोलार हिटर',
+    'इन्भर्टर',
+    'छुट्टै बिजुली मिटर',
+    'कम्पाउन्ड पर्खाल',
+    'बगैंचा',
+    'ग्यारेज',
+    'सीसीटीभी',
+    'कौसी',
+  ];
+
+  static const _commercialAmenities = [
+    'Lift/Elevator',
+    'Power Backup',
+    'Water Supply',
+    'Parking',
+    'CCTV',
+    'Air Conditioning',
+    'Attached Toilet',
+    'Loading Access',
+    'Separate Entrance',
+    'Fire Safety',
+  ];
+  static const _commercialAmenitiesNe = [
+    'लिफ्ट',
+    'पावर ब्याकअप',
+    'पानी आपूर्ति',
+    'पार्किङ',
+    'सीसीटीभी',
+    'एयर कन्डिसनिङ',
+    'संलग्न शौचालय',
+    'लोडिङ पहुँच',
+    'छुट्टै प्रवेशद्वार',
+    'अग्नि सुरक्षा',
+  ];
+
+  static const _roomAmenities = [
+    'Attached Bathroom',
+    'Shared Bathroom',
+    'Kitchen Access',
+    '24hr Water',
+    'Hot Water',
+    'WiFi',
+    'Separate Meter',
+    'Parking',
+    'Laundry',
+    'Terrace',
+    'Furnished Bed',
+  ];
+  static const _roomAmenitiesNe = [
+    'संलग्न बाथरूम',
+    'साझा बाथरूम',
+    'भान्सा प्रयोग',
+    '२४ घण्टा पानी',
+    'तातो पानी',
+    'वाइफाइ',
+    'छुट्टै मिटर',
+    'पार्किङ',
+    'लुगा धुने',
+    'कौसी',
+    'ओछ्यान सहित',
+  ];
+
+  static const _landType = FormFieldModel(
+    name: 'landType',
+    label: 'Land Type',
+    labelNe: 'जमिन प्रकार',
+    type: FieldType.select,
+    options: [
+      'Residential',
+      'Commercial',
+      'Agricultural',
+      'Industrial',
+      'Mixed Use',
+    ],
+    optionsNe: ['आवासीय', 'व्यापारिक', 'कृषि', 'औद्योगिक', 'मिश्रित प्रयोग'],
+  );
 
   static const _roadAccess = FormFieldModel(
     name: 'roadAccess',
-    label: 'Road Access',
-    labelNe: 'सडक पहुँच',
+    label: 'Road Type',
+    labelNe: 'सडक प्रकार',
     type: FieldType.select,
     options: ['Paved Road', 'Graveled Road', 'Dirt Road', 'No Direct Access'],
     optionsNe: ['पक्की सडक', 'ग्राभेल सडक', 'कच्ची सडक', 'प्रत्यक्ष पहुँच छैन'],
   );
 
-  static const _roadWidth = FormFieldModel(
-    name: 'roadWidth',
-    label: 'Road Width',
-    labelNe: 'सडक चौडाइ',
-    type: FieldType.number,
-    placeholder: 'in feet',
-    placeholderNe: 'फिटमा',
+  /// Replaces the free-number `roadWidth`. A new key, not a relabel: older ads
+  /// store a raw number, which has no matching option — they keep rendering
+  /// under the legacy label instead. Bands follow how Nepali listings quote it.
+  static const _roadSize = FormFieldModel(
+    name: 'roadSize',
+    label: 'Road Size',
+    labelNe: 'सडक आकार',
+    type: FieldType.select,
+    options: [
+      'Under 8 feet',
+      '8-13 feet',
+      '13-16 feet',
+      '16-20 feet',
+      '20+ feet',
+    ],
+    optionsNe: [
+      '८ फिटभन्दा कम',
+      '८-१३ फिट',
+      '१३-१६ फिट',
+      '१६-२० फिट',
+      '२०+ फिट',
+    ],
   );
 
-  static const _monthlyRent = FormFieldModel(
-    name: 'monthlyRent',
-    label: 'Monthly Rent',
-    labelNe: 'मासिक भाडा',
-    type: FieldType.number,
-    required: true,
-    placeholder: 'in NPR',
-    placeholderNe: 'रुपैयाँमा',
+  static const _preferredTenant = FormFieldModel(
+    name: 'preferredTenant',
+    label: 'Preferred Tenant',
+    labelNe: 'रुचाइएको भाडावाल',
+    type: FieldType.select,
+    options: [
+      'Family',
+      'Bachelors',
+      'Students',
+      'Working Professionals',
+      'Girls Only',
+      'Boys Only',
+      'Anyone',
+    ],
+    optionsNe: [
+      'परिवार',
+      'ब्याचलर',
+      'विद्यार्थी',
+      'जागिरे',
+      'केटी मात्र',
+      'केटा मात्र',
+      'जो कोही',
+    ],
   );
 
-  static const _securityDeposit = FormFieldModel(
+  static FormFieldModel _securityDeposit(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'securityDeposit',
     label: 'Security Deposit',
     labelNe: 'धरौटी',
-    type: FieldType.number,
-    placeholder: 'in NPR',
-    placeholderNe: 'रुपैयाँमा',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
   );
+
+  static const _depositOptions = [
+    'None',
+    '1 month',
+    '2 months',
+    '3 months',
+    'Negotiable',
+  ];
+  static const _depositOptionsNe = [
+    'छैन',
+    '१ महिना',
+    '२ महिना',
+    '३ महिना',
+    'मिलाउन सकिने',
+  ];
+  static const _commercialDepositOptions = [
+    'None',
+    '1 month',
+    '2 months',
+    '3 months',
+    '6 months',
+    'Negotiable',
+  ];
+  static const _commercialDepositOptionsNe = [
+    'छैन',
+    '१ महिना',
+    '२ महिना',
+    '३ महिना',
+    '६ महिना',
+    'मिलाउन सकिने',
+  ];
 
   static const _availableFrom = FormFieldModel(
     name: 'availableFrom',
@@ -607,44 +1320,16 @@ class FormTemplateService {
   // FASHION FIELDS
   // ============================================
 
-  static FormFieldModel _clothingType([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _clothingType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'clothingType',
     label: 'Clothing Type',
     labelNe: 'लुगा प्रकार',
     type: FieldType.select,
-    required: true,
-    options:
-        opts ??
-        [
-          'Shirt',
-          'T-Shirt',
-          'Pants',
-          'Jeans',
-          'Dress',
-          'Saree',
-          'Kurta',
-          'Jacket',
-          'Coat',
-          'Sweater',
-          'Skirt',
-          'Shorts',
-        ],
-    optionsNe: opts != null
-        ? null
-        : [
-            'सर्ट',
-            'टी-सर्ट',
-            'प्यान्ट',
-            'जिन्स',
-            'ड्रेस',
-            'साडी',
-            'कुर्ता',
-            'ज्याकेट',
-            'कोट',
-            'स्वेटर',
-            'स्कर्ट',
-            'शर्ट्स',
-          ],
+    options: options,
+    optionsNe: optionsNe,
   );
 
   static const _size = FormFieldModel(
@@ -652,9 +1337,39 @@ class FormTemplateService {
     label: 'Size',
     labelNe: 'साइज',
     type: FieldType.select,
-    required: true,
     options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'],
     optionsNe: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'फ्री साइज'],
+  );
+
+  static const _waistSize = FormFieldModel(
+    name: 'size',
+    label: 'Waist Size (inches)',
+    labelNe: 'कम्मर साइज (इन्च)',
+    type: FieldType.select,
+    options: [
+      '28',
+      '30',
+      '32',
+      '34',
+      '36',
+      '38',
+      '40',
+      '42',
+      '44',
+      'Free Size',
+    ],
+    optionsNe: [
+      '२८',
+      '३०',
+      '३२',
+      '३४',
+      '३६',
+      '३८',
+      '४०',
+      '४२',
+      '४४',
+      'फ्री साइज',
+    ],
   );
 
   static const _fitType = FormFieldModel(
@@ -675,47 +1390,55 @@ class FormTemplateService {
     optionsNe: ['पूरा बाहुला', 'आधा बाहुला', 'बाहुला नभएको', '३/४ बाहुला'],
   );
 
-  static FormFieldModel _footwearType([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _fabric(List<String> options, List<String> optionsNe) =>
+      FormFieldModel(
+        name: 'fabric',
+        label: 'Fabric',
+        labelNe: 'कपडा',
+        type: FieldType.select,
+        options: options,
+        optionsNe: optionsNe,
+      );
+
+  static const _footwearType = FormFieldModel(
     name: 'footwearType',
     label: 'Footwear Type',
     labelNe: 'जुत्ता प्रकार',
     type: FieldType.select,
-    required: true,
-    options:
-        opts ??
-        [
-          'Sneakers',
-          'Formal Shoes',
-          'Sandals',
-          'Slippers',
-          'Boots',
-          'Heels',
-          'Flats',
-          'Sports Shoes',
-        ],
-    optionsNe: opts != null
-        ? null
-        : [
-            'स्निकर्स',
-            'फर्मल जुत्ता',
-            'स्यान्डल',
-            'चप्पल',
-            'बुट',
-            'हिल्स',
-            'फ्ल्याट्स',
-            'खेलकुद जुत्ता',
-          ],
+    options: [
+      'Sneakers',
+      'Formal Shoes',
+      'Sandals',
+      'Slippers',
+      'Boots',
+      'Heels',
+      'Wedges',
+      'Pumps',
+      'Flats',
+      'Sports Shoes',
+    ],
+    optionsNe: [
+      'स्निकर्स',
+      'फर्मल जुत्ता',
+      'स्यान्डल',
+      'चप्पल',
+      'बुट',
+      'हिल्स',
+      'वेजेज',
+      'पम्प्स',
+      'फ्ल्याट्स',
+      'खेलकुद जुत्ता',
+    ],
   );
 
   static const _shoeSize = FormFieldModel(
     name: 'shoeSize',
-    label: 'Shoe Size',
-    labelNe: 'जुत्ता साइज',
+    label: 'Shoe Size (EU)',
+    labelNe: 'जुत्ता साइज (EU)',
     type: FieldType.number,
-    required: true,
     placeholder: 'e.g., 38, 40, 42',
     placeholderNe: 'जस्तै, ३८, ४०, ४२',
-    min: 32,
+    min: 30,
     max: 50,
   );
 
@@ -724,8 +1447,22 @@ class FormTemplateService {
     label: 'Watch Type',
     labelNe: 'घडी प्रकार',
     type: FieldType.select,
-    options: ['Analog', 'Digital', 'Smart Watch', 'Chronograph'],
-    optionsNe: ['एनालग', 'डिजिटल', 'स्मार्ट वाच', 'क्रोनोग्राफ'],
+    options: [
+      'Analog',
+      'Digital',
+      'Smart Watch',
+      'Chronograph',
+      'Automatic',
+      'Mechanical',
+    ],
+    optionsNe: [
+      'एनालग',
+      'डिजिटल',
+      'स्मार्ट वाच',
+      'क्रोनोग्राफ',
+      'अटोमेटिक',
+      'मेकानिकल',
+    ],
   );
 
   static const _strapMaterial = FormFieldModel(
@@ -733,72 +1470,200 @@ class FormTemplateService {
     label: 'Strap Material',
     labelNe: 'स्ट्र्याप सामग्री',
     type: FieldType.select,
-    options: ['Leather', 'Metal', 'Rubber', 'Fabric'],
-    optionsNe: ['छाला', 'धातु', 'रबर', 'कपडा'],
+    options: ['Leather', 'Metal', 'Rubber', 'Silicone', 'Fabric'],
+    optionsNe: ['छाला', 'धातु', 'रबर', 'सिलिकन', 'कपडा'],
+  );
+
+  static const _jewelleryMaterial = FormFieldModel(
+    name: 'jewelleryMaterial',
+    label: 'Jewellery Material',
+    labelNe: 'गहना सामग्री',
+    type: FieldType.select,
+    options: [
+      'Gold',
+      'Silver',
+      'Platinum',
+      'Diamond',
+      'Gemstone',
+      'Pearl',
+      'Imitation',
+      'Other',
+    ],
+    optionsNe: [
+      'सुन',
+      'चाँदी',
+      'प्लेटिनम',
+      'हीरा',
+      'रत्न',
+      'मोती',
+      'इमिटेसन',
+      'अन्य',
+    ],
+  );
+
+  static const _eyewearType = FormFieldModel(
+    name: 'eyewearType',
+    label: 'Eyewear Type',
+    labelNe: 'चस्मा प्रकार',
+    type: FieldType.select,
+    options: [
+      'Sunglasses',
+      'Frames',
+      'Prescription Glasses',
+      'Reading Glasses',
+      'Contact Lenses',
+      'Other',
+    ],
+    optionsNe: [
+      'सनग्लास',
+      'फ्रेम',
+      'प्रिस्क्रिप्सन चस्मा',
+      'पढ्ने चस्मा',
+      'कन्ट्याक्ट लेन्स',
+      'अन्य',
+    ],
+  );
+
+  static const _bagAccessoryType = FormFieldModel(
+    name: 'accessoryType',
+    label: 'Accessory Type',
+    labelNe: 'सामान प्रकार',
+    type: FieldType.select,
+    options: [
+      'Backpack',
+      'Handbag',
+      'Sling Bag',
+      'Wallet',
+      'Belt',
+      'Luggage',
+      'Laptop Bag',
+      'Cap',
+      'Scarf',
+      'Other',
+    ],
+    optionsNe: [
+      'ब्याकप्याक',
+      'ह्यान्डब्याग',
+      'स्लिङ ब्याग',
+      'वालेट',
+      'बेल्ट',
+      'लगेज',
+      'ल्यापटप ब्याग',
+      'क्याप',
+      'स्कार्फ',
+      'अन्य',
+    ],
+  );
+
+  static const _minOrderQuantity = FormFieldModel(
+    name: 'minOrderQuantity',
+    label: 'Minimum Order Quantity',
+    labelNe: 'न्यूनतम अर्डर मात्रा',
+    type: FieldType.number,
+    placeholder: 'e.g., 50 pieces',
+    placeholderNe: 'जस्तै, ५० गोटा',
+  );
+
+  static FormFieldModel _material(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
+    name: 'material',
+    label: 'Material',
+    labelNe: 'सामग्री',
+    type: FieldType.select,
+    options: options,
+    optionsNe: optionsNe,
   );
 
   // ============================================
   // PETS FIELDS
   // ============================================
 
-  static FormFieldModel _animalType([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _animalType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'animalType',
     label: 'Animal Type',
     labelNe: 'जनावर प्रकार',
     type: FieldType.select,
-    required: true,
-    options:
-        opts ??
-        [
-          'Dog',
-          'Cat',
-          'Bird',
-          'Fish',
-          'Rabbit',
-          'Hamster',
-          'Guinea Pig',
-          'Cow',
-          'Buffalo',
-          'Goat',
-          'Chicken',
-          'Duck',
-          'Other',
-        ],
-    optionsNe: opts != null
-        ? null
-        : [
-            'कुकुर',
-            'बिरालो',
-            'चरा',
-            'माछा',
-            'खरायो',
-            'ह्याम्स्टर',
-            'गिनी पिग',
-            'गाई',
-            'भैंसी',
-            'बाख्रा',
-            'कुखुरा',
-            'हाँस',
-            'अन्य',
-          ],
+    options: options,
+    optionsNe: optionsNe,
   );
 
-  static FormFieldModel _breed([String? label, String? placeholder]) =>
-      FormFieldModel(
-        name: 'breed',
-        label: label ?? 'Breed',
-        labelNe: 'जात',
-        type: FieldType.text,
-        placeholder: placeholder ?? 'e.g., Golden Retriever, Persian Cat',
-        placeholderNe: 'जस्तै, गोल्डेन रिट्रिभर, पर्सियन बिरालो',
-      );
+  static const _petAnimalTypes = [
+    'Dog',
+    'Cat',
+    'Bird',
+    'Fish',
+    'Rabbit',
+    'Hamster',
+    'Guinea Pig',
+    'Turtle',
+    'Other',
+  ];
+  static const _petAnimalTypesNe = [
+    'कुकुर',
+    'बिरालो',
+    'चरा',
+    'माछा',
+    'खरायो',
+    'ह्याम्स्टर',
+    'गिनी पिग',
+    'कछुवा',
+    'अन्य',
+  ];
 
-  static FormFieldModel _petAge([String? label]) => FormFieldModel(
+  static const _farmAnimalTypes = [
+    'Cow',
+    'Buffalo',
+    'Goat',
+    'Sheep',
+    'Pig',
+    'Yak/Chauri',
+    'Horse',
+    'Chicken',
+    'Duck',
+    'Turkey',
+    'Pigeon',
+    'Rabbit',
+    'Other',
+  ];
+  static const _farmAnimalTypesNe = [
+    'गाई',
+    'भैंसी',
+    'बाख्रा',
+    'भेडा',
+    'बंगुर',
+    'याक/चौंरी',
+    'घोडा',
+    'कुखुरा',
+    'हाँस',
+    'टर्की',
+    'परेवा',
+    'खरायो',
+    'अन्य',
+  ];
+
+  static FormFieldModel _breed({
+    String label = 'Breed',
+    String labelNe = 'जात',
+    String placeholder = 'e.g., Golden Retriever, Persian Cat',
+  }) => FormFieldModel(
+    name: 'breed',
+    label: label,
+    labelNe: labelNe,
+    type: FieldType.text,
+    placeholder: placeholder,
+    placeholderNe: 'जस्तै, गोल्डेन रिट्रिभर, पर्सियन बिरालो',
+  );
+
+  static const _petAge = FormFieldModel(
     name: 'age',
-    label: label ?? 'Age',
+    label: 'Age',
     labelNe: 'उमेर',
     type: FieldType.select,
-    required: true,
     options: [
       '0-3 months',
       '3-6 months',
@@ -817,9 +1682,9 @@ class FormTemplateService {
     ],
   );
 
-  static FormFieldModel _petGender([String? label]) => FormFieldModel(
+  static const _petGender = FormFieldModel(
     name: 'gender',
-    label: label ?? 'Gender',
+    label: 'Gender',
     labelNe: 'लिङ्ग',
     type: FieldType.select,
     options: ['Male', 'Female', 'Unknown'],
@@ -831,15 +1696,14 @@ class FormTemplateService {
     label: 'Vaccination Status',
     labelNe: 'खोप अवस्था',
     type: FieldType.select,
-    required: true,
     options: ['Fully Vaccinated', 'Partially Vaccinated', 'Not Vaccinated'],
     optionsNe: ['पूर्ण खोप लगाइएको', 'आंशिक खोप लगाइएको', 'खोप नलगाइएको'],
   );
 
   static const _petPapers = FormFieldModel(
     name: 'papers',
-    label: 'Pet Papers/Documents',
-    labelNe: 'कागजात',
+    label: 'Pedigree / Papers',
+    labelNe: 'वंशावली / कागजात',
     type: FieldType.select,
     options: ['Yes - All Papers', 'Some Papers', 'No Papers'],
     optionsNe: ['छ - सबै कागजात', 'केही कागजात', 'कागजात छैन'],
@@ -847,31 +1711,38 @@ class FormTemplateService {
 
   static const _petColor = FormFieldModel(
     name: 'color',
-    label: 'Color/Coat Color',
-    labelNe: 'रङ/छाला रङ',
+    label: 'Color / Coat',
+    labelNe: 'रङ / छाला',
     type: FieldType.text,
     placeholder: 'e.g., Brown, Black, White',
     placeholderNe: 'जस्तै, खैरो, कालो, सेतो',
   );
 
-  static FormFieldModel _petWeight([String? label]) => FormFieldModel(
+  static const _animalWeight = FormFieldModel(
     name: 'weight',
-    label: label ?? 'Weight',
-    labelNe: 'तौल',
+    label: 'Weight (kg)',
+    labelNe: 'तौल (के.जी.)',
     type: FieldType.number,
     placeholder: 'in kg',
     placeholderNe: 'के.जी. मा',
   );
 
-  static FormFieldModel _trained([List<String>? opts]) => FormFieldModel(
+  static const _milkYield = FormFieldModel(
+    name: 'milkYield',
+    label: 'Milk Yield (litres/day)',
+    labelNe: 'दूध उत्पादन (लिटर/दिन)',
+    type: FieldType.number,
+    placeholder: 'e.g., 12',
+    placeholderNe: 'जस्तै, १२',
+  );
+
+  static const _trained = FormFieldModel(
     name: 'trained',
     label: 'Trained',
     labelNe: 'प्रशिक्षित',
     type: FieldType.select,
-    options: opts ?? ['Fully Trained', 'Partially Trained', 'Not Trained'],
-    optionsNe: opts != null
-        ? null
-        : ['पूर्ण प्रशिक्षित', 'आंशिक प्रशिक्षित', 'प्रशिक्षित नभएको'],
+    options: ['Fully Trained', 'Partially Trained', 'Not Trained'],
+    optionsNe: ['पूर्ण प्रशिक्षित', 'आंशिक प्रशिक्षित', 'प्रशिक्षित नभएको'],
   );
 
   static const _friendlyWith = FormFieldModel(
@@ -879,44 +1750,43 @@ class FormTemplateService {
     label: 'Friendly With',
     labelNe: 'मैत्रीपूर्ण',
     type: FieldType.multiselect,
-    options: ['Children', 'Other Dogs', 'Cats', 'Strangers'],
-    optionsNe: ['बच्चाहरू', 'अन्य कुकुर', 'बिरालो', 'अपरिचित'],
+    options: ['Children', 'Other Pets', 'Strangers'],
+    optionsNe: ['बच्चाहरू', 'अन्य पाल्तु जनावर', 'अपरिचित'],
   );
 
-  static FormFieldModel _petProductType([List<String>? opts]) => FormFieldModel(
-    name: 'productType',
-    label: 'Product Type',
-    labelNe: 'उत्पादन प्रकार',
-    type: FieldType.select,
-    required: true,
-    options:
-        opts ??
-        [
-          'Food',
-          'Toy',
-          'Cage',
-          'Leash',
-          'Collar',
-          'Grooming',
-          'Medicine',
-          'Bedding',
-        ],
-    optionsNe: opts != null
-        ? null
-        : ['खाना', 'खेलौना', 'पिंजरा', 'डोरी', 'कलर', 'सफाइ', 'औषधि', 'ओछ्यान'],
-  );
-
+  // "Pet & Animal food" and its accessories cover livestock too, so the list
+  // is not pets-only.
   static const _suitableFor = FormFieldModel(
     name: 'suitableFor',
     label: 'Suitable For',
     labelNe: 'उपयुक्त',
     type: FieldType.select,
-    options: ['Dogs', 'Cats', 'Birds', 'Fish', 'All Pets'],
-    optionsNe: ['कुकुर', 'बिरालो', 'चरा', 'माछा', 'सबै पाल्तु जनावर'],
+    options: [
+      'Dogs',
+      'Cats',
+      'Birds',
+      'Fish',
+      'Rabbits',
+      'Cattle',
+      'Goats',
+      'Poultry',
+      'All Pets',
+    ],
+    optionsNe: [
+      'कुकुर',
+      'बिरालो',
+      'चरा',
+      'माछा',
+      'खरायो',
+      'गाईवस्तु',
+      'बाख्रा',
+      'कुखुरा',
+      'सबै पाल्तु जनावर',
+    ],
   );
 
   // ============================================
-  // SERVICES FIELDS
+  // SERVICES & EDUCATION FIELDS
   // ============================================
 
   static const _experience = FormFieldModel(
@@ -940,44 +1810,128 @@ class FormTemplateService {
     ],
   );
 
-  static FormFieldModel _availability([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _availability(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'availability',
     label: 'Availability',
     labelNe: 'उपलब्धता',
     type: FieldType.multiselect,
-    options: opts ?? ['Weekdays', 'Weekends', 'Evenings', '24/7', 'On-Call'],
-    optionsNe: opts != null
-        ? null
-        : ['हप्ताका दिन', 'शनिबार/आइतबार', 'साँझ', '२४/७', 'अन-कल'],
+    options: options,
+    optionsNe: optionsNe,
   );
 
-  static FormFieldModel _serviceLocation([
-    String? label,
-    List<String>? opts,
-    bool required = false,
-  ]) => FormFieldModel(
+  static const _availabilityOptions = [
+    'Weekdays',
+    'Weekends',
+    'Evenings',
+    '24/7',
+    'On-Call',
+  ];
+  static const _availabilityOptionsNe = [
+    'हप्ताका दिन',
+    'शनिबार/आइतबार',
+    'साँझ',
+    '२४/७',
+    'अन-कल',
+  ];
+
+  static FormFieldModel _serviceLocation(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'serviceLocation',
-    label: label ?? 'Service Location',
-    labelNe: label != null ? null : 'सेवा स्थान',
+    label: 'Service Location',
+    labelNe: 'सेवा स्थान',
     type: FieldType.select,
-    required: required,
-    options:
-        opts ??
-        ['At Customer Location', 'At Provider Location', 'Remote/Online'],
-    optionsNe: opts != null
-        ? null
-        : ['ग्राहकको स्थानमा', 'सेवा प्रदायकको स्थानमा', 'रिमोट/अनलाइन'],
+    options: options,
+    optionsNe: optionsNe,
   );
 
-  static FormFieldModel _languages([List<String>? opts]) => FormFieldModel(
+  static const _serviceLocationOptions = [
+    'At Customer Location',
+    'At Provider Location',
+    'Remote/Online',
+  ];
+  static const _serviceLocationOptionsNe = [
+    'ग्राहकको स्थानमा',
+    'सेवा प्रदायकको स्थानमा',
+    'रिमोट/अनलाइन',
+  ];
+
+  static FormFieldModel _languages(
+    List<String> options,
+    List<String> optionsNe, {
+    String label = 'Languages Known',
+    String labelNe = 'भाषा ज्ञान',
+  }) => FormFieldModel(
     name: 'languages',
-    label: 'Languages Known',
-    labelNe: 'भाषा ज्ञान',
+    label: label,
+    labelNe: labelNe,
     type: FieldType.multiselect,
-    options: opts ?? ['English', 'Nepali', 'Hindi', 'Newari', 'Other'],
-    optionsNe: opts != null
-        ? null
-        : ['अंग्रेजी', 'नेपाली', 'हिन्दी', 'नेवारी', 'अन्य'],
+    options: options,
+    optionsNe: optionsNe,
+  );
+
+  static const _languageOptions = [
+    'Nepali',
+    'English',
+    'Hindi',
+    'Newari',
+    'Other',
+  ];
+  static const _languageOptionsNe = [
+    'नेपाली',
+    'अंग्रेजी',
+    'हिन्दी',
+    'नेवारी',
+    'अन्य',
+  ];
+
+  static const _genderServed = FormFieldModel(
+    name: 'genderServed',
+    label: 'Gender Served',
+    labelNe: 'सेवा दिइने लिङ्ग',
+    type: FieldType.select,
+    options: ['Male', 'Female', 'Unisex'],
+    optionsNe: ['पुरुष', 'महिला', 'सबै'],
+  );
+
+  static const _tripDuration = FormFieldModel(
+    name: 'tripDuration',
+    label: 'Trip Duration',
+    labelNe: 'यात्रा अवधि',
+    type: FieldType.select,
+    options: ['1 Day', '2-3 Days', '4-7 Days', '1-2 Weeks', '2+ Weeks'],
+    optionsNe: ['१ दिन', '२-३ दिन', '४-७ दिन', '१-२ हप्ता', '२+ हप्ता'],
+  );
+
+  static const _lookingFor = FormFieldModel(
+    name: 'lookingFor',
+    label: 'Looking For',
+    labelNe: 'खोजिएको',
+    type: FieldType.select,
+    options: ['Bride', 'Groom'],
+    optionsNe: ['दुलही', 'दुलहा'],
+  );
+
+  static const _ageRange = FormFieldModel(
+    name: 'ageRange',
+    label: 'Age Range',
+    labelNe: 'उमेर दायरा',
+    type: FieldType.select,
+    options: ['18-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50+'],
+    optionsNe: ['१८-२४', '२५-२९', '३०-३४', '३५-३९', '४०-४४', '४५-४९', '५०+'],
+  );
+
+  static const _maritalStatus = FormFieldModel(
+    name: 'maritalStatus',
+    label: 'Marital Status',
+    labelNe: 'वैवाहिक स्थिति',
+    type: FieldType.select,
+    options: ['Never Married', 'Divorced', 'Widowed'],
+    optionsNe: ['अविवाहित', 'सम्बन्धविच्छेद', 'विधुर/विधवा'],
   );
 
   static const _subjects = FormFieldModel(
@@ -985,7 +1939,6 @@ class FormTemplateService {
     label: 'Subject',
     labelNe: 'विषय',
     type: FieldType.multiselect,
-    required: true,
     options: [
       'Math',
       'Science',
@@ -1013,7 +1966,6 @@ class FormTemplateService {
     label: 'Grade/Level',
     labelNe: 'कक्षा/तह',
     type: FieldType.multiselect,
-    required: true,
     options: [
       'Primary (1-5)',
       'Secondary (6-10)',
@@ -1032,56 +1984,206 @@ class FormTemplateService {
 
   static const _modeOfTeaching = FormFieldModel(
     name: 'modeOfTeaching',
-    label: 'Mode of Teaching',
-    labelNe: 'पढाउने तरिका',
+    label: 'Class Mode',
+    labelNe: 'कक्षा तरिका',
     type: FieldType.select,
     options: ['Home Tuition', 'Online', 'At Institute', 'Group Class'],
     optionsNe: ['घरमा ट्युसन', 'अनलाइन', 'संस्थामा', 'समूह कक्षा'],
   );
 
-  static const _companyName = FormFieldModel(
-    name: 'companyName',
-    label: 'Company Name',
-    labelNe: 'कम्पनीको नाम',
-    type: FieldType.text,
-    placeholder: 'Enter company name',
-    placeholderNe: 'कम्पनीको नाम लेख्नुहोस्',
+  static const _courseType = FormFieldModel(
+    name: 'courseType',
+    label: 'Course Type',
+    labelNe: 'कोर्स प्रकार',
+    type: FieldType.select,
+    options: [
+      'IELTS/TOEFL/PTE',
+      'Language',
+      'Computer/IT',
+      'Accounting/Tally',
+      'Driving',
+      'Cooking',
+      'Beauty/Tailoring',
+      'Music/Dance/Art',
+      'Bridge/Entrance',
+      'Professional Certification',
+      'Other',
+    ],
+    optionsNe: [
+      'IELTS/TOEFL/PTE',
+      'भाषा',
+      'कम्प्युटर/आईटी',
+      'लेखा/ट्याली',
+      'ड्राइभिङ',
+      'खाना पकाउने',
+      'ब्युटी/सिलाई',
+      'संगीत/नृत्य/कला',
+      'ब्रिज/प्रवेश परीक्षा',
+      'व्यावसायिक प्रमाणपत्र',
+      'अन्य',
+    ],
   );
 
-  static FormFieldModel _jobType([List<String>? opts]) => FormFieldModel(
+  static const _courseDuration = FormFieldModel(
+    name: 'courseDuration',
+    label: 'Course Duration',
+    labelNe: 'कोर्स अवधि',
+    type: FieldType.select,
+    options: [
+      '1 Week',
+      '2-4 Weeks',
+      '1-3 Months',
+      '3-6 Months',
+      '6-12 Months',
+      '1+ Year',
+    ],
+    optionsNe: [
+      '१ हप्ता',
+      '२-४ हप्ता',
+      '१-३ महिना',
+      '३-६ महिना',
+      '६-१२ महिना',
+      '१+ वर्ष',
+    ],
+  );
+
+  static const _bookLevel = FormFieldModel(
+    name: 'bookLevel',
+    label: 'Level',
+    labelNe: 'तह',
+    type: FieldType.select,
+    options: [
+      'School (1-10)',
+      '+2',
+      'Bachelor',
+      'Master',
+      'Entrance',
+      'Loksewa',
+      'Other',
+    ],
+    optionsNe: [
+      'विद्यालय (१-१०)',
+      '+२',
+      'स्नातक',
+      'स्नातकोत्तर',
+      'प्रवेश परीक्षा',
+      'लोकसेवा',
+      'अन्य',
+    ],
+  );
+
+  static const _publisher = FormFieldModel(
+    name: 'publisher',
+    label: 'Publisher',
+    labelNe: 'प्रकाशक',
+    type: FieldType.text,
+    placeholder: 'e.g., Vidyarthi Pustak Bhandar',
+    placeholderNe: 'जस्तै, विद्यार्थी पुस्तक भण्डार',
+  );
+
+  static const _destinationCountry = FormFieldModel(
+    name: 'destinationCountry',
+    label: 'Destination Country',
+    labelNe: 'गन्तव्य देश',
+    type: FieldType.multiselect,
+    options: [
+      'Australia',
+      'USA',
+      'UK',
+      'Canada',
+      'Japan',
+      'Korea',
+      'Germany',
+      'New Zealand',
+      'Ireland',
+      'China',
+      'India',
+      'UAE',
+      'Poland',
+      'Other',
+    ],
+    optionsNe: [
+      'अस्ट्रेलिया',
+      'अमेरिका',
+      'बेलायत',
+      'क्यानडा',
+      'जापान',
+      'कोरिया',
+      'जर्मनी',
+      'न्युजिल्यान्ड',
+      'आयरल्यान्ड',
+      'चीन',
+      'भारत',
+      'यूएई',
+      'पोल्यान्ड',
+      'अन्य',
+    ],
+  );
+
+  static const _studyLevel = FormFieldModel(
+    name: 'studyLevel',
+    label: 'Study Level',
+    labelNe: 'अध्ययन तह',
+    type: FieldType.select,
+    options: [
+      'Foundation',
+      'Bachelor',
+      'Master',
+      'PhD',
+      'Diploma/Vocational',
+      'Language Course',
+    ],
+    optionsNe: [
+      'फाउन्डेसन',
+      'स्नातक',
+      'स्नातकोत्तर',
+      'पीएचडी',
+      'डिप्लोमा/व्यावसायिक',
+      'भाषा कोर्स',
+    ],
+  );
+
+  // ============================================
+  // JOBS FIELDS
+  // ============================================
+
+  static const _jobPostType = FormFieldModel(
+    name: 'jobPostType',
+    label: 'Post Type',
+    labelNe: 'पोस्ट प्रकार',
+    type: FieldType.select,
+    options: ['Hiring', 'Looking for a Job'],
+    optionsNe: ['भर्ना गर्दै', 'जागिर खोज्दै'],
+  );
+
+  static const _jobType = FormFieldModel(
     name: 'jobType',
     label: 'Job Type',
     labelNe: 'जागिर प्रकार',
     type: FieldType.select,
-    options:
-        opts ??
-        ['Full Time', 'Part Time', 'Contract', 'Internship', 'Freelance'],
-    optionsNe: opts != null
-        ? null
-        : ['पूर्णकालीन', 'अंशकालीन', 'करार', 'इन्टर्नशिप', 'फ्रिल्यान्स'],
+    options: ['Full Time', 'Part Time', 'Contract', 'Internship', 'Freelance'],
+    optionsNe: ['पूर्णकालीन', 'अंशकालीन', 'करार', 'इन्टर्नशिप', 'फ्रिल्यान्स'],
   );
 
-  static const _experienceRequired = FormFieldModel(
-    name: 'experienceRequired',
-    label: 'Experience Required',
-    labelNe: 'आवश्यक अनुभव',
+  static const _workLocationType = FormFieldModel(
+    name: 'workLocationType',
+    label: 'Work Location',
+    labelNe: 'कार्यस्थल',
     type: FieldType.select,
-    options: [
-      'Fresher',
-      '0-1 years',
-      '1-3 years',
-      '3-5 years',
-      '5-10 years',
-      '10+ years',
-    ],
-    optionsNe: [
-      'फ्रेशर',
-      '०-१ वर्ष',
-      '१-३ वर्ष',
-      '३-५ वर्ष',
-      '५-१० वर्ष',
-      '१०+ वर्ष',
-    ],
+    options: ['On-site', 'Hybrid', 'Remote', 'Field Work'],
+    optionsNe: ['कार्यस्थलमा', 'हाइब्रिड', 'रिमोट', 'फिल्ड कार्य'],
+  );
+
+  static FormFieldModel _companyName({
+    String label = 'Company / Employer Name',
+    String labelNe = 'कम्पनी / रोजगारदाताको नाम',
+  }) => FormFieldModel(
+    name: 'companyName',
+    label: label,
+    labelNe: labelNe,
+    type: FieldType.text,
+    placeholder: 'Enter name',
+    placeholderNe: 'नाम लेख्नुहोस्',
   );
 
   static const _educationRequired = FormFieldModel(
@@ -1107,206 +2209,243 @@ class FormTemplateService {
     ],
   );
 
-  static FormFieldModel _salaryRange([String? label, List<String>? opts]) =>
-      FormFieldModel(
-        name: 'salaryRange',
-        label: label ?? 'Salary Range',
-        labelNe: label != null ? null : 'तलब दायरा',
-        type: FieldType.select,
-        options:
-            opts ??
-            [
-              'Below 20,000',
-              '20,000-30,000',
-              '30,000-50,000',
-              '50,000-1,00,000',
-              'Above 1,00,000',
-              'Negotiable',
-            ],
-        optionsNe: opts != null
-            ? null
-            : [
-                '२०,००० भन्दा कम',
-                '२०,०००-३०,०००',
-                '३०,०००-५०,०००',
-                '५०,०००-१,००,०००',
-                '१,००,००० भन्दा माथि',
-                'मिलाउन सकिने',
-              ],
-      );
+  static const _tradeSkill = FormFieldModel(
+    name: 'tradeSkill',
+    label: 'Trade / Skill',
+    labelNe: 'सीप',
+    type: FieldType.select,
+    options: [
+      'Mason',
+      'Carpenter',
+      'Electrician',
+      'Plumber',
+      'Painter',
+      'Welder',
+      'Steel Fixer',
+      'Helper',
+      'Site Supervisor',
+      'Other',
+    ],
+    optionsNe: [
+      'डकर्मी',
+      'सिकर्मी',
+      'इलेक्ट्रिसियन',
+      'प्लम्बर',
+      'रङ्गरोगन',
+      'वेल्डर',
+      'डन्डी बाँध्ने',
+      'सहयोगी',
+      'साइट सुपरभाइजर',
+      'अन्य',
+    ],
+  );
+
+  static const _licenseCategory = FormFieldModel(
+    name: 'licenseCategory',
+    label: 'Licence Category',
+    labelNe: 'लाइसेन्स वर्ग',
+    type: FieldType.multiselect,
+    options: [
+      'A - Motorcycle',
+      'B - Car/Jeep',
+      'C - Truck',
+      'D - Bus',
+      'K - Scooter',
+      'Heavy Equipment',
+      'Not Required',
+    ],
+    optionsNe: [
+      'A - मोटरसाइकल',
+      'B - कार/जिप',
+      'C - ट्रक',
+      'D - बस',
+      'K - स्कुटर',
+      'भारी उपकरण',
+      'आवश्यक छैन',
+    ],
+  );
+
+  static const _jobPricePeriodOptions = [
+    'Per Month',
+    'Per Day',
+    'Per Hour',
+    'Per Project',
+  ];
+  static const _jobPricePeriodOptionsNe = [
+    'प्रति महिना',
+    'प्रति दिन',
+    'प्रति घण्टा',
+    'प्रति परियोजना',
+  ];
 
   // ============================================
-  // GENERAL FIELDS
+  // OVERSEAS JOBS FIELDS
   // ============================================
 
-  static FormFieldModel _furnitureType([List<String>? opts]) => FormFieldModel(
+  static const _recruiterLicense = FormFieldModel(
+    name: 'recruiterLicense',
+    label: 'Recruitment Licence No. (DoFE)',
+    labelNe: 'भर्ना इजाजतपत्र नं. (वैदेशिक रोजगार विभाग)',
+    type: FieldType.text,
+    placeholder: 'Enter licence number',
+    placeholderNe: 'इजाजतपत्र नम्बर लेख्नुहोस्',
+  );
+
+  static const _contractDuration = FormFieldModel(
+    name: 'contractDuration',
+    label: 'Contract Duration',
+    labelNe: 'करार अवधि',
+    type: FieldType.select,
+    options: ['1 year', '2 years', '3 years', '3+ years'],
+    optionsNe: ['१ वर्ष', '२ वर्ष', '३ वर्ष', '३+ वर्ष'],
+  );
+
+  static const _genderRequirement = FormFieldModel(
+    name: 'genderRequirement',
+    label: 'Gender Requirement',
+    labelNe: 'लिङ्ग आवश्यकता',
+    type: FieldType.select,
+    options: ['Male', 'Female', 'Both'],
+    optionsNe: ['पुरुष', 'महिला', 'दुवै'],
+  );
+
+  static const _benefits = FormFieldModel(
+    name: 'benefits',
+    label: 'Benefits',
+    labelNe: 'सुविधाहरू',
+    type: FieldType.multiselect,
+    options: [
+      'Food',
+      'Accommodation',
+      'Transport',
+      'Medical Insurance',
+      'Overtime',
+    ],
+    optionsNe: ['खाना', 'बसोबास', 'यातायात', 'चिकित्सा बीमा', 'ओभरटाइम'],
+  );
+
+  static FormFieldModel _salaryCurrency(List<String> options) => FormFieldModel(
+    name: 'salaryCurrency',
+    label: 'Salary Currency',
+    labelNe: 'तलब मुद्रा',
+    type: FieldType.select,
+    options: options,
+    optionsNe: _sameInNepali,
+  );
+
+  static const _serviceCharge = FormFieldModel(
+    name: 'serviceCharge',
+    label: 'Service Charge',
+    labelNe: 'सेवा शुल्क',
+    type: FieldType.select,
+    options: [
+      'Free Visa Free Ticket',
+      'As per Government Rule',
+      'Contact for Details',
+    ],
+    optionsNe: [
+      'निःशुल्क भिसा निःशुल्क टिकट',
+      'सरकारी नियम अनुसार',
+      'विवरणका लागि सम्पर्क गर्नुहोस्',
+    ],
+  );
+
+  /// The eight Overseas Jobs subcategories differ only by currency.
+  static List<FormFieldModel> _overseasJobFields(List<String> currencies) => [
+    _companyName(
+      label: 'Recruiting Agency / Employer',
+      labelNe: 'भर्ना एजेन्सी / रोजगारदाता',
+    ),
+    _recruiterLicense,
+    _contractDuration,
+    _genderRequirement,
+    _experience,
+    _benefits,
+    _salaryCurrency(currencies),
+    _serviceCharge,
+  ];
+
+  // ============================================
+  // HOME & LIVING FIELDS
+  // ============================================
+
+  static FormFieldModel _furnitureType(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'furnitureType',
     label: 'Furniture Type',
     labelNe: 'फर्निचर प्रकार',
     type: FieldType.select,
-    required: true,
-    options:
-        opts ??
-        [
-          'Bed',
-          'Sofa',
-          'Table',
-          'Chair',
-          'Wardrobe',
-          'Shelf',
-          'Desk',
-          'Cabinet',
-          'Dining Set',
-          'Other',
-        ],
-    optionsNe: opts != null
-        ? null
-        : [
-            'पलंग',
-            'सोफा',
-            'टेबल',
-            'कुर्सी',
-            'अलमारी',
-            'शेल्फ',
-            'डेस्क',
-            'क्याबिनेट',
-            'खाना खाने सेट',
-            'अन्य',
-          ],
+    options: options,
+    optionsNe: optionsNe,
   );
 
-  static const _material = FormFieldModel(
-    name: 'material',
-    label: 'Material',
-    labelNe: 'सामग्री',
-    type: FieldType.select,
-    options: [
-      'Wood',
-      'Metal',
-      'Plastic',
-      'Glass',
-      'Leather',
-      'Fabric',
-      'Mixed Materials',
-    ],
-    optionsNe: [
-      'काठ',
-      'धातु',
-      'प्लास्टिक',
-      'गिलास',
-      'छाला',
-      'कपडा',
-      'मिश्रित सामग्री',
-    ],
-  );
+  static const _furnitureMaterials = [
+    'Wood (Sal/Teak/Sisau)',
+    'Plywood',
+    'MDF',
+    'Metal',
+    'Plastic',
+    'Glass',
+    'Cane/Bamboo',
+    'Rexine',
+    'Mixed',
+  ];
+  static const _furnitureMaterialsNe = [
+    'काठ (साल/टिक/सिसौ)',
+    'प्लाइउड',
+    'एमडीएफ',
+    'धातु',
+    'प्लास्टिक',
+    'सिसा',
+    'बेत/बाँस',
+    'रेक्जिन',
+    'मिश्रित',
+  ];
 
-  static const _dimensions = FormFieldModel(
+  static FormFieldModel _dimensions({
+    String label = 'Dimensions (L x W x H)',
+    String labelNe = 'आयाम (ल x चौ x उ)',
+    String placeholder = 'e.g., 6ft x 4ft x 2.5ft',
+    String placeholderNe = 'जस्तै, ६ फिट x ४ फिट x २.५ फिट',
+  }) => FormFieldModel(
     name: 'dimensions',
-    label: 'Dimensions (L × W × H)',
-    labelNe: 'आयाम (ल × चौ × उ)',
+    label: label,
+    labelNe: labelNe,
     type: FieldType.text,
-    placeholder: 'e.g., 200cm × 100cm × 80cm',
-    placeholderNe: 'जस्तै, २०० से.मी. × १०० से.मी. × ८० से.मी.',
+    placeholder: placeholder,
+    placeholderNe: placeholderNe,
   );
 
-  static const _assemblyRequired = FormFieldModel(
-    name: 'assemblyRequired',
-    label: 'Assembly Required',
-    labelNe: 'जडान आवश्यक',
-    type: FieldType.select,
-    options: [
-      'Yes - Assembly Required',
-      'No - Ready to Use',
-      'Partial Assembly',
-    ],
-    optionsNe: ['छ - जडान आवश्यक', 'छैन - प्रयोगको लागि तयार', 'आंशिक जडान'],
-  );
-
-  static const _seatingCapacity = FormFieldModel(
+  static FormFieldModel _seatingCapacity(
+    List<String> options,
+    List<String> optionsNe,
+  ) => FormFieldModel(
     name: 'seatingCapacity',
-    label: 'Seating Capacity',
-    labelNe: 'बस्ने क्षमता',
+    label: 'Seater',
+    labelNe: 'सिटर',
     type: FieldType.select,
-    options: [
-      '1 Person',
-      '2-3 People',
-      '4-6 People',
-      '6-8 People',
-      '8+ People',
-    ],
-    optionsNe: ['१ जना', '२-३ जना', '४-६ जना', '६-८ जना', '८+ जना'],
+    options: options,
+    optionsNe: optionsNe,
   );
 
-  static const _storageAvailable = FormFieldModel(
-    name: 'storageAvailable',
-    label: 'Storage Available',
-    labelNe: 'भण्डारण उपलब्ध',
-    type: FieldType.select,
-    options: ['Yes', 'No'],
-    optionsNe: ['छ', 'छैन'],
-  );
+  // ============================================
+  // BUSINESS, AGRICULTURE & HOBBY FIELDS
+  // ============================================
 
-  static const _style = FormFieldModel(
-    name: 'style',
-    label: 'Style',
-    labelNe: 'शैली',
-    type: FieldType.select,
-    options: [
-      'Modern',
-      'Traditional',
-      'Vintage',
-      'Minimalist',
-      'Contemporary',
-      'Rustic',
-      'Industrial',
-    ],
-    optionsNe: [
-      'आधुनिक',
-      'परम्परागत',
-      'पुरानो शैली',
-      'न्यूनतम',
-      'समकालीन',
-      'ग्रामीण',
-      'औद्योगिक',
-    ],
-  );
-
-  static const _sportType = FormFieldModel(
-    name: 'sportType',
-    label: 'Sport Type',
-    labelNe: 'खेलकुद प्रकार',
-    type: FieldType.text,
-    placeholder: 'e.g., Cricket, Football, Basketball',
-    placeholderNe: 'जस्तै, क्रिकेट, फुटबल, बास्केटबल',
-  );
-
-  static const _instrumentType = FormFieldModel(
-    name: 'instrumentType',
-    label: 'Instrument Type',
-    labelNe: 'बाजा प्रकार',
-    type: FieldType.text,
-    placeholder: 'e.g., Guitar, Piano, Drums',
-    placeholderNe: 'जस्तै, गिटार, पियानो, ड्रम्स',
-  );
-
-  static FormFieldModel _machineryType([List<String>? opts]) => FormFieldModel(
+  static FormFieldModel _machineryType(
+    List<String> options,
+    List<String> optionsNe, {
+    String label = 'Machinery Type',
+    String labelNe = 'मेसिनरी प्रकार',
+  }) => FormFieldModel(
     name: 'machineryType',
-    label: 'Machinery Type',
-    labelNe: 'मेसिनरी प्रकार',
+    label: label,
+    labelNe: labelNe,
     type: FieldType.select,
-    required: true,
-    options:
-        opts ??
-        [
-          'Construction',
-          'Manufacturing',
-          'Agricultural',
-          'Office Equipment',
-          'Medical Equipment',
-        ],
-    optionsNe: opts != null
-        ? null
-        : ['निर्माण', 'उत्पादन', 'कृषि', 'कार्यालय उपकरण', 'चिकित्सा उपकरण'],
+    options: options,
+    optionsNe: optionsNe,
   );
 
   static const _powerSource = FormFieldModel(
@@ -1314,61 +2453,31 @@ class FormTemplateService {
     label: 'Power Source',
     labelNe: 'शक्ति स्रोत',
     type: FieldType.select,
-    options: ['Electric', 'Manual', 'Diesel', 'Petrol', 'Battery'],
-    optionsNe: ['बिजुली', 'म्यानुअल', 'डिजेल', 'पेट्रोल', 'ब्याट्री'],
-  );
-
-  static FormFieldModel _productType([List<String>? opts]) => FormFieldModel(
-    name: 'productType',
-    label: 'Product Type',
-    labelNe: 'उत्पादन प्रकार',
-    type: FieldType.select,
-    required: true,
-    options:
-        opts ?? ['Food Item', 'Household Item', 'Baby Product', 'Healthcare'],
-    optionsNe: opts != null
-        ? null
-        : ['खाद्य वस्तु', 'घरेलु वस्तु', 'बच्चाको उत्पादन', 'स्वास्थ्य सेवा'],
-  );
-
-  static const _quantity = FormFieldModel(
-    name: 'quantity',
-    label: 'Quantity Available',
-    labelNe: 'उपलब्ध मात्रा',
-    type: FieldType.number,
-    placeholder: 'Enter quantity',
-    placeholderNe: 'मात्रा लेख्नुहोस्',
-  );
-
-  static const _expiryDate = FormFieldModel(
-    name: 'expiryDate',
-    label: 'Expiry Date',
-    labelNe: 'म्याद सकिने मिति',
-    type: FieldType.date,
-  );
-
-  static const _manufacturingDate = FormFieldModel(
-    name: 'manufacturingDate',
-    label: 'Manufacturing Date',
-    labelNe: 'उत्पादन मिति',
-    type: FieldType.date,
-  );
-
-  static const _productWeight = FormFieldModel(
-    name: 'productWeight',
-    label: 'Weight / Volume',
-    labelNe: 'तौल / आयतन',
-    type: FieldType.text,
-    placeholder: 'e.g., 250ml, 100gm, 50gm',
-    placeholderNe: 'जस्तै, २५०मिली, १००ग्राम, ५०ग्राम',
+    options: [
+      'Electric',
+      'Electric (3 Phase)',
+      'Manual',
+      'Diesel',
+      'Petrol',
+      'Battery',
+      'Solar',
+    ],
+    optionsNe: [
+      'बिजुली',
+      'बिजुली (३ फेज)',
+      'म्यानुअल',
+      'डिजेल',
+      'पेट्रोल',
+      'ब्याट्री',
+      'सोलार',
+    ],
   );
 
   static const _cropType = FormFieldModel(
     name: 'cropType',
-    label: 'Crop/Plant Type',
-    labelNe: 'बाली/बिरुवा प्रकार',
+    label: 'Crop / Plant Name',
+    labelNe: 'बाली / बिरुवाको नाम',
     type: FieldType.text,
-    required: true,
     placeholder: 'e.g., Rice, Wheat, Tomato',
     placeholderNe: 'जस्तै, धान, गहुँ, गोलभेडा',
   );
@@ -1378,999 +2487,2964 @@ class FormTemplateService {
     label: 'Farming Tool Type',
     labelNe: 'कृषि औजार प्रकार',
     type: FieldType.select,
-    options: ['Tractor', 'Plough', 'Harvester', 'Sprayer', 'Hand Tool'],
-    optionsNe: ['ट्र्याक्टर', 'हलो', 'हार्भेस्टर', 'स्प्रेयर', 'हात औजार'],
+    options: [
+      'Tractor',
+      'Power Tiller',
+      'Water Pump',
+      'Thresher',
+      'Chaff Cutter',
+      'Grass Cutter',
+      'Milking Machine',
+      'Rotavator',
+      'Plough',
+      'Harvester',
+      'Sprayer',
+      'Pipes/Irrigation',
+      'Hand Tool',
+      'Other',
+    ],
+    optionsNe: [
+      'ट्र्याक्टर',
+      'पावर टिलर',
+      'पानी पम्प',
+      'थ्रेसर',
+      'चाफ कटर',
+      'घाँस काट्ने',
+      'दूध दुहुने मेसिन',
+      'रोटाभेटर',
+      'हलो',
+      'हार्भेस्टर',
+      'स्प्रेयर',
+      'पाइप/सिँचाइ',
+      'हात औजार',
+      'अन्य',
+    ],
+  );
+
+  static const _sportType = FormFieldModel(
+    name: 'sportType',
+    label: 'Sport Type',
+    labelNe: 'खेलकुद प्रकार',
+    type: FieldType.select,
+    options: [
+      'Cricket',
+      'Football',
+      'Futsal',
+      'Badminton',
+      'Basketball',
+      'Volleyball',
+      'Table Tennis',
+      'Cycling',
+      'Swimming',
+      'Trekking',
+      'Martial Arts',
+      'Other',
+    ],
+    optionsNe: [
+      'क्रिकेट',
+      'फुटबल',
+      'फुटसल',
+      'ब्याडमिन्टन',
+      'बास्केटबल',
+      'भलिबल',
+      'टेबल टेनिस',
+      'साइक्लिङ',
+      'पौडी',
+      'ट्रेकिङ',
+      'मार्सल आर्ट',
+      'अन्य',
+    ],
+  );
+
+  static const _equipmentType = FormFieldModel(
+    name: 'equipmentType',
+    label: 'Equipment Type',
+    labelNe: 'उपकरण प्रकार',
+    type: FieldType.select,
+    options: [
+      'Treadmill',
+      'Exercise Bike',
+      'Elliptical',
+      'Dumbbells',
+      'Home Gym',
+      'Bench',
+      'Yoga/Mats',
+      'Supplements',
+      'Other',
+    ],
+    optionsNe: [
+      'ट्रेडमिल',
+      'एक्सरसाइज बाइक',
+      'एलिप्टिकल',
+      'डम्बेल',
+      'होम जिम',
+      'बेन्च',
+      'योगा/म्याट',
+      'सप्लिमेन्ट',
+      'अन्य',
+    ],
+  );
+
+  static const _instrumentType = FormFieldModel(
+    name: 'instrumentType',
+    label: 'Instrument Type',
+    labelNe: 'बाजा प्रकार',
+    type: FieldType.select,
+    options: [
+      'Guitar',
+      'Keyboard/Piano',
+      'Drums',
+      'Violin',
+      'Flute/Bansuri',
+      'Madal',
+      'Tabla',
+      'Sarangi',
+      'Harmonium',
+      'Ukulele',
+      'Other',
+    ],
+    optionsNe: [
+      'गिटार',
+      'किबोर्ड/पियानो',
+      'ड्रम्स',
+      'भायोलिन',
+      'बाँसुरी',
+      'मादल',
+      'तबला',
+      'सारंगी',
+      'हार्मोनियम',
+      'युकुलेले',
+      'अन्य',
+    ],
+  );
+
+  static const _kidsItemType = FormFieldModel(
+    name: 'itemType',
+    label: 'Item Type',
+    labelNe: 'सामान प्रकार',
+    type: FieldType.select,
+    options: [
+      'Toys',
+      'Stroller',
+      'Car Seat',
+      'Carrier',
+      'Crib',
+      'High Chair',
+      'Walker',
+      'School Bag',
+      'Ride-on',
+      'Books',
+      'Other',
+    ],
+    optionsNe: [
+      'खेलौना',
+      'स्ट्रोलर',
+      'कार सिट',
+      'क्यारियर',
+      'क्रिब',
+      'हाई चेयर',
+      'वाकर',
+      'स्कुल ब्याग',
+      'राइड-अन',
+      'किताब',
+      'अन्य',
+    ],
+  );
+
+  static const _mediaType = FormFieldModel(
+    name: 'mediaType',
+    label: 'Media Type',
+    labelNe: 'मिडिया प्रकार',
+    type: FieldType.select,
+    options: [
+      'Book',
+      'Textbook',
+      'Magazine',
+      'Comics',
+      'Music CD/Vinyl',
+      'Movie DVD',
+      'Other',
+    ],
+    optionsNe: [
+      'किताब',
+      'पाठ्यपुस्तक',
+      'म्यागजिन',
+      'कमिक्स',
+      'म्युजिक सीडी/भाइनल',
+      'मुभी डीभीडी',
+      'अन्य',
+    ],
+  );
+
+  static const _authorPublisher = FormFieldModel(
+    name: 'authorPublisher',
+    label: 'Author / Publisher',
+    labelNe: 'लेखक / प्रकाशक',
+    type: FieldType.text,
+    placeholder: 'e.g., Ratna Pustak Bhandar',
+    placeholderNe: 'जस्तै, रत्न पुस्तक भण्डार',
+  );
+
+  static const _mediaLanguage = FormFieldModel(
+    name: 'language',
+    label: 'Language',
+    labelNe: 'भाषा',
+    type: FieldType.select,
+    options: ['Nepali', 'English', 'Hindi', 'Other'],
+    optionsNe: ['नेपाली', 'अंग्रेजी', 'हिन्दी', 'अन्य'],
+  );
+
+  static const _organic = FormFieldModel(
+    name: 'organic',
+    label: 'Farming Method',
+    labelNe: 'खेती विधि',
+    type: FieldType.select,
+    options: ['Organic', 'Conventional'],
+    optionsNe: ['अर्गानिक', 'सामान्य'],
   );
 
   // ============================================
-  // SUBCATEGORY CONFIGS — keyed by EXACT database subcategory name
+  // SUBCATEGORY CONFIGS - keyed by EXACT database subcategory name
   // ============================================
 
   static final Map<String, List<FormFieldModel>> _subcategoryConfigs = {
-    // ── MOBILES (parent: Mobiles) ────────────
+    // -- MOBILES ------------------------------
     'Mobile Phones': [
-      _condition(),
-      _brand('e.g., Apple, Samsung, OnePlus, Xiaomi'),
+      _conditionRequired,
+      _brandSelect([
+        'Apple',
+        'Samsung',
+        'Xiaomi',
+        'Redmi',
+        'Realme',
+        'Oppo',
+        'Vivo',
+        'OnePlus',
+        'Tecno',
+        'Infinix',
+        'Nokia',
+        'Motorola',
+        'Huawei',
+        'Honor',
+        'Other',
+      ]),
       _model('e.g., iPhone 15 Pro, Galaxy S24'),
-      _warranty,
-      _storage,
-      _ram,
+      _storage(['32GB', '64GB', '128GB', '256GB', '512GB', '1TB']),
+      _ram(['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB']),
       _batteryHealth,
+      const FormFieldModel(
+        name: 'boxAndBill',
+        label: 'Box & Bill',
+        labelNe: 'बक्स र बिल',
+        type: FieldType.select,
+        options: ['Both Box & Bill', 'Box Only', 'Bill Only', 'Neither'],
+        optionsNe: ['बक्स र बिल दुवै', 'बक्स मात्र', 'बिल मात्र', 'दुवै छैन'],
+      ),
+      _warranty,
     ],
     'Mobile Phone Accessories': [
-      _condition(),
+      _conditionRequired,
+      _accessoryType(
+        [
+          'Case/Cover',
+          'Screen Protector',
+          'Charger/Cable',
+          'Power Bank',
+          'Earphones',
+          'Speaker',
+          'Selfie Stick',
+          'Memory Card',
+          'Mount/Holder',
+          'Other',
+        ],
+        [
+          'कभर',
+          'स्क्रिन प्रोटेक्टर',
+          'चार्जर/केबल',
+          'पावर ब्यांक',
+          'इयरफोन',
+          'स्पिकर',
+          'सेल्फी स्टिक',
+          'मेमोरी कार्ड',
+          'होल्डर',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Spigen, Anker, Samsung, Apple'),
       _warranty,
     ],
+    'Mobile Phone Services': [
+      _serviceType(
+        [
+          'Screen Repair',
+          'Battery Replacement',
+          'Software/Flashing',
+          'Water Damage',
+          'Unlocking/IMEI',
+          'Data Recovery',
+          'Buy-Back',
+          'Other',
+        ],
+        [
+          'स्क्रिन मर्मत',
+          'ब्याट्री परिवर्तन',
+          'सफ्टवेयर/फ्ल्यासिङ',
+          'पानी क्षति',
+          'अनलक/आईएमईआई',
+          'डाटा रिकभरी',
+          'बाइ-ब्याक',
+          'अन्य',
+        ],
+      ),
+      _serviceLocation(_serviceLocationOptions, _serviceLocationOptionsNe),
+      _experience,
+    ],
+    'SIM Cards': [
+      const FormFieldModel(
+        name: 'networkOperator',
+        label: 'Network Operator',
+        labelNe: 'नेटवर्क सेवा प्रदायक',
+        type: FieldType.select,
+        options: ['NTC', 'Ncell', 'Smart Cell', 'Hello Nepal', 'Other'],
+        optionsNe: ['एनटीसी', 'एनसेल', 'स्मार्ट सेल', 'हेलो नेपाल', 'अन्य'],
+      ),
+      const FormFieldModel(
+        name: 'numberType',
+        label: 'Number Type',
+        labelNe: 'नम्बर प्रकार',
+        type: FieldType.select,
+        options: ['Normal', 'VIP / Golden Number'],
+        optionsNe: ['सामान्य', 'भीआईपी / गोल्डेन नम्बर'],
+      ),
+      const FormFieldModel(
+        name: 'simType',
+        label: 'SIM Type',
+        labelNe: 'सिम प्रकार',
+        type: FieldType.select,
+        options: ['Prepaid', 'Postpaid', 'Data Only'],
+        optionsNe: ['प्रिपेड', 'पोस्टपेड', 'डाटा मात्र'],
+      ),
+    ],
     'Wearables': [
-      _condition(),
+      _conditionRequired,
+      const FormFieldModel(
+        name: 'wearableType',
+        label: 'Wearable Type',
+        labelNe: 'वेयरेबल प्रकार',
+        type: FieldType.select,
+        options: [
+          'Smartwatch',
+          'Fitness Band',
+          'Smart Ring',
+          'Kids GPS Watch',
+          'Earbuds/Wearable',
+          'Other',
+        ],
+        optionsNe: [
+          'स्मार्टवाच',
+          'फिटनेस ब्यान्ड',
+          'स्मार्ट रिङ',
+          'बच्चाको जीपीएस घडी',
+          'इयरबड्स',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Apple, Samsung, Fitbit, Garmin, Boat'),
       _model('e.g., Apple Watch Series 9, Galaxy Watch 6'),
+      const FormFieldModel(
+        name: 'compatibility',
+        label: 'Compatibility',
+        labelNe: 'मिल्ने प्रणाली',
+        type: FieldType.select,
+        options: ['Android', 'iOS', 'Both'],
+        optionsNe: ['एन्ड्रोइड', 'आईओएस', 'दुवै'],
+      ),
       _warranty,
     ],
 
-    // ── ELECTRONICS (parent: Electronics) ────
+    // -- ELECTRONICS --------------------------
     'Tablets & Accessories': [
-      _condition(),
+      _conditionRequired,
       _brand('e.g., Apple, Samsung, Huawei'),
       _model('e.g., iPad Pro, Galaxy Tab'),
-      _warranty,
-      _storage,
-      _ram,
+      _storage(['32GB', '64GB', '128GB', '256GB', '512GB', '1TB']),
+      const FormFieldModel(
+        name: 'connectivity',
+        label: 'Connectivity',
+        labelNe: 'कनेक्टिभिटी',
+        type: FieldType.select,
+        options: ['WiFi only', 'WiFi + Cellular'],
+        optionsNe: ['वाइफाइ मात्र', 'वाइफाइ + सेलुलर'],
+      ),
       _batteryHealth,
+      _warranty,
     ],
     'Laptops': [
-      _condition(),
-      _brand('e.g., Dell, HP, Lenovo, Apple'),
+      _conditionRequired,
+      _brandSelect([
+        'Dell',
+        'HP',
+        'Lenovo',
+        'Apple',
+        'Asus',
+        'Acer',
+        'MSI',
+        'Microsoft',
+        'Samsung',
+        'Other',
+      ]),
       _model('e.g., MacBook Pro, ThinkPad X1'),
-      _warranty,
       _processor,
-      _ram,
-      const FormFieldModel(
-        name: 'storage',
-        label: 'Storage Capacity',
-        labelNe: 'भण्डारण क्षमता',
-        type: FieldType.select,
-        required: true,
-        options: [
-          '128GB SSD',
-          '256GB SSD',
-          '512GB SSD',
-          '1TB SSD',
-          '1TB HDD',
-          '2TB HDD',
-        ],
-      ),
+      _ram(['4GB', '8GB', '16GB', '32GB', '64GB']),
+      _storage([
+        '128GB SSD',
+        '256GB SSD',
+        '512GB SSD',
+        '1TB SSD',
+        '1TB HDD',
+        '2TB HDD',
+        'SSD + HDD (Dual)',
+      ]),
       _graphics,
-      _screenResolution,
+      _screenSize([
+        '11.6 in',
+        '13.3 in',
+        '14 in',
+        '15.6 in',
+        '16 in',
+        '17.3 in',
+      ]),
       _batteryHealth,
+      _warranty,
     ],
     'Desktop Computers': [
-      _condition(),
+      _conditionRequired,
       _brand('e.g., Dell, HP, Custom Build'),
       _model('Enter model name'),
-      _warranty,
       _processor,
-      _ram,
-      const FormFieldModel(
-        name: 'storage',
-        label: 'Storage Capacity',
-        labelNe: 'भण्डारण क्षमता',
-        type: FieldType.select,
-        required: true,
-        options: [
-          '256GB SSD',
-          '512GB SSD',
-          '1TB SSD',
-          '1TB HDD',
-          '2TB HDD',
-          '4TB HDD',
-        ],
-      ),
+      _ram(['4GB', '8GB', '16GB', '32GB', '64GB']),
+      _storage([
+        '256GB SSD',
+        '512GB SSD',
+        '1TB SSD',
+        '1TB HDD',
+        '2TB HDD',
+        '4TB HDD',
+        'SSD + HDD (Dual)',
+      ]),
       _graphics,
-      _screenResolution,
+      const FormFieldModel(
+        name: 'monitorIncluded',
+        label: 'Monitor Included',
+        labelNe: 'मोनिटर सहित',
+        type: FieldType.select,
+        options: ['Yes - Full Setup', 'No - CPU Only'],
+        optionsNe: ['छ - पूरा सेटअप', 'छैन - सीपीयू मात्र'],
+      ),
+      _warranty,
     ],
     'TVs': [
-      _condition(),
-      _brand('e.g., Samsung, LG, Sony, TCL'),
+      _conditionRequired,
+      _brandSelect([
+        'Samsung',
+        'LG',
+        'Sony',
+        'TCL',
+        'Hisense',
+        'CG',
+        'Yasuda',
+        'Himstar',
+        'Colors',
+        'Panasonic',
+        'Other',
+      ]),
       _model('Enter model name'),
-      _warranty,
-      _screenSize('e.g., 32 inches, 55 inches, 65 inches'),
+      _screenSize([
+        '24 in',
+        '32 in',
+        '40 in',
+        '43 in',
+        '50 in',
+        '55 in',
+        '65 in',
+        '75 in',
+        '85 in+',
+      ]),
       _screenResolution,
       _smartFeatures,
+      _warranty,
     ],
     'TV & Video Accessories': [
-      _condition(),
-      _brand('e.g., Samsung, LG, Sony, TCL, Hisense'),
+      _conditionRequired,
+      _accessoryType(
+        [
+          'Set-Top Box',
+          'Streaming Device',
+          'Soundbar',
+          'Wall Mount',
+          'Remote',
+          'Projector',
+          'DVD/Blu-ray Player',
+          'Cables',
+          'Other',
+        ],
+        [
+          'सेट-टप बक्स',
+          'स्ट्रिमिङ डिभाइस',
+          'साउन्डबार',
+          'वाल माउन्ट',
+          'रिमोट',
+          'प्रोजेक्टर',
+          'डीभीडी प्लेयर',
+          'केबल',
+          'अन्य',
+        ],
+      ),
+      _brand('e.g., Dish Home, WorldLink, Xiaomi, JBL'),
       _model('Enter model name'),
       _warranty,
     ],
     'Cameras, Camcorders & Accessories': [
-      _condition(),
+      _conditionRequired,
+      const FormFieldModel(
+        name: 'cameraType',
+        label: 'Camera Type',
+        labelNe: 'क्यामेरा प्रकार',
+        type: FieldType.select,
+        options: [
+          'DSLR',
+          'Mirrorless',
+          'Point & Shoot',
+          'Action Camera',
+          'Camcorder',
+          'Drone',
+          'Lens',
+          'Tripod/Gimbal',
+          'Lighting',
+          'Other',
+        ],
+        optionsNe: [
+          'डीएसएलआर',
+          'मिररलेस',
+          'पोइन्ट एन्ड सुट',
+          'एक्सन क्यामेरा',
+          'क्यामकोर्डर',
+          'ड्रोन',
+          'लेन्स',
+          'ट्राइपड/जिम्बल',
+          'लाइटिङ',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Canon, Nikon, Sony, GoPro'),
       _model('e.g., EOS R5, A7 IV'),
-      _warranty,
-      const FormFieldModel(
-        name: 'screenSize',
-        label: 'Sensor Size',
-        labelNe: 'सेन्सर साइज',
-        type: FieldType.text,
-        required: true,
-        placeholder: 'e.g., Full Frame, APS-C, 1 inch',
-        placeholderNe: 'जस्तै, Full Frame, APS-C, 1 inch',
-      ),
+      _sensorSize,
       _megapixels,
+      _warranty,
     ],
     'Laptop & Computer Accessories': [
-      _condition(),
+      _conditionRequired,
+      _accessoryType(
+        [
+          'Monitor',
+          'Keyboard/Mouse',
+          'Printer/Scanner',
+          'Storage Drive',
+          'RAM/Components',
+          'Graphics Card',
+          'Router',
+          'UPS',
+          'Laptop Bag',
+          'Cooling Pad',
+          'Webcam',
+          'Other',
+        ],
+        [
+          'मोनिटर',
+          'किबोर्ड/माउस',
+          'प्रिन्टर/स्क्यानर',
+          'स्टोरेज ड्राइभ',
+          'र्‍याम/पार्ट्स',
+          'ग्राफिक्स कार्ड',
+          'राउटर',
+          'यूपीएस',
+          'ल्यापटप ब्याग',
+          'कुलिङ प्याड',
+          'वेबक्याम',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Logitech, Razer, Corsair'),
+      _model('Enter model name'),
       _warranty,
     ],
     'Audio & Sound Systems': [
-      _condition(),
+      _conditionRequired,
+      const FormFieldModel(
+        name: 'audioType',
+        label: 'Audio Type',
+        labelNe: 'अडियो प्रकार',
+        type: FieldType.select,
+        options: [
+          'Headphones',
+          'Earbuds (TWS)',
+          'Bluetooth Speaker',
+          'Home Theatre',
+          'Soundbar',
+          'Amplifier',
+          'DJ/PA System',
+          'Microphone',
+          'Studio Monitor',
+          'Other',
+        ],
+        optionsNe: [
+          'हेडफोन',
+          'इयरबड्स',
+          'ब्लुटुथ स्पिकर',
+          'होम थिएटर',
+          'साउन्डबार',
+          'एम्प्लिफायर',
+          'डीजे/पीए सिस्टम',
+          'माइक्रोफोन',
+          'स्टुडियो मोनिटर',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Sony, Bose, JBL, Sennheiser'),
       _model('Enter model name'),
       _warranty,
     ],
     'Video Game Consoles & Accessories': [
-      _condition(),
+      _conditionRequired,
+      const FormFieldModel(
+        name: 'gamingItemType',
+        label: 'Item Type',
+        labelNe: 'सामान प्रकार',
+        type: FieldType.select,
+        options: [
+          'Console',
+          'Game',
+          'Controller',
+          'VR Headset',
+          'Accessory',
+          'Other',
+        ],
+        optionsNe: [
+          'कन्सोल',
+          'गेम',
+          'कन्ट्रोलर',
+          'भीआर हेडसेट',
+          'सामान',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Sony, Microsoft, Nintendo'),
       _model('e.g., PS5, Xbox Series X, Switch'),
-      _storage,
+      _storage(['256GB', '500GB', '512GB', '825GB', '1TB', '2TB']),
       _warranty,
     ],
     'ACs & Home Electronics': [
-      _condition(),
-      _brand('e.g., Voltas, LG, Samsung, Daikin, Panasonic'),
+      _conditionRequired,
+      _applianceType(
+        [
+          'Split AC',
+          'Window AC',
+          'Portable AC',
+          'Cassette/Ducted AC',
+          'Air Cooler',
+          'Air Purifier',
+          'Geyser',
+          'Heater',
+          'Fan',
+          'Other',
+        ],
+        [
+          'स्प्लिट एसी',
+          'विन्डो एसी',
+          'पोर्टेबल एसी',
+          'क्यासेट/डक्टेड एसी',
+          'एयर कुलर',
+          'एयर प्युरिफायर',
+          'गिजर',
+          'हिटर',
+          'पंखा',
+          'अन्य',
+        ],
+      ),
+      _brandSelect([
+        'CG',
+        'Yasuda',
+        'Himstar',
+        'Gree',
+        'Midea',
+        'Hisense',
+        'LG',
+        'Samsung',
+        'Voltas',
+        'Daikin',
+        'Panasonic',
+        'Other',
+      ]),
+      _model('Enter model name'),
+      const FormFieldModel(
+        name: 'capacity',
+        label: 'Capacity (Ton)',
+        labelNe: 'क्षमता (टन)',
+        type: FieldType.select,
+        options: [
+          '0.75 Ton',
+          '1 Ton',
+          '1.5 Ton',
+          '2 Ton',
+          '2.5 Ton',
+          '3 Ton+',
+          'N/A',
+        ],
+        optionsNe: [
+          '०.७५ टन',
+          '१ टन',
+          '१.५ टन',
+          '२ टन',
+          '२.५ टन',
+          '३ टन+',
+          'लागू हुँदैन',
+        ],
+      ),
+      _warranty,
+    ],
+    'Home Appliances': [
+      _conditionRequired,
+      _applianceType(
+        [
+          'Refrigerator',
+          'Washing Machine',
+          'Microwave',
+          'Rice Cooker',
+          'Induction Cooker',
+          'Gas Stove',
+          'Water Purifier',
+          'Geyser',
+          'Blender/Mixer',
+          'Vacuum Cleaner',
+          'Iron',
+          'Fan',
+          'Heater',
+          'Other',
+        ],
+        [
+          'रेफ्रिजरेटर',
+          'वासिङ मेसिन',
+          'माइक्रोवेभ',
+          'राइस कुकर',
+          'इन्डक्सन',
+          'ग्यास चुल्हो',
+          'वाटर प्युरिफायर',
+          'गिजर',
+          'ब्लेन्डर/मिक्सर',
+          'भ्याकुम क्लिनर',
+          'आइरन',
+          'पंखा',
+          'हिटर',
+          'अन्य',
+        ],
+      ),
+      _brand('e.g., CG, Baltra, Yasuda, Himstar, LG, Samsung'),
       _model('Enter model name'),
       _warranty,
     ],
-    'Photocopiers': [
-      _condition(),
-      _brand('e.g., Canon, Xerox, HP, Ricoh'),
-      _model('Enter model name'),
-      _warranty,
-    ],
-    'Home Appliances': [_condition(), _brand('e.g., LG, Samsung, Whirlpool')],
     'Other Electronics': [
-      _condition(),
+      _conditionRequired,
       _brand('Enter brand name'),
       _model('Enter model name'),
       _warranty,
     ],
+    // Both keys are registered so the config survives the approved rename of
+    // this subcategory in either direction.
+    'Photocopiers': _printerConfig,
+    'Printers & Photocopiers': _printerConfig,
 
-    // ── VEHICLES (parent: Vehicles) ──────────
+    // -- VEHICLES -----------------------------
     'Cars': [
-      _condition(),
+      _conditionRequired,
       _brand('e.g., Toyota, Honda, Hyundai, Suzuki'),
       _model('e.g., Corolla, Civic, i20, Swift'),
       _vehicleYear,
-      _mileage,
-      _fuelType(),
+      _bodyType,
+      _seats(['2', '4', '5', '7', '8+'], ['२', '४', '५', '७', '८+']),
+      _fuelType(
+        ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'CNG'],
+        ['पेट्रोल', 'डिजेल', 'इलेक्ट्रिक', 'हाइब्रिड', 'सीएनजी'],
+      ),
       _transmission,
-      _engineCapacity(),
-      _color(),
+      _engineCapacity('e.g., 1500'),
+      _mileage,
       _owners,
       _registrationYear,
       _registrationLocation,
-      _bodyType(),
-      _seats,
+      _plateType,
+      _color,
     ],
     'Motorbikes': [
-      _condition(),
+      _conditionRequired,
+      _vehicleType(
+        [
+          'Scooter',
+          'Commuter',
+          'Sports',
+          'Cruiser',
+          'Off-road',
+          'Moped',
+          'Electric',
+        ],
+        [
+          'स्कुटर',
+          'कम्युटर',
+          'स्पोर्ट्स',
+          'क्रुजर',
+          'अफ-रोड',
+          'मोपेड',
+          'इलेक्ट्रिक',
+        ],
+      ),
       _brand('e.g., Honda, Yamaha, Bajaj, TVS'),
       _model('e.g., CBR, FZ, Pulsar'),
       _vehicleYear,
-      _mileage,
-      _fuelType(['Petrol']),
       _engineCapacity('e.g., 150cc, 250cc, 400cc'),
-      _color(),
+      _fuelType(['Petrol', 'Electric'], ['पेट्रोल', 'इलेक्ट्रिक']),
+      _mileage,
       _owners,
       _registrationYear,
+      _registrationLocation,
+      _plateType,
+      _color,
     ],
     'Bicycles': [
-      _condition(),
-      _brand('e.g., Trek, Giant, Hero, Firefox'),
+      _conditionRequired,
       _bicycleType,
-      _color(),
+      _brand('e.g., Trek, Giant, Hero, Firefox'),
+      _frameSize,
+      _gears,
     ],
     'Three Wheelers': [
-      _condition(),
+      _conditionRequired,
+      _vehicleType(
+        [
+          'Auto Rickshaw',
+          'E-Rickshaw',
+          'Safa Tempo',
+          'Passenger Tempo',
+          'Loader/Cargo',
+        ],
+        [
+          'अटो रिक्सा',
+          'ई-रिक्सा',
+          'सफा टेम्पो',
+          'यात्रु टेम्पो',
+          'लोडर/कार्गो',
+        ],
+      ),
       _brand('e.g., Bajaj, Piaggio, Ape'),
       _model('Enter model name'),
       _vehicleYear,
+      _fuelType(
+        ['Electric', 'Petrol', 'Diesel', 'CNG'],
+        ['इलेक्ट्रिक', 'पेट्रोल', 'डिजेल', 'सीएनजी'],
+      ),
       _mileage,
-      _fuelType(['Petrol', 'Diesel', 'CNG', 'Electric']),
-      _engineCapacity('e.g., 200cc, 400cc'),
-      _color(),
       _owners,
       _registrationYear,
-    ],
-    'Heavy Duty': [
-      _condition(),
-      _brand('e.g., Tata, Ashok Leyland, Mahindra'),
-      _model('Enter model name'),
-      _vehicleYear,
-      _bodyType([
-        'Truck',
-        'Bus',
-        'Tipper',
-        'Tanker',
-        'Trailer',
-      ], 'Vehicle Type'),
-      _mileage,
-      _fuelType(),
-      _owners,
-      _registrationYear,
+      _plateType,
     ],
     'Trucks': [
-      _condition(),
+      _conditionRequired,
+      _vehicleType(
+        [
+          'Mini Truck/Pickup',
+          'Tipper',
+          'Tanker',
+          'Container',
+          'Flatbed',
+          'Trailer',
+          'Mixer',
+          'Crane',
+          'Other',
+        ],
+        [
+          'मिनी ट्रक/पिकअप',
+          'टिपर',
+          'ट्यांकर',
+          'कन्टेनर',
+          'फ्ल्याटबेड',
+          'ट्रेलर',
+          'मिक्सर',
+          'क्रेन',
+          'अन्य',
+        ],
+      ),
       _brand('e.g., Tata, Ashok Leyland, BharatBenz'),
       _model('Enter model name'),
       _vehicleYear,
+      _payloadCapacity,
       _mileage,
-      _fuelType(['Diesel']),
       _owners,
       _registrationYear,
+      _registrationLocation,
+      _plateType,
     ],
     'Buses': [
-      _condition(),
+      _conditionRequired,
+      _vehicleType(
+        ['Micro', 'Mini', 'Deluxe/Tourist', 'Local', 'School', 'Sleeper'],
+        ['माइक्रो', 'मिनी', 'डिलक्स/पर्यटक', 'लोकल', 'स्कुल', 'स्लिपर'],
+      ),
       _brand('e.g., Tata, Ashok Leyland, BharatBenz'),
       _model('Enter model name'),
       _vehicleYear,
+      _passengerCapacity,
+      _fuelType(
+        ['Diesel', 'Electric', 'CNG'],
+        ['डिजेल', 'इलेक्ट्रिक', 'सीएनजी'],
+      ),
       _mileage,
-      _fuelType(['Diesel']),
-      _seats,
       _owners,
       _registrationYear,
+      _registrationLocation,
+      _plateType,
+      _routePermit,
     ],
     'Vans': [
-      _condition(),
+      _conditionRequired,
+      _vehicleType(
+        ['Passenger', 'Cargo/Delivery', 'School', 'Micro/Hiace', 'Ambulance'],
+        ['यात्रु', 'कार्गो/डेलिभरी', 'स्कुल', 'माइक्रो/हाइस', 'एम्बुलेन्स'],
+      ),
       _brand('e.g., Maruti, Tata, Mahindra'),
       _model('Enter model name'),
       _vehicleYear,
-      _mileage,
-      _fuelType(),
+      _seats(
+        ['2', '4', '5', '7', '9', '11', '14+'],
+        ['२', '४', '५', '७', '९', '११', '१४+'],
+      ),
+      _fuelType(
+        ['Diesel', 'Petrol', 'Electric', 'CNG'],
+        ['डिजेल', 'पेट्रोल', 'इलेक्ट्रिक', 'सीएनजी'],
+      ),
       _transmission,
-      _color(),
+      _mileage,
+      _owners,
+      _registrationYear,
+      _registrationLocation,
+      _plateType,
+    ],
+    'Heavy Duty': [
+      _conditionRequired,
+      _vehicleType(
+        [
+          'Excavator',
+          'Backhoe',
+          'Wheel Loader',
+          'Bulldozer',
+          'Crane',
+          'Roller',
+          'Grader',
+          'Tractor',
+          'Forklift',
+          'Mixer',
+          'Drilling Rig',
+          'Other',
+        ],
+        [
+          'एक्साभेटर',
+          'ब्याकहो',
+          'व्हिल लोडर',
+          'बुलडोजर',
+          'क्रेन',
+          'रोलर',
+          'ग्रेडर',
+          'ट्र्याक्टर',
+          'फर्कलिफ्ट',
+          'मिक्सर',
+          'ड्रिलिङ रिग',
+          'अन्य',
+        ],
+      ),
+      _brand('e.g., JCB, Komatsu, Hyundai, CAT, Tata Hitachi'),
+      _model('Enter model name'),
+      _vehicleYear,
+      _operatingHours,
       _owners,
       _registrationYear,
     ],
+    'Water Transport': [
+      _conditionRequired,
+      _boatType,
+      _passengerCapacity,
+      _brand('e.g., Yamaha (engine), locally built'),
+      _model('Enter model name'),
+      _vehicleYear,
+    ],
     'Auto Parts & Accessories': [
-      _condition(),
+      _conditionRequired,
+      _partType,
       _brand('e.g., Bosch, Denso, 3M'),
+      _compatibleVehicle,
+      _warranty,
     ],
     'Rentals': [
-      _bodyType(['Car', 'Motorcycle', 'Scooter', 'Van', 'Bus'], 'Vehicle Type'),
-      _brand('Enter brand name'),
-      _model('Enter model name'),
-      _fuelType(),
+      _vehicleType(
+        ['Car', 'Motorcycle', 'Scooter', 'Van', 'Bus', 'Jeep/SUV', 'Truck'],
+        ['कार', 'मोटरसाइकल', 'स्कुटर', 'भ्यान', 'बस', 'जिप/एसयूभी', 'ट्रक'],
+      ),
+      _rentalPeriod,
+      _withDriver,
+      _seats(
+        ['2', '4', '5', '7', '9', '11', '14+'],
+        ['२', '४', '५', '७', '९', '११', '१४+'],
+      ),
       _transmission,
-    ],
-    'Water Transport': [
-      _condition(),
       _brand('Enter brand name'),
       _model('Enter model name'),
-      _vehicleYear,
-      _color(),
     ],
-    'Auto Services': [
-      _brand('e.g., Toyota, Honda, Yamaha'),
-      _model('e.g., Corolla, City, FZ'),
-      _vehicleYear,
-      _color(),
-    ],
-    'Maintenance and Repair': [],
+    'Auto Services': _autoServiceConfig,
+    'Maintenance and Repair': _autoServiceConfig,
 
-    // ── PROPERTY (parent: Property) ──────────
+    // -- PROPERTY -----------------------------
     'Apartments For Sale': [
-      _condition(),
-      _landType('Property Type', [
-        'Studio',
-        '1BHK',
-        '2BHK',
-        '3BHK',
-        '4BHK',
-        'Penthouse',
-        'Duplex',
-      ]),
+      _totalArea(label: 'Built-up Area', labelNe: 'निर्मित क्षेत्रफल'),
+      _areaUnit,
       _bedrooms,
       _bathrooms,
-      _totalArea,
-      _areaUnit,
-      _furnishing,
-      _parking,
       _floorNumber,
+      _totalFloors,
+      _furnishing(),
+      _buildYear,
       _facing,
-      _amenities(),
-      _propertyAge,
+      _parking(_parkingOptions, _parkingOptionsNe),
+      _amenities(_apartmentAmenities, _apartmentAmenitiesNe),
       _googleMapsLink,
     ],
     'Apartment Rentals': [
-      _landType('Property Type', [
-        'Studio',
-        '1BHK',
-        '2BHK',
-        '3BHK',
-        '4BHK',
-        'Penthouse',
-        'Duplex',
-      ]),
+      _totalArea(label: 'Built-up Area', labelNe: 'निर्मित क्षेत्रफल'),
+      _areaUnit,
       _bedrooms,
       _bathrooms,
-      _totalArea,
-      _areaUnit,
-      _furnishing,
-      _parking,
       _floorNumber,
+      _totalFloors,
+      _furnishing(),
       _facing,
-      _amenities(),
-      _monthlyRent,
-      _securityDeposit,
+      _parking(_parkingOptions, _parkingOptionsNe),
+      _amenities(_apartmentAmenities, _apartmentAmenitiesNe),
+      _preferredTenant,
+      _securityDeposit(_depositOptions, _depositOptionsNe),
       _availableFrom,
       _googleMapsLink,
     ],
     'Houses For Sale': [
-      _condition(),
-      _landType('Property Type', [
-        'Single Family',
-        'Bungalow',
-        'Villa',
-        'Townhouse',
-        'Duplex House',
-      ]),
+      _propertyType(
+        [
+          'Bungalow',
+          'Duplex',
+          'Semi-detached',
+          'Row House',
+          'Villa',
+          'Traditional',
+        ],
+        [
+          'बंगला',
+          'डुप्लेक्स',
+          'सेमी-डिटेच्ड',
+          'रो हाउस',
+          'भिल्ला',
+          'परम्परागत',
+        ],
+      ),
+      _totalArea(label: 'Land Area', labelNe: 'जमिन क्षेत्रफल'),
+      _areaUnit,
+      _builtUpArea,
       _bedrooms,
       _bathrooms,
-      _totalArea,
-      _areaUnit,
-      _furnishing,
-      _parking,
       _totalFloors,
+      _constructionType,
+      _buildYear,
       _facing,
-      _amenities(),
       _roadAccess,
-      _propertyAge,
+      _roadSize,
+      _parking(_parkingOptions, _parkingOptionsNe),
+      _amenities(_houseAmenities, _houseAmenitiesNe),
       _googleMapsLink,
     ],
     'House Rentals': [
-      _landType('Property Type', [
-        'Single Family',
-        'Bungalow',
-        'Villa',
-        'Townhouse',
-        'Duplex House',
-      ]),
+      _propertyType(
+        [
+          'Full House',
+          'Flat in House',
+          'Half House',
+          'Ground Floor',
+          'Top Floor',
+        ],
+        [
+          'पूरा घर',
+          'घरभित्रको फ्ल्याट',
+          'आधा घर',
+          'भुइँ तल्ला',
+          'माथिल्लो तल्ला',
+        ],
+      ),
+      _totalArea(),
+      _areaUnit,
       _bedrooms,
       _bathrooms,
-      _totalArea,
-      _areaUnit,
-      _furnishing,
-      _parking,
-      _totalFloors,
+      _furnishing(),
       _facing,
-      _amenities(),
-      _monthlyRent,
-      _securityDeposit,
+      _parking(_parkingOptions, _parkingOptionsNe),
+      _amenities(_houseRentalAmenities, _houseRentalAmenitiesNe),
+      _preferredTenant,
+      _securityDeposit(_depositOptions, _depositOptionsNe),
       _availableFrom,
       _googleMapsLink,
     ],
     'Land For Sale': [
-      const FormFieldModel(
-        name: 'totalArea',
-        label: 'Land Area',
-        labelNe: 'जमिन क्षेत्रफल',
-        type: FieldType.number,
-        required: true,
-        placeholder: 'Enter area',
-        placeholderNe: 'क्षेत्रफल लेख्नुहोस्',
-      ),
+      _totalArea(label: 'Land Area', labelNe: 'जमिन क्षेत्रफल'),
       _areaUnit,
-      _landType('Zoning'),
+      _landType,
       _roadAccess,
-      _roadWidth,
+      _roadSize,
       _facing,
       _googleMapsLink,
     ],
     'Land Rentals': [
-      const FormFieldModel(
-        name: 'totalArea',
-        label: 'Land Area',
-        labelNe: 'जमिन क्षेत्रफल',
-        type: FieldType.number,
-        required: true,
-        placeholder: 'Enter area',
-        placeholderNe: 'क्षेत्रफल लेख्नुहोस्',
-      ),
+      _totalArea(label: 'Land Area', labelNe: 'जमिन क्षेत्रफल'),
       _areaUnit,
-      _landType('Zoning'),
+      _landType,
       _roadAccess,
-      _roadWidth,
+      _roadSize,
       _facing,
-      _monthlyRent,
       _availableFrom,
       _googleMapsLink,
     ],
     'Commercial Properties For Sale': [
-      _condition(),
-      _landType('Property Type', [
-        'Office Space',
-        'Shop',
-        'Showroom',
-        'Warehouse',
-        'Factory',
-        'Restaurant Space',
-      ]),
-      _totalArea,
+      _propertyType(
+        [
+          'Office',
+          'Shop',
+          'Showroom',
+          'Warehouse',
+          'Factory',
+          'Restaurant',
+          'Hotel',
+          'Complex',
+        ],
+        [
+          'कार्यालय',
+          'पसल',
+          'शोरूम',
+          'गोदाम',
+          'कारखाना',
+          'रेस्टुरेन्ट',
+          'होटल',
+          'कम्प्लेक्स',
+        ],
+      ),
+      _totalArea(),
       _areaUnit,
-      _furnishing,
-      _parking,
       _floorNumber,
-      _amenities(),
+      _buildYear,
       _roadAccess,
-      _propertyAge,
+      _roadSize,
+      _parking(_commercialParkingOptions, _commercialParkingOptionsNe),
+      _amenities(_commercialAmenities, _commercialAmenitiesNe),
       _googleMapsLink,
     ],
     'Commercial Property Rentals': [
-      _landType('Property Type', [
-        'Office Space',
-        'Shop',
-        'Showroom',
-        'Warehouse',
-        'Factory',
-        'Restaurant Space',
-      ]),
-      _totalArea,
+      _propertyType(
+        [
+          'Office',
+          'Shop',
+          'Showroom',
+          'Warehouse',
+          'Factory',
+          'Restaurant',
+          'Hotel',
+          'Complex',
+        ],
+        [
+          'कार्यालय',
+          'पसल',
+          'शोरूम',
+          'गोदाम',
+          'कारखाना',
+          'रेस्टुरेन्ट',
+          'होटल',
+          'कम्प्लेक्स',
+        ],
+      ),
+      _totalArea(),
       _areaUnit,
-      _furnishing,
-      _parking,
       _floorNumber,
-      _amenities(),
-      _monthlyRent,
-      _securityDeposit,
+      _furnishing(label: 'Fit-out Status', labelNe: 'सजावट अवस्था'),
+      _roadAccess,
+      _parking(_commercialParkingOptions, _commercialParkingOptionsNe),
+      _amenities(_commercialAmenities, _commercialAmenitiesNe),
+      _securityDeposit(_commercialDepositOptions, _commercialDepositOptionsNe),
       _availableFrom,
       _googleMapsLink,
     ],
     'Room Rentals': [
-      _landType('Room Type', [
-        'Single Room',
-        'Shared Room',
-        'Master Bedroom',
-        'Hostel Bed',
-      ]),
-      _furnishing,
-      _amenities([
-        'WiFi',
-        'Kitchen',
-        'Laundry',
-        'Parking',
-        'Attached Bathroom',
-        'Hot Water',
-      ]),
-      _monthlyRent,
-      _securityDeposit,
+      _roomType,
+      _furnishing(),
+      _preferredTenant,
+      _amenities(_roomAmenities, _roomAmenitiesNe),
+      _securityDeposit(_depositOptions, _depositOptionsNe),
       _availableFrom,
       _googleMapsLink,
     ],
-    'New projects on PropertyGuide': [_googleMapsLink],
 
-    // ── FASHION (Men's Fashion & Grooming) ───
+    // -- MEN'S FASHION & GROOMING -------------
     'Shirts & T-Shirts': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Nike, Adidas, Zara, H&M'),
-      _clothingType(['Shirt', 'T-Shirt', 'Polo', 'Tank Top']),
+      _clothingType(
+        ['Shirt', 'T-Shirt', 'Polo', 'Tank Top'],
+        ['सर्ट', 'टी-सर्ट', 'पोलो', 'ट्यांक टप'],
+      ),
       _size,
       _fitType,
       _sleeveType,
-      _color(),
+      _color,
     ],
     'Pants': [
-      _condition(),
-      _brand('e.g., Levi\'s, Zara, H&M'),
-      _clothingType([
-        'Jeans',
-        'Chinos',
-        'Formal Pants',
-        'Track Pants',
-        'Shorts',
-      ]),
-      _size,
+      _conditionOptional,
+      _brand("e.g., Levi's, Zara, H&M"),
+      _clothingType(
+        ['Jeans', 'Chinos', 'Formal Pants', 'Track Pants', 'Shorts'],
+        ['जिन्स', 'चिनोज', 'फर्मल प्यान्ट', 'ट्र्याक प्यान्ट', 'हाफ प्यान्ट'],
+      ),
+      _waistSize,
       _fitType,
-      _color(),
+      _color,
     ],
     'Jacket & Coat': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Nike, Zara, North Face'),
-      _clothingType(['Jacket', 'Coat', 'Blazer', 'Hoodie', 'Windbreaker']),
+      _clothingType(
+        ['Jacket', 'Coat', 'Blazer', 'Hoodie', 'Windbreaker'],
+        ['ज्याकेट', 'कोट', 'ब्लेजर', 'हुडी', 'विन्डब्रेकर'],
+      ),
       _size,
       _fitType,
-      _color(),
+      _color,
     ],
     'Traditional Clothing': [
-      _condition(),
+      _conditionOptional,
       _brand('Enter brand name'),
-      _clothingType([
-        'Daura Suruwal',
-        'Topi',
-        'Dhoti',
-        'Kurta',
-        'Sherwani',
-        'Other',
-      ]),
+      _clothingType(
+        [
+          'Daura Suruwal',
+          'Dhaka Topi',
+          'Topi',
+          'Dhoti',
+          'Kurta',
+          'Sherwani',
+          'Other',
+        ],
+        [
+          'दौरा सुरुवाल',
+          'ढाका टोपी',
+          'टोपी',
+          'धोती',
+          'कुर्ता',
+          'शेरवानी',
+          'अन्य',
+        ],
+      ),
       _size,
-      _color(),
+      _fabric(
+        [
+          'Cotton',
+          'Silk',
+          'Dhaka',
+          'Wool/Pashmina',
+          'Linen',
+          'Synthetic',
+          'Mixed',
+        ],
+        ['सुती', 'रेशम', 'ढाका', 'ऊन/पस्मिना', 'लिनेन', 'सिन्थेटिक', 'मिश्रित'],
+      ),
+      _color,
     ],
-    'Grooming & Bodycare': [_brand('e.g., Nivea, Gillette, Park Avenue')],
-    // Shared between Men's and Women's:
+    'Grooming & Bodycare': [
+      _brand('e.g., Nivea, Gillette, Park Avenue'),
+      _productWeight(),
+      _expiryDate(),
+    ],
+
+    // Shared between Men's and Women's (one config, two DB rows)
     'Footwear': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Nike, Adidas, Puma, Bata'),
-      _footwearType(),
+      _footwearType,
       _shoeSize,
-      _color(),
+      _color,
     ],
     'Watches': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Casio, Fossil, Titan, Apple'),
       _watchType,
       _strapMaterial,
-      _color(),
+      _color,
     ],
     'Bags & Accessories': [
-      _condition(),
-      _brand('e.g., Ray-Ban, Tommy Hilfiger, Michael Kors'),
-      _color(),
+      _conditionOptional,
+      _brand('e.g., Tommy Hilfiger, Michael Kors, Wildcraft'),
+      _bagAccessoryType,
+      _material(
+        ['Leather', 'PU Leather', 'Canvas', 'Nylon', 'Fabric', 'Other'],
+        ['छाला', 'पीयू छाला', 'क्यानभास', 'नाइलन', 'कपडा', 'अन्य'],
+      ),
+      _color,
     ],
     'Optical & Sunglasses': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Ray-Ban, Oakley, Titan'),
-      _color(),
+      _eyewearType,
+      _color,
+    ],
+    'Wholesale - Bulk': [
+      _conditionOptional,
+      _brand('Enter brand name'),
+      _minOrderQuantity,
+      _quantity,
+    ],
+    "Baby Boy's Fashion": [
+      _conditionOptional,
+      _brand("e.g., Carter's, Mothercare, Next"),
+      _ageGroup,
+      _color,
+    ],
+    "Baby Girl's Fashion": [
+      _conditionOptional,
+      _brand("e.g., Carter's, Mothercare, Next"),
+      _ageGroup,
+      _color,
     ],
 
-    // ── FASHION (Women's Fashion & Beauty) ───
+    // -- WOMEN'S FASHION & BEAUTY -------------
     'Western Wear': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Zara, H&M, Forever 21, Max'),
-      _clothingType([
-        'Dress',
-        'Top',
-        'Jeans',
-        'Skirt',
-        'Leggings',
-        'Jacket',
-        'Coat',
-      ]),
+      _clothingType(
+        ['Dress', 'Top', 'Jeans', 'Skirt', 'Leggings', 'Jacket', 'Coat'],
+        ['ड्रेस', 'टप', 'जिन्स', 'स्कर्ट', 'लेगिङ्स', 'ज्याकेट', 'कोट'],
+      ),
       _size,
       _fitType,
-      _color(),
+      _color,
     ],
     'Traditional Wear': [
-      _condition(),
+      _conditionOptional,
       _brand('Enter brand name'),
-      _clothingType([
-        'Saree',
-        'Kurta',
-        'Lehenga',
-        'Sherwani',
-        'Dhoti',
-        'Topi',
-        'Daura Suruwal',
-        'Other',
-      ]),
+      _clothingType(
+        [
+          'Saree',
+          'Kurta',
+          'Kurtha Suruwal',
+          'Lehenga',
+          'Gunyo Cholo',
+          'Sherwani',
+          'Dhoti',
+          'Topi',
+          'Other',
+        ],
+        [
+          'साडी',
+          'कुर्ता',
+          'कुर्था सुरुवाल',
+          'लेहंगा',
+          'गुन्यो चोलो',
+          'शेरवानी',
+          'धोती',
+          'टोपी',
+          'अन्य',
+        ],
+      ),
       _size,
-      _color(),
+      _fabric(
+        [
+          'Cotton',
+          'Silk',
+          'Georgette',
+          'Chiffon',
+          'Banarasi',
+          'Dhaka',
+          'Wool/Pashmina',
+          'Synthetic',
+          'Mixed',
+        ],
+        [
+          'सुती',
+          'रेशम',
+          'जर्जेट',
+          'सिफन',
+          'बनारसी',
+          'ढाका',
+          'ऊन/पस्मिना',
+          'सिन्थेटिक',
+          'मिश्रित',
+        ],
+      ),
+      _color,
+    ],
+    'Winter Wear': [
+      _conditionOptional,
+      _brand('e.g., North Face, Columbia, Zara'),
+      _clothingType(
+        [
+          'Jacket',
+          'Coat',
+          'Sweater',
+          'Hoodie',
+          'Shawl/Pashmina',
+          'Thermal',
+          'Gloves',
+          'Cap',
+          'Muffler',
+          'Other',
+        ],
+        [
+          'ज्याकेट',
+          'कोट',
+          'स्वेटर',
+          'हुडी',
+          'शल/पस्मिना',
+          'थर्मल',
+          'पन्जा',
+          'टोपी',
+          'मफलर',
+          'अन्य',
+        ],
+      ),
+      _size,
+      _color,
     ],
     'Jewellery & Watches': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Tanishq, Swarovski, Fossil'),
+      _jewelleryMaterial,
       _watchType,
       _strapMaterial,
-      _color('Metal/Color', 'e.g., Gold, Silver, Rose Gold'),
+      _color,
     ],
     'Beauty & Personal Care': [
       _brand("e.g., L'Oreal, Nivea, Garnier, Himalaya"),
-      _productWeight,
-      _manufacturingDate,
-      _expiryDate,
+      _productWeight(),
+      _expiryDate(),
     ],
-    'Lingerie & Sleepwear': [_color()],
-    'Winter Wear': [
-      _condition(),
-      _brand('e.g., North Face, Columbia, Zara'),
-      _size,
-      _color(),
-    ],
+    'Lingerie & Sleepwear': [_brand('Enter brand name'), _size, _color],
 
-    // ── FASHION (shared) ─────────────────────
-    "Baby Boy's Fashion": [
-      _brand("e.g., Carter's, Mothercare, Next"),
-      _color(),
-    ],
-    "Baby Girl's Fashion": [
-      _brand("e.g., Carter's, Mothercare, Next"),
-      _color(),
-    ],
-    'Wholesale - Bulk': [_brand('Enter brand name')],
-
-    // ── PETS & ANIMALS ───────────────────────
+    // -- PETS & ANIMALS -----------------------
     'Pets': [
-      _animalType([
-        'Dog',
-        'Cat',
-        'Bird',
-        'Fish',
-        'Rabbit',
-        'Hamster',
-        'Guinea Pig',
-        'Other',
-      ]),
-      _breed(null, 'e.g., Golden Retriever, Persian Cat, Parrot'),
-      _petAge(),
-      _petGender(),
+      _animalType(_petAnimalTypes, _petAnimalTypesNe),
+      _breed(placeholder: 'e.g., Golden Retriever, Persian Cat, Parrot'),
+      _petAge,
+      _petGender,
+      _petColor,
       _vaccination,
       _petPapers,
-      _petColor,
-      _petWeight(),
-      _trained(),
+      _trained,
       _friendlyWith,
     ],
     'Farm Animals': [
-      _animalType([
-        'Cow',
-        'Buffalo',
-        'Goat',
-        'Sheep',
-        'Pig',
-        'Horse',
-        'Donkey',
-        'Chicken',
-        'Duck',
-        'Turkey',
-        'Pigeon',
-      ]),
-      _breed(),
-      _petAge('Age'),
-      _petGender('Gender'),
+      _animalType(_farmAnimalTypes, _farmAnimalTypesNe),
+      _breed(placeholder: 'e.g., Jersey, Murrah, Khari'),
+      _petAge,
+      _petGender,
+      _animalWeight,
+      _priceUnit(
+        ['Per Animal', 'Per Kg (live weight)'],
+        ['प्रति जनावर', 'प्रति के.जी. (जिउँदो तौल)'],
+      ),
+      _milkYield,
       _vaccination,
-      _petWeight('Weight (kg)'),
     ],
     'Other Pets & Animals': [
-      _animalType(),
-      _breed(),
-      _petAge(),
-      _petGender(),
+      _animalType(_petAnimalTypes, _petAnimalTypesNe),
+      _breed(label: 'Breed / Species', labelNe: 'जात / प्रजाति'),
+      _petAge,
+      _petGender,
       _petColor,
     ],
+    // B-17: dog food cannot require a "Brand New" declaration - condition is
+    // hidden for this subcategory by policy and is not declared here.
     'Pet & Animal food': [
-      _condition(),
-      _brand('e.g., Pedigree, Royal Canin, Whiskas'),
       _suitableFor,
+      _brand('e.g., Pedigree, Royal Canin, Whiskas'),
+      _productWeight(label: 'Pack Size', labelNe: 'प्याक साइज'),
+      _expiryDate(),
     ],
     'Pet & Animal Accessories': [
-      _condition(),
-      _brand('Enter brand name'),
-      _petProductType(),
+      _productType(
+        [
+          'Cage/Kennel',
+          'Aquarium',
+          'Leash',
+          'Collar',
+          'Bedding',
+          'Bowls',
+          'Grooming',
+          'Toys',
+          'Pet Clothing',
+          'Veterinary',
+          'Livestock Equipment',
+          'Other',
+        ],
+        [
+          'पिंजरा/केनेल',
+          'एक्वेरियम',
+          'डोरी',
+          'कलर',
+          'ओछ्यान',
+          'भाँडा',
+          'सफाइ',
+          'खेलौना',
+          'पाल्तु लुगा',
+          'पशु चिकित्सा',
+          'पशुपालन उपकरण',
+          'अन्य',
+        ],
+      ),
       _suitableFor,
+      _conditionOptional,
+      _brand('Enter brand name'),
     ],
 
-    // ── SERVICES (NO condition field!) ────────
-    'Servicing & Repair': [_experience, _availability(), _serviceLocation()],
-    'IT Services': [
+    // -- SERVICES -----------------------------
+    'Building maintenance': [
+      _serviceType(
+        [
+          'Plumbing',
+          'Electrical',
+          'Painting',
+          'Masonry/Tiling',
+          'Carpentry',
+          'Cleaning',
+          'Pest Control',
+          'Waterproofing',
+          'Welding/Grill',
+          'House Shifting',
+          'Other',
+        ],
+        [
+          'प्लम्बिङ',
+          'इलेक्ट्रिकल',
+          'रङ्गरोगन',
+          'डकर्मी/टायल',
+          'सिकर्मी',
+          'सफाइ',
+          'किरा नियन्त्रण',
+          'वाटरप्रुफिङ',
+          'वेल्डिङ/ग्रिल',
+          'घरसारी',
+          'अन्य',
+        ],
+      ),
+      _availability(_availabilityOptions, _availabilityOptionsNe),
       _experience,
-      _availability(),
-      _serviceLocation(null, [
-        'At Customer Location',
-        'At Provider Location',
-        'Remote/Online',
-      ]),
-      _languages(),
+      _pricePeriod(
+        ['Per Hour', 'Per Visit', 'Per Day', 'Per Project', 'Free Inspection'],
+        [
+          'प्रति घण्टा',
+          'प्रति भिजिट',
+          'प्रति दिन',
+          'प्रति परियोजना',
+          'निःशुल्क निरीक्षण',
+        ],
+      ),
+    ],
+    'Domestic & Daycare Services': [
+      _serviceType(
+        [
+          'House Maid',
+          'Cook',
+          'Nanny',
+          'Elderly Care',
+          'Daycare Centre',
+          'Housekeeping',
+          'Domestic Driver',
+          'Other',
+        ],
+        [
+          'घरेलु सहयोगी',
+          'भान्से',
+          'बच्चा हेर्ने',
+          'वृद्ध हेरचाह',
+          'डे-केयर केन्द्र',
+          'हाउसकिपिङ',
+          'घरेलु चालक',
+          'अन्य',
+        ],
+      ),
+      _serviceLocation(
+        ['At Customer Home', 'At Daycare Centre'],
+        ['ग्राहकको घरमा', 'डे-केयर केन्द्रमा'],
+      ),
+      _availability(
+        ['Full Day', 'Half Day', 'Live-in', 'Weekdays', 'Weekends', 'On-Call'],
+        [
+          'पूरा दिन',
+          'आधा दिन',
+          'बस्ने (लिभ-इन)',
+          'हप्ताका दिन',
+          'शनिबार/आइतबार',
+          'अन-कल',
+        ],
+      ),
+      _experience,
+      _languages(_languageOptions, _languageOptionsNe),
+      _pricePeriod(
+        ['Per Hour', 'Per Day', 'Per Month'],
+        ['प्रति घण्टा', 'प्रति दिन', 'प्रति महिना'],
+      ),
+    ],
+    'Fitness & Beauty Services': [
+      _serviceType(
+        [
+          'Gym/Trainer',
+          'Yoga',
+          'Zumba/Dance',
+          'Salon/Parlour',
+          'Bridal Makeup',
+          'Hair/Spa',
+          'Massage Therapy',
+          'Nutrition',
+          'Other',
+        ],
+        [
+          'जिम/ट्रेनर',
+          'योग',
+          'जुम्बा/नृत्य',
+          'सैलुन/पार्लर',
+          'दुलही श्रृंगार',
+          'कपाल/स्पा',
+          'मसाज थेरापी',
+          'पोषण',
+          'अन्य',
+        ],
+      ),
+      _serviceLocation(
+        ['At Customer Location', 'At Gym/Studio', 'At Salon/Parlour'],
+        ['ग्राहकको स्थानमा', 'जिम/स्टुडियोमा', 'सैलुन/पार्लरमा'],
+      ),
+      _genderServed,
+      _availability(_availabilityOptions, _availabilityOptionsNe),
+      _experience,
+      _pricePeriod(
+        ['Per Session', 'Per Month', 'Per Package'],
+        ['प्रति सेसन', 'प्रति महिना', 'प्रति प्याकेज'],
+      ),
+    ],
+    'IT Services': [
+      _serviceType(
+        [
+          'Web Development',
+          'Mobile App',
+          'Software',
+          'Graphic Design',
+          'Digital Marketing/SEO',
+          'Networking',
+          'Computer Repair',
+          'Data Entry',
+          'Hosting',
+          'Other',
+        ],
+        [
+          'वेब विकास',
+          'मोबाइल एप',
+          'सफ्टवेयर',
+          'ग्राफिक डिजाइन',
+          'डिजिटल मार्केटिङ/एसईओ',
+          'नेटवर्किङ',
+          'कम्प्युटर मर्मत',
+          'डाटा इन्ट्री',
+          'होस्टिङ',
+          'अन्य',
+        ],
+      ),
+      _serviceLocation(_serviceLocationOptions, _serviceLocationOptionsNe),
+      _availability(_availabilityOptions, _availabilityOptionsNe),
+      _experience,
+      _pricePeriod(
+        ['Per Hour', 'Per Project', 'Per Month'],
+        ['प्रति घण्टा', 'प्रति परियोजना', 'प्रति महिना'],
+      ),
+    ],
+    'Matrimonials': [_lookingFor, _ageRange, _maritalStatus],
+    'Media & Event Management Services': [
+      _serviceType(
+        [
+          'Photography',
+          'Videography',
+          'Wedding Planning',
+          'Decoration',
+          'Catering',
+          'Sound/DJ',
+          'Tent House',
+          'MC/Anchor',
+          'Printing',
+          'Other',
+        ],
+        [
+          'फोटोग्राफी',
+          'भिडियोग्राफी',
+          'विवाह योजना',
+          'सजावट',
+          'क्याटरिङ',
+          'साउन्ड/डीजे',
+          'टेन्ट हाउस',
+          'एमसी/एंकर',
+          'छपाइ',
+          'अन्य',
+        ],
+      ),
+      _availability(
+        ['Weekdays', 'Weekends', 'Peak Season (Wedding)', 'Flexible'],
+        ['हप्ताका दिन', 'शनिबार/आइतबार', 'विवाह सिजन', 'लचिलो'],
+      ),
+      _experience,
+      _pricePeriod(
+        ['Per Event', 'Per Day', 'Per Hour', 'Per Package'],
+        ['प्रति कार्यक्रम', 'प्रति दिन', 'प्रति घण्टा', 'प्रति प्याकेज'],
+      ),
     ],
     'Professional Services': [
+      _serviceType(
+        [
+          'Legal',
+          'Accounting/Tax',
+          'Audit',
+          'Architecture',
+          'Engineering',
+          'Translation',
+          'Business Consulting',
+          'Insurance',
+          'Photography',
+          'Other',
+        ],
+        [
+          'कानुनी',
+          'लेखा/कर',
+          'लेखापरीक्षण',
+          'वास्तुकला',
+          'इन्जिनियरिङ',
+          'अनुवाद',
+          'व्यापार परामर्श',
+          'बीमा',
+          'फोटोग्राफी',
+          'अन्य',
+        ],
+      ),
+      _serviceLocation(_serviceLocationOptions, _serviceLocationOptionsNe),
+      _availability(_availabilityOptions, _availabilityOptionsNe),
       _experience,
-      _availability(),
-      _serviceLocation(),
-      _languages(),
+      _languages(_languageOptions, _languageOptionsNe),
+      _pricePeriod(
+        [
+          'Per Hour',
+          'Per Case',
+          'Per Month',
+          'Per Project',
+          'Free Consultation',
+        ],
+        [
+          'प्रति घण्टा',
+          'प्रति केस',
+          'प्रति महिना',
+          'प्रति परियोजना',
+          'निःशुल्क परामर्श',
+        ],
+      ),
     ],
-    'Gym & Fitness': [
+    'Servicing & Repair': [
+      _serviceType(
+        [
+          'Mobile/Laptop',
+          'TV/Electronics',
+          'AC/Fridge',
+          'Washing Machine',
+          'Plumbing',
+          'Electrical',
+          'Furniture',
+          'Vehicle',
+          'Watch',
+          'Other',
+        ],
+        [
+          'मोबाइल/ल्यापटप',
+          'टिभी/इलेक्ट्रोनिक्स',
+          'एसी/फ्रिज',
+          'वासिङ मेसिन',
+          'प्लम्बिङ',
+          'इलेक्ट्रिकल',
+          'फर्निचर',
+          'सवारी साधन',
+          'घडी',
+          'अन्य',
+        ],
+      ),
+      _serviceLocation(_serviceLocationOptions, _serviceLocationOptionsNe),
+      _availability(_availabilityOptions, _availabilityOptionsNe),
       _experience,
-      _availability(),
-      _serviceLocation('Location', [
-        'At Customer Location',
-        'At Provider Location',
-      ]),
+      _pricePeriod(
+        ['Per Hour', 'Per Visit', 'Per Job', 'Free Inspection'],
+        ['प्रति घण्टा', 'प्रति भिजिट', 'प्रति काम', 'निःशुल्क निरीक्षण'],
+      ),
     ],
-    'Beauty Services': [
-      _experience,
-      _availability(),
-      _serviceLocation('Location', [
-        'At Customer Location',
-        'At Salon/Parlour',
-      ]),
+    'Tours & Travels': [
+      _serviceType(
+        [
+          'Trekking',
+          'Tour Package',
+          'Air Ticketing',
+          'Hotel Booking',
+          'Vehicle Hire',
+          'Visa/Documentation',
+          'Pilgrimage',
+          'Adventure',
+          'Other',
+        ],
+        [
+          'ट्रेकिङ',
+          'टुर प्याकेज',
+          'हवाई टिकट',
+          'होटल बुकिङ',
+          'सवारी भाडा',
+          'भिसा/कागजात',
+          'तीर्थयात्रा',
+          'एडभेन्चर',
+          'अन्य',
+        ],
+      ),
+      _tripDuration,
+      _pricePeriod(
+        ['Per Person', 'Per Package', 'Per Vehicle', 'Per Day'],
+        ['प्रति व्यक्ति', 'प्रति प्याकेज', 'प्रति सवारी', 'प्रति दिन'],
+      ),
     ],
-    'Body Massage': [
-      _experience,
-      _availability(),
-      _serviceLocation('Location', ['At Home', 'At Massage Parlour'], true),
-    ],
-    'Domestic & Daycare Services': [_experience, _availability(), _languages()],
-    'Building maintenance': [_experience, _availability(), _serviceLocation()],
-    'Media & Event Management Services': [_experience, _availability()],
-    'Matrimonials': [],
-    'Tours & Travels': [],
 
-    // ── EDUCATION ────────────────────────────
+    // -- EDUCATION ----------------------------
     'Tuition': [
       _subjects,
       _gradeLevel,
       _modeOfTeaching,
+      _languages(
+        _languageOptions,
+        _languageOptionsNe,
+        label: 'Language of Instruction',
+        labelNe: 'पढाउने भाषा',
+      ),
       _experience,
-      _languages([
-        'English',
-        'Hindi',
-        'Chinese',
-        'Japanese',
-        'Korean',
-        'Arabic',
-        'Other',
-      ]),
-      _availability(),
+      _availability(
+        ['Morning', 'Day', 'Evening', 'Weekend', 'Flexible'],
+        ['बिहान', 'दिउँसो', 'साँझ', 'सप्ताहन्त', 'लचिलो'],
+      ),
+      _pricePeriod(
+        ['Per Hour', 'Per Month', 'Per Subject', 'Per Course'],
+        ['प्रति घण्टा', 'प्रति महिना', 'प्रति विषय', 'प्रति कोर्स'],
+      ),
     ],
     'Courses': [
-      _subjects,
-      _gradeLevel,
+      _courseType,
+      _courseDuration,
       _modeOfTeaching,
+      _availability(_availabilityOptions, _availabilityOptionsNe),
       _experience,
-      _availability(),
+      _pricePeriod(
+        ['Per Course', 'Per Month', 'Per Hour'],
+        ['प्रति कोर्स', 'प्रति महिना', 'प्रति घण्टा'],
+      ),
     ],
-    'Textbooks': [_condition(), _brand('e.g., Publisher name')],
-    'Study Abroad': [],
+    'Textbooks': [_bookLevel, _publisher, _conditionOptional],
+    'Study Abroad': [
+      _destinationCountry,
+      _studyLevel,
+      _serviceType(
+        [
+          'Counselling',
+          'Test Preparation',
+          'Documentation',
+          'Visa Processing',
+          'Scholarship',
+        ],
+        ['परामर्श', 'परीक्षा तयारी', 'कागजात', 'भिसा प्रक्रिया', 'छात्रवृत्ति'],
+      ),
+    ],
+    // Deliberate catch-all: zero fields is correct.
     'Other Education': [],
 
-    // ── HOME & LIVING ────────────────────────
+    // -- HOME & LIVING ------------------------
     'Bedroom Furniture': [
-      _condition(),
+      _conditionOptional,
+      _furnitureType(
+        [
+          'Bed',
+          'Wardrobe',
+          'Dresser',
+          'Nightstand',
+          'Dressing Table',
+          'Bunk Bed',
+          'Mattress only',
+          'Bed + Mattress Set',
+          'Other',
+        ],
+        [
+          'पलंग',
+          'अलमारी',
+          'ड्रेसर',
+          'साइड टेबल',
+          'ड्रेसिङ टेबल',
+          'बंक बेड',
+          'ग्याद्दा मात्र',
+          'पलंग + ग्याद्दा सेट',
+          'अन्य',
+        ],
+      ),
+      _material(_furnitureMaterials, _furnitureMaterialsNe),
+      _dimensions(),
       _brand('e.g., IKEA, Ashley, Local Carpenter'),
-      _furnitureType(['Bed', 'Wardrobe', 'Dresser', 'Nightstand', 'Mattress']),
-      _material,
-      _color('Color/Finish', null),
-      _dimensions,
-      _assemblyRequired,
-      _storageAvailable,
-      _style,
     ],
     'Living Room Furniture': [
-      _condition(),
+      _conditionOptional,
+      _furnitureType(
+        [
+          'Sofa',
+          'Sofa Set',
+          'Coffee Table',
+          'Center Table',
+          'TV Stand',
+          'Shelf',
+          'Shoe Rack',
+          'Cabinet',
+          'Divan',
+          'Recliner',
+          'Ottoman',
+        ],
+        [
+          'सोफा',
+          'सोफा सेट',
+          'कफी टेबल',
+          'सेन्टर टेबल',
+          'टिभी स्ट्यान्ड',
+          'शेल्फ',
+          'जुत्ता र्‍याक',
+          'क्याबिनेट',
+          'दिवान',
+          'रिक्लाइनर',
+          'ओटोमन',
+        ],
+      ),
+      _seatingCapacity(
+        ['1 Seater', '2 Seater', '3 Seater', '5 Seater', '7+ Seater'],
+        ['१ सिटर', '२ सिटर', '३ सिटर', '५ सिटर', '७+ सिटर'],
+      ),
+      _material(_furnitureMaterials, _furnitureMaterialsNe),
+      _dimensions(),
       _brand('e.g., IKEA, La-Z-Boy, Local Maker'),
-      _furnitureType([
-        'Sofa',
-        'Coffee Table',
-        'TV Stand',
-        'Shelf',
-        'Recliner',
-        'Ottoman',
-      ]),
-      _material,
-      _color('Color/Finish', null),
-      _dimensions,
-      _seatingCapacity,
-      _assemblyRequired,
-      _style,
     ],
     'Kitchen & Dining Furniture': [
-      _condition(),
+      _conditionOptional,
+      _furnitureType(
+        [
+          'Dining Table',
+          'Dining Chair',
+          'Dining Set',
+          'Kitchen Cabinet',
+          'Crockery Unit',
+          'Rack',
+          'Bar Stool',
+        ],
+        [
+          'खाना टेबल',
+          'खाना कुर्सी',
+          'डाइनिङ सेट',
+          'किचन क्याबिनेट',
+          'क्रकरी युनिट',
+          'र्‍याक',
+          'बार स्टुल',
+        ],
+      ),
+      _seatingCapacity(
+        ['2 Seater', '4 Seater', '6 Seater', '8+ Seater'],
+        ['२ सिटर', '४ सिटर', '६ सिटर', '८+ सिटर'],
+      ),
+      _material(_furnitureMaterials, _furnitureMaterialsNe),
+      _dimensions(),
       _brand('e.g., IKEA, Local Carpenter'),
-      _furnitureType([
-        'Dining Table',
-        'Dining Chair',
-        'Cabinet',
-        'Shelf',
-        'Bar Stool',
-      ]),
-      _material,
-      _color('Color/Finish', null),
-      _dimensions,
-      _seatingCapacity,
-      _assemblyRequired,
     ],
     'Office & Shop Furniture': [
-      _condition(),
+      _conditionOptional,
+      _furnitureType(
+        [
+          'Desk',
+          'Office Chair',
+          'Filing Cabinet',
+          'Bookshelf',
+          'Conference Table',
+          'Reception Desk',
+          'Display Rack',
+          'Shop Counter',
+          'Cash Counter',
+          'Workstation',
+          'Safe/Locker',
+        ],
+        [
+          'डेस्क',
+          'अफिस कुर्सी',
+          'फाइलिङ क्याबिनेट',
+          'बुकसेल्फ',
+          'कन्फरेन्स टेबल',
+          'रिसेप्सन डेस्क',
+          'डिस्प्ले र्‍याक',
+          'पसल काउन्टर',
+          'क्यास काउन्टर',
+          'वर्कस्टेसन',
+          'सेफ/लकर',
+        ],
+      ),
+      _material(_furnitureMaterials, _furnitureMaterialsNe),
+      _dimensions(),
+      _quantity,
       _brand('e.g., Herman Miller, Steelcase, IKEA'),
-      _furnitureType([
-        'Desk',
-        'Office Chair',
-        'Filing Cabinet',
-        'Bookshelf',
-        'Conference Table',
-        'Reception Desk',
-      ]),
-      _material,
-      _color('Color/Finish', null),
-      _dimensions,
-      _assemblyRequired,
     ],
     "Children's Furniture": [
-      _condition(),
+      _conditionOptional,
+      _furnitureType(
+        [
+          'Crib',
+          'Kids Bed',
+          'Bunk Bed',
+          'Study Table',
+          'Study Chair',
+          'Toy Storage',
+          'High Chair',
+          'Changing Table',
+          'Play Pen',
+        ],
+        [
+          'क्रिब',
+          'बच्चाको पलंग',
+          'बंक बेड',
+          'पढ्ने टेबल',
+          'पढ्ने कुर्सी',
+          'खेलौना भण्डार',
+          'हाई चेयर',
+          'चेन्जिङ टेबल',
+          'प्ले पेन',
+        ],
+      ),
+      _material(_furnitureMaterials, _furnitureMaterialsNe),
+      _dimensions(),
       _brand('e.g., IKEA, Fisher-Price'),
-      _furnitureType([
-        'Crib',
-        'Kids Bed',
-        'Study Table',
-        'Toy Storage',
-        'High Chair',
-        'Changing Table',
-      ]),
-      _material,
-      _color(),
-      _dimensions,
-      _assemblyRequired,
     ],
     'Home Textiles & Decoration': [
-      _condition(),
+      _conditionOptional,
+      _productType(
+        [
+          'Bedsheet',
+          'Curtain',
+          'Blanket',
+          'Cushion',
+          'Carpet/Rug',
+          'Doormat',
+          'Towel',
+          'Table Cover',
+          'Wall Decor',
+          'Artificial Plants',
+          'Other',
+        ],
+        [
+          'तन्ना',
+          'पर्दा',
+          'कम्बल',
+          'कुसन',
+          'कार्पेट/गलैंचा',
+          'डोरम्याट',
+          'तौलिया',
+          'टेबल कभर',
+          'भित्ता सजावट',
+          'कृत्रिम बिरुवा',
+          'अन्य',
+        ],
+      ),
+      _material(
+        [
+          'Cotton',
+          'Silk',
+          'Wool',
+          'Polyester',
+          'Jute',
+          'Velvet',
+          'Synthetic',
+          'Mixed',
+        ],
+        [
+          'सुती',
+          'रेशम',
+          'ऊन',
+          'पोलिस्टर',
+          'जुट',
+          'मखमल',
+          'सिन्थेटिक',
+          'मिश्रित',
+        ],
+      ),
+      _color,
       _brand('e.g., Bombay Dyeing, Portico, Spaces, Local'),
-      _material,
-      _color(),
-      _style,
     ],
-    'Bathroom Products': [_condition(), _brand('Enter brand name'), _material],
+    'Bathroom Products': [
+      _conditionOptional,
+      _productType(
+        [
+          'Sanitary Ware',
+          'Taps/Fittings',
+          'Shower',
+          'Geyser',
+          'Cabinet/Mirror',
+          'Bathtub',
+          'Accessories',
+          'Other',
+        ],
+        [
+          'स्यानिटरी वेयर',
+          'ट्याप/फिटिङ',
+          'सावर',
+          'गिजर',
+          'क्याबिनेट/ऐना',
+          'बाथटब',
+          'सामान',
+          'अन्य',
+        ],
+      ),
+      _material(
+        ['Ceramic', 'Steel', 'Brass', 'PVC', 'Glass', 'Marble', 'Other'],
+        ['सेरामिक', 'स्टिल', 'पित्तल', 'पीभीसी', 'सिसा', 'संगमरमर', 'अन्य'],
+      ),
+      _brand('Enter brand name'),
+    ],
+    // Durables. Consumables belong under Essentials > Household.
     'Household Items': [
-      _condition(),
+      _conditionOptional,
+      _productType(
+        [
+          'Cookware',
+          'Crockery',
+          'Storage',
+          'Water Tank',
+          'Cleaning Tools',
+          'Lighting',
+          'Plastic Ware',
+          'Other',
+        ],
+        [
+          'भाँडाकुँडा',
+          'क्रकरी',
+          'भण्डारण',
+          'पानी ट्यांकी',
+          'सफाइ सामान',
+          'बत्ती',
+          'प्लास्टिक सामान',
+          'अन्य',
+        ],
+      ),
+      _material(
+        [
+          'Steel',
+          'Aluminium',
+          'Plastic',
+          'Glass',
+          'Ceramic',
+          'Copper/Brass',
+          'Non-stick',
+          'Wood',
+          'Mixed',
+        ],
+        [
+          'स्टिल',
+          'एल्युमिनियम',
+          'प्लास्टिक',
+          'सिसा',
+          'सेरामिक',
+          'तामा/पित्तल',
+          'नन-स्टिक',
+          'काठ',
+          'मिश्रित',
+        ],
+      ),
       _brand('e.g., Prestige, Milton, Local'),
-      _material,
     ],
     'Doors': [
-      _condition(),
+      _conditionOptional,
+      _productType(
+        [
+          'Main Door',
+          'Room Door',
+          'Bathroom Door',
+          'Sliding Door',
+          'Flush Door',
+          'Panel/Carved',
+          'Safety Grill',
+          'Window',
+          'Frame (Chaukath)',
+          'Other',
+        ],
+        [
+          'मुख्य ढोका',
+          'कोठाको ढोका',
+          'बाथरूम ढोका',
+          'स्लाइडिङ ढोका',
+          'फ्लस ढोका',
+          'प्यानल/कुँदिएको',
+          'सेफ्टी ग्रिल',
+          'झ्याल',
+          'चौकाठ',
+          'अन्य',
+        ],
+        label: 'Door Type',
+        labelNe: 'ढोका प्रकार',
+      ),
+      _material(
+        [
+          'Wood',
+          'Plywood/Flush',
+          'MDF',
+          'Steel',
+          'Aluminium',
+          'uPVC',
+          'Glass',
+          'Fiber',
+        ],
+        [
+          'काठ',
+          'प्लाइउड/फ्लस',
+          'एमडीएफ',
+          'स्टिल',
+          'एल्युमिनियम',
+          'यूपीभीसी',
+          'सिसा',
+          'फाइबर',
+        ],
+      ),
+      _dimensions(
+        label: 'Size (H x W)',
+        labelNe: 'साइज (उ x चौ)',
+        placeholder: 'e.g., 7ft x 3ft',
+        placeholderNe: 'जस्तै, ७ फिट x ३ फिट',
+      ),
+      _quantity,
       _brand('e.g., CenturyPly, Greenply, Local'),
-      _material,
-      _dimensions,
     ],
 
-    // ── HOBBIES, SPORTS & KIDS ───────────────
+    // -- HOBBIES, SPORTS & KIDS ---------------
     'Sports': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Nike, Adidas, Yonex, Wilson'),
       _sportType,
     ],
     'Fitness & Gym': [
-      _condition(),
-      _brand('e.g., Bowflex, NordicTrack, Decathlon'),
-      const FormFieldModel(
-        name: 'sportType',
-        label: 'Equipment Type',
-        labelNe: 'उपकरण प्रकार',
-        type: FieldType.text,
-        placeholder: 'e.g., Treadmill, Dumbbells, Yoga Mat',
-        placeholderNe: 'जस्तै, ट्रेडमिल, डम्बेल, योगा म्याट',
-      ),
+      _conditionOptional,
+      _brand('e.g., Decathlon, Kobo, Domyos'),
+      _equipmentType,
     ],
     'Musical Instruments': [
-      _condition(),
+      _conditionOptional,
       _brand('e.g., Yamaha, Gibson, Fender, Roland'),
       _instrumentType,
     ],
-    "Children's Items": [_condition(), _brand('Enter brand name')],
+    "Children's Items": [
+      _conditionOptional,
+      _brand('e.g., Chicco, Fisher-Price, Mothercare'),
+      _kidsItemType,
+      _ageGroup,
+    ],
     'Music, Books & Movies': [
-      _condition(),
-      _brand('e.g., Publisher, Author, or Brand'),
+      _conditionOptional,
+      _mediaType,
+      _authorPublisher,
+      _mediaLanguage,
     ],
     'Other Hobby, Sport & Kids items': [
-      _condition(),
+      _conditionOptional,
       _brand('Enter brand name'),
     ],
 
-    // ── BUSINESS & INDUSTRY ──────────────────
+    // -- BUSINESS & INDUSTRY ------------------
     'Industry Machinery & Tools': [
-      _condition(),
-      _brand('e.g., Caterpillar, John Deere, Bosch, Makita'),
-      _machineryType(),
+      _conditionOptional,
+      _machineryType(
+        [
+          'Construction',
+          'Manufacturing',
+          'Food Processing',
+          'Woodworking',
+          'Metalworking/Welding',
+          'Printing',
+          'Generator',
+          'Power Tools',
+          'Water Pump',
+          'Other',
+        ],
+        [
+          'निर्माण',
+          'उत्पादन',
+          'खाद्य प्रशोधन',
+          'काठ काम',
+          'धातु काम/वेल्डिङ',
+          'छपाइ',
+          'जेनेरेटर',
+          'पावर टुल्स',
+          'पानी पम्प',
+          'अन्य',
+        ],
+      ),
       _powerSource,
+      _vehicleYear,
+      _warranty,
+      _brand('e.g., Caterpillar, John Deere, Bosch, Makita'),
     ],
     'Medical Equipment & Supplies': [
-      _condition(),
+      _conditionOptional,
+      _machineryType(
+        [
+          'Diagnostic',
+          'Surgical',
+          'Monitoring',
+          'Laboratory',
+          'Therapy',
+          'Mobility/Rehab',
+          'Hospital Furniture',
+          'Dental',
+          'Oxygen/Respiratory',
+          'Consumables',
+        ],
+        [
+          'डायग्नोस्टिक',
+          'शल्यक्रिया',
+          'मोनिटरिङ',
+          'प्रयोगशाला',
+          'थेरापी',
+          'मोबिलिटी/पुनःस्थापना',
+          'अस्पताल फर्निचर',
+          'दन्त',
+          'अक्सिजन/श्वासप्रश्वास',
+          'उपभोग्य सामग्री',
+        ],
+        label: 'Equipment Type',
+        labelNe: 'उपकरण प्रकार',
+      ),
+      _warranty,
       _brand('e.g., Philips, GE Healthcare, Siemens'),
-      _machineryType([
-        'Diagnostic',
-        'Surgical',
-        'Monitoring',
-        'Laboratory',
-        'Therapy',
-      ]),
     ],
     'Office Supplies & Stationary': [
-      _condition(),
+      _conditionOptional,
+      _productType(
+        [
+          'Paper/Notebooks',
+          'Pens',
+          'Files',
+          'Printer Consumables',
+          'Office Machines',
+          'Whiteboard',
+          'Desk Accessories',
+          'School Supplies',
+          'Other',
+        ],
+        [
+          'कागज/कापी',
+          'कलम',
+          'फाइल',
+          'प्रिन्टर उपभोग्य',
+          'कार्यालय मेसिन',
+          'ह्वाइटबोर्ड',
+          'डेस्क सामान',
+          'विद्यालय सामग्री',
+          'अन्य',
+        ],
+      ),
+      _quantity,
       _brand('e.g., HP, Canon, Xerox, Brother'),
     ],
-    'Raw Materials & Industrial Supplies': [_condition(), _quantity],
     'Other Business & Industry Items': [
-      _condition(),
+      _conditionOptional,
       _brand('Enter brand name'),
     ],
-    'Safety & Security': [_condition(), _brand('Enter brand name')],
-    'Licences, Titles & Tenders': [],
-
-    // ── ESSENTIALS ───────────────────────────
-    'Grocery': [
-      _brand('Enter brand name'),
-      _productType(['Food Item', 'Beverage', 'Snacks', 'Dairy', 'Grains']),
+    'Raw Materials & Industrial Supplies': [
+      _productType(
+        [
+          'Metal/Steel',
+          'Cement/Aggregates',
+          'Timber',
+          'Plastic',
+          'Chemicals',
+          'Textile/Yarn',
+          'Paper',
+          'Rubber',
+          'Glass',
+          'Electrical',
+          'Other',
+        ],
+        [
+          'धातु/स्टिल',
+          'सिमेन्ट/गिट्टी',
+          'काठ',
+          'प्लास्टिक',
+          'रसायन',
+          'कपडा/धागो',
+          'कागज',
+          'रबर',
+          'सिसा',
+          'इलेक्ट्रिकल',
+          'अन्य',
+        ],
+        label: 'Material Type',
+        labelNe: 'सामग्री प्रकार',
+      ),
+      _brand('e.g., Shivam, Hetauda, Panchakanya'),
+      _priceUnit(
+        [
+          'per Kg',
+          'per Quintal',
+          'per Ton',
+          'per Piece',
+          'per Bag',
+          'per Sack (Bora)',
+          'per Metre',
+          'per Litre',
+        ],
+        [
+          'प्रति के.जी.',
+          'प्रति क्विन्टल',
+          'प्रति टन',
+          'प्रति गोटा',
+          'प्रति ब्याग',
+          'प्रति बोरा',
+          'प्रति मिटर',
+          'प्रति लिटर',
+        ],
+      ),
       _quantity,
-      _expiryDate,
+    ],
+    'Safety & Security': [
+      _conditionOptional,
+      _productType(
+        [
+          'CCTV',
+          'Alarms',
+          'Fire Safety',
+          'Safety Gear',
+          'Locks/Safes',
+          'Access Control',
+          'Security Doors',
+          'Other',
+        ],
+        [
+          'सीसीटीभी',
+          'अलार्म',
+          'अग्नि सुरक्षा',
+          'सुरक्षा सामग्री',
+          'ताल्चा/सेफ',
+          'एक्सेस कन्ट्रोल',
+          'सुरक्षा ढोका',
+          'अन्य',
+        ],
+      ),
+      _warranty,
+      _brand('Enter brand name'),
+    ],
+    'Licences, Titles & Tenders': [
+      _productType(
+        [
+          'Business Licence',
+          'Permit/Quota',
+          'Tender Notice',
+          'Company Registration',
+          'Franchise',
+          'Trademark',
+          'Other',
+        ],
+        [
+          'व्यवसाय इजाजतपत्र',
+          'अनुमति/कोटा',
+          'टेन्डर सूचना',
+          'कम्पनी दर्ता',
+          'फ्रान्चाइज',
+          'ट्रेडमार्क',
+          'अन्य',
+        ],
+        label: 'Listing Type',
+        labelNe: 'सूचीकरण प्रकार',
+      ),
+      _expiryDate(label: 'Valid Until', labelNe: 'मान्य रहने मिति'),
+    ],
+
+    // -- ESSENTIALS ---------------------------
+    'Grocery': [
+      _productType(
+        [
+          'Rice/Flour',
+          'Pulses',
+          'Oil/Ghee',
+          'Spices',
+          'Dairy',
+          'Snacks',
+          'Beverage',
+          'Instant Food',
+          'Other',
+        ],
+        [
+          'चामल/पिठो',
+          'दाल',
+          'तेल/घ्यू',
+          'मसला',
+          'दुग्ध पदार्थ',
+          'खाजा',
+          'पेय',
+          'तयारी खाना',
+          'अन्य',
+        ],
+      ),
+      _brand('Enter brand name'),
+      _priceUnit(
+        [
+          'per Kg',
+          'per Gram',
+          'per Litre',
+          'per Piece',
+          'per Packet',
+          'per Dozen',
+          'per Sack (Bora)',
+          'per Carton',
+        ],
+        [
+          'प्रति के.जी.',
+          'प्रति ग्राम',
+          'प्रति लिटर',
+          'प्रति गोटा',
+          'प्रति प्याकेट',
+          'प्रति दर्जन',
+          'प्रति बोरा',
+          'प्रति कार्टुन',
+        ],
+      ),
+      _quantity,
+      _expiryDate(),
     ],
     'Healthcare': [
+      _productType(
+        [
+          'Medicine',
+          'First Aid',
+          'Medical Device',
+          'Supplements',
+          'Mobility Aids',
+          'Ayurvedic/Herbal',
+        ],
+        [
+          'औषधि',
+          'प्राथमिक उपचार',
+          'चिकित्सा उपकरण',
+          'सप्लिमेन्ट',
+          'हिँडडुल सहायक',
+          'आयुर्वेदिक/जडीबुटी',
+        ],
+      ),
       _brand('Enter brand name'),
-      _productType(['Medicine', 'First Aid', 'Medical Device', 'Supplements']),
+      _productWeight(label: 'Pack Size', labelNe: 'प्याक साइज'),
       _quantity,
-      _expiryDate,
+      _expiryDate(),
     ],
     'Baby Products': [
+      _productType(
+        [
+          'Diapers',
+          'Baby Food',
+          'Baby Care',
+          'Feeding',
+          'Baby Clothes',
+          'Stroller/Carrier',
+          'Cot/Crib',
+          'Bath',
+          'Toys',
+        ],
+        [
+          'ड्यापर',
+          'बच्चाको खाना',
+          'बेबी केयर',
+          'दूध खुवाउने',
+          'बच्चाको लुगा',
+          'स्ट्रोलर/क्यारियर',
+          'खाट/क्रिब',
+          'नुहाउने',
+          'खेलौना',
+        ],
+      ),
+      _ageGroup,
+      _conditionOptional,
       _brand('e.g., Pampers, Johnson & Johnson, Huggies'),
-      _productType([
-        'Diapers',
-        'Baby Food',
-        'Baby Care',
-        'Feeding',
-        'Baby Clothes',
-      ]),
       _quantity,
+      _expiryDate(),
     ],
+    // Consumables. Durables belong under Home & Living > Household Items.
     'Household': [
-      _condition(),
+      _productType(
+        [
+          'Cleaning',
+          'Laundry/Detergent',
+          'Toiletries',
+          'Pest Control',
+          'Storage',
+          'Kitchen Consumables',
+          'Other',
+        ],
+        [
+          'सफाइ',
+          'लुगा धुने/डिटर्जेन्ट',
+          'नुहाउने सामान',
+          'किरा नियन्त्रण',
+          'भण्डारण',
+          'भान्साका उपभोग्य',
+          'अन्य',
+        ],
+      ),
       _brand('Enter brand name'),
-      _productType(['Cleaning', 'Laundry', 'Storage', 'Kitchen Items']),
+      _productWeight(label: 'Pack Size', labelNe: 'प्याक साइज'),
       _quantity,
     ],
-    'Fruits & Vegetables': [_quantity],
-    'Meat & Seafood': [_quantity, _expiryDate],
-    'Other Essentials': [_quantity],
+    'Fruits & Vegetables': [
+      _priceUnit(
+        [
+          'per Kg',
+          'per Gram',
+          'per Dozen',
+          'per Piece',
+          'per Crate',
+          'per Sack (Bora)',
+          'per Muri',
+        ],
+        [
+          'प्रति के.जी.',
+          'प्रति ग्राम',
+          'प्रति दर्जन',
+          'प्रति गोटा',
+          'प्रति क्रेट',
+          'प्रति बोरा',
+          'प्रति मुरी',
+        ],
+      ),
+      _quantity,
+      _organic,
+    ],
+    'Meat & Seafood': [
+      _productType(
+        [
+          'Chicken',
+          'Mutton/Khasi',
+          'Buff',
+          'Pork',
+          'Fish',
+          'Prawn/Seafood',
+          'Eggs',
+          'Frozen/Processed',
+          'Other',
+        ],
+        [
+          'कुखुरा',
+          'खसी',
+          'राँगा',
+          'बंगुर',
+          'माछा',
+          'झिंगेमाछा/समुद्री',
+          'अण्डा',
+          'फ्रोजन/प्रशोधित',
+          'अन्य',
+        ],
+        label: 'Meat Type',
+        labelNe: 'मासु प्रकार',
+      ),
+      _priceUnit(
+        ['per Kg', 'per Piece', 'per Dozen'],
+        ['प्रति के.जी.', 'प्रति गोटा', 'प्रति दर्जन'],
+      ),
+      _quantity,
+    ],
+    'Other Essentials': [
+      _priceUnit(
+        ['per Kg', 'per Litre', 'per Piece', 'per Packet', 'per Sack (Bora)'],
+        [
+          'प्रति के.जी.',
+          'प्रति लिटर',
+          'प्रति गोटा',
+          'प्रति प्याकेट',
+          'प्रति बोरा',
+        ],
+      ),
+      _quantity,
+    ],
 
-    // ── AGRICULTURE ──────────────────────────
-    'Crops, Seeds & Plants': [_cropType, _quantity],
+    // -- AGRICULTURE --------------------------
+    'Crops, Seeds & Plants': [
+      _productType(
+        [
+          'Seeds',
+          'Saplings',
+          'Harvested Grain',
+          'Bulk Vegetables',
+          'Fruit Trees',
+          'Flowers',
+          'Mushroom/Spawn',
+          'Other',
+        ],
+        [
+          'बीउ',
+          'बेर्ना',
+          'उत्पादित अन्न',
+          'थोक तरकारी',
+          'फलफूलका बिरुवा',
+          'फूल',
+          'च्याउ/स्पन',
+          'अन्य',
+        ],
+        label: 'Item Type',
+        labelNe: 'वस्तु प्रकार',
+      ),
+      _cropType,
+      _priceUnit(
+        [
+          'per Kg',
+          'per Quintal',
+          'per Muri',
+          'per Pathi',
+          'per Packet',
+          'per Sapling',
+          'per Sack (Bora)',
+        ],
+        [
+          'प्रति के.जी.',
+          'प्रति क्विन्टल',
+          'प्रति मुरी',
+          'प्रति पाथी',
+          'प्रति प्याकेट',
+          'प्रति बेर्ना',
+          'प्रति बोरा',
+        ],
+      ),
+      _quantity,
+    ],
     'Farming Tools & Machinery': [
-      _condition(),
-      _brand('e.g., John Deere, Mahindra, Kubota'),
+      _conditionOptional,
       _farmingToolType,
       _powerSource,
+      _vehicleYear,
+      _brand('e.g., John Deere, Mahindra, Kubota'),
     ],
-    'Other Agriculture': [],
+    'Other Agriculture': [
+      _productType(
+        [
+          'Fertilizer/Pesticide',
+          'Animal Feed',
+          'Veterinary',
+          'Irrigation',
+          'Greenhouse/Nets',
+          'Farm Produce',
+          'Beekeeping',
+          'Other',
+        ],
+        [
+          'मल/विषादी',
+          'पशु आहार',
+          'पशु चिकित्सा',
+          'सिँचाइ',
+          'हरितगृह/जाली',
+          'कृषि उपज',
+          'मौरीपालन',
+          'अन्य',
+        ],
+      ),
+      _priceUnit(
+        ['per Kg', 'per Litre', 'per Piece', 'per Packet', 'per Sack (Bora)'],
+        [
+          'प्रति के.जी.',
+          'प्रति लिटर',
+          'प्रति गोटा',
+          'प्रति प्याकेट',
+          'प्रति बोरा',
+        ],
+      ),
+      _quantity,
+    ],
+
+    // -- JOBS ---------------------------------
+    // The other five Jobs subcategories use the parent-level fallback; only
+    // these three carry a genuine extra field or a different employer label.
+    'Construction & Trades': [
+      _jobPostType,
+      _tradeSkill,
+      _jobType,
+      _workLocationType,
+      _companyName(
+        label: 'Company / Contractor Name',
+        labelNe: 'कम्पनी / ठेकेदारको नाम',
+      ),
+      _experience,
+      _educationRequired,
+      _pricePeriod(
+        _jobPricePeriodOptions,
+        _jobPricePeriodOptionsNe,
+        label: 'Salary Period',
+        labelNe: 'तलब अवधि',
+      ),
+    ],
+    'Healthcare & Medical': [
+      _jobPostType,
+      _jobType,
+      _workLocationType,
+      _companyName(
+        label: 'Hospital / Clinic / Employer',
+        labelNe: 'अस्पताल / क्लिनिक / रोजगारदाता',
+      ),
+      _experience,
+      _educationRequired,
+      _pricePeriod(
+        _jobPricePeriodOptions,
+        _jobPricePeriodOptionsNe,
+        label: 'Salary Period',
+        labelNe: 'तलब अवधि',
+      ),
+    ],
+    'Transportation & Logistics': [
+      _jobPostType,
+      _licenseCategory,
+      _jobType,
+      _workLocationType,
+      _companyName(),
+      _experience,
+      _educationRequired,
+      _pricePeriod(
+        ['Per Month', 'Per Day', 'Per Hour', 'Per Trip', 'Per Project'],
+        [
+          'प्रति महिना',
+          'प्रति दिन',
+          'प्रति घण्टा',
+          'प्रति यात्रा',
+          'प्रति परियोजना',
+        ],
+        label: 'Salary Period',
+        labelNe: 'तलब अवधि',
+      ),
+    ],
+
+    // -- OVERSEAS JOBS ------------------------
+    'Bulgaria': _overseasJobFields(['NPR', 'EUR', 'USD']),
+    'Croatia': _overseasJobFields(['NPR', 'EUR', 'USD']),
+    'Serbia': _overseasJobFields(['NPR', 'EUR', 'USD']),
+    'Malaysia': _overseasJobFields(['MYR', 'NPR', 'USD']),
+    'Qatar': _overseasJobFields(['QAR', 'NPR', 'USD']),
+    'Saudi Arabia': _overseasJobFields(['SAR', 'NPR', 'USD']),
+    'Singapore': _overseasJobFields(['SGD', 'NPR', 'USD']),
+    'UAE': _overseasJobFields(['AED', 'NPR', 'USD']),
   };
+
+  /// Shared by "Photocopiers" and its renamed twin.
+  static final List<FormFieldModel> _printerConfig = [
+    _conditionRequired,
+    const FormFieldModel(
+      name: 'machineType',
+      label: 'Machine Type',
+      labelNe: 'मेसिन प्रकार',
+      type: FieldType.select,
+      options: [
+        'Inkjet Printer',
+        'Laser Printer',
+        'All-in-One',
+        'Photocopier',
+        'Scanner',
+        'Plotter',
+        'Other',
+      ],
+      optionsNe: [
+        'इंकजेट प्रिन्टर',
+        'लेजर प्रिन्टर',
+        'अल-इन-वन',
+        'फोटोकपियर',
+        'स्क्यानर',
+        'प्लटर',
+        'अन्य',
+      ],
+    ),
+    _brand('e.g., Canon, Xerox, HP, Ricoh, Epson, Brother'),
+    _model('Enter model name'),
+    _warranty,
+  ];
+
+  /// "Auto Services" and "Maintenance and Repair" are field-identical.
+  static final List<FormFieldModel> _autoServiceConfig = [
+    _serviceType(_autoServiceTypes, _autoServiceTypesNe),
+    _vehicleTypesServiced,
+    _serviceOptions,
+  ];
 
   // ============================================
   // CATEGORY-LEVEL FALLBACKS
-  // For categories with many subcategories that share the same fields
-  // (e.g., Jobs has 60+ job title subcategories, all get the same fields)
+  // Jobs and Overseas Jobs subcategories differ so little that one set per
+  // parent covers them; only the exceptions above get their own config.
   // ============================================
 
   static final Map<String, List<FormFieldModel>> _categoryFallbacks = {
     'Jobs': [
-      _companyName,
-      _jobType(),
-      _experienceRequired,
+      _jobPostType,
+      _jobType,
+      _workLocationType,
+      _companyName(),
+      _experience,
       _educationRequired,
-      _salaryRange(),
+      _pricePeriod(
+        _jobPricePeriodOptions,
+        _jobPricePeriodOptionsNe,
+        label: 'Salary Period',
+        labelNe: 'तलब अवधि',
+      ),
     ],
-    'Overseas Jobs': [],
+    'Overseas Jobs': _overseasJobFields(['NPR', 'USD']),
   };
 
-  /// Get applicable fields for a specific subcategory.
-  /// 1. Try exact subcategory name match
-  /// 2. Fall back to category-level config (for Jobs, Overseas Jobs)
-  /// 3. Default to just [Condition]
-  /// Custom subcategory fields that stay mandatory. Everything else is made
-  /// optional so users can post without filling extra details (they can add
-  /// them in the description instead). 'condition' is kept for search quality.
-  static const _alwaysRequiredFields = {'condition'};
-
+  /// Get applicable fields for a subcategory.
+  /// 1. Exact subcategory name match
+  /// 2. Category-level fallback (Jobs, Overseas Jobs)
+  /// 3. No custom fields at all
+  ///
+  /// Condition is governed by the category policy, not by the config: the
+  /// policy decides whether it is required, optional, or dropped entirely.
+  /// Pass the slugs whenever they are known; without them the declared flag
+  /// stands. Every other field is optional — sellers can put the rest in the
+  /// description.
   List<FormFieldModel> getApplicableFields(
     String categoryName,
-    String subcategoryName,
-  ) {
-    // No subcategory-specific config and no category fallback -> show no custom
-    // fields at all (do NOT fall back to a lone Condition field).
+    String subcategoryName, {
+    String? categorySlug,
+    String? subcategorySlug,
+  }) {
     final fields =
         _subcategoryConfigs[subcategoryName] ??
         _categoryFallbacks[categoryName] ??
         const <FormFieldModel>[];
-    // Kill-switch: make every custom field optional except the allow-listed ones.
+    if (categorySlug == null) return fields;
+
+    final mode = getCategoryPolicy(categorySlug, subcategorySlug).condition;
+    if (mode == ConditionMode.hidden) {
+      return fields.where((f) => f.name != 'condition').toList();
+    }
     return fields
         .map(
-          (f) => f.copyWith(required: _alwaysRequiredFields.contains(f.name)),
+          (f) => f.name == 'condition'
+              ? f.copyWith(required: mode == ConditionMode.required)
+              : f,
         )
         .toList();
   }

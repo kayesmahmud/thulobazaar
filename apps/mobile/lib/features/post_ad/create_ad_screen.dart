@@ -28,6 +28,7 @@ import 'package:mobile/features/dashboard/dashboard_screen.dart';
 import 'package:mobile/features/post_ad/models/ad_draft_model.dart';
 import 'package:mobile/features/post_ad/models/location_models.dart';
 import 'package:mobile/features/post_ad/services/ad_draft_service.dart';
+import 'package:mobile/features/post_ad/services/category_policy.dart';
 import 'package:mobile/features/post_ad/services/form_template_service.dart';
 import 'package:mobile/features/post_ad/widgets/dynamic_form_fields.dart';
 
@@ -84,6 +85,14 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
   final AdClient _adClient = AdClient();
   final FormTemplateService _templateService = FormTemplateService();
   final Map<String, dynamic> _attributeValues = {};
+
+  // Which of Negotiable / COD / Price the chosen category actually offers.
+  // Falls back to the parent default until a subcategory is picked, and to the
+  // safe default while nothing is selected.
+  CategoryPolicy get _policy => getCategoryPolicy(
+    _selectedCategory?.slug ?? '',
+    _selectedSubCategory?.slug,
+  );
 
   // Location Data
   List<LocationProvince> _provinces = [];
@@ -329,6 +338,10 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     if (ad.attributes != null) {
       _attributeValues.addAll(ad.attributes!);
     }
+    // Both flags have their own checkbox (gated by the category policy) and are
+    // re-added at submit, so keep them out of the dynamic-fields map.
+    _attributeValues.remove('isNegotiable');
+    _attributeValues.remove('isCodAvailable');
     // Condition is stored separately in DB, not in custom_fields — inject it back
     if (ad.condition != null && !_attributeValues.containsKey('condition')) {
       _attributeValues['condition'] = ad.condition;
@@ -350,6 +363,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       _whatsappController.text = _verifiedPhone;
     }
 
+    _applyPolicy();
     _editPrefillDone = true;
     setState(() {});
   }
@@ -436,7 +450,11 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       municipalityId: _selectedMunicipality?.id,
       areaId: _selectedArea?.id,
       isNegotiable: _priceNegotiable,
-      customFields: Map<String, dynamic>.from(_attributeValues),
+      // COD has no dedicated draft column; it rides along in customFields.
+      customFields: <String, dynamic>{
+        ..._attributeValues,
+        if (_policy.cod) 'isCodAvailable': _codAvailable,
+      },
       createdAt: existing.createdAt,
       updatedAt: now,
     );
@@ -517,7 +535,9 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       _codAvailable = draft.customFields['isCodAvailable'] as bool? ?? false;
       _attributeValues
         ..clear()
-        ..addAll(draft.customFields);
+        ..addAll(draft.customFields)
+        ..remove('isCodAvailable');
+      _applyPolicy();
       _currentDraftId = draft.id;
       _lastSaved = draft.updatedAt;
       _showDraftsPanel = false;
@@ -716,6 +736,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         setState(() {
           _selectedCategory = parent;
           _selectedSubCategory = sub;
+          _applyPolicy();
         });
         break;
       }
@@ -1038,6 +1059,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
           _selectedCategory = parent;
           _selectedSubCategory = sub;
           _attributeValues.clear();
+          _applyPolicy();
           marks.add('category');
         }
         break;
@@ -1188,9 +1210,14 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
   Future<void> _submitAd() async {
     // The Form only validates fields that are currently in the widget tree, so
     // check section completeness explicitly (replaces the old per-step gates).
+    // Jobs post without a salary and Matrimonials have no price field at all,
+    // so only block on an empty price where the policy actually demands one.
+    final priceMode = _policy.price;
     if (_titleController.text.trim().isEmpty ||
         _descriptionController.text.trim().isEmpty ||
-        _priceController.text.trim().isEmpty) {
+        (!priceMode.hidden &&
+            priceMode.required &&
+            _priceController.text.trim().isEmpty)) {
       _formKey.currentState?.validate();
       ScaffoldMessenger.of(
         context,
@@ -1347,14 +1374,17 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     setState(() => _uploadProgress = sent / total);
   }
 
-  /// Builds the attributes map including isNegotiable + a custom WhatsApp number
-  /// (both stored in custom_fields). WhatsApp is only persisted when the seller
-  /// set a number different from their profile phone.
+  /// Builds the attributes map including the flags the category's policy
+  /// offers + a custom WhatsApp number (all stored in custom_fields). A flag
+  /// the policy hides is never written, so a house stops carrying a "Cash on
+  /// Delivery" claim (B-03). WhatsApp is only persisted when the seller set a
+  /// number different from their profile phone.
   Map<String, dynamic> _buildSubmitAttributes() {
+    final policy = _policy;
     final attrs = <String, dynamic>{
       ..._attributeValues,
-      'isNegotiable': _priceNegotiable,
-      'isCodAvailable': _codAvailable,
+      if (policy.negotiable) 'isNegotiable': _priceNegotiable,
+      if (policy.cod) 'isCodAvailable': _codAvailable,
     };
     final whatsapp = _whatsappController.text.trim();
     if (!_whatsappSameAsPhone &&
@@ -1371,7 +1401,8 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     final formData = FormData.fromMap({
       'title': _titleController.text,
       'description': _descriptionController.text,
-      'price': _priceController.text,
+      // Matrimonials have no price: omit the field so the API stores null.
+      if (!_policy.price.hidden) 'price': _priceController.text,
       'categoryId': _selectedCategory!.id,
       'subcategoryId': _selectedSubCategory?.id,
       'locationId': _selectedArea?.id ?? _selectedMunicipality!.id,
@@ -1540,7 +1571,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     final formData = FormData.fromMap({
       'title': _titleController.text,
       'description': _descriptionController.text,
-      'price': _priceController.text,
+      if (!_policy.price.hidden) 'price': _priceController.text,
       'categoryId': _selectedCategory!.id,
       'subcategoryId': _selectedSubCategory?.id,
       'locationId': _selectedArea?.id ?? _selectedMunicipality!.id,
@@ -1881,6 +1912,15 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     return KeyedSubtree(key: _sectionKeys[key], child: builder());
   }
 
+  /// Drop flag values the newly chosen category doesn't offer, so a setting
+  /// made under one category can't ride along into the next (or the payload).
+  void _applyPolicy() {
+    final policy = _policy;
+    if (!policy.negotiable) _priceNegotiable = false;
+    if (!policy.cod) _codAvailable = false;
+    if (policy.price.hidden) _priceController.clear();
+  }
+
   Future<void> _openCategoryPicker() async {
     final locale = context.locale.languageCode;
     final picked = await _openTilePickerSheet<CategoryWithSubcategories>(
@@ -1899,6 +1939,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       if (!widget.isEditMode || _editPrefillDone) {
         _attributeValues.clear();
       }
+      _applyPolicy();
     });
     _onFormChanged();
   }
@@ -1924,6 +1965,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       if (!widget.isEditMode || _editPrefillDone) {
         _attributeValues.clear();
       }
+      _applyPolicy();
     });
     _onFormChanged();
   }
@@ -2161,6 +2203,8 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             final fields = _templateService.getApplicableFields(
               category.name,
               subcategory.name,
+              categorySlug: category.slug,
+              subcategorySlug: subcategory.slug,
             );
 
             if (fields.isEmpty) return const SizedBox.shrink();
@@ -2168,6 +2212,11 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             return Padding(
               padding: const EdgeInsets.only(top: 24),
               child: DynamicFormFields(
+                // Second half of B-21: a per-field key can still match a field
+                // name that exists in both the old and the new subcategory
+                // (brand, model, …). Keying the block on the selection makes
+                // the whole subtree new, so no controller survives the switch.
+                key: ValueKey('${category.id}/${subcategory.id}'),
                 locale: context.locale.languageCode,
                 fields: fields,
                 values: _attributeValues,
@@ -2184,8 +2233,16 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     );
   }
 
-  // Description, price, and negotiable checkbox.
+  // Description, then whichever of Price / Negotiable / COD the category's
+  // policy offers. Salary, Monthly Rent and Fee are the same input relabelled;
+  // Matrimonials get no price input at all.
   Widget _buildDetailsSection() {
+    final policy = _policy;
+    final priceMode = policy.price;
+    final isNepali = context.locale.languageCode == 'ne';
+    final priceLabel = isNepali
+        ? (priceMode.labelNe ?? 'मूल्य (रु.)')
+        : (priceMode.label ?? 'Price (NPR)');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2196,72 +2253,77 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
           hintText: 'postAd.descriptionHint'.tr(),
           maxLines: 5,
           validator: (val) => val == null || val.isEmpty
-              ? (context.locale.languageCode == 'ne'
-                    ? 'विवरण आवश्यक छ'
-                    : 'Description is required')
+              ? (isNepali ? 'विवरण आवश्यक छ' : 'Description is required')
               : null,
         ),
         _buildCharCount("${_descriptionController.text.length}/5000"),
 
-        const SizedBox(height: 24),
-        _buildLabel('postAd.priceLabel'.tr()),
-        _buildTextField(
-          controller: _priceController,
-          hintText: "0",
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (val) => val == null || val.isEmpty
-              ? (context.locale.languageCode == 'ne'
-                    ? 'मूल्य आवश्यक छ'
-                    : 'Price is required')
-              : null,
-        ),
+        if (!priceMode.hidden) ...[
+          const SizedBox(height: 24),
+          _buildLabel(priceMode.required ? '$priceLabel *' : priceLabel),
+          _buildTextField(
+            controller: _priceController,
+            hintText: "0",
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            validator: (val) =>
+                priceMode.required && (val == null || val.isEmpty)
+                ? (isNepali
+                      ? '$priceLabel आवश्यक छ'
+                      : '$priceLabel is required')
+                : null,
+          ),
+        ],
 
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            SizedBox(
-              height: 24,
-              width: 24,
-              child: Checkbox(
-                value: _priceNegotiable,
-                activeColor: const Color(0xFF10B981),
-                onChanged: (val) {
-                  setState(() => _priceNegotiable = val ?? false);
-                  _onFormChanged();
-                },
+        if (policy.negotiable) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              SizedBox(
+                height: 24,
+                width: 24,
+                child: Checkbox(
+                  value: _priceNegotiable,
+                  activeColor: const Color(0xFF10B981),
+                  onChanged: (val) {
+                    setState(() => _priceNegotiable = val ?? false);
+                    _onFormChanged();
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'postAd.priceNegotiable'.tr(),
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Text(
+                'postAd.priceNegotiable'.tr(),
+                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+              ),
+            ],
+          ),
+        ],
 
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            SizedBox(
-              height: 24,
-              width: 24,
-              child: Checkbox(
-                value: _codAvailable,
-                activeColor: const Color(0xFF10B981),
-                onChanged: (val) {
-                  setState(() => _codAvailable = val ?? false);
-                  _onFormChanged();
-                },
+        if (policy.cod) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              SizedBox(
+                height: 24,
+                width: 24,
+                child: Checkbox(
+                  value: _codAvailable,
+                  activeColor: const Color(0xFF10B981),
+                  onChanged: (val) {
+                    setState(() => _codAvailable = val ?? false);
+                    _onFormChanged();
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'postAd.cashOnDelivery'.tr(),
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Text(
+                'postAd.cashOnDelivery'.tr(),
+                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

@@ -43,7 +43,7 @@ class DynamicFormFields extends StatelessWidget {
     if (fields.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
         color: Colors.blue[50],
@@ -72,23 +72,32 @@ class DynamicFormFields extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ...fields.map((field) => _buildField(context, field)).toList(),
+          // Declaration order is the render order, so fields the config puts
+          // together (Total Area + Area Unit) stay adjacent.
+          for (var i = 0; i < fields.length; i++)
+            Padding(
+              // B-21: without a key Flutter reuses the previous category's
+              // element on a subcategory switch — the old typed text survives
+              // on screen while `values` has been cleared, and the ad posts
+              // without it. Field names are unique within a template.
+              key: ValueKey(fields[i].name),
+              // One gap between fields; the card's padding closes the bottom.
+              padding: EdgeInsets.only(bottom: i == fields.length - 1 ? 0 : 20),
+              child: _buildField(context, fields[i]),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildField(BuildContext context, FormFieldModel field) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLabel(field),
-          const SizedBox(height: 8),
-          _buildInput(context, field),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel(field),
+        const SizedBox(height: 8),
+        _buildInput(context, field),
+      ],
     );
   }
 
@@ -178,7 +187,13 @@ class DynamicFormFields extends StatelessWidget {
         );
 
       case FieldType.date:
-        return _buildDatePicker(context, field);
+        return _DateFieldInput(
+          label: label,
+          hint: placeholder,
+          isRequired: field.required,
+          value: values[field.name]?.toString(),
+          onPicked: (val) => onChanged(field.name, val),
+        );
     }
   }
 
@@ -230,25 +245,67 @@ class DynamicFormFields extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildDatePicker(BuildContext context, FormFieldModel field) {
-    final currentValue = values[field.name]?.toString();
+/// Owns its controller (B-22): the date field used to allocate a new
+/// [TextEditingController] on every parent rebuild, i.e. on every keystroke
+/// elsewhere in the form.
+class _DateFieldInput extends StatefulWidget {
+  final String label;
+  final String? hint;
+  final bool isRequired;
+  final String? value;
+  final ValueChanged<String> onPicked;
+
+  const _DateFieldInput({
+    required this.label,
+    required this.hint,
+    required this.isRequired,
+    required this.value,
+    required this.onPicked,
+  });
+
+  @override
+  State<_DateFieldInput> createState() => _DateFieldInputState();
+}
+
+class _DateFieldInputState extends State<_DateFieldInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value ?? '');
+  }
+
+  @override
+  void didUpdateWidget(_DateFieldInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final value = widget.value ?? '';
+    if (value != _controller.text) _controller.text = value;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return TextFormField(
       readOnly: true,
-      controller: TextEditingController(text: currentValue ?? ''),
-      decoration:
-          _inputDecoration(
-            _localizedPlaceholder(field) ?? 'Select date',
-          ).copyWith(
-            suffixIcon: const Icon(
-              LucideIcons.calendar,
-              size: 18,
-              color: Colors.grey,
-            ),
-          ),
+      controller: _controller,
+      decoration: _inputDecoration(widget.hint ?? 'Select date').copyWith(
+        suffixIcon: const Icon(
+          LucideIcons.calendar,
+          size: 18,
+          color: Colors.grey,
+        ),
+      ),
       validator: (val) {
-        if (field.required && (val == null || val.isEmpty)) {
-          return '${_localizedLabel(field)} is required';
+        if (widget.isRequired && (val == null || val.isEmpty)) {
+          return '${widget.label} is required';
         }
         return null;
       },
@@ -270,31 +327,31 @@ class DynamicFormFields extends StatelessWidget {
           },
         );
         if (picked != null) {
-          onChanged(field.name, DateFormat('yyyy-MM-dd').format(picked));
+          widget.onPicked(DateFormat('yyyy-MM-dd').format(picked));
         }
       },
     );
   }
+}
 
-  InputDecoration _inputDecoration(String? hint) {
-    return InputDecoration(
-      hintText: hint ?? 'Enter value',
-      hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      fillColor: Colors.white,
-      filled: true,
-    );
-  }
+InputDecoration _inputDecoration(String? hint) {
+  return InputDecoration(
+    hintText: hint ?? 'Enter value',
+    hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    fillColor: Colors.white,
+    filled: true,
+  );
 }
