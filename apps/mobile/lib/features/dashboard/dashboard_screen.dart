@@ -15,6 +15,7 @@ import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/features/ad_detail/ad_detail_screen.dart';
 import 'package:mobile/features/main_nav/main_nav_screen.dart';
 import 'package:mobile/features/post_ad/create_ad_screen.dart';
+import 'package:mobile/features/post_ad/post_ad_screen.dart';
 import 'package:mobile/features/promotion/promote_ad_screen.dart';
 import 'package:mobile/core/widgets/staggered_fade_in.dart';
 import 'package:mobile/core/widgets/count_up_text.dart';
@@ -1105,13 +1106,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildFabButton() {
     return GestureDetector(
       onTap: () {
-        // Navigate to post ad screen
-        Navigator.pushAndRemoveUntil(
+        // Post Ad is a pushed route, not a tab: MainNavScreen's IndexedStack
+        // only has children 0-3, so initialIndex: 4 threw. Push the same screen
+        // the main nav FAB pushes, and keep the dashboard underneath to return to.
+        Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const MainNavScreen(initialIndex: 4),
-          ), // Post Ad
-          (route) => false,
+          MaterialPageRoute(builder: (_) => const PostAdScreen()),
         );
       },
       child: Container(
