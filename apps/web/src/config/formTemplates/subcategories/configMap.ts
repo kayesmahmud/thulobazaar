@@ -1,107 +1,22 @@
 /**
- * Combined Subcategory Configuration Map
+ * Subcategory Configuration Lookup
  *
- * This file combines all subcategory configs into a single map
- * and provides helper functions to retrieve configs.
+ * Per-subcategory fields now live in the parent templates (templates/*.ts), which
+ * declare a field once per option domain with disjoint `appliesTo` sets. Keying a
+ * second set of configs on subcategory names is what produced 55 configs matching
+ * no DB row, which silently rendered nothing.
  *
- * Updated: Trigger rebuild
+ * These two functions remain so the resolver keeps a single code path: they report
+ * that no subcategory carries its own config, and the resolver falls through to
+ * the template.
  */
 
-import type { SubcategoryConfig, SubcategoryConfigMap, FormField } from '../types';
-import { electronicsSubcategories } from './electronics';
-import { vehiclesSubcategories } from './vehicles';
-import { propertySubcategories } from './property';
-import { servicesSubcategories } from './services';
-import { fashionSubcategories } from './fashion';
-import { petsSubcategories } from './pets';
-import { generalSubcategories } from './general';
+import type { FormField } from '../types';
 
-/**
- * Master map of all subcategory configurations
- */
-export const SUBCATEGORY_CONFIGS: SubcategoryConfigMap = {
-  ...electronicsSubcategories,
-  ...vehiclesSubcategories,
-  ...propertySubcategories,
-  ...servicesSubcategories,
-  ...fashionSubcategories,
-  ...petsSubcategories,
-  ...generalSubcategories,
-};
-
-/**
- * Get the configuration for a specific subcategory
- *
- * @param subcategoryName - The name of the subcategory
- * @returns The subcategory config or undefined if not found
- */
-export function getSubcategoryConfig(subcategoryName: string): SubcategoryConfig | undefined {
-  return SUBCATEGORY_CONFIGS[subcategoryName];
+export function hasSubcategoryConfig(_subcategoryName: string): boolean {
+  return false;
 }
 
-/**
- * Get the form fields for a subcategory with overrides applied
- *
- * @param subcategoryName - The name of the subcategory
- * @returns Array of form fields with overrides applied, or empty array if not found
- */
-export function getFieldsForSubcategory(subcategoryName: string): FormField[] {
-  const config = getSubcategoryConfig(subcategoryName);
-
-  if (!config) {
-    return [];
-  }
-
-  return config.fields.map(({ field, override }) => {
-    if (!override) {
-      return field;
-    }
-
-    // Apply overrides to create a new field
-    const overriddenField = { ...field };
-
-    if (override.placeholder !== undefined && 'placeholder' in overriddenField) {
-      (overriddenField as { placeholder?: string }).placeholder = override.placeholder;
-    }
-
-    if (override.placeholderNe !== undefined && 'placeholderNe' in overriddenField) {
-      (overriddenField as { placeholderNe?: string }).placeholderNe = override.placeholderNe;
-    }
-
-    if (override.options !== undefined && 'options' in overriddenField) {
-      (overriddenField as { options: string[] }).options = override.options;
-    }
-
-    if (override.optionsNe !== undefined && 'optionsNe' in overriddenField) {
-      (overriddenField as { optionsNe?: string[] }).optionsNe = override.optionsNe;
-    }
-
-    if (override.required !== undefined) {
-      overriddenField.required = override.required;
-    }
-
-    if (override.label !== undefined) {
-      overriddenField.label = override.label;
-    }
-
-    if (override.labelNe !== undefined) {
-      overriddenField.labelNe = override.labelNe;
-    }
-
-    return overriddenField;
-  });
-}
-
-/**
- * Check if a subcategory has a custom configuration
- */
-export function hasSubcategoryConfig(subcategoryName: string): boolean {
-  return subcategoryName in SUBCATEGORY_CONFIGS;
-}
-
-/**
- * Get all configured subcategory names
- */
-export function getAllConfiguredSubcategories(): string[] {
-  return Object.keys(SUBCATEGORY_CONFIGS);
+export function getFieldsForSubcategory(_subcategoryName: string): FormField[] {
+  return [];
 }

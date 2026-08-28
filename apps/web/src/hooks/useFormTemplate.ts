@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
+import { getCategoryPolicy } from '@thulobazaar/types';
 import { FORM_TEMPLATES, getApplicableFields } from '@/config/formTemplates';
-import { getFieldsForSubcategory, hasSubcategoryConfig } from '@/config/formTemplates/subcategories';
 import { getTemplateForCategory } from '@/config/formTemplates/categoryMapping';
 import type { FormField, TemplateName } from '@/config/formTemplates';
 
@@ -14,11 +14,6 @@ interface Category {
 }
 
 const VALID_TEMPLATES: TemplateName[] = ['electronics', 'vehicles', 'property', 'fashion', 'pets', 'services', 'general'];
-
-// Custom subcategory fields that stay mandatory. Everything else is made
-// optional so users can post without filling extra details (they can add them
-// in the description instead). 'condition' is kept for search quality.
-const ALWAYS_REQUIRED_FIELDS = new Set(['condition']);
 
 function isValidTemplate(value: string): value is TemplateName {
   return VALID_TEMPLATES.includes(value as TemplateName);
@@ -57,26 +52,24 @@ export function useFormTemplate(
   }, [templateType]);
 
   // Get applicable fields for the selected subcategory
-  // Priority: 1) Subcategory-specific config, 2) Template-based filtering
   const applicableFields = useMemo<FormField[]>(() => {
-    if (!selectedSubcategory) return [];
+    if (!selectedSubcategory || !template) return [];
 
-    // First, check if there's a subcategory-specific configuration
-    // This allows us to define exact fields with custom placeholders/options per subcategory
-    let rawFields: FormField[];
-    if (hasSubcategoryConfig(selectedSubcategory.name)) {
-      rawFields = getFieldsForSubcategory(selectedSubcategory.name);
-    } else if (!template) {
-      // Fall back to template-based filtering for subcategories without specific configs
-      return [];
-    } else {
-      rawFields = getApplicableFields(templateType || 'general', selectedSubcategory.name);
-    }
+    const rawFields = getApplicableFields(templateType || 'general', selectedSubcategory.name);
 
-    // Kill-switch: make every custom field optional except the allow-listed ones.
-    // Drives asterisks, the HTML `required` attr, and validateFields() below.
-    return rawFields.map(f => ({ ...f, required: ALWAYS_REQUIRED_FIELDS.has(f.name) }));
-  }, [template, selectedSubcategory, templateType]);
+    // Rule R2: the category policy owns Condition - whether the field is offered
+    // at all and whether it blocks the post. Every other custom field stays
+    // optional so users can post without filling extra details (they can add
+    // them in the description instead).
+    const { condition } = getCategoryPolicy(
+      selectedCategory?.slug ?? '',
+      selectedSubcategory.slug
+    );
+
+    return rawFields
+      .filter(f => f.name !== 'condition' || condition !== 'hidden')
+      .map(f => ({ ...f, required: f.name === 'condition' && condition === 'required' }));
+  }, [template, selectedCategory, selectedSubcategory, templateType]);
 
   // Validate custom fields based on template rules
   const validateFields = (customFields: Record<string, any>) => {

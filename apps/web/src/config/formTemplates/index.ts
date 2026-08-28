@@ -32,11 +32,6 @@ export type {
   TemplateName,
   FormTemplates,
   CategoryTemplateMap,
-  // Subcategory config types
-  FieldOverride,
-  FieldRef,
-  SubcategoryConfig,
-  SubcategoryConfigMap,
 } from './types';
 
 // Templates
@@ -91,26 +86,13 @@ export function getApplicableFields(templateName: string, subcategoryName: strin
   });
 }
 
-// Shared fields (for custom template creation)
+// Shared constants
 export {
-  CONDITION_OPTIONS,
-  CONDITION_OPTIONS_NE,
-  WARRANTY_OPTIONS,
-  WARRANTY_OPTIONS_NE,
-  JOB_CATEGORIES,
-  OVERSEAS_COUNTRIES,
-  createConditionField,
-  createBrandField,
-  createModelField,
-  createColorField,
-  createWarrantyField,
+  MIN_MODEL_YEAR,
+  MAX_MODEL_YEAR,
+  JOBS_SUBCATEGORIES,
+  OVERSEAS_JOBS_SUBCATEGORIES,
 } from './sharedFields';
 
-// Subcategory configurations
-export {
-  SUBCATEGORY_CONFIGS,
-  getSubcategoryConfig,
-  getFieldsForSubcategory,
-  hasSubcategoryConfig,
-  getAllConfiguredSubcategories,
-} from './subcategories';
+// Subcategory lookup (see subcategories/configMap.ts)
+export { getFieldsForSubcategory, hasSubcategoryConfig } from './subcategories';

@@ -1,183 +1,104 @@
 /**
  * Property Template
+ *
+ * Single source for every Property subcategory — there is no subcategories/property.ts.
+ * Per-subcategory option lists are expressed by declaring a field more than once
+ * with disjoint appliesTo sets, so exactly one instance survives per subcategory.
+ * Field order below is the canonical Property order; each subcategory renders a
+ * subsequence of it.
+ *
+ * Property has no Condition field at all (you do not buy a "Brand New" house) and
+ * no monthlyRent — the core Price input is relabelled "Monthly Rent" on rentals.
  */
 
 import type { FormTemplate } from '../types';
+import {
+  propertyTypeHousesField,
+  propertyTypeHouseRentalsField,
+  propertyTypeCommercialField,
+  roomTypeField,
+  landTypeField,
+  totalAreaField,
+  areaUnitField,
+  builtUpAreaField,
+  bedroomsField,
+  bathroomsField,
+  floorNumberField,
+  totalFloorsField,
+  furnishingField,
+  constructionTypeField,
+  buildYearField,
+  facingField,
+  roadAccessField,
+  roadSizeField,
+  parkingField,
+  parkingCommercialField,
+  amenitiesApartmentField,
+  amenitiesHouseField,
+  amenitiesHouseRentalField,
+  amenitiesCommercialField,
+  amenitiesRoomField,
+  preferredTenantField,
+  securityDepositField,
+  securityDepositCommercialField,
+  availableFromField,
+  googleMapsLinkField,
+} from '../fields/property';
 
-const APARTMENTS = ['Apartments For Sale', 'Apartment Rentals'];
-const HOUSES = ['Houses For Sale', 'House Rentals'];
-const APARTMENTS_HOUSES = [...APARTMENTS, ...HOUSES];
-const RESIDENTIAL = [...APARTMENTS_HOUSES, 'Room Rentals'];
-const LAND = ['Land For Sale', 'Land Rentals'];
-const RENTALS = ['Apartment Rentals', 'House Rentals', 'Room Rentals', 'Commercial Property Rentals', 'Land Rentals'];
-const RENTALS_NO_LAND = ['Apartment Rentals', 'House Rentals', 'Room Rentals', 'Commercial Property Rentals'];
-const PARKING_APPLICABLE = [...APARTMENTS_HOUSES, 'Commercial Properties For Sale', 'Commercial Property Rentals'];
-// Condition (Brand New / Used) only makes sense for properties being sold.
-const FOR_SALE = ['Houses For Sale', 'Apartments For Sale', 'Commercial Properties For Sale'];
+const APARTMENTS_SALE = ['Apartments For Sale'];
+const APARTMENT_RENTALS = ['Apartment Rentals'];
+const APARTMENTS = [...APARTMENTS_SALE, ...APARTMENT_RENTALS];
+const HOUSES_SALE = ['Houses For Sale'];
+const HOUSE_RENTALS = ['House Rentals'];
+const COMMERCIAL_SALE = ['Commercial Properties For Sale'];
+const COMMERCIAL_RENTALS = ['Commercial Property Rentals'];
+const COMMERCIAL = [...COMMERCIAL_SALE, ...COMMERCIAL_RENTALS];
+const LAND_SALE = ['Land For Sale'];
+const LAND_RENTALS = ['Land Rentals'];
+const LAND = [...LAND_SALE, ...LAND_RENTALS];
+const ROOMS = ['Room Rentals'];
+const BUILDING_RENTALS = [...APARTMENT_RENTALS, ...HOUSE_RENTALS];
 
 export const propertyTemplate: FormTemplate = {
   name: 'Property',
   icon: '🏢🏠',
   fields: [
-    {
-      name: 'condition',
-      label: 'Condition',
-      labelNe: 'अवस्था',
-      type: 'select',
-      required: true,
-      options: ['Brand New', 'Used'],
-      optionsNe: ['नयाँ', 'पुरानो'],
-      appliesTo: FOR_SALE,
-    },
-    {
-      name: 'totalArea',
-      label: 'Total Area',
-      type: 'number',
-      required: true,
-      placeholder: 'Enter area',
-      appliesTo: 'all',
-    },
-    {
-      name: 'areaUnit',
-      label: 'Area Unit',
-      type: 'select',
-      required: true,
-      options: ['sq ft', 'aana', 'ropani', 'sq meter'],
-      appliesTo: 'all',
-    },
-    // For Apartments/Houses
-    {
-      name: 'bedrooms',
-      label: 'Bedrooms',
-      type: 'select',
-      required: true,
-      options: ['Studio', '1', '2', '3', '4', '5', '6+'],
-      appliesTo: RESIDENTIAL,
-    },
-    {
-      name: 'bathrooms',
-      label: 'Bathrooms',
-      type: 'select',
-      required: true,
-      options: ['1', '2', '3', '4', '5+'],
-      appliesTo: APARTMENTS_HOUSES,
-    },
-    {
-      name: 'furnishing',
-      label: 'Furnishing Status',
-      type: 'select',
-      required: false,
-      options: ['Fully Furnished', 'Semi Furnished', 'Unfurnished'],
-      appliesTo: RESIDENTIAL,
-    },
-    {
-      name: 'floorNumber',
-      label: 'Floor Number',
-      type: 'number',
-      required: false,
-      placeholder: 'e.g., 5',
-      appliesTo: APARTMENTS,
-    },
-    {
-      name: 'totalFloors',
-      label: 'Total Floors in Building',
-      type: 'number',
-      required: false,
-      placeholder: 'e.g., 12',
-      appliesTo: APARTMENTS,
-    },
-    {
-      name: 'parking',
-      label: 'Number of Parking Spaces',
-      type: 'select',
-      required: false,
-      options: ['None', '1', '2', '3', '4+'],
-      appliesTo: PARKING_APPLICABLE,
-    },
-    {
-      name: 'facing',
-      label: 'Facing Direction',
-      type: 'select',
-      required: false,
-      options: ['North', 'South', 'East', 'West', 'North-East', 'North-West', 'South-East', 'South-West'],
-      appliesTo: APARTMENTS_HOUSES,
-    },
-    {
-      name: 'propertyAge',
-      label: 'Property Age',
-      type: 'select',
-      required: false,
-      options: ['Under Construction', '0-1 years', '1-5 years', '5-10 years', '10-20 years', '20+ years'],
-      appliesTo: APARTMENTS_HOUSES,
-    },
-    {
-      name: 'amenities',
-      label: 'Amenities',
-      type: 'multiselect',
-      required: false,
-      options: [
-        'Lift/Elevator', 'Power Backup', 'Water Supply', 'Security/Gated',
-        'Gym', 'Swimming Pool', 'Garden', 'Playground', 'Club House', 'Visitor Parking',
-      ],
-      appliesTo: APARTMENTS_HOUSES,
-    },
-    // Land Only
-    {
-      name: 'landType',
-      label: 'Land Type',
-      type: 'select',
-      required: false,
-      options: ['Residential', 'Commercial', 'Agricultural', 'Industrial', 'Mixed Use'],
-      appliesTo: LAND,
-    },
-    {
-      name: 'roadAccess',
-      label: 'Road Access',
-      type: 'select',
-      required: false,
-      options: ['Paved Road', 'Graveled Road', 'Dirt Road', 'No Direct Access'],
-      appliesTo: LAND,
-    },
-    {
-      name: 'roadWidth',
-      label: 'Road Width',
-      type: 'number',
-      required: false,
-      placeholder: 'in feet',
-      appliesTo: LAND,
-    },
-    // For Rent Only
-    {
-      name: 'monthlyRent',
-      label: 'Monthly Rent',
-      type: 'number',
-      required: true,
-      placeholder: 'in NPR',
-      appliesTo: RENTALS,
-    },
-    {
-      name: 'securityDeposit',
-      label: 'Security Deposit',
-      type: 'number',
-      required: false,
-      placeholder: 'in NPR',
-      appliesTo: RENTALS_NO_LAND,
-    },
-    {
-      name: 'availableFrom',
-      label: 'Available From',
-      type: 'select',
-      required: false,
-      options: ['Immediately', '15 days', '1 month', '2 months', '3 months'],
-      appliesTo: RENTALS_NO_LAND,
-    },
-    {
-      name: 'googleMapsLink',
-      label: 'Google Maps',
-      type: 'text',
-      required: false,
-      placeholder: 'Paste Google Maps link',
-      appliesTo: 'all',
-    },
+    { ...propertyTypeHousesField, appliesTo: HOUSES_SALE },
+    { ...propertyTypeHouseRentalsField, appliesTo: HOUSE_RENTALS },
+    { ...propertyTypeCommercialField, appliesTo: COMMERCIAL },
+    { ...roomTypeField, appliesTo: ROOMS },
+    { ...totalAreaField, label: 'Built-up Area', labelNe: 'बनेको क्षेत्रफल', appliesTo: APARTMENTS },
+    { ...totalAreaField, label: 'Land Area', labelNe: 'जग्गा क्षेत्रफल', appliesTo: [...HOUSES_SALE, ...LAND] },
+    { ...totalAreaField, appliesTo: [...HOUSE_RENTALS, ...COMMERCIAL] },
+    { ...areaUnitField, appliesTo: [...APARTMENTS, ...HOUSES_SALE, ...HOUSE_RENTALS, ...COMMERCIAL, ...LAND] },
+    { ...builtUpAreaField, appliesTo: HOUSES_SALE },
+    { ...bedroomsField, appliesTo: [...APARTMENTS, ...HOUSES_SALE, ...HOUSE_RENTALS] },
+    { ...bathroomsField, appliesTo: [...APARTMENTS, ...HOUSES_SALE, ...HOUSE_RENTALS] },
+    { ...floorNumberField, appliesTo: [...APARTMENTS, ...COMMERCIAL] },
+    { ...totalFloorsField, appliesTo: [...APARTMENTS, ...HOUSES_SALE] },
+    { ...furnishingField, appliesTo: [...APARTMENTS, ...HOUSE_RENTALS, ...ROOMS] },
+    { ...furnishingField, label: 'Fit-out Status', labelNe: 'फिट-आउट स्थिति', appliesTo: COMMERCIAL_RENTALS },
+    { ...constructionTypeField, appliesTo: HOUSES_SALE },
+    { ...buildYearField, appliesTo: [...APARTMENTS_SALE, ...HOUSES_SALE, ...COMMERCIAL_SALE] },
+    { ...facingField, appliesTo: [...APARTMENTS, ...HOUSES_SALE, ...HOUSE_RENTALS] },
+    { ...landTypeField, appliesTo: LAND },
+    { ...roadAccessField, appliesTo: [...HOUSES_SALE, ...COMMERCIAL, ...LAND] },
+    { ...roadSizeField, appliesTo: [...HOUSES_SALE, ...COMMERCIAL_SALE, ...LAND] },
+    // Land lists facing after the road details; every other subcategory lists it
+    // beside the building attributes above.
+    { ...facingField, appliesTo: LAND },
+    { ...parkingField, appliesTo: [...APARTMENTS, ...HOUSES_SALE, ...HOUSE_RENTALS] },
+    { ...parkingCommercialField, appliesTo: COMMERCIAL },
+    { ...preferredTenantField, appliesTo: ROOMS },
+    { ...amenitiesApartmentField, appliesTo: APARTMENTS },
+    { ...amenitiesHouseField, appliesTo: HOUSES_SALE },
+    { ...amenitiesHouseRentalField, appliesTo: HOUSE_RENTALS },
+    { ...amenitiesCommercialField, appliesTo: COMMERCIAL },
+    { ...amenitiesRoomField, appliesTo: ROOMS },
+    { ...preferredTenantField, appliesTo: BUILDING_RENTALS },
+    { ...securityDepositField, appliesTo: [...BUILDING_RENTALS, ...ROOMS] },
+    { ...securityDepositCommercialField, appliesTo: COMMERCIAL_RENTALS },
+    { ...availableFromField, appliesTo: [...BUILDING_RENTALS, ...ROOMS, ...COMMERCIAL_RENTALS, ...LAND_RENTALS] },
+    { ...googleMapsLinkField, appliesTo: 'all' },
   ],
 };

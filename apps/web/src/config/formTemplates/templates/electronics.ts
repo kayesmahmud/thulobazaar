@@ -1,96 +1,148 @@
 /**
- * Electronics & Gadgets Template
+ * Electronics & Mobiles Template
+ *
+ * Order is: condition → type classifier → brand → model → specs → warranty last.
+ * Warranty used to sit third, splitting identity from specs on every subcategory.
  */
 
 import type { FormTemplate } from '../types';
-import { createConditionField, createBrandField, createModelField, createWarrantyField, CONDITION_OPTIONS, CONDITION_OPTIONS_NE } from '../sharedFields';
+import { conditionNewUsed, brandField, modelField, warrantyField } from '../fields/common';
+import {
+  storageField,
+  storageLaptopField,
+  storageDesktopField,
+  storageConsoleField,
+  ramPhoneField,
+  ramComputerField,
+  batteryHealthField,
+  processorField,
+  graphicsField,
+  screenResolutionField,
+  screenSizeTvField,
+  screenSizeLaptopField,
+  smartFeaturesField,
+  megapixelsField,
+  sensorSizeField,
+  cameraTypeField,
+  accessoryTypeMobileField,
+  accessoryTypeTvField,
+  accessoryTypeComputerField,
+  audioTypeField,
+  gamingItemTypeField,
+  wearableTypeField,
+  compatibilityField,
+  connectivityField,
+  monitorIncludedField,
+  boxAndBillField,
+  applianceTypeAcField,
+  applianceTypeHomeField,
+  capacityTonField,
+  machineTypeField,
+  networkOperatorField,
+  numberTypeField,
+  simTypeField,
+  brandPhoneField,
+  brandLaptopField,
+  brandTvField,
+  brandAcField,
+  brandHomeApplianceField,
+} from '../fields/electronics';
+import { serviceTypeMobileRepairField, serviceLocationField, experienceField } from '../fields/services';
 
-const MOBILE_TABLETS = ['Mobile Phones', 'Tablets & Accessories'];
-const COMPUTERS = ['Laptops', 'Desktop Computers'];
-const MOBILE_LAPTOPS_TABLETS = ['Mobile Phones', 'Laptops', 'Desktop Computers', 'Tablets & Accessories'];
+const PHONES = ['Mobile Phones'];
+const PHONE_ACCESSORIES = ['Mobile Phone Accessories'];
+const PHONE_SERVICES = ['Mobile Phone Services'];
+const SIM_CARDS = ['SIM Cards'];
+const WEARABLES = ['Wearables'];
+const TABLETS = ['Tablets & Accessories'];
+const LAPTOPS = ['Laptops'];
+const DESKTOPS = ['Desktop Computers'];
+const TVS = ['TVs'];
+const TV_ACCESSORIES = ['TV & Video Accessories'];
+const CAMERAS = ['Cameras, Camcorders & Accessories'];
+const COMPUTER_ACCESSORIES = ['Laptop & Computer Accessories'];
+const AUDIO = ['Audio & Sound Systems'];
+const CONSOLES = ['Video Game Consoles & Accessories'];
+const ACS = ['ACs & Home Electronics'];
+const HOME_APPLIANCES = ['Home Appliances'];
+const PHOTOCOPIERS = ['Photocopiers'];
+const OTHER = ['Other Electronics'];
+
+const COMPUTERS = [...LAPTOPS, ...DESKTOPS];
+// Every subcategory except the two that describe a service or a phone number.
+const PRODUCTS = [
+  ...PHONES, ...PHONE_ACCESSORIES, ...WEARABLES, ...TABLETS, ...COMPUTERS, ...TVS,
+  ...TV_ACCESSORIES, ...CAMERAS, ...COMPUTER_ACCESSORIES, ...AUDIO, ...CONSOLES,
+  ...ACS, ...HOME_APPLIANCES, ...PHOTOCOPIERS, ...OTHER,
+];
 
 export const electronicsTemplate: FormTemplate = {
   name: 'Electronics & Gadgets',
   icon: '📱💻',
   fields: [
-    createConditionField(CONDITION_OPTIONS.NEW_USED, 'all', true, CONDITION_OPTIONS_NE.NEW_USED),
-    createBrandField('e.g., Apple, Samsung, Dell, HP'),
-    createModelField('e.g., iPhone 15 Pro, Galaxy S23'),
-    createWarrantyField(),
-    // Mobile Phones Specific
+    { ...conditionNewUsed, appliesTo: PRODUCTS },
+    { ...accessoryTypeMobileField, appliesTo: PHONE_ACCESSORIES },
+    { ...accessoryTypeTvField, appliesTo: TV_ACCESSORIES },
+    { ...accessoryTypeComputerField, appliesTo: COMPUTER_ACCESSORIES },
+    { ...wearableTypeField, appliesTo: WEARABLES },
+    { ...cameraTypeField, appliesTo: CAMERAS },
+    { ...audioTypeField, appliesTo: AUDIO },
+    { ...gamingItemTypeField, appliesTo: CONSOLES },
+    { ...applianceTypeAcField, appliesTo: ACS },
+    { ...applianceTypeHomeField, appliesTo: HOME_APPLIANCES },
+    { ...machineTypeField, appliesTo: PHOTOCOPIERS },
+    // A phone number has no condition, brand, model or warranty.
+    { ...networkOperatorField, appliesTo: SIM_CARDS },
+    { ...numberTypeField, appliesTo: SIM_CARDS },
+    { ...simTypeField, appliesTo: SIM_CARDS },
+    // A repair shop is not a brand either.
+    { ...serviceTypeMobileRepairField, appliesTo: PHONE_SERVICES },
+    { ...serviceLocationField, appliesTo: PHONE_SERVICES },
+    { ...experienceField, appliesTo: PHONE_SERVICES },
+    { ...brandPhoneField, appliesTo: PHONES },
+    { ...brandLaptopField, appliesTo: COMPUTERS },
+    { ...brandTvField, appliesTo: TVS },
+    { ...brandAcField, appliesTo: ACS },
+    { ...brandHomeApplianceField, appliesTo: HOME_APPLIANCES },
+    { ...brandField, placeholder: 'e.g., Spigen, Anker, Samsung, Apple', appliesTo: PHONE_ACCESSORIES },
+    { ...brandField, placeholder: 'e.g., Apple, Samsung, Fitbit, Garmin, Boat', appliesTo: WEARABLES },
+    { ...brandField, placeholder: 'e.g., Apple, Samsung, Huawei, Lenovo', appliesTo: TABLETS },
+    { ...brandField, placeholder: 'e.g., Dish Home, WorldLink, Xiaomi, JBL', appliesTo: TV_ACCESSORIES },
+    { ...brandField, placeholder: 'e.g., Canon, Nikon, Sony, GoPro', appliesTo: CAMERAS },
+    { ...brandField, placeholder: 'e.g., Logitech, HP, Asus, TP-Link', appliesTo: COMPUTER_ACCESSORIES },
+    { ...brandField, placeholder: 'e.g., Sony, Bose, JBL, Sennheiser', appliesTo: AUDIO },
+    { ...brandField, placeholder: 'e.g., Sony, Microsoft, Nintendo', appliesTo: CONSOLES },
+    { ...brandField, placeholder: 'e.g., Canon, Epson, Brother, Xerox, HP', appliesTo: PHOTOCOPIERS },
+    { ...brandField, appliesTo: OTHER },
+    { ...modelField, placeholder: 'e.g., iPhone 15 Pro, Galaxy S24', appliesTo: PHONES },
+    { ...modelField, placeholder: 'e.g., MacBook Pro, ThinkPad X1', appliesTo: COMPUTERS },
+    { ...modelField, placeholder: 'e.g., iPad Pro, Galaxy Tab', appliesTo: TABLETS },
+    { ...modelField, placeholder: 'e.g., Apple Watch Series 9, Galaxy Watch 6', appliesTo: WEARABLES },
+    { ...modelField, placeholder: 'e.g., EOS R5, A7 IV', appliesTo: CAMERAS },
     {
-      name: 'storage',
-      label: 'Storage Capacity',
-      type: 'select',
-      required: true,
-      options: ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'],
-      appliesTo: MOBILE_TABLETS,
+      ...modelField,
+      appliesTo: [...TVS, ...TV_ACCESSORIES, ...COMPUTER_ACCESSORIES, ...AUDIO, ...CONSOLES, ...ACS, ...HOME_APPLIANCES, ...PHOTOCOPIERS, ...OTHER],
     },
-    {
-      name: 'ram',
-      label: 'RAM',
-      type: 'select',
-      required: true,
-      options: ['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB', '32GB', '64GB'],
-      appliesTo: MOBILE_LAPTOPS_TABLETS,
-    },
-    {
-      name: 'batteryHealth',
-      label: 'Battery Health',
-      type: 'select',
-      required: false,
-      options: ['100%', '95-99%', '90-94%', '85-89%', '80-84%', 'Below 80%'],
-      appliesTo: ['Mobile Phones', 'Laptops', 'Tablets & Accessories'],
-    },
-    // Laptops/Computers Specific
-    {
-      name: 'processor',
-      label: 'Processor',
-      type: 'text',
-      required: true,
-      placeholder: 'e.g., Intel Core i5 12th Gen, AMD Ryzen 7',
-      appliesTo: COMPUTERS,
-    },
-    {
-      name: 'graphics',
-      label: 'Graphics Card',
-      type: 'text',
-      required: false,
-      placeholder: 'e.g., NVIDIA RTX 3060, Integrated',
-      appliesTo: COMPUTERS,
-    },
-    {
-      name: 'screenResolution',
-      label: 'Screen Resolution',
-      type: 'select',
-      required: false,
-      options: ['HD (1366x768)', 'Full HD (1920x1080)', '2K', '4K', 'Retina'],
-      appliesTo: ['Laptops', 'TVs', 'Desktop Computers'],
-    },
-    // TVs/Cameras Specific
-    {
-      name: 'screenSize',
-      label: 'Screen/Sensor Size',
-      type: 'text',
-      required: true,
-      placeholder: 'e.g., 55 inches, 24MP',
-      appliesTo: ['TVs', 'Cameras, Camcorders & Accessories'],
-    },
-    {
-      name: 'smartFeatures',
-      label: 'Smart Features',
-      type: 'multiselect',
-      required: false,
-      options: ['Smart TV', '4K', 'HDR', 'Android TV', 'WebOS', 'Voice Control'],
-      appliesTo: ['TVs'],
-    },
-    {
-      name: 'megapixels',
-      label: 'Megapixels',
-      type: 'number',
-      required: false,
-      placeholder: 'e.g., 24, 48, 108',
-      appliesTo: ['Cameras, Camcorders & Accessories'],
-    },
+    { ...storageField, appliesTo: [...PHONES, ...TABLETS] },
+    { ...processorField, appliesTo: COMPUTERS },
+    { ...ramPhoneField, appliesTo: PHONES },
+    { ...ramComputerField, appliesTo: COMPUTERS },
+    { ...storageLaptopField, appliesTo: LAPTOPS },
+    { ...storageDesktopField, appliesTo: DESKTOPS },
+    { ...storageConsoleField, appliesTo: CONSOLES },
+    { ...graphicsField, appliesTo: COMPUTERS },
+    { ...screenSizeLaptopField, appliesTo: LAPTOPS },
+    { ...screenSizeTvField, appliesTo: TVS },
+    { ...screenResolutionField, appliesTo: TVS },
+    { ...smartFeaturesField, appliesTo: TVS },
+    { ...connectivityField, appliesTo: TABLETS },
+    { ...compatibilityField, appliesTo: WEARABLES },
+    { ...sensorSizeField, appliesTo: CAMERAS },
+    { ...megapixelsField, appliesTo: CAMERAS },
+    { ...capacityTonField, appliesTo: ACS },
+    { ...monitorIncludedField, appliesTo: DESKTOPS },
+    { ...batteryHealthField, appliesTo: [...PHONES, ...LAPTOPS, ...TABLETS] },
+    { ...boxAndBillField, appliesTo: PHONES },
+    { ...warrantyField, appliesTo: PRODUCTS },
   ],
 };

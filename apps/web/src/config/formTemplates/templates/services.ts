@@ -1,128 +1,178 @@
 /**
- * Services & Jobs Template
+ * Services, Jobs, Overseas Jobs & Education Template
+ *
+ * Single source for all four parents — there is no subcategories/services.ts.
+ * Jobs and Overseas Jobs are one shared set each: the eight rows in either parent
+ * differ only by a trade/licence field or by salary currency. Fields are gated on
+ * real DB subcategory names, never on job titles.
  */
 
 import type { FormTemplate } from '../types';
-import { JOB_CATEGORIES } from '../sharedFields';
+import { conditionOptional } from '../fields/common';
+import { JOBS_SUBCATEGORIES, OVERSEAS_JOBS_SUBCATEGORIES } from '../sharedFields';
+import {
+  experienceField,
+  availabilityField,
+  availabilityDomesticField,
+  availabilityTeachingField,
+  availabilityEventField,
+  serviceLocationField,
+  serviceLocationFitnessField,
+  serviceLocationDomesticField,
+  languagesField,
+  languageOfInstructionField,
+  pricePeriodField,
+  pricePeriodInspectionField,
+  pricePeriodItField,
+  pricePeriodEventField,
+  pricePeriodConsultationField,
+  pricePeriodTravelField,
+  pricePeriodJobField,
+  pricePeriodTransportJobField,
+  pricePeriodTuitionField,
+  serviceTypeBuildingField,
+  serviceTypeDomesticField,
+  serviceTypeFitnessBeautyField,
+  serviceTypeItField,
+  serviceTypeMediaEventField,
+  serviceTypeProfessionalField,
+  serviceTypeRepairField,
+  serviceTypeTravelField,
+  serviceTypeStudyAbroadField,
+  genderServedField,
+  tripDurationField,
+  lookingForField,
+  ageRangeField,
+  maritalStatusField,
+  jobPostTypeField,
+  jobTypeField,
+  workLocationTypeField,
+  companyNameField,
+  educationRequiredField,
+  tradeSkillField,
+  licenseCategoryField,
+  recruitingAgencyField,
+  recruiterLicenseField,
+  contractDurationField,
+  genderRequirementField,
+  benefitsField,
+  salaryCurrencyField,
+  serviceChargeField,
+  subjectsField,
+  gradeLevelField,
+  modeOfTeachingField,
+  courseTypeField,
+  courseDurationField,
+  bookLevelField,
+  publisherField,
+  destinationCountryField,
+  studyLevelField,
+} from '../fields/services';
 
-const SERVICE_CATEGORIES = ['Servicing & Repair', 'IT Services', 'Professional Services', 'Gym & Fitness', 'Beauty Services'];
-const SERVICE_WITH_DOMESTIC = [...SERVICE_CATEGORIES.slice(0, 4), 'Domestic & Daycare Services'];
-const PHYSICAL_SERVICES = ['Gym & Fitness', 'Beauty Services'];
-const EDUCATION_SERVICES = ['Tuition', 'Professional Services'];
+const BUILDING = ['Building maintenance'];
+const DOMESTIC = ['Domestic & Daycare Services'];
+const FITNESS_BEAUTY = ['Fitness & Beauty Services'];
+const IT = ['IT Services'];
+const MATRIMONIALS = ['Matrimonials'];
+const MEDIA_EVENT = ['Media & Event Management Services'];
+const PROFESSIONAL = ['Professional Services'];
+const REPAIR = ['Servicing & Repair'];
+const TRAVEL = ['Tours & Travels'];
+const SERVICES_WITH_EXPERIENCE = [
+  ...BUILDING, ...DOMESTIC, ...FITNESS_BEAUTY, ...IT, ...MEDIA_EVENT, ...PROFESSIONAL, ...REPAIR,
+];
+
+const TUITION = ['Tuition'];
+const COURSES = ['Courses'];
+const TEXTBOOKS = ['Textbooks'];
+const STUDY_ABROAD = ['Study Abroad'];
+
+const JOBS = [...JOBS_SUBCATEGORIES];
+const CONSTRUCTION_JOBS = ['Construction & Trades'];
+const TRANSPORT_JOBS = ['Transportation & Logistics'];
+const JOBS_STANDARD_PERIOD = JOBS.filter(name => !TRANSPORT_JOBS.includes(name));
+const OVERSEAS = [...OVERSEAS_JOBS_SUBCATEGORIES];
+const OVERSEAS_EURO = ['Bulgaria', 'Croatia', 'Serbia'];
 
 export const servicesTemplate: FormTemplate = {
   name: 'Services & Jobs',
   icon: '🔧💼',
   fields: [
-    // For Services
-    {
-      name: 'experience',
-      label: 'Experience',
-      type: 'select',
-      required: false,
-      options: ['Less than 1 year', '1-3 years', '3-5 years', '5-10 years', '10+ years'],
-      appliesTo: SERVICE_CATEGORIES,
-    },
-    {
-      name: 'availability',
-      label: 'Availability',
-      type: 'multiselect',
-      required: false,
-      options: ['Weekdays', 'Weekends', 'Evenings', '24/7', 'On-Call'],
-      appliesTo: SERVICE_WITH_DOMESTIC,
-    },
-    {
-      name: 'serviceLocation',
-      label: 'Service Location',
-      type: 'select',
-      required: false,
-      options: ['At Customer Location', 'At Provider Location', 'Remote/Online'],
-      appliesTo: ['Servicing & Repair', 'IT Services', 'Professional Services'],
-    },
-    {
-      name: 'physicalServiceLocation',
-      label: 'Service Location',
-      type: 'select',
-      required: false,
-      options: ['At Customer Location', 'At Provider Location'],
-      appliesTo: PHYSICAL_SERVICES,
-    },
-    {
-      name: 'massageLocation',
-      label: 'Service Location',
-      type: 'select',
-      required: true,
-      options: ['At Home', 'At Massage Parlour'],
-      appliesTo: ['Body Massage'],
-    },
-    {
-      name: 'languages',
-      label: 'Languages Known',
-      type: 'multiselect',
-      required: false,
-      options: ['English', 'Nepali', 'Hindi', 'Newari', 'Other'],
-      appliesTo: EDUCATION_SERVICES,
-    },
-    // For Jobs
-    {
-      name: 'experienceRequired',
-      label: 'Experience Required',
-      type: 'select',
-      required: false,
-      options: ['Fresher', '0-1 years', '1-3 years', '3-5 years', '5-10 years', '10+ years'],
-      appliesTo: [...JOB_CATEGORIES],
-    },
-    {
-      name: 'salaryRange',
-      label: 'Salary Range',
-      type: 'select',
-      required: false,
-      options: [
-        'Below 20,000', '20,000-30,000', '30,000-50,000',
-        '50,000-1,00,000', 'Above 1,00,000', 'Negotiable',
-      ],
-      appliesTo: [...JOB_CATEGORIES],
-    },
-    {
-      name: 'educationRequired',
-      label: 'Education Required',
-      type: 'select',
-      required: false,
-      options: ['No Formal Education', 'SLC/SEE', '+2', "Bachelor's", "Master's", 'PhD'],
-      appliesTo: [...JOB_CATEGORIES],
-    },
-    {
-      name: 'companyName',
-      label: 'Company Name',
-      type: 'text',
-      required: false,
-      placeholder: 'Enter company name',
-      appliesTo: [...JOB_CATEGORIES],
-    },
-    // For Education (Tuition)
-    {
-      name: 'subjects',
-      label: 'Subject',
-      type: 'multiselect',
-      required: true,
-      options: ['Math', 'Science', 'English', 'Nepali', 'Social Studies', 'Computer', 'Accounts', 'All Subjects'],
-      appliesTo: ['Tuition'],
-    },
-    {
-      name: 'gradeLevel',
-      label: 'Grade/Level',
-      type: 'multiselect',
-      required: true,
-      options: ['Primary (1-5)', 'Secondary (6-10)', '+2/Intermediate', 'Bachelor', 'Master'],
-      appliesTo: ['Tuition'],
-    },
-    {
-      name: 'modeOfTeaching',
-      label: 'Mode of Teaching',
-      type: 'select',
-      required: false,
-      options: ['Home Tuition', 'Online', 'At Institute', 'Group Class'],
-      appliesTo: ['Tuition'],
-    },
+    // ---- Services ----
+    { ...serviceTypeBuildingField, appliesTo: BUILDING },
+    { ...serviceTypeDomesticField, appliesTo: DOMESTIC },
+    { ...serviceTypeFitnessBeautyField, appliesTo: FITNESS_BEAUTY },
+    { ...serviceTypeItField, appliesTo: IT },
+    { ...serviceTypeMediaEventField, appliesTo: MEDIA_EVENT },
+    { ...serviceTypeProfessionalField, appliesTo: PROFESSIONAL },
+    { ...serviceTypeRepairField, appliesTo: REPAIR },
+    { ...serviceTypeTravelField, appliesTo: TRAVEL },
+    { ...serviceLocationField, appliesTo: [...IT, ...PROFESSIONAL, ...REPAIR] },
+    { ...serviceLocationFitnessField, appliesTo: FITNESS_BEAUTY },
+    { ...serviceLocationDomesticField, appliesTo: DOMESTIC },
+    { ...genderServedField, appliesTo: FITNESS_BEAUTY },
+    { ...tripDurationField, appliesTo: TRAVEL },
+    { ...availabilityField, appliesTo: [...BUILDING, ...FITNESS_BEAUTY, ...IT, ...PROFESSIONAL, ...REPAIR] },
+    { ...availabilityDomesticField, appliesTo: DOMESTIC },
+    { ...availabilityEventField, appliesTo: MEDIA_EVENT },
+    { ...experienceField, appliesTo: SERVICES_WITH_EXPERIENCE },
+    { ...languagesField, appliesTo: [...DOMESTIC, ...PROFESSIONAL] },
+    { ...pricePeriodField, appliesTo: DOMESTIC },
+    { ...pricePeriodInspectionField, appliesTo: [...BUILDING, ...FITNESS_BEAUTY, ...REPAIR] },
+    { ...pricePeriodItField, appliesTo: IT },
+    { ...pricePeriodEventField, appliesTo: MEDIA_EVENT },
+    { ...pricePeriodConsultationField, appliesTo: PROFESSIONAL },
+    { ...pricePeriodTravelField, appliesTo: TRAVEL },
+    // Matrimonials has no price at all, so no price period either.
+    { ...lookingForField, appliesTo: MATRIMONIALS },
+    { ...ageRangeField, appliesTo: MATRIMONIALS },
+    { ...maritalStatusField, appliesTo: MATRIMONIALS },
+
+    // ---- Education ----
+    { ...courseTypeField, appliesTo: COURSES },
+    { ...courseDurationField, appliesTo: COURSES },
+    { ...subjectsField, appliesTo: TUITION },
+    { ...gradeLevelField, appliesTo: TUITION },
+    { ...modeOfTeachingField, appliesTo: [...TUITION, ...COURSES] },
+    { ...languageOfInstructionField, appliesTo: TUITION },
+    { ...availabilityField, appliesTo: COURSES },
+    { ...experienceField, appliesTo: [...TUITION, ...COURSES] },
+    { ...availabilityTeachingField, appliesTo: TUITION },
+    { ...pricePeriodTuitionField, appliesTo: TUITION },
+    { ...pricePeriodField, appliesTo: COURSES },
+    { ...bookLevelField, appliesTo: TEXTBOOKS },
+    { ...publisherField, appliesTo: TEXTBOOKS },
+    { ...conditionOptional, appliesTo: TEXTBOOKS },
+    { ...destinationCountryField, appliesTo: STUDY_ABROAD },
+    { ...studyLevelField, appliesTo: STUDY_ABROAD },
+    { ...serviceTypeStudyAbroadField, appliesTo: STUDY_ABROAD },
+    // 'Other Education' is a deliberate catch-all — zero fields is correct.
+
+    // ---- Jobs ----
+    { ...jobPostTypeField, appliesTo: JOBS },
+    { ...tradeSkillField, appliesTo: CONSTRUCTION_JOBS },
+    { ...licenseCategoryField, appliesTo: TRANSPORT_JOBS },
+    { ...jobTypeField, appliesTo: JOBS },
+    { ...workLocationTypeField, appliesTo: JOBS },
+    { ...companyNameField, appliesTo: JOBS },
+    { ...experienceField, appliesTo: JOBS },
+    { ...educationRequiredField, appliesTo: JOBS },
+    { ...pricePeriodJobField, appliesTo: JOBS_STANDARD_PERIOD },
+    { ...pricePeriodTransportJobField, appliesTo: TRANSPORT_JOBS },
+
+    // ---- Overseas Jobs ----
+    { ...recruitingAgencyField, appliesTo: OVERSEAS },
+    { ...recruiterLicenseField, appliesTo: OVERSEAS },
+    { ...contractDurationField, appliesTo: OVERSEAS },
+    { ...genderRequirementField, appliesTo: OVERSEAS },
+    { ...experienceField, appliesTo: OVERSEAS },
+    { ...benefitsField, appliesTo: OVERSEAS },
+    { ...salaryCurrencyField, options: ['NPR', 'EUR', 'USD'], appliesTo: OVERSEAS_EURO },
+    { ...salaryCurrencyField, options: ['MYR', 'NPR', 'USD'], appliesTo: ['Malaysia'] },
+    { ...salaryCurrencyField, options: ['QAR', 'NPR', 'USD'], appliesTo: ['Qatar'] },
+    { ...salaryCurrencyField, options: ['SAR', 'NPR', 'USD'], appliesTo: ['Saudi Arabia'] },
+    { ...salaryCurrencyField, options: ['SGD', 'NPR', 'USD'], appliesTo: ['Singapore'] },
+    { ...salaryCurrencyField, options: ['AED', 'NPR', 'USD'], appliesTo: ['UAE'] },
+    { ...serviceChargeField, appliesTo: OVERSEAS },
   ],
 };

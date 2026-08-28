@@ -1,94 +1,116 @@
 /**
  * Fashion & Apparel Template
+ *
+ * Covers both fashion parents. Four subcategory names ('Footwear',
+ * 'Bags & Accessories', 'Optical & Sunglasses', 'Wholesale - Bulk') exist under
+ * both parents and are resolved by name, so one entry serves both.
+ *
+ * Hygiene subcategories (grooming, beauty, lingerie) carry no Condition field —
+ * used personal care must not be listable.
  */
 
 import type { FormTemplate } from '../types';
-import { createConditionField, createColorField, CONDITION_OPTIONS, CONDITION_OPTIONS_NE } from '../sharedFields';
+import { conditionOptional, brandField, colorField } from '../fields/common';
+import {
+  sizeField,
+  waistSizeField,
+  clothingTypeShirtsField,
+  clothingTypePantsField,
+  clothingTypeJacketField,
+  clothingTypeMensTraditionalField,
+  clothingTypeWesternField,
+  clothingTypeWomensTraditionalField,
+  clothingTypeWinterField,
+  fitTypeField,
+  sleeveTypeField,
+  fabricField,
+  fabricWomensField,
+  footwearTypeField,
+  shoeSizeField,
+  watchTypeField,
+  strapMaterialField,
+  accessoryTypeBagsField,
+  materialBagsField,
+  eyewearTypeField,
+  jewelleryMaterialField,
+} from '../fields/fashion';
+import {
+  ageGroupField,
+  minOrderQuantityField,
+  quantityField,
+  productVolumeField,
+  expiryDateField,
+} from '../fields/general';
 
-const CLOTHING = [
-  'Shirts & T-Shirts', 'Pants', 'Traditional Clothing', 'Jacket & Coat',
-  'Traditional Wear', 'Western Wear', 'Winter Wear',
+const SHIRTS = ['Shirts & T-Shirts'];
+const PANTS = ['Pants'];
+const JACKETS = ['Jacket & Coat'];
+const MENS_TRADITIONAL = ['Traditional Clothing'];
+const WESTERN = ['Western Wear'];
+const WOMENS_TRADITIONAL = ['Traditional Wear'];
+const WINTER = ['Winter Wear'];
+const FOOTWEAR = ['Footwear'];
+const WATCHES = ['Watches'];
+const JEWELLERY = ['Jewellery & Watches'];
+const BAGS = ['Bags & Accessories'];
+const OPTICAL = ['Optical & Sunglasses'];
+const BABY = ["Baby Boy's Fashion", "Baby Girl's Fashion"];
+const WHOLESALE = ['Wholesale - Bulk'];
+const GROOMING = ['Grooming & Bodycare'];
+const BEAUTY = ['Beauty & Personal Care'];
+const LINGERIE = ['Lingerie & Sleepwear'];
+
+const CLOTHING = [...SHIRTS, ...PANTS, ...JACKETS, ...MENS_TRADITIONAL, ...WESTERN, ...WOMENS_TRADITIONAL, ...WINTER];
+const LETTER_SIZED = [...SHIRTS, ...JACKETS, ...MENS_TRADITIONAL, ...WESTERN, ...WOMENS_TRADITIONAL, ...WINTER, ...LINGERIE];
+const HAS_CONDITION = [
+  ...CLOTHING, ...FOOTWEAR, ...WATCHES, ...JEWELLERY, ...BAGS, ...OPTICAL, ...BABY, ...WHOLESALE,
 ];
-const CLOTHING_WITH_JEANS = [...CLOTHING, 'Jeans'];
-const CLOTHING_NO_PANTS = CLOTHING.filter(c => c !== 'Pants');
 
 export const fashionTemplate: FormTemplate = {
   name: 'Fashion & Apparel',
   icon: '👔👗',
   fields: [
-    createConditionField(CONDITION_OPTIONS.NEW_USED, 'all', true, CONDITION_OPTIONS_NE.NEW_USED),
+    { ...conditionOptional, appliesTo: HAS_CONDITION },
+    { ...brandField, placeholder: 'e.g., Nike, Adidas, Zara, H&M', appliesTo: CLOTHING },
+    { ...brandField, placeholder: 'e.g., Nike, Adidas, Bata, Goldstar', appliesTo: FOOTWEAR },
+    { ...brandField, placeholder: 'e.g., Casio, Fossil, Titan, Apple', appliesTo: [...WATCHES, ...JEWELLERY] },
+    { ...brandField, placeholder: 'e.g., American Tourister, Samsonite, Wildcraft', appliesTo: BAGS },
+    { ...brandField, placeholder: 'e.g., Ray-Ban, Oakley, Titan Eye+', appliesTo: OPTICAL },
+    { ...brandField, placeholder: "e.g., Carter's, Mothercare, Next", appliesTo: BABY },
+    { ...brandField, appliesTo: WHOLESALE },
+    { ...brandField, placeholder: 'e.g., Nivea, Gillette, Park Avenue', appliesTo: GROOMING },
+    { ...brandField, placeholder: "e.g., L'Oreal, Nivea, Garnier, Himalaya", appliesTo: BEAUTY },
+    { ...brandField, placeholder: 'e.g., Jockey, Enamor, Triumph', appliesTo: LINGERIE },
+    { ...clothingTypeShirtsField, appliesTo: SHIRTS },
+    { ...clothingTypePantsField, appliesTo: PANTS },
+    { ...clothingTypeJacketField, appliesTo: JACKETS },
+    { ...clothingTypeMensTraditionalField, appliesTo: MENS_TRADITIONAL },
+    { ...clothingTypeWesternField, appliesTo: WESTERN },
+    { ...clothingTypeWomensTraditionalField, appliesTo: WOMENS_TRADITIONAL },
+    { ...clothingTypeWinterField, appliesTo: WINTER },
+    { ...footwearTypeField, appliesTo: FOOTWEAR },
+    { ...accessoryTypeBagsField, appliesTo: BAGS },
+    { ...eyewearTypeField, appliesTo: OPTICAL },
+    { ...jewelleryMaterialField, appliesTo: JEWELLERY },
+    { ...watchTypeField, appliesTo: [...WATCHES, ...JEWELLERY] },
+    { ...strapMaterialField, appliesTo: [...WATCHES, ...JEWELLERY] },
+    // Baby clothing is sized by age, not by XS-XXXL.
+    { ...ageGroupField, appliesTo: BABY },
+    { ...sizeField, appliesTo: LETTER_SIZED },
+    { ...waistSizeField, appliesTo: PANTS },
+    { ...shoeSizeField, appliesTo: FOOTWEAR },
+    { ...fitTypeField, appliesTo: [...SHIRTS, ...PANTS, ...JACKETS, ...WESTERN] },
+    { ...sleeveTypeField, appliesTo: SHIRTS },
+    { ...fabricField, appliesTo: MENS_TRADITIONAL },
+    { ...fabricWomensField, appliesTo: WOMENS_TRADITIONAL },
+    { ...materialBagsField, appliesTo: BAGS },
+    { ...minOrderQuantityField, appliesTo: WHOLESALE },
+    { ...quantityField, appliesTo: WHOLESALE },
+    { ...productVolumeField, appliesTo: [...GROOMING, ...BEAUTY] },
+    { ...expiryDateField, appliesTo: [...GROOMING, ...BEAUTY] },
     {
-      name: 'size',
-      label: 'Size',
-      type: 'select',
-      required: true,
-      options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'],
-      appliesTo: CLOTHING,
-    },
-    createColorField('e.g., Black, White, Red'),
-    // Clothing Specific
-    {
-      name: 'clothingType',
-      label: 'Clothing Type',
-      type: 'select',
-      required: true,
-      options: [
-        'Shirt', 'T-Shirt', 'Pants', 'Jeans', 'Dress', 'Saree',
-        'Kurta', 'Jacket', 'Coat', 'Sweater', 'Skirt', 'Shorts',
-      ],
-      appliesTo: CLOTHING,
-    },
-    {
-      name: 'fitType',
-      label: 'Fit Type',
-      type: 'select',
-      required: false,
-      options: ['Regular Fit', 'Slim Fit', 'Loose Fit', 'Skinny Fit'],
-      appliesTo: CLOTHING_WITH_JEANS,
-    },
-    {
-      name: 'sleeveType',
-      label: 'Sleeve Type',
-      type: 'select',
-      required: false,
-      options: ['Full Sleeve', 'Half Sleeve', 'Sleeveless', '3/4 Sleeve'],
-      appliesTo: CLOTHING_NO_PANTS,
-    },
-    // Footwear Specific
-    {
-      name: 'footwearType',
-      label: 'Footwear Type',
-      type: 'select',
-      required: true,
-      options: ['Sneakers', 'Formal Shoes', 'Sandals', 'Slippers', 'Boots', 'Heels', 'Flats', 'Sports Shoes'],
-      appliesTo: ['Footwear'],
-    },
-    {
-      name: 'shoeSize',
-      label: 'Shoe Size',
-      type: 'number',
-      required: true,
-      min: 32,
-      max: 45,
-      placeholder: 'e.g., 38, 40, 42',
-      appliesTo: ['Footwear'],
-    },
-    // Accessories/Watches
-    {
-      name: 'watchType',
-      label: 'Watch Type',
-      type: 'select',
-      required: false,
-      options: ['Analog', 'Digital', 'Smart Watch', 'Chronograph'],
-      appliesTo: ['Watches', 'Jewellery & Watches'],
-    },
-    {
-      name: 'strapMaterial',
-      label: 'Strap Material',
-      type: 'select',
-      required: false,
-      options: ['Leather', 'Metal', 'Rubber', 'Fabric'],
-      appliesTo: ['Watches', 'Jewellery & Watches'],
+      ...colorField,
+      appliesTo: [...CLOTHING, ...FOOTWEAR, ...WATCHES, ...JEWELLERY, ...BAGS, ...OPTICAL, ...BABY, ...LINGERIE],
     },
   ],
 };

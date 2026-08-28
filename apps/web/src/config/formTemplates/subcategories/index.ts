@@ -1,23 +1,7 @@
 /**
  * Subcategory Configurations
  *
- * Each subcategory explicitly defines which fields it needs
- * and any customizations (placeholders, options, etc.)
+ * See configMap.ts — subcategory field lists live in the parent templates now.
  */
 
-export * from './electronics';
-export * from './vehicles';
-export * from './property';
-export * from './services';
-export * from './fashion';
-export * from './pets';
-export * from './general';
-
-// Re-export the main config map and helper functions
-export {
-  SUBCATEGORY_CONFIGS,
-  getSubcategoryConfig,
-  getFieldsForSubcategory,
-  hasSubcategoryConfig,
-  getAllConfiguredSubcategories,
-} from './configMap';
+export { getFieldsForSubcategory, hasSubcategoryConfig } from './configMap';

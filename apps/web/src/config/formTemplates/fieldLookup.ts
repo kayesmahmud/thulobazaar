@@ -1,33 +1,42 @@
 /**
  * Field Translation Lookup
  *
- * Builds a flat map from field name to Nepali translations.
- * Uses the canonical field definitions from fields/*.ts which have all Ne translations.
- * Used by SpecificationsSection to display localized field labels and values.
+ * Builds a flat map from field name to its English label, Nepali label and value
+ * translations, from the canonical field definitions in fields/*.ts.
+ * Used by SpecificationsSection to display spec rows.
+ *
+ * A spec key that is not in this map is a client bug, a stale attribute from a
+ * switched category or arbitrary client text — `custom_fields` is stored verbatim
+ * and never whitelisted server-side. Callers should drop unknown keys rather than
+ * prettify them.
  */
 
 import type { FormField } from './types';
 
-// Import all field definitions
-import * as commonFields from './fields/common';
+// Import all field definitions. Order matters: the first module to define a field
+// name supplies its labels, so domain modules come before `common` — otherwise a
+// car's manufacture year renders as the generic "Year"/"वर्ष". `pets` sits last so
+// a car ad's `color` row is not labelled "Color / Coat".
 import * as electronicsFields from './fields/electronics';
 import * as vehiclesFields from './fields/vehicles';
 import * as propertyFields from './fields/property';
 import * as fashionFields from './fields/fashion';
-import * as petsFields from './fields/pets';
 import * as servicesFields from './fields/services';
 import * as generalFields from './fields/general';
+import * as commonFields from './fields/common';
+import * as petsFields from './fields/pets';
 
 interface FieldTranslation {
+  label: string;
   labelNe: string;
   optionMap: Record<string, string>;
 }
 
 let cachedLookup: Record<string, FieldTranslation> | null = null;
 
-function collectFields(module: Record<string, any>): FormField[] {
+function collectFields(module: Record<string, unknown>): FormField[] {
   return Object.values(module).filter(
-    (v): v is FormField => v && typeof v === 'object' && 'name' in v && 'label' in v && 'type' in v
+    (v): v is FormField => !!v && typeof v === 'object' && 'name' in v && 'label' in v && 'type' in v
   );
 }
 
@@ -36,32 +45,34 @@ export function getFieldTranslationLookup(): Record<string, FieldTranslation> {
 
   const lookup: Record<string, FieldTranslation> = {};
   const allFields = [
-    ...collectFields(commonFields),
     ...collectFields(electronicsFields),
     ...collectFields(vehiclesFields),
     ...collectFields(propertyFields),
     ...collectFields(fashionFields),
-    ...collectFields(petsFields),
     ...collectFields(servicesFields),
     ...collectFields(generalFields),
+    ...collectFields(commonFields),
+    ...collectFields(petsFields),
   ];
 
   for (const field of allFields) {
-    if (lookup[field.name]) continue;
+    // Keys like productType and serviceType are defined once per option domain.
+    // Labels come from the first definition; option translations merge across all
+    // of them so a Grocery value never resolves through the pet-accessory list.
+    const entry = lookup[field.name] ?? {
+      label: field.label,
+      labelNe: field.labelNe || field.label,
+      optionMap: {},
+    };
 
-    const optionMap: Record<string, string> = {};
-    if ('options' in field && 'optionsNe' in field && field.optionsNe) {
-      const options = field.options as string[];
-      const optionsNe = field.optionsNe as string[];
+    if ('options' in field && field.optionsNe) {
+      const { options, optionsNe } = field;
       options.forEach((opt, i) => {
-        if (optionsNe[i]) optionMap[opt] = optionsNe[i];
+        if (optionsNe[i] && !entry.optionMap[opt]) entry.optionMap[opt] = optionsNe[i];
       });
     }
 
-    lookup[field.name] = {
-      labelNe: field.labelNe || field.label,
-      optionMap,
-    };
+    lookup[field.name] = entry;
   }
 
   cachedLookup = lookup;
