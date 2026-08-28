@@ -44,8 +44,8 @@ const _specs = <LoginGateKind, _GateSpec>{
     LucideIcons.plusCircle, 'gate.postAd.title', 'gate.postAd.subtitle',
     'gate.postAd.cta', [
       (LucideIcons.banknote, 'gate.postAd.b1'),
-      (LucideIcons.mapPin, 'gate.postAd.b2'),
-      (LucideIcons.messageCircle, 'gate.postAd.b3'),
+      (LucideIcons.sparkles, 'gate.postAd.b2'),
+      (LucideIcons.zap, 'gate.postAd.b3'),
     ]),
   LoginGateKind.verification: _GateSpec(
     LucideIcons.badgeCheck, 'gate.verification.title',

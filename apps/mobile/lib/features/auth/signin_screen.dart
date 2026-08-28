@@ -6,8 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../../core/theme/app_theme.dart';
+import 'widgets/auth_kit.dart';
 import '../../core/api/auth_client.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -42,7 +41,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool _rememberMe = false;
   bool _isLoading = false;
-  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -140,7 +138,7 @@ class _SignInScreenState extends State<SignInScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AuthT.brand,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -438,403 +436,93 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  @override
+  @override  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: widget.isEmbedded
-          ? null
-          : AppBar(
-              // Hide AppBar if embedded
-              leading: IconButton(
-                icon: const Icon(LucideIcons.arrowLeft),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: Image.asset(
-                'assets/images/logo.png',
-                height: 28,
-                fit: BoxFit.contain,
-                errorBuilder: (ctx, err, stack) => Text(
-                  'common.appNameFallback'.tr(),
-                  style: GoogleFonts.poppins(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              centerTitle: true,
-              backgroundColor: Colors.white,
-              elevation: 0,
-            ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-        child: Column(
+    final ne = context.locale.languageCode == 'ne';
+
+    return AuthShell(
+      title: 'auth.welcomeBack'.tr(),
+      subtitle: 'auth.loginSubtitle'.tr(),
+      onBack: widget.isEmbedded ? null : () => Navigator.pop(context),
+      children: [
+        googleButton(
+          label: 'auth.continueWithGoogle'.tr(),
+          onTap: _isLoading ? null : _handleGoogleLogin,
+        ),
+        if (Platform.isIOS) ...[
+          const SizedBox(height: 12),
+          SignInWithAppleButton(
+            onPressed: _isLoading ? () {} : _handleAppleLogin,
+            style: SignInWithAppleButtonStyle.black,
+            borderRadius: BorderRadius.circular(14),
+            height: 52,
+          ),
+        ],
+        const SizedBox(height: 20),
+        authDivider('auth.orSignInWithPhone'.tr(), ne),
+        const SizedBox(height: 20),
+        AuthField(
+          controller: _phoneController,
+          label: 'auth.phoneNumber'.tr(),
+          hint: 'auth.phonePlaceholder'.tr(),
+          keyboardType: TextInputType.phone,
+          prefix: Text('auth.phonePrefix'.tr()),
+        ),
+        const SizedBox(height: 16),
+        AuthField(
+          controller: _passwordController,
+          label: 'auth.password'.tr(),
+          hint: 'auth.enterPassword'.tr(),
+          obscure: true,
+          icon: LucideIcons.lock,
+        ),
+        const SizedBox(height: 14),
+        Row(
           children: [
-            Text(
-              'auth.welcomeBack'.tr(),
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textDark,
+            SizedBox(
+              height: 20,
+              width: 20,
+              child: Checkbox(
+                value: _rememberMe,
+                onChanged: (val) => setState(() => _rememberMe = val!),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4)),
+                activeColor: AuthT.brand,
+                side: const BorderSide(color: Color(0xFF9CA3AF)),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'auth.loginSubtitle'.tr(),
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 16),
-
-            // Container Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+            const SizedBox(width: 10),
+            Text('auth.rememberMe'.tr(), style: AuthT.caption(ne)),
+            const Spacer(),
+            InkWell(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Google Sign In Button
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _isLoading ? null : _handleGoogleLogin,
-                      borderRadius: BorderRadius.circular(28),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: Colors.grey[300]!,
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: SvgPicture.asset(
-                                'assets/images/google_logo.svg',
-                                width: 18,
-                                height: 18,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'auth.continueWithGoogle'.tr(),
-                              style: GoogleFonts.roboto(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[700],
-                                letterSpacing: 0.25,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  if (Platform.isIOS) ...[
-                    const SizedBox(height: 12),
-                    SignInWithAppleButton(
-                      onPressed: _isLoading ? () {} : _handleAppleLogin,
-                      style: SignInWithAppleButtonStyle.black,
-                      borderRadius: BorderRadius.circular(28),
-                      height: 36,
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey[200])),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'auth.orSignInWithPhone'.tr(),
-                          style: GoogleFonts.inter(
-                            color: Colors.grey[400],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey[200])),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Phone Number
-                  Text(
-                    'auth.phoneNumber'.tr(),
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textDark,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              right: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            color: Colors.grey[50],
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(8),
-                              bottomLeft: Radius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            'auth.phonePrefix'.tr(),
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.textDark,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              hintText: 'auth.phonePlaceholder'.tr(),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                            ),
-                            style: GoogleFonts.inter(fontSize: 15),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Password
-                  Text(
-                    'auth.password'.tr(),
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textDark,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      hintText: 'auth.enterPassword'.tr(),
-                      hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
-                      suffixIcon: IconButton(
-                        icon: AnimatedRotation(
-                          turns: _obscurePassword ? 0 : 0.5,
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            _obscurePassword
-                                ? LucideIcons.eye
-                                : LucideIcons.eyeOff,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Remember Me & Forgot Password
-                  Row(
-                    children: [
-                      SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: Checkbox(
-                          value: _rememberMe,
-                          onChanged: (val) =>
-                              setState(() => _rememberMe = val!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          activeColor: AppTheme.primary,
-                          side: BorderSide(color: Colors.grey[400]!),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'auth.rememberMe'.tr(),
-                        style: GoogleFonts.inter(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'auth.forgotPassword'.tr(),
-                          style: GoogleFonts.inter(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Sign In Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary, // Pink/Red
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              'auth.signIn'.tr(),
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey[200])),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'auth.dontHaveAccount'.tr(),
-                          style: GoogleFonts.inter(
-                            color: Colors.grey[400],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey[200])),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Create Account Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                SignUpScreen(onSuccess: widget.onSuccess),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppTheme.primary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'auth.createAccount'.tr(),
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: Text('auth.forgotPassword'.tr(), style: AuthT.link()),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 20),
+        authButton(
+          label: 'auth.signIn'.tr(),
+          loading: _isLoading,
+          onTap: _isLoading ? null : _handleLogin,
+        ),
+        const SizedBox(height: 20),
+        authDivider('auth.dontHaveAccount'.tr(), ne),
+        const SizedBox(height: 20),
+        authButton(
+          label: 'auth.createAccount'.tr(),
+          filled: false,
+          onTap: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SignUpScreen(onSuccess: widget.onSuccess),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

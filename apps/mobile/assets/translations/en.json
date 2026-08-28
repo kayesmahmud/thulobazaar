@@ -66,6 +66,7 @@
     "otpSentTo": "OTP sent to +977 {}",
     "expiresIn": "Expires in {}",
     "enterOtp": "Enter OTP *",
+    "otpExpiresIn": "Expires in {}",
     "otpPlaceholder": "------",
     "verifyOtp": "Verify OTP",
     "changeNumber": "Change number",
@@ -74,11 +75,11 @@
     "fullName": "Full Name *",
     "enterFullName": "Enter your full name",
     "passwordRequired": "Password *",
-    "atLeast6Chars": "At least 6 characters",
+    "atLeast8Chars": "At least 8 characters",
     "confirmPassword": "Confirm Password *",
     "reEnterPassword": "Re-enter password",
     "nameMinLength": "Full name must be at least 2 characters",
-    "passwordMinLength": "Password must be at least 6 characters",
+    "passwordMinLength": "Password must be at least 8 characters",
     "passwordsDoNotMatch": "Passwords do not match",
     "agreeToTerms": "Please agree to Terms & Conditions",
     "iAgreeTo": "I agree to the ",
@@ -737,8 +738,8 @@
       "subtitle": "Free to post. No commission.",
       "cta": "Post free ad",
       "b1": "Free — no fees, no cut",
-      "b2": "Buyers in all 7 provinces",
-      "b3": "Your number stays private"
+      "b2": "Add a photo — AI writes the rest",
+      "b3": "In front of buyers in minutes"
     },
     "verification": {
       "title": "Get your verified badge",

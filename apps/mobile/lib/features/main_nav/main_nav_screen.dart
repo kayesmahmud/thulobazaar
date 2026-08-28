@@ -1,19 +1,18 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/providers/chat_provider.dart';
 import 'package:mobile/features/home/home_screen.dart';
 import 'package:mobile/features/search/search_screen.dart';
 import 'package:mobile/features/post_ad/post_ad_screen.dart';
 import 'package:mobile/features/messages/messages_screen.dart';
-import 'package:mobile/features/auth/signin_screen.dart';
 import 'package:mobile/features/profile/profile_screen.dart';
 
 class MainNavScreen extends StatefulWidget {
@@ -252,114 +251,15 @@ class _MainNavScreenState extends State<MainNavScreen> {
     }
   }
 
+  /// The Post Ad gate. Was a hand-rolled 110-line bottom sheet whose builder
+  /// context outlived the sheet — see the crash note in git history. A pushed
+  /// route has no sheet context to capture, and it matches every other gated
+  /// screen instead of being a one-off.
   void _showLoginPrompt() {
-    showModalBottomSheet(
-      context: context,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      // NOTE: deliberately NOT named `context` — shadowing the State's context
-      // here made the login onSuccess callback capture the (disposed) sheet's
-      // context and crash Navigator with a null-check after every login.
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          24,
-          24,
-          24 + MediaQuery.of(sheetContext).viewPadding.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.3, end: 1.0),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.elasticOut,
-              builder: (context, scale, child) {
-                return Transform.scale(scale: scale, child: child);
-              },
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  LucideIcons.lock,
-                  size: 32,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'auth.loginRequired'.tr(),
-              style: GoogleFonts.inter(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'auth.loginToPostAd'.tr(),
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(sheetContext); // Close bottom sheet
-                  // Use the State's stable context (not the sheet's) for the
-                  // pushes — the sheet is disposed the moment it closes.
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SignInScreen(
-                        onSuccess: () {
-                          // After successful login, navigate to post ad
-                          if (!mounted) return;
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PostAdScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'auth.loginToContinue'.tr(),
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: Text(
-                'auth.maybeLater'.tr(),
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
-              ),
-            ),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginGateScreen(kind: LoginGateKind.postAd),
       ),
     );
   }
