@@ -164,6 +164,45 @@ const result = await pool.query<DbUser>('SELECT...');
 5. Create frontend component in `apps/web/`
 6. **Clear cache** if changes don't apply
 
+## ✅ Definition of Done (MUST FOLLOW!)
+
+A change is NOT done until every line below is true. Do not report "fixed" or
+"done" while any of them is open — say what is still outstanding instead.
+
+### 1. Both languages ship together
+- Every new user-facing English string gets its Nepali counterpart in the SAME change.
+- Mobile: `apps/mobile/assets/translations/{en,ne}.json` · Web: `apps/web/messages/{en,ne}.json`
+- Never leave a Nepali value as a copy of the English — that is a missing translation, not a translation.
+- Verify: `npm run check:i18n` (a Stop hook also blocks the turn if these drift).
+- Keys ending in `Latin` are romanized Nepali and are intentionally identical in both files.
+
+### 2. A feature exists on every surface, or it is not finished
+Ship a user-facing feature to ALL THREE, or state explicitly which are deferred and why:
+
+| Surface | Where | Check |
+|---|---|---|
+| Web desktop | `apps/web/` | renders and works at ≥1024px |
+| Web mobile | same components | responsive at 375px — no horizontal scroll, tap targets ≥44px |
+| Flutter app | `apps/mobile/` | same capability, same wording, EN + NE |
+
+Same rule in reverse: a feature built in the Flutter app needs its web equivalent.
+If a surface is genuinely out of scope, say so in the summary — never let it pass silently.
+
+### 3. Fix until it is actually right
+- Reproduce first, then fix, then prove the fix with a test/curl/log — not by reasoning.
+- After fixing, re-run the WHOLE relevant suite, not just the case you fixed.
+- A test failure is a result: report it with the output. Never describe an unverified change as working.
+- When a check fails for a reason in the harness rather than the app, say which — don't quietly pass it.
+- Keep iterating while known defects remain. `/loop` runs this autonomously when the task is well defined.
+
+### 4. Quality gates before "done"
+```bash
+npm run check:i18n                       # EN/NE parity, both apps
+npm run type-check                       # no NEW type errors (record the before/after count)
+cd apps/mobile && flutter analyze        # 0 errors
+npm run test:e2e                         # when routing/auth/UI flows changed
+```
+
 ## 🧪 Testing Rules (MUST FOLLOW!)
 
 ### After ANY Fix, Auto-Verify:

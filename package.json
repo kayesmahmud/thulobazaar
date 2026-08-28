@@ -17,6 +17,7 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "type-check": "turbo run type-check",
+    "check:i18n": "node scripts/check-i18n-parity.mjs",
     "dev:web": "turbo run dev --filter=web",
     "dev:api": "turbo run dev --filter=api",
     "dev:mobile": "turbo run dev --filter=mobile",
