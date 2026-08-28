@@ -729,5 +729,61 @@
     "aiNotice": "Our AI assistant answers first and passes you to the team when needed.",
     "profanityWarning": "Please use respectful language.",
     "assistantTyping": "Assistant is typing"
+  },
+  "gate": {
+    "haveAccount": "I already have an account",
+    "postAd": {
+      "title": "Sell it in 2 minutes",
+      "subtitle": "Free to post. No commission.",
+      "cta": "Post free ad",
+      "b1": "Free — no fees, no cut",
+      "b2": "Buyers in all 7 provinces",
+      "b3": "Your number stays private"
+    },
+    "verification": {
+      "title": "Get your verified badge",
+      "subtitle": "Build trust with buyers.",
+      "cta": "Get verified",
+      "b1": "Individual or business — your choice",
+      "b2": "Send your ID or PAN card",
+      "b3": "Reviewed in 24–48 hours"
+    },
+    "messages": {
+      "title": "Talk to the seller",
+      "subtitle": "Ask, offer, agree — in the app.",
+      "cta": "Start chatting",
+      "b1": "Your phone stays hidden",
+      "b2": "Send photos, check condition",
+      "b3": "A push alert on every reply"
+    },
+    "profile": {
+      "title": "Everything in one place",
+      "subtitle": "Your ads, saved items and settings.",
+      "cta": "Create free account",
+      "b1": "Your ads and saved items",
+      "b2": "Get verified",
+      "b3": "Account settings and security"
+    },
+    "support": {
+      "title": "Real help, in your language",
+      "subtitle": "Nepali or English.",
+      "cta": "Open a ticket",
+      "b1": "A real person, not just a bot",
+      "b2": "One thread until it is fixed"
+    },
+    "liveChat": {
+      "title": "Chat with our team",
+      "subtitle": "Quick answers, right here.",
+      "cta": "Start live chat",
+      "b1": "Fast replies from our team",
+      "b2": "Nepali or English"
+    },
+    "notifications": {
+      "title": "Never miss a reply",
+      "subtitle": "Offers, messages and ad updates.",
+      "cta": "Create free account",
+      "b1": "Know the moment a buyer replies",
+      "b2": "Alerts when your ad goes live"
+    }
   }
 }

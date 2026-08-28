@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +10,6 @@ import 'package:mobile/core/api/support_client.dart';
 import 'package:mobile/core/models/support_ticket.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
-import 'package:mobile/core/widgets/login_required_widget.dart';
 import 'package:mobile/core/widgets/floating_widget.dart';
 import 'create_ticket_screen.dart';
 import 'ticket_detail_screen.dart';
@@ -88,24 +88,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     if (!authProvider.isLoggedIn) {
-      return Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'support.title'.tr(),
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1F2937),
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        body: LoginRequiredWidget(
-          icon: LucideIcons.headphones,
-          title: 'support.loginToView'.tr(),
-          subtitle: 'support.loginSubtitle'.tr(),
-        ),
-      );
+      return const LoginGateScreen(kind: LoginGateKind.support);
     }
 
     return Scaffold(

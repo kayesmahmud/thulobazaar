@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,7 +14,6 @@ import '../../core/providers/chat_provider.dart';
 import '../../core/widgets/main_app_bar.dart';
 import '../../core/widgets/team_badge.dart';
 import '../../core/widgets/main_drawer.dart';
-import '../../core/widgets/login_required_widget.dart';
 import '../../core/utils/localized_helpers.dart';
 import '../../core/utils/page_transitions.dart';
 import '../../core/utils/skeleton_data.dart';
@@ -48,14 +48,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final chatProvider = context.watch<ChatProvider>();
 
     if (!authProvider.isLoggedIn) {
-      return Scaffold(
-        appBar: const MainAppBar(),
-        drawer: const MainDrawer(),
-        body: LoginRequiredWidget(
-          icon: LucideIcons.messageCircle,
-          title: 'messages.loginToView'.tr(),
-          subtitle: 'messages.loginSubtitle'.tr(),
-        ),
+      return const LoginGateScreen(
+        kind: LoginGateKind.messages,
+        drawer: MainDrawer(),
       );
     }
 

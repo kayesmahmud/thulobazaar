@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,7 +10,6 @@ import 'package:mobile/features/post_ad/services/ad_draft_service.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/widgets/main_app_bar.dart';
 import 'package:mobile/core/widgets/main_drawer.dart';
-import 'package:mobile/core/widgets/login_required_widget.dart';
 
 class PostAdScreen extends StatefulWidget {
   const PostAdScreen({super.key});
@@ -66,25 +66,9 @@ class _PostAdScreenState extends State<PostAdScreen> {
     final isNe = context.locale.languageCode == 'ne';
 
     if (!authProvider.isLoggedIn) {
-      return Scaffold(
-        appBar: MainAppBar(
-          leading: Navigator.canPop(context)
-              ? IconButton(
-                  icon: const Icon(LucideIcons.arrowLeft, color: Colors.black),
-                  onPressed: () => Navigator.pop(context),
-                )
-              : null,
-        ),
-        drawer: const MainDrawer(),
-        body: LoginRequiredWidget(
-          icon: LucideIcons.plusCircle,
-          title: isNe
-              ? 'विज्ञापन पोस्ट गर्न लगइन गर्नुहोस्'
-              : 'Login to Post an Ad',
-          subtitle: isNe
-              ? 'आफ्ना सामानहरू सूचीबद्ध गर्न\nर हजारौं खरिदकर्ताहरूसम्म पुग्न साइन इन गर्नुहोस्'
-              : 'Sign in to list your items\nand reach thousands of buyers',
-        ),
+      return const LoginGateScreen(
+        kind: LoginGateKind.postAd,
+        drawer: MainDrawer(),
       );
     }
 

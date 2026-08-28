@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile/core/widgets/staggered_fade_in.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -24,7 +25,6 @@ import '../../core/api/favorites_client.dart';
 import '../../core/widgets/location_picker.dart';
 import '../auth/signin_screen.dart';
 import '../auth/signup_screen.dart';
-import 'package:mobile/core/widgets/login_required_widget.dart';
 import 'package:mobile/core/utils/page_transitions.dart';
 import '../ad_detail/ad_detail_screen.dart';
 import 'package:intl/intl.dart';
@@ -224,17 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     if (!authProvider.isLoggedIn) {
-      return Scaffold(
-        body: LoginRequiredWidget(
-          icon: LucideIcons.user,
-          title: context.locale.languageCode == 'ne'
-              ? 'प्रोफाइल हेर्न लगइन गर्नुहोस्'
-              : 'Login to View Profile',
-          subtitle: context.locale.languageCode == 'ne'
-              ? 'तपाईंको प्रोफाइल, विज्ञापन,\nर खाता सेटिङहरू व्यवस्थापन गर्न साइन इन गर्नुहोस्'
-              : 'Sign in to manage your profile,\nads, and account settings',
-        ),
-      );
+      return const LoginGateScreen(kind: LoginGateKind.profile);
     }
 
     // Ensure controllers are populated if not already (e.g. initial load)

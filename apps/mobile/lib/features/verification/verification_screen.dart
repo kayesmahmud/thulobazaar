@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,6 @@ import '../../core/api/verification_client.dart';
 import '../../core/models/verification_models.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/utils/localized_helpers.dart';
-import '../../core/widgets/login_required_widget.dart';
 import '../profile/profile_screen.dart';
 import 'verification_widgets.dart';
 import 'individual_verification_form.dart';
@@ -601,27 +601,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     if (!authProvider.isLoggedIn) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text(
-            context.locale.languageCode == 'ne' ? 'प्रमाणीकरण' : 'Verification',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-        ),
-        body: LoginRequiredWidget(
-          icon: LucideIcons.badgeCheck,
-          title: context.locale.languageCode == 'ne'
-              ? 'प्रमाणित हुन लगइन गर्नुहोस्'
-              : 'Login to Get Verified',
-          subtitle: context.locale.languageCode == 'ne'
-              ? 'आफ्नो खाता प्रमाणित गर्न\nर किनमेलकर्ताहरूसँग विश्वास बनाउन साइन इन गर्नुहोस्'
-              : 'Sign in to verify your account\nand build trust with buyers',
-        ),
-      );
+      return const LoginGateScreen(kind: LoginGateKind.verification);
     }
 
     return Scaffold(
