@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getCategoryPolicy } from '@thulobazaar/types';
 import { useFormTemplate } from '@/hooks/useFormTemplate';
 import { useAdDraft, AdDraft } from '@/hooks/useAdDraft';
 import { apiClient } from '@/lib/api';
@@ -135,6 +136,13 @@ export function usePostAd(lang: string) {
   const selectedCategory = categories.find((c) => c.id.toString() === formData.categoryId) || null;
   const selectedSubcategory =
     subcategories.find((c) => c.id.toString() === formData.subcategoryId) || null;
+
+  // Which of Price / Negotiable / COD / Condition this category actually has.
+  // Single source of truth, shared with the API (@thulobazaar/types).
+  const categoryPolicy = getCategoryPolicy(
+    selectedCategory?.slug ?? '',
+    selectedSubcategory?.slug
+  );
 
   // Use template hook to get dynamic fields
   const { fields, validateFields, getInitialValues, templateType } = useFormTemplate(
@@ -328,6 +336,31 @@ export function usePostAd(lang: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.length]);
 
+  // Switching category must not leave a value behind that the new category
+  // has no input for — it would still be submitted.
+  useEffect(() => {
+    setFormData((prev) => {
+      const isNegotiable = categoryPolicy.negotiable ? prev.isNegotiable : false;
+      const isCodAvailable = categoryPolicy.cod ? prev.isCodAvailable : false;
+      const price = categoryPolicy.price.hidden ? '' : prev.price;
+      if (
+        isNegotiable === prev.isNegotiable &&
+        isCodAvailable === prev.isCodAvailable &&
+        price === prev.price
+      ) {
+        return prev;
+      }
+      return { ...prev, isNegotiable, isCodAvailable, price };
+    });
+    if (categoryPolicy.condition === 'hidden') {
+      setCustomFields((prev) => {
+        if (!('condition' in prev)) return prev;
+        const { condition: _condition, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, [categoryPolicy.negotiable, categoryPolicy.cod, categoryPolicy.price.hidden, categoryPolicy.condition]);
+
   // Auto-save draft
   useEffect(() => {
     if (!formData.title && !formData.description && !formData.price && !formData.categoryId) {
@@ -472,7 +505,6 @@ export function usePostAd(lang: string) {
         subcategoryId: draft.subcategoryId,
         locationSlug: draft.locationSlug,
         locationName: draft.locationName,
-        condition: draft.condition || 'Brand New',
         isNegotiable: draft.isNegotiable || false,
         isCodAvailable: draft.isCodAvailable || false,
       }));
@@ -558,7 +590,12 @@ export function usePostAd(lang: string) {
         return;
       }
 
-      if (!formData.price || parseFloat(formData.price) <= 0) {
+      // Matrimonials has no price input at all; a Jobs salary may be left blank.
+      if (
+        !categoryPolicy.price.hidden &&
+        categoryPolicy.price.required &&
+        (!formData.price || parseFloat(formData.price) <= 0)
+      ) {
         setError(t('errValidPrice'));
         return;
       }
@@ -642,32 +679,41 @@ export function usePostAd(lang: string) {
         const stagedImageIds = images.map((file) => stagedIdsRef.current.get(file));
         const allStaged = images.length > 0 && stagedImageIds.every(Boolean);
 
+        // Condition comes from the category's own Condition field, never from a
+        // form-level default — an ad must not carry a flag its category hides.
+        const attributes: Record<string, unknown> = { ...customFields };
+        if (categoryPolicy.condition === 'hidden' || !attributes.condition) {
+          delete attributes.condition;
+        }
+        // Persist negotiable/COD inside custom_fields so they survive + pre-fill
+        // on edit (mirrors the mobile app; the top-level field is dropped).
+        if (categoryPolicy.negotiable) attributes.isNegotiable = formData.isNegotiable;
+        if (categoryPolicy.cod) attributes.isCodAvailable = formData.isCodAvailable;
+        // Only persist a WhatsApp number when it actually differs from the
+        // verified phone — same rule the mobile app applies, so an ad posted
+        // from either client stores the identical shape.
+        if (
+          !formData.whatsappSameAsPhone &&
+          formData.whatsappNumber.trim() &&
+          formData.whatsappNumber.trim() !== userPhone
+        ) {
+          attributes.whatsapp_number = formData.whatsappNumber.trim();
+        }
+
+        const priceInput = formData.price.trim();
         const adData = {
           title: formData.title,
           description: formData.description,
-          price: parseFloat(formData.price),
-          isNegotiable: formData.isNegotiable,
+          // No price (Matrimonials) or a blank optional salary is sent empty —
+          // the API reads that as "no price" and leaves the column null.
+          price: categoryPolicy.price.hidden || !priceInput ? '' : parseFloat(priceInput),
+          isNegotiable: categoryPolicy.negotiable && formData.isNegotiable,
           categoryId: parseInt(formData.categoryId),
           subcategoryId: formData.subcategoryId ? parseInt(formData.subcategoryId) : undefined,
           locationId: locationId,
           images: images,
           stagedImageIds: allStaged ? (stagedImageIds as string[]) : undefined,
-          attributes: {
-            condition: formData.condition,
-            ...customFields,
-            // Persist negotiable inside custom_fields so it survives + pre-fills
-            // on edit (mirrors the mobile app; the top-level field is dropped).
-            isNegotiable: formData.isNegotiable,
-            isCodAvailable: formData.isCodAvailable,
-            // Only persist a WhatsApp number when it actually differs from the
-            // verified phone — same rule the mobile app applies, so an ad posted
-            // from either client stores the identical shape.
-            ...(!formData.whatsappSameAsPhone &&
-            formData.whatsappNumber.trim() &&
-            formData.whatsappNumber.trim() !== userPhone
-              ? { whatsapp_number: formData.whatsappNumber.trim() }
-              : {}),
-          },
+          attributes,
         };
 
         const response = await apiClient.createAd(adData);
@@ -786,6 +832,7 @@ export function usePostAd(lang: string) {
       aiPriceEstimate,
       aiUnsellableReason,
       aiFilled,
+      categoryPolicy,
     ]
   );
 
@@ -849,6 +896,7 @@ export function usePostAd(lang: string) {
     customFields,
     customFieldsErrors,
     selectedSubcategory,
+    categoryPolicy,
     // AI autofill
     aiDraftLoading,
     aiFillOutcome,

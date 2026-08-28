@@ -51,6 +51,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     customFields,
     customFieldsErrors,
     selectedSubcategory,
+    categoryPolicy,
     aiDraftLoading,
     aiFillOutcome,
     aiUnsellableReason,
@@ -100,6 +101,10 @@ export default function PostAdPage({ params }: PostAdPageProps) {
       formData.description ||
       (images.length > 0 && !aiDraftLoading)
   );
+
+  // Price / Negotiable / COD exist only where the category policy allows them,
+  // and the price label follows the category (Salary, Fee, Monthly Rent).
+  const priceMode = categoryPolicy.price;
 
   // Image limits fetched from API settings
   const MAX_IMAGES_VERIFIED = 10;
@@ -404,10 +409,11 @@ export default function PostAdPage({ params }: PostAdPageProps) {
                     <small className="text-gray-500">{formData.description.length}/5000</small>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  {!priceMode.hidden && (
                     <div>
                       <label className="block mb-2 font-medium text-gray-700">
-                        {t('priceNpr')} *
+                        {lang === 'ne' ? priceMode.labelNe : priceMode.label}
+                        {priceMode.required ? ' *' : ''}
                       </label>
                       <input
                         type="number"
@@ -417,43 +423,47 @@ export default function PostAdPage({ params }: PostAdPageProps) {
                           setFormData({ ...formData, price: Math.floor(Number(e.target.value)).toString() });
                         }}
                         placeholder="50000"
-                        required
+                        required={priceMode.required}
                         min="0"
                         step="1"
                         className="w-full p-3 rounded-lg border border-gray-300 text-base"
                       />
                     </div>
-                  </div>
+                  )}
 
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.isNegotiable}
-                        onChange={(e) =>
-                          setFormData({ ...formData, isNegotiable: e.target.checked })
-                        }
-                        className="w-[18px] h-[18px] cursor-pointer"
-                      />
-                      <span className="font-medium text-gray-700">{t('priceIsNegotiable')}</span>
-                    </label>
-                  </div>
+                  {categoryPolicy.negotiable && (
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.isNegotiable}
+                          onChange={(e) =>
+                            setFormData({ ...formData, isNegotiable: e.target.checked })
+                          }
+                          className="w-[18px] h-[18px] cursor-pointer"
+                        />
+                        <span className="font-medium text-gray-700">{t('priceIsNegotiable')}</span>
+                      </label>
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.isCodAvailable}
-                        onChange={(e) =>
-                          setFormData({ ...formData, isCodAvailable: e.target.checked })
-                        }
-                        className="w-[18px] h-[18px] cursor-pointer"
-                      />
-                      <span className="font-medium text-gray-700">
-                        {t('cashOnDeliveryAvailable')}
-                      </span>
-                    </label>
-                  </div>
+                  {categoryPolicy.cod && (
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.isCodAvailable}
+                          onChange={(e) =>
+                            setFormData({ ...formData, isCodAvailable: e.target.checked })
+                          }
+                          className="w-[18px] h-[18px] cursor-pointer"
+                        />
+                        <span className="font-medium text-gray-700">
+                          {t('cashOnDeliveryAvailable')}
+                        </span>
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
 

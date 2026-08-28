@@ -8,6 +8,8 @@ export interface Category {
   subcategories?: Category[];
 }
 
+// No `condition` here: Condition exists only where the category policy allows
+// it, and there it is the category's own Condition field (customFields).
 export interface PostAdFormData {
   title: string;
   description: string;
@@ -16,7 +18,6 @@ export interface PostAdFormData {
   subcategoryId: string;
   locationSlug: string;
   locationName: string;
-  condition: string;
   isNegotiable: boolean;
   isCodAvailable: boolean;
   /** When true the WhatsApp number mirrors the verified phone and is not editable. */
@@ -32,7 +33,6 @@ export const INITIAL_FORM_DATA: PostAdFormData = {
   subcategoryId: '',
   locationSlug: '',
   locationName: '',
-  condition: 'Brand New',
   isNegotiable: false,
   isCodAvailable: false,
   whatsappSameAsPhone: true,

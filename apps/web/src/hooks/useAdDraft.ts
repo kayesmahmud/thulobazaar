@@ -14,8 +14,8 @@ export interface AdDraft {
   subcategoryId: string;
   locationSlug: string;
   locationName: string;
-  condition: string;
   isNegotiable: boolean;
+  isCodAvailable: boolean;
   customFields: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -29,8 +29,8 @@ export interface AdDraftFormData {
   subcategoryId: string;
   locationSlug: string;
   locationName: string;
-  condition: string;
   isNegotiable: boolean;
+  isCodAvailable: boolean;
 }
 
 interface UseAdDraftReturn {

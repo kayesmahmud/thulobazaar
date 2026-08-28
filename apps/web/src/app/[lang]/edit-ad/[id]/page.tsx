@@ -44,6 +44,7 @@ export default function EditAdPage({ params }: EditAdPageProps) {
     fields,
     status,
     selectedSubcategory,
+    categoryPolicy,
     setImages,
     handleFormChange,
     handleCategoryChange,
@@ -159,7 +160,11 @@ export default function EditAdPage({ params }: EditAdPageProps) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow">
-          <AdDetailsSection formData={formData} onFormChange={handleFormChange} />
+          <AdDetailsSection
+            formData={formData}
+            onFormChange={handleFormChange}
+            categoryPolicy={categoryPolicy}
+          />
 
           <CategorySection
             formData={formData}

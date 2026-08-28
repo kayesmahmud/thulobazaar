@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getCategoryPolicy } from '@thulobazaar/types';
 import { useFormTemplate } from '@/hooks/useFormTemplate';
 import { apiClient } from '@/lib/api';
 
@@ -22,7 +23,6 @@ interface EditAdFormData {
   subcategoryId: string;
   locationSlug: string;
   locationName: string;
-  condition: string;
   isNegotiable: boolean;
 }
 
@@ -34,7 +34,6 @@ const INITIAL_FORM_DATA: EditAdFormData = {
   subcategoryId: '',
   locationSlug: '',
   locationName: '',
-  condition: 'Brand New',
   isNegotiable: false,
 };
 
@@ -93,6 +92,13 @@ export function useEditAd(adId: number, lang: string) {
     categories.find((c) => c.id.toString() === formData.categoryId) || null;
   const selectedSubcategory =
     subcategories.find((c) => c.id.toString() === formData.subcategoryId) || null;
+
+  // Which of Price / Negotiable / COD / Condition this category actually has —
+  // the same policy the post-ad form obeys (@thulobazaar/types).
+  const categoryPolicy = getCategoryPolicy(
+    selectedCategory?.slug ?? '',
+    selectedSubcategory?.slug
+  );
 
   // Use template hook to get dynamic fields
   const { fields, validateFields, getInitialValues } = useFormTemplate(
@@ -292,7 +298,6 @@ export function useEditAd(adId: number, lang: string) {
         subcategoryId: subcategoryId,
         locationSlug: locationSlug,
         locationName: locationName,
-        condition: (ad.condition || '').toLowerCase() === 'used' ? 'Used' : 'Brand New',
         isNegotiable: adCustomFields?.isNegotiable ?? ad.isNegotiable ?? false,
       };
       console.log('📊 [useEditAd] Setting formData:', newFormData);
@@ -367,6 +372,12 @@ export function useEditAd(adId: number, lang: string) {
     }
   }, [fields.length, loading, getInitialValues, initialLoadComplete, fieldsInitialized]);
 
+  // A category with no Negotiable input must not keep submitting the old value
+  useEffect(() => {
+    if (categoryPolicy.negotiable) return;
+    setFormData((prev) => (prev.isNegotiable ? { ...prev, isNegotiable: false } : prev));
+  }, [categoryPolicy.negotiable]);
+
   // Handlers
   const handleFormChange = useCallback((updates: Partial<EditAdFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -416,7 +427,12 @@ export function useEditAd(adId: number, lang: string) {
         return;
       }
 
-      if (!formData.price || parseFloat(formData.price) <= 0) {
+      // Matrimonials has no price input at all; a Jobs salary may be left blank.
+      if (
+        !categoryPolicy.price.hidden &&
+        categoryPolicy.price.required &&
+        (!formData.price || parseFloat(formData.price) <= 0)
+      ) {
         setError('Please enter a valid price');
         return;
       }
@@ -452,24 +468,39 @@ export function useEditAd(adId: number, lang: string) {
           }
         }
 
+        // Condition / negotiable / COD only exist where the category policy
+        // allows them, so an edit also strips whatever a legacy ad still carries.
+        const attributes: Record<string, unknown> = { ...customFields };
+        if (categoryPolicy.condition === 'hidden' || !attributes.condition) {
+          delete attributes.condition;
+        }
+        if (categoryPolicy.negotiable) {
+          // Persist negotiable inside custom_fields so it survives + pre-fills
+          // on edit (mirrors the mobile app; the top-level field is dropped).
+          attributes.isNegotiable = formData.isNegotiable;
+        } else {
+          delete attributes.isNegotiable;
+        }
+        if (!categoryPolicy.cod) {
+          delete attributes.isCodAvailable;
+        }
+
         // Prepare update data
+        const priceInput = formData.price.trim();
         const updateData = {
           title: formData.title,
           description: formData.description,
-          price: parseFloat(formData.price),
-          isNegotiable: formData.isNegotiable,
+          // Categories with no price input, and blank optional ones, send nothing
+          // rather than a NaN the API would reject.
+          price:
+            categoryPolicy.price.hidden || !priceInput ? undefined : parseFloat(priceInput),
+          isNegotiable: categoryPolicy.negotiable && formData.isNegotiable,
           categoryId: parseInt(formData.categoryId),
           subcategoryId: formData.subcategoryId ? parseInt(formData.subcategoryId) : undefined,
           locationId: locationId,
           images: images.length > 0 ? images : undefined,
           existingImages: existingImages,
-          attributes: {
-            condition: formData.condition,
-            ...customFields,
-            // Persist negotiable inside custom_fields so it survives + pre-fills
-            // on edit (mirrors the mobile app; the top-level field is dropped).
-            isNegotiable: formData.isNegotiable,
-          },
+          attributes,
         };
 
         const response = await apiClient.updateAd(adId, updateData);
@@ -510,6 +541,7 @@ export function useEditAd(adId: number, lang: string) {
       lang,
       isApproved,
       editContext,
+      categoryPolicy,
     ]
   );
 
@@ -534,6 +566,7 @@ export function useEditAd(adId: number, lang: string) {
     status,
     selectedCategory,
     selectedSubcategory,
+    categoryPolicy,
 
     // Actions
     setImages,
