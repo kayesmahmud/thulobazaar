@@ -10,6 +10,11 @@ import { updatePhone } from '@thulobazaar/auth-core';
 const updatePhoneSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
   verificationToken: z.string().min(1, 'Verification token is required'),
+  // Proof of entitlement to move an already-verified number. Optional: adding
+  // a first number needs none, and the requirement is gated by the
+  // require_phone_change_proof setting.
+  currentPassword: z.string().min(1).optional(),
+  oldNumberOtpToken: z.string().min(1).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -36,14 +41,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { phone, verificationToken } = validation.data;
+    const { phone, verificationToken, currentPassword, oldNumberOtpToken } =
+      validation.data;
     const userId = parseInt(session.user.id, 10);
 
-    const result = await updatePhone(userId, phone, verificationToken);
+    // Twin of the Express route — dropping the proof here would deny every
+    // verified user once require_phone_change_proof is switched on.
+    const result = await updatePhone(userId, phone, verificationToken, {
+      currentPassword,
+      oldNumberOtpToken,
+    });
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, message: result.error },
+        { success: false, message: result.error, requires: result.requires },
         { status: 400 }
       );
     }
