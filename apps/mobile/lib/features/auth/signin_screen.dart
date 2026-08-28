@@ -436,9 +436,15 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  @override  @override
+  @override
+  @override
   Widget build(BuildContext context) {
     final ne = context.locale.languageCode == 'ne';
+    // Devanagari sits on taller line boxes than Latin, so the same content
+    // runs past the fold in Nepali and the bottom CTA needs a scroll to reach.
+    // Tightening only the Nepali rhythm brings it back into view and leaves
+    // the English layout byte-identical.
+    final gap = ne ? 13.0 : 20.0;
 
     return AuthShell(
       title: 'auth.welcomeBack'.tr(),
@@ -458,9 +464,9 @@ class _SignInScreenState extends State<SignInScreen> {
             height: 52,
           ),
         ],
-        const SizedBox(height: 20),
+        SizedBox(height: gap),
         authDivider('auth.orSignInWithPhone'.tr(), ne),
-        const SizedBox(height: 20),
+        SizedBox(height: gap),
         AuthField(
           controller: _phoneController,
           label: 'auth.phoneNumber'.tr(),
@@ -486,7 +492,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 value: _rememberMe,
                 onChanged: (val) => setState(() => _rememberMe = val!),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
                 activeColor: AuthT.brand,
                 side: const BorderSide(color: Color(0xFF9CA3AF)),
               ),
@@ -503,15 +510,15 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: gap),
         authButton(
           label: 'auth.signIn'.tr(),
           loading: _isLoading,
           onTap: _isLoading ? null : _handleLogin,
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: gap),
         authDivider('auth.dontHaveAccount'.tr(), ne),
-        const SizedBox(height: 20),
+        SizedBox(height: gap),
         authButton(
           label: 'auth.createAccount'.tr(),
           filled: false,

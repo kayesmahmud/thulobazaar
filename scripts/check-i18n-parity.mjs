@@ -29,9 +29,11 @@ function flatten(obj, prefix = '', out = new Set()) {
  * Values that are *supposed* to be identical in both locales:
  * - keys ending in `Latin` — romanized Nepali, for readers who don't read Devanagari
  * - contact details and links — an email address has no translation
+ * - phone numbers AND phone input masks (98XXXXXXXX) — a dialling pattern
+ *   must match the Latin digits the numeric keypad actually produces
  */
 const LOCALE_INVARIANT_KEY = /Latin$/;
-const LOCALE_INVARIANT_VALUE = /^(https?:\/\/|[\w.+-]+@[\w-]+\.[\w.]+$|\+?\d[\d\s-]*$)/;
+const LOCALE_INVARIANT_VALUE = /^(https?:\/\/|[\w.+-]+@[\w-]+\.[\w.]+$|\+?\d[\dXx\s-]*$)/;
 
 /** A value copied verbatim from English is a missing translation wearing a disguise. */
 function untranslated(en, ne, prefix = '', out = []) {

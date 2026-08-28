@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
+import 'package:mobile/features/auth/signup_screen.dart';
 
 /// The signed-out state for every gated screen.
 ///
@@ -35,57 +36,90 @@ class _GateSpec {
   final IconData icon;
   final String titleKey, subtitleKey, ctaKey;
   final List<(IconData, String)> benefits;
-  const _GateSpec(this.icon, this.titleKey, this.subtitleKey, this.ctaKey,
-      this.benefits);
+  const _GateSpec(
+    this.icon,
+    this.titleKey,
+    this.subtitleKey,
+    this.ctaKey,
+    this.benefits,
+  );
 }
 
 const _specs = <LoginGateKind, _GateSpec>{
   LoginGateKind.postAd: _GateSpec(
-    LucideIcons.plusCircle, 'gate.postAd.title', 'gate.postAd.subtitle',
-    'gate.postAd.cta', [
+    LucideIcons.plusCircle,
+    'gate.postAd.title',
+    'gate.postAd.subtitle',
+    'gate.postAd.cta',
+    [
       (LucideIcons.banknote, 'gate.postAd.b1'),
       (LucideIcons.sparkles, 'gate.postAd.b2'),
       (LucideIcons.zap, 'gate.postAd.b3'),
-    ]),
+    ],
+  ),
   LoginGateKind.verification: _GateSpec(
-    LucideIcons.badgeCheck, 'gate.verification.title',
-    'gate.verification.subtitle', 'gate.verification.cta', [
+    LucideIcons.badgeCheck,
+    'gate.verification.title',
+    'gate.verification.subtitle',
+    'gate.verification.cta',
+    [
       (LucideIcons.shieldCheck, 'gate.verification.b1'),
       (LucideIcons.upload, 'gate.verification.b2'),
       (LucideIcons.clock, 'gate.verification.b3'),
-    ]),
+    ],
+  ),
   LoginGateKind.messages: _GateSpec(
-    LucideIcons.messageCircle, 'gate.messages.title', 'gate.messages.subtitle',
-    'gate.messages.cta', [
+    LucideIcons.messageCircle,
+    'gate.messages.title',
+    'gate.messages.subtitle',
+    'gate.messages.cta',
+    [
       (LucideIcons.eyeOff, 'gate.messages.b1'),
       (LucideIcons.image, 'gate.messages.b2'),
       (LucideIcons.bell, 'gate.messages.b3'),
-    ]),
+    ],
+  ),
   LoginGateKind.profile: _GateSpec(
-    LucideIcons.userCircle, 'gate.profile.title', 'gate.profile.subtitle',
-    'gate.profile.cta', [
+    LucideIcons.userCircle,
+    'gate.profile.title',
+    'gate.profile.subtitle',
+    'gate.profile.cta',
+    [
       (LucideIcons.layoutList, 'gate.profile.b1'),
       (LucideIcons.badgeCheck, 'gate.profile.b2'),
       (LucideIcons.settings, 'gate.profile.b3'),
-    ]),
+    ],
+  ),
   LoginGateKind.support: _GateSpec(
-    LucideIcons.lifeBuoy, 'gate.support.title', 'gate.support.subtitle',
-    'gate.support.cta', [
+    LucideIcons.lifeBuoy,
+    'gate.support.title',
+    'gate.support.subtitle',
+    'gate.support.cta',
+    [
       (LucideIcons.zap, 'gate.support.b1'),
       (LucideIcons.list, 'gate.support.b2'),
-    ]),
+    ],
+  ),
   LoginGateKind.liveChat: _GateSpec(
-    LucideIcons.messagesSquare, 'gate.liveChat.title', 'gate.liveChat.subtitle',
-    'gate.liveChat.cta', [
+    LucideIcons.messagesSquare,
+    'gate.liveChat.title',
+    'gate.liveChat.subtitle',
+    'gate.liveChat.cta',
+    [
       (LucideIcons.zap, 'gate.liveChat.b1'),
       (LucideIcons.globe, 'gate.liveChat.b2'),
-    ]),
+    ],
+  ),
   LoginGateKind.notifications: _GateSpec(
-    LucideIcons.bell, 'gate.notifications.title',
-    'gate.notifications.subtitle', 'gate.notifications.cta', [
+    LucideIcons.bell,
+    'gate.notifications.title',
+    'gate.notifications.subtitle',
+    'gate.notifications.cta',
+    [
       (LucideIcons.messageCircle, 'gate.notifications.b1'),
       (LucideIcons.tag, 'gate.notifications.b2'),
-    ]),
+    ],
+  ),
 };
 
 class LoginGateScreen extends StatelessWidget {
@@ -118,6 +152,18 @@ class LoginGateScreen extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => SignInScreen(onSuccess: onLoginSuccess),
+      ),
+    );
+  }
+
+  /// The primary CTA on every gate invites people to CREATE an account
+  /// ("Create free account", "Start chatting"). It used to open sign-in, so a
+  /// new user was met with "Welcome back — login to your account".
+  void _openSignUp(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SignUpScreen(onSuccess: onLoginSuccess),
       ),
     );
   }
@@ -183,11 +229,20 @@ class LoginGateScreen extends StatelessWidget {
     );
   }
 
-  Widget _awning(_GateSpec spec, bool ne, double top, double medallion,
-      double gap) {
+  Widget _awning(
+    _GateSpec spec,
+    bool ne,
+    double top,
+    double medallion,
+    double gap,
+  ) {
     return Container(
       padding: EdgeInsets.only(
-          top: top + _toolbar + _awningTopPad, left: 20, right: 20, bottom: 44),
+        top: top + _toolbar + _awningTopPad,
+        left: 20,
+        right: 20,
+        bottom: 44,
+      ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -292,7 +347,11 @@ class LoginGateScreen extends StatelessWidget {
   Widget _dock(BuildContext context, _GateSpec spec, bool ne) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, 20 + MediaQuery.viewPaddingOf(context).bottom),
+        20,
+        12,
+        20,
+        20 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: _hairline)),
@@ -304,11 +363,12 @@ class LoginGateScreen extends StatelessWidget {
             width: double.infinity,
             height: 52,
             child: FilledButton(
-              onPressed: () => _openSignIn(context),
+              onPressed: () => _openSignUp(context),
               style: FilledButton.styleFrom(
                 backgroundColor: _brand,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: Text(
                 spec.ctaKey.tr(),
