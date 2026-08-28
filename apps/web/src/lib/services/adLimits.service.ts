@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@thulobazaar/database';
+import { isLimitedDigitalService } from '@thulobazaar/types';
 
 export interface AdLimits {
   maxAdsPerUser: number;
@@ -93,6 +94,28 @@ export async function countUserActiveAds(userId: number): Promise<number> {
       status: { notIn: ['expired', 'deleted'] },
     },
   });
+}
+
+/**
+ * Twin of the Express helper (apps/api/src/services/adLimits.service.ts) — the
+ * two ad-create paths are separate implementations, so the cap must exist in
+ * both. The RULE itself is shared via @thulobazaar/types so only the query
+ * duplicates, not the keyword list.
+ */
+export async function countUserLimitedDigitalAds(
+  userId: number,
+  excludeAdId?: number
+): Promise<number> {
+  const ads = await prisma.ads.findMany({
+    where: {
+      user_id: userId,
+      deleted_at: null,
+      status: { notIn: ['expired', 'deleted'] },
+      ...(excludeAdId ? { id: { not: excludeAdId } } : {}),
+    },
+    select: { title: true },
+  });
+  return ads.filter((ad) => isLimitedDigitalService(ad.title ?? '')).length;
 }
 
 /**

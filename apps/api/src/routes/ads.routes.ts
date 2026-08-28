@@ -35,6 +35,7 @@ import {
   getAdLimits,
   isUserVerified,
   countUserActiveAds,
+  countUserLimitedDigitalAds,
   calculateExpiresAt,
   getBooleanSetting,
 } from '../services/adLimits.service.js';
@@ -44,6 +45,9 @@ import { shouldPrecheck, precheckAd } from '../services/precheck.service.js';
 import {
   findProhibitedAccountSale,
   PROHIBITED_ACCOUNT_SALE_MESSAGE,
+  isLimitedDigitalService,
+  MAX_LIMITED_DIGITAL_ADS_PER_USER,
+  LIMITED_DIGITAL_ADS_MESSAGE,
 } from '@thulobazaar/types';
 import { isAutofillAvailable, draftFromImages } from '../services/autofill.service.js';
 import { reportAiViolation } from '../services/userReport.service.js';
@@ -347,6 +351,14 @@ router.post(
       throw new ValidationError(PROHIBITED_ACCOUNT_SALE_MESSAGE);
     }
 
+    // Allowed but capped: follower services and shared subscription logins.
+    if (isLimitedDigitalService(String(title))) {
+      const existing = await countUserLimitedDigitalAds(userId);
+      if (existing >= MAX_LIMITED_DIGITAL_ADS_PER_USER) {
+        throw new ValidationError(LIMITED_DIGITAL_ADS_MESSAGE);
+      }
+    }
+
     if (!locationId) {
       throw new ValidationError('Location is required');
     }
@@ -583,6 +595,14 @@ router.put(
     // Same ban on edit — otherwise a clean ad could be retitled into one.
     if (title && findProhibitedAccountSale(String(title))) {
       throw new ValidationError(PROHIBITED_ACCOUNT_SALE_MESSAGE);
+    }
+
+    // ...and the same cap, ignoring this ad so re-saving it never trips it.
+    if (title && isLimitedDigitalService(String(title))) {
+      const existing = await countUserLimitedDigitalAds(userId, existingAd.id);
+      if (existing >= MAX_LIMITED_DIGITAL_ADS_PER_USER) {
+        throw new ValidationError(LIMITED_DIGITAL_ADS_MESSAGE);
+      }
     }
 
     // Editing an approved (live) ad: trusted business users stay live,
