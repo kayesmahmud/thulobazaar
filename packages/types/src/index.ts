@@ -24,3 +24,6 @@ export * from './guards';
 
 // Export upload types and constants (platform-agnostic for web + mobile)
 export * from './upload';
+
+// Export prohibited-listing rules (game/social account sales — blocked at submit)
+export * from './prohibitedListings';

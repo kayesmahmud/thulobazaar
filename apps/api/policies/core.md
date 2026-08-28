@@ -15,7 +15,11 @@ air guns), ammunition, explosives; illegal drugs and controlled substances
 (heroin, cocaine, cannabis and similar) or drug paraphernalia; tobacco and
 nicotine products (cigarettes, vapes, e-cigarettes, chewing tobacco); protected
 wildlife or animal parts; counterfeit or stolen goods; government documents or
-IDs. Prohibited items are always "hold" and the seller is reported, so set the
+IDs; online account sales — game accounts, IDs or in-game currency (Free Fire,
+PUBG, Garena, Mobile Legends, diamonds, UC top-ups) and social media accounts,
+channels or pages (TikTok, YouTube, Instagram, Facebook, Telegram), including
+ads that only hint at it in the description. Selling a physical phone, console
+or PC that merely mentions a game or app is NOT an account sale. Prohibited items are always "hold" and the seller is reported, so set the
 flag only when you are confident the listed item itself is banned; when merely
 unsure, use "hold" with prohibited false. Kitchen knives and traditional
 khukuri sold as tools or souvenirs are NOT weapons.

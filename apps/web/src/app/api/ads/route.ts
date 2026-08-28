@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { findProhibitedAccountSale, PROHIBITED_ACCOUNT_SALE_MESSAGE } from '@thulobazaar/types';
 import { optionalAuth, requireAuth } from '@/lib/auth';
 import {
   listAds,
@@ -124,6 +125,15 @@ export async function POST(request: NextRequest) {
     if (!title || !description || !priceStr) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields: title, description, price' },
+        { status: 400 }
+      );
+    }
+
+    // Banned outright (not held for review): game IDs and social accounts.
+    // Same shared rule the Express/mobile path uses — see @thulobazaar/types.
+    if (findProhibitedAccountSale(title)) {
+      return NextResponse.json(
+        { success: false, message: PROHIBITED_ACCOUNT_SALE_MESSAGE },
         { status: 400 }
       );
     }

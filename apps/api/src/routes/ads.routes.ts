@@ -41,6 +41,10 @@ import {
 import { sendNotification, notifyEditors } from '../services/notification.service.js';
 import { moderateNewAd, auditLiveAd, buildEditContext } from '../services/moderation.service.js';
 import { shouldPrecheck, precheckAd } from '../services/precheck.service.js';
+import {
+  findProhibitedAccountSale,
+  PROHIBITED_ACCOUNT_SALE_MESSAGE,
+} from '@thulobazaar/types';
 import { isAutofillAvailable, draftFromImages } from '../services/autofill.service.js';
 import { reportAiViolation } from '../services/userReport.service.js';
 import { imageBuffersToDataUrls } from '../lib/ai/images.js';
@@ -338,6 +342,11 @@ router.post(
       throw new ValidationError('Title, description, and category are required');
     }
 
+    // Banned outright (not held for review): game IDs and social accounts.
+    if (findProhibitedAccountSale(String(title))) {
+      throw new ValidationError(PROHIBITED_ACCOUNT_SALE_MESSAGE);
+    }
+
     if (!locationId) {
       throw new ValidationError('Location is required');
     }
@@ -569,6 +578,11 @@ router.put(
 
     if (!existingAd) {
       throw new NotFoundError('Ad not found or you do not have permission to edit it');
+    }
+
+    // Same ban on edit — otherwise a clean ad could be retitled into one.
+    if (title && findProhibitedAccountSale(String(title))) {
+      throw new ValidationError(PROHIBITED_ACCOUNT_SALE_MESSAGE);
     }
 
     // Editing an approved (live) ad: trusted business users stay live,
