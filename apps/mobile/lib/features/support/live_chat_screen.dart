@@ -5,7 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+import 'package:provider/provider.dart';
+
 import 'package:mobile/core/api/support_client.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:mobile/core/models/support_ticket.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:mobile/core/utils/profanity_check.dart';
@@ -44,6 +48,9 @@ class _LiveChatScreenState extends State<LiveChatScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Signed out there is no token: getLiveChat() 401s and the screen used to
+    // render the raw server error. Never start the network for a guest.
+    if (!context.read<AuthProvider>().isLoggedIn) return;
     _load();
     _startPolling();
   }
@@ -173,6 +180,9 @@ class _LiveChatScreenState extends State<LiveChatScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (!context.watch<AuthProvider>().isLoggedIn) {
+      return const LoginGateScreen(kind: LoginGateKind.liveChat);
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(

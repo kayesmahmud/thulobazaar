@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -28,6 +30,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   void initState() {
     super.initState();
+    // A guest has no notifications and no token — do not fetch or auto-mark.
+    if (!context.read<AuthProvider>().isLoggedIn) return;
     final provider = context.read<NotificationProvider>();
     provider.fetchNotifications(refresh: true);
     _scrollController.addListener(_onScroll);
@@ -59,6 +63,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!context.watch<AuthProvider>().isLoggedIn) {
+      return const LoginGateScreen(kind: LoginGateKind.notifications);
+    }
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
