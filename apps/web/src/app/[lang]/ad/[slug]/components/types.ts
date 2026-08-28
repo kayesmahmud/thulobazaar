@@ -5,6 +5,10 @@ export interface AdBadgesProps {
   condition: string | null;
   isNegotiable: boolean;
   isCodAvailable: boolean;
+  /** Slug of the ad's own category — a subcategory for almost every ad. */
+  categorySlug: string | null;
+  /** Parent category slug, null when the ad sits directly on a parent. */
+  parentCategorySlug: string | null;
   fullCategory: string;
   isFeatured: boolean;
   featuredUntil: Date | null;
@@ -17,6 +21,10 @@ export interface AdBadgesProps {
 export interface SpecificationsSectionProps {
   customFields: Record<string, any> | null;
   lang?: string;
+  /** The ad's own category name — a subcategory for almost every ad. */
+  categoryName: string | null;
+  /** Parent category name, null when the ad sits directly on a parent. */
+  parentCategoryName: string | null;
 }
 
 export interface LocationSectionProps {

@@ -478,6 +478,8 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 urgentUntil={ad.urgent_until}
                 isSticky={ad.is_sticky ?? false}
                 stickyUntil={ad.sticky_until}
+                categorySlug={ad.categories?.slug ?? null}
+                parentCategorySlug={ad.categories?.categories?.slug ?? null}
               />
 
               <div className="mb-8">
@@ -485,7 +487,12 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
                 <p className="text-gray-600 leading-relaxed whitespace-pre-line">{ad.description}</p>
               </div>
 
-              <SpecificationsSection customFields={customFields} lang={lang} />
+              <SpecificationsSection
+                customFields={customFields}
+                lang={lang}
+                categoryName={ad.categories?.name ?? null}
+                parentCategoryName={ad.categories?.categories?.name ?? null}
+              />
               <LocationSection
                 fullLocation={fullLocation}
                 locationLinks={locationLinks}

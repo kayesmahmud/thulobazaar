@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { getCategoryPolicy } from '@thulobazaar/types';
 import type { AdBadgesProps } from './types';
 
 export async function AdBadges({
@@ -8,6 +9,8 @@ export async function AdBadges({
   condition,
   isNegotiable,
   isCodAvailable,
+  categorySlug,
+  parentCategorySlug,
   fullCategory,
   isFeatured,
   featuredUntil,
@@ -17,6 +20,14 @@ export async function AdBadges({
   stickyUntil,
 }: AdBadgesProps) {
   const t = await getTranslations('ads');
+
+  // Old clients stamped condition and COD onto every ad in every category, so
+  // rentals, jobs and live animals still carry them. The policy decides what
+  // the category actually offers; the stored values stay untouched.
+  const policy = getCategoryPolicy(
+    parentCategorySlug || categorySlug || '',
+    parentCategorySlug ? categorySlug || undefined : undefined
+  );
 
   return (
     <div className="flex gap-2 mb-8 flex-wrap">
@@ -31,7 +42,7 @@ export async function AdBadges({
       )}
 
       {/* Condition Badge */}
-      {condition && (
+      {policy.condition !== 'hidden' && condition && (
         condition.toLowerCase() === 'brand new' ? (
           <span className="px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -46,7 +57,7 @@ export async function AdBadges({
         )
       )}
 
-      {isNegotiable && (
+      {policy.negotiable && isNegotiable && (
         <span className="bg-amber-50 text-amber-900 px-3 py-1 rounded text-sm font-semibold">
           {t('priceIsNegotiable')}
         </span>
@@ -54,7 +65,7 @@ export async function AdBadges({
 
       {/* Deeper orange than negotiable so COD stands out as the stronger
           buying signal, while still reading as the same family of badge. */}
-      {isCodAvailable && (
+      {policy.cod && isCodAvailable && (
         <span className="bg-orange-100 text-orange-900 px-3 py-1 rounded text-sm font-semibold">
           {t('cashOnDeliveryAvailable')}
         </span>

@@ -3,71 +3,54 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/core/models/models.dart';
+import 'package:mobile/core/utils/localized_helpers.dart';
+import 'package:mobile/features/post_ad/services/form_template_service.dart';
+
+/// A spec row already resolved to display text, so the layout code never has
+/// to look at the raw attribute again.
+class _SpecRow {
+  final String label;
+  final String value;
+  final String? url;
+
+  const _SpecRow({required this.label, required this.value, this.url});
+}
 
 class AdSpecifications extends StatelessWidget {
   final AdWithDetails ad;
 
   const AdSpecifications({super.key, required this.ad});
 
+  static final FormTemplateService _templateService = FormTemplateService();
+
   @override
   Widget build(BuildContext context) {
-    if (ad.attributes == null || ad.attributes!.isEmpty) {
+    final attributes = ad.attributes;
+    if (attributes == null || attributes.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // Separate amenities from regular specs (matches web behavior)
-    final filteredKeys = {
-      'isNegotiable',
-      // Shown as a badge next to Negotiable, so keep it out of the raw rows.
-      'isCodAvailable',
-      'amenities',
-      'condition',
-      'whatsapp_number',
-    };
-    final specs = ad.attributes!.entries
-        .where(
-          (e) =>
-              e.value != null &&
-              e.value.toString().isNotEmpty &&
-              !filteredKeys.contains(e.key),
-        )
-        .toList();
-
-    // Parse amenities (comma-separated string or list)
-    final amenitiesRaw = ad.attributes!['amenities'];
-    final List<String> amenities;
-    if (amenitiesRaw is String && amenitiesRaw.isNotEmpty) {
-      amenities = amenitiesRaw
-          .split(',')
-          .map((a) => a.trim())
-          .where((a) => a.isNotEmpty)
-          .toList();
-    } else if (amenitiesRaw is List) {
-      amenities = amenitiesRaw.map((a) => a.toString()).toList();
-    } else {
-      amenities = [];
-    }
-
-    if (specs.isEmpty && amenities.isEmpty) return const SizedBox.shrink();
-
     final isNe = context.locale.languageCode == 'ne';
 
-    // Merge "Total Area" + "Area Unit" into a single row (e.g. "10 sq ft") so the
-    // measurement and its unit read together instead of as two separate rows.
-    final areaUnitMatches = specs.where((e) => e.key == 'areaUnit');
-    final mergeArea =
-        specs.any((e) => e.key == 'totalArea') && areaUnitMatches.isNotEmpty;
-    final areaUnitRaw = mergeArea ? areaUnitMatches.first.value.toString() : '';
-    final displaySpecs = <MapEntry<String, dynamic>>[];
-    for (final e in specs) {
-      if (mergeArea && e.key == 'areaUnit') continue;
-      if (mergeArea && e.key == 'totalArea') {
-        final unit = isNe ? _localizedValue(areaUnitRaw) : areaUnitRaw;
-        displaySpecs.add(MapEntry(e.key, '${e.value} $unit'));
-      } else {
-        displaySpecs.add(e);
-      }
-    }
+    // The post-ad template is both the whitelist and the order. A key it does
+    // not declare is a stale attribute from a switched category, an old client
+    // or a legacy field, so it is dropped rather than prettified into a label.
+    final fields = [
+      ..._templateService.getApplicableFields(
+        ad.categoryName,
+        ad.subcategoryName ?? '',
+      ),
+      ..._legacyFields,
+    ];
+
+    final rows = _buildRows(fields, attributes, isNe);
+    final amenities = _parseAmenities(
+      attributes['amenities'],
+      _fieldNamed(fields, 'amenities'),
+      isNe,
+    );
+
+    if (rows.isEmpty && amenities.isEmpty) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -98,68 +81,11 @@ class AdSpecifications extends StatelessWidget {
             ),
           ),
           const Divider(height: 16, color: Color(0xFFF3F4F6)),
-          if (specs.isNotEmpty)
-            ListView.separated(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: displaySpecs.length,
-              separatorBuilder: (_, __) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, color: Colors.grey[100]),
-              ),
-              itemBuilder: (context, index) {
-                final entry = displaySpecs[index];
-                final isGoogleMapsLink = entry.key == 'googleMapsLink';
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      isNe ? _localizedKey(entry.key) : _formatKey(entry.key),
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF6B7280),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Flexible(
-                      child: isGoogleMapsLink
-                          ? GestureDetector(
-                              onTap: () => _launchUrl(entry.value.toString()),
-                              child: Text(
-                                isNe
-                                    ? 'गुगल म्यापमा हेर्नुहोस्'
-                                    : 'View on Google Maps',
-                                textAlign: TextAlign.end,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF2563EB),
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            )
-                          : Text(
-                              isNe
-                                  ? _localizedValue(entry.value.toString())
-                                  : entry.value.toString(),
-                              textAlign: TextAlign.end,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF111827),
-                              ),
-                            ),
-                    ),
-                  ],
-                );
-              },
-            ),
+          if (rows.isNotEmpty) _buildSpecTable(context, rows),
 
           // Amenities section (matches web SpecificationsSection)
           if (amenities.isNotEmpty) ...[
-            if (specs.isNotEmpty) Divider(height: 1, color: Colors.grey[200]),
+            if (rows.isNotEmpty) Divider(height: 1, color: Colors.grey[200]),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Text(
@@ -177,9 +103,6 @@ class AdSpecifications extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: amenities.map((amenity) {
-                  final displayName = isNe
-                      ? (_valueMapNe[amenity] ?? amenity)
-                      : amenity;
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -200,7 +123,7 @@ class AdSpecifications extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        displayName,
+                        amenity,
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -218,18 +141,332 @@ class AdSpecifications extends StatelessWidget {
     );
   }
 
-  String _formatKey(String key) {
-    if (key.isEmpty) return key;
-    final formatted = key.replaceAll('_', ' ');
-    return formatted[0].toUpperCase() +
-        formatted
-            .substring(1)
-            .replaceAllMapped(RegExp(r'[A-Z]'), (m) => ' ${m[0]}');
+  /// A single Table measures every row together, so the value column starts at
+  /// the same x on all of them — a Row per spec cannot guarantee that.
+  /// Long labels wrap inside the 38% track instead of pushing the values out
+  /// of line; on a very narrow screen or at a large text scale the two cells
+  /// stack instead, because a 38% track stops being readable there.
+  Widget _buildSpecTable(BuildContext context, List<_SpecRow> rows) {
+    final stacked =
+        MediaQuery.textScalerOf(context).scale(14) >= 21 ||
+        MediaQuery.sizeOf(context).width < 330;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Table(
+        columnWidths: stacked
+            ? const {0: FlexColumnWidth()}
+            : const {0: FlexColumnWidth(38), 1: FlexColumnWidth(62)},
+        defaultVerticalAlignment: TableCellVerticalAlignment.top,
+        children: [
+          for (var i = 0; i < rows.length; i++)
+            _buildTableRow(rows[i], i, rows.length, stacked),
+        ],
+      ),
+    );
   }
 
-  String _localizedKey(String key) => _keyMapNe[key] ?? _formatKey(key);
+  TableRow _buildTableRow(_SpecRow row, int index, int total, bool stacked) {
+    final isLast = index == total - 1;
+    final padding = EdgeInsets.only(
+      top: index == 0 ? 0 : 12,
+      bottom: isLast ? 0 : 12,
+    );
+    final decoration = isLast
+        ? null
+        : BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+          );
 
-  String _localizedValue(String value) => _valueMapNe[value] ?? value;
+    final label = Text(
+      row.label,
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: const Color(0xFF6B7280),
+      ),
+    );
+
+    final url = row.url;
+    final value = url == null
+        ? Text(
+            row.value,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF111827),
+            ),
+          )
+        : GestureDetector(
+            onTap: () => _launchUrl(url),
+            child: Text(
+              row.value,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF2563EB),
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          );
+
+    if (stacked) {
+      return TableRow(
+        decoration: decoration,
+        children: [
+          Padding(
+            padding: padding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [label, const SizedBox(height: 4), value],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return TableRow(
+      decoration: decoration,
+      children: [
+        Padding(padding: padding.copyWith(right: 16), child: label),
+        Padding(padding: padding, child: value),
+      ],
+    );
+  }
+
+  /// Declared fields that render somewhere other than the spec table:
+  /// `condition` is the badge, `amenities` has its own section, and
+  /// `monthlyRent` is the ad's own price now that rentals label the core price
+  /// input "Monthly Rent" — old ads still carry the key, it just stops showing.
+  /// isNegotiable / isCodAvailable / whatsapp_number need no entry: no template
+  /// declares them, so the whitelist above already drops them.
+  static const _excludedFromSpecRows = {
+    'condition',
+    'amenities',
+    'monthlyRent',
+  };
+
+  /// Display-only. Dropped from the post-ad templates, so nothing writes them
+  /// any more, but ads posted before that still carry real values and would
+  /// otherwise lose a spec row. Appended after the template fields, so they
+  /// render last and never affect the order of a still-declared field.
+  static const _legacyFields = [
+    FormFieldModel(
+      name: 'style',
+      label: 'Style',
+      labelNe: 'शैली',
+      type: FieldType.select,
+    ),
+    FormFieldModel(
+      name: 'assemblyRequired',
+      label: 'Assembly Required',
+      labelNe: 'जोड्नु पर्ने',
+      type: FieldType.select,
+    ),
+    FormFieldModel(
+      name: 'manufacturingDate',
+      label: 'Manufacturing Date',
+      labelNe: 'उत्पादन मिति',
+      type: FieldType.date,
+    ),
+    // Superseded by roadSize (banded) and buildYear (an AD year). The stored
+    // values — a raw number and a range like '0-1 years' — cannot convert, so
+    // older ads keep showing them under the label they were captured with.
+    FormFieldModel(
+      name: 'roadWidth',
+      label: 'Road Width (feet)',
+      labelNe: 'सडक चौडाइ (फिट)',
+      type: FieldType.number,
+    ),
+    FormFieldModel(
+      name: 'propertyAge',
+      label: 'Property Age',
+      labelNe: 'सम्पत्ति उमेर',
+      type: FieldType.select,
+    ),
+  ];
+
+  List<_SpecRow> _buildRows(
+    List<FormFieldModel> fields,
+    Map<String, dynamic> attributes,
+    bool isNe,
+  ) {
+    // Merge "Total Area" + "Area Unit" into a single row (e.g. "10 sq ft") so
+    // the measurement and its unit read together instead of as two rows.
+    final areaUnitField = _fieldNamed(fields, 'areaUnit');
+    final mergeArea =
+        areaUnitField != null &&
+        attributes['totalArea'] != null &&
+        attributes['areaUnit'] != null;
+
+    final rows = <_SpecRow>[];
+    for (final field in fields) {
+      if (_excludedFromSpecRows.contains(field.name)) continue;
+      if (mergeArea && field.name == 'areaUnit') continue;
+
+      var value = _formatValue(field, attributes[field.name], isNe);
+      if (value == null) continue;
+
+      if (mergeArea && field.name == 'totalArea') {
+        final unit = _formatValue(areaUnitField, attributes['areaUnit'], isNe);
+        if (unit != null) value = '$value $unit';
+      }
+
+      final label = isNe ? (field.labelNe ?? field.label) : field.label;
+      if (field.name == 'googleMapsLink') {
+        rows.add(
+          _SpecRow(
+            label: label,
+            value: isNe ? 'गुगल म्यापमा हेर्नुहोस्' : 'View on Google Maps',
+            url: value,
+          ),
+        );
+        continue;
+      }
+
+      rows.add(_SpecRow(label: label, value: value));
+    }
+    return rows;
+  }
+
+  /// Years, counts and floor numbers must never pick up thousand separators —
+  /// 2020 is a year, not 2,020.
+  static const _rawNumberKeys = {
+    'year',
+    'registrationYear',
+    'floorNumber',
+    'totalFloors',
+    'shoeSize',
+    'megapixels',
+    'bedrooms',
+    'bathrooms',
+    'seatingCapacity',
+  };
+
+  static const _currencyKeys = {'securityDeposit'};
+
+  static const _unitSuffixes = {
+    'roadWidth': 'ft',
+    'mileage': 'km',
+    'engineCapacity': 'cc',
+  };
+
+  static const _unitSuffixesNe = {
+    'roadWidth': 'फिट',
+    'mileage': 'कि.मि.',
+    'engineCapacity': 'सी.सी.',
+  };
+
+  /// Returns the display text for one attribute, or null when the row must be
+  /// omitted entirely (empty, or an opt-in flag that is off).
+  String? _formatValue(FormFieldModel field, dynamic value, bool isNe) {
+    if (value == null) return null;
+
+    if (value is bool) return value ? _yes(isNe) : null;
+
+    if (value is List) return _joinOptions(field, value.map(_asText), isNe);
+
+    if (value is num) return _formatNumber(field, value, isNe);
+
+    final raw = value.toString().trim();
+    if (raw.isEmpty || raw == '[]') return null;
+
+    if (field.type == FieldType.multiselect) {
+      return _joinOptions(field, raw.split(','), isNe);
+    }
+
+    final lower = raw.toLowerCase();
+    if (lower == 'false') return null;
+    if (lower == 'true') return _yes(isNe);
+
+    if (field.type == FieldType.date) return _formatDate(raw, isNe);
+
+    if (field.type == FieldType.number) {
+      final parsed = num.tryParse(raw);
+      if (parsed != null) return _formatNumber(field, parsed, isNe);
+    }
+
+    return _localizedOption(field, raw, isNe);
+  }
+
+  String? _joinOptions(
+    FormFieldModel field,
+    Iterable<String> values,
+    bool isNe,
+  ) {
+    final parts = values
+        .map((v) => v.trim())
+        .where((v) => v.isNotEmpty)
+        .map((v) => _localizedOption(field, v, isNe))
+        .toList();
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+
+  String _formatNumber(FormFieldModel field, num value, bool isNe) {
+    final digits = value % 1 == 0 ? value.toInt().toString() : value.toString();
+    if (_rawNumberKeys.contains(field.name)) return digits;
+    if (_currencyKeys.contains(field.name)) {
+      return formatLocalizedPrice(value.toDouble(), isNe ? 'ne' : 'en');
+    }
+    final unit = isNe ? _unitSuffixesNe[field.name] : _unitSuffixes[field.name];
+    final grouped = _grouped(digits);
+    return unit == null ? grouped : '$grouped $unit';
+  }
+
+  /// Date fields hold a plain calendar date ('yyyy-MM-dd'), so it is rebuilt as
+  /// UTC before formatting — parsing it as local time shifts the day for anyone
+  /// east of Nepal.
+  String _formatDate(String raw, bool isNe) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return formatNepalTime(
+      DateTime.utc(parsed.year, parsed.month, parsed.day),
+      'd MMM yyyy',
+      isNe ? 'ne' : 'en',
+    );
+  }
+
+  /// Per-field option map first: two fields can share a value literal and still
+  /// need different Nepali. `_valueMapNe` only covers the fields whose factory
+  /// drops `optionsNe` when the option list is overridden.
+  String _localizedOption(FormFieldModel field, String raw, bool isNe) {
+    if (!isNe) return raw;
+    final options = field.options;
+    final optionsNe = field.optionsNe;
+    if (options != null &&
+        optionsNe != null &&
+        options.length == optionsNe.length) {
+      final index = options.indexOf(raw);
+      if (index >= 0) return optionsNe[index];
+    }
+    return _valueMapNe[raw] ?? raw;
+  }
+
+  List<String> _parseAmenities(dynamic raw, FormFieldModel? field, bool isNe) {
+    if (field == null || raw == null) return const [];
+    final values = raw is List ? raw.map(_asText) : raw.toString().split(',');
+    return values
+        .map((a) => a.trim())
+        .where((a) => a.isNotEmpty)
+        .map((a) => _localizedOption(field, a, isNe))
+        .toList();
+  }
+
+  FormFieldModel? _fieldNamed(List<FormFieldModel> fields, String name) {
+    for (final field in fields) {
+      if (field.name == name) return field;
+    }
+    return null;
+  }
+
+  String _asText(dynamic value) => value?.toString() ?? '';
+
+  String _yes(bool isNe) => isNe ? 'छ' : 'Yes';
+
+  static String _grouped(String digits) => digits.replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
 
   static Future<void> _launchUrl(String url) async {
     final uri = Uri.tryParse(url);
@@ -239,90 +476,7 @@ class AdSpecifications extends StatelessWidget {
     }
   }
 
-  static const _keyMapNe = {
-    'condition': 'अवस्था',
-    'brand': 'ब्रान्ड',
-    'model': 'मोडेल',
-    'warranty': 'वारेन्टी',
-    'color': 'रङ',
-    'storage': 'भण्डारण क्षमता',
-    'ram': 'र्‍याम',
-    'batteryHealth': 'ब्याट्री स्वास्थ्य',
-    'processor': 'प्रोसेसर',
-    'graphics': 'ग्राफिक्स कार्ड',
-    'screenResolution': 'स्क्रिन रिजोलुसन',
-    'screenSize': 'स्क्रिन साइज',
-    'smartFeatures': 'स्मार्ट सुविधाहरू',
-    'megapixels': 'मेगापिक्सेल',
-    'year': 'निर्माण वर्ष',
-    'mileage': 'माइलेज/कि.मी.',
-    'fuelType': 'इन्धन प्रकार',
-    'transmission': 'ट्रान्समिसन',
-    'engineCapacity': 'इन्जिन क्षमता (cc)',
-    'owners': 'मालिक संख्या',
-    'registrationYear': 'दर्ता वर्ष',
-    'registrationLocation': 'दर्ता स्थान',
-    'seats': 'सिट संख्या',
-    'bicycleType': 'साइकल प्रकार',
-    'totalArea': 'कुल क्षेत्रफल',
-    'areaUnit': 'क्षेत्रफल एकाइ',
-    'bedrooms': 'शयनकोठा',
-    'bathrooms': 'स्नानकोठा',
-    'furnishing': 'फर्निचर अवस्था',
-    'parking': 'पार्किङ स्थान',
-    'floorNumber': 'तल्ला नम्बर',
-    'totalFloors': 'भवनमा कुल तल्ला',
-    'facing': 'मुख दिशा',
-    'propertyAge': 'सम्पत्ति उमेर',
-    'amenities': 'सुविधाहरू',
-    'roadAccess': 'सडक पहुँच',
-    'roadWidth': 'सडक चौडाइ',
-    'monthlyRent': 'मासिक भाडा',
-    'securityDeposit': 'धरौटी',
-    'availableFrom': 'उपलब्ध मिति',
-    'googleMapsLink': 'गुगल म्याप',
-    'clothingType': 'लुगा प्रकार',
-    'size': 'साइज',
-    'fitType': 'फिट प्रकार',
-    'sleeveType': 'बाहुला प्रकार',
-    'footwearType': 'जुत्ता प्रकार',
-    'shoeSize': 'जुत्ता साइज',
-    'watchType': 'घडी प्रकार',
-    'strapMaterial': 'स्ट्र्याप सामग्री',
-    'animalType': 'जनावर प्रकार',
-    'vaccination': 'खोप अवस्था',
-    'papers': 'कागजात',
-    'trained': 'प्रशिक्षित',
-    'friendlyWith': 'मैत्रीपूर्ण',
-    'productType': 'उत्पादन प्रकार',
-    'suitableFor': 'उपयुक्त',
-    'experience': 'अनुभव',
-    'availability': 'उपलब्धता',
-    'languages': 'भाषा ज्ञान',
-    'subjects': 'विषय',
-    'gradeLevel': 'कक्षा/तह',
-    'modeOfTeaching': 'पढाउने तरिका',
-    'companyName': 'कम्पनीको नाम',
-    'jobType': 'जागिर प्रकार',
-    'experienceRequired': 'आवश्यक अनुभव',
-    'educationRequired': 'आवश्यक शिक्षा',
-    'furnitureType': 'फर्निचर प्रकार',
-    'material': 'सामग्री',
-    'dimensions': 'आयाम (ल × चौ × उ)',
-    'assemblyRequired': 'जडान आवश्यक',
-    'seatingCapacity': 'बस्ने क्षमता',
-    'storageAvailable': 'भण्डारण उपलब्ध',
-    'style': 'शैली',
-    'sportType': 'खेलकुद प्रकार',
-    'instrumentType': 'बाजा प्रकार',
-    'machineryType': 'मेसिनरी प्रकार',
-    'powerSource': 'शक्ति स्रोत',
-    'quantity': 'उपलब्ध मात्रा',
-    'expiryDate': 'म्याद सकिने मिति',
-    'cropType': 'बाली/बिरुवा प्रकार',
-    'farmingToolType': 'कृषि औजार प्रकार',
-  };
-
+  /// Fallback Nepali for option values whose field ships no `optionsNe`.
   static const _valueMapNe = {
     // Condition
     'Brand New': 'नयाँ',
