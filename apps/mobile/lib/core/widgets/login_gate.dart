@@ -350,7 +350,7 @@ class LoginGateScreen extends StatelessWidget {
         20,
         12,
         20,
-        20 + MediaQuery.viewPaddingOf(context).bottom,
+        20 + MediaQuery.paddingOf(context).bottom,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,

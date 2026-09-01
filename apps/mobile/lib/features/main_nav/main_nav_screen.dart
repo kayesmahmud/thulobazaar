@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:mobile/core/widgets/floating_tab_bar.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:mobile/core/theme/app_font.dart';
+import 'package:mobile/core/theme/app_theme.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
@@ -44,6 +47,11 @@ class _MainNavScreenState extends State<MainNavScreen> {
   // Set by HomeScreen when the server has newer ads than the loaded feed;
   // drives the dot on the Home tab icon.
   final ValueNotifier<bool> _homeHasNewAds = ValueNotifier(false);
+
+  // The floating bar shrinks while a feed scrolls down; the timer grows it
+  // back once the finger stops. Owned here because every tab shares one bar.
+  final ValueNotifier<bool> _compact = ValueNotifier(false);
+  Timer? _idle;
   late final Set<int> _visitedTabs;
 
   // Breadcrumb of NON-Home tabs in visit order (most recent last).
@@ -106,6 +114,8 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   @override
   void dispose() {
+    _idle?.cancel();
+    _compact.dispose();
     _homeHasNewAds.dispose();
     super.dispose();
   }
@@ -134,7 +144,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      // Green, not brand red: the active Home icon is red now,
+                      // so a red dot would vanish into it.
+                      color: AppTheme.success,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
@@ -160,6 +172,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
       }
       _selectedIndex = screenIndex;
     });
+    _compact.value = false;
   }
 
   void _handleHomeSearch(String query) {
@@ -196,15 +209,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
     });
   }
 
-  // Convert nav index to screen index (nav 2 is FAB spacer, skip it)
-  int _navToScreen(int navIndex) => navIndex > 2 ? navIndex - 1 : navIndex;
-  // Convert screen index to nav index
-  int _screenToNav(int screenIndex) =>
-      screenIndex >= 2 ? screenIndex + 1 : screenIndex;
-
-  void _onItemTapped(int index) {
-    if (index == 2) return; // FAB spacer — ignore tap
-    final screenIndex = _navToScreen(index);
+  void _onTabTapped(int screenIndex) {
     if (screenIndex == _homeIndex && _selectedIndex == _homeIndex) {
       // Re-tap on the active Home tab: back to the top + refresh the feed
       // (Instagram-style), whether or not the new-ads dot is showing.
@@ -212,6 +217,67 @@ class _MainNavScreenState extends State<MainNavScreen> {
       return;
     }
     _selectTab(screenIndex);
+  }
+
+  // Only vertical scrolls drive the bar; category carousels are horizontal.
+  bool _onScroll(ScrollNotification n) {
+    if (n is! ScrollUpdateNotification || n.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    final delta = n.scrollDelta ?? 0;
+    if (delta > 3 && n.metrics.pixels > 60) _compact.value = true;
+    if (delta < -3) _compact.value = false;
+    _idle?.cancel();
+    _idle = Timer(const Duration(milliseconds: 220), () {
+      if (mounted) _compact.value = false;
+    });
+    return false;
+  }
+
+  // Chats icon with the unread count; the badge pops in when the count changes.
+  Widget _buildChatsIcon() {
+    return Consumer<ChatProvider>(
+      builder: (context, chatProvider, _) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(LucideIcons.messageCircle),
+          if (chatProvider.unreadCount > 0)
+            Positioned(
+              right: -6,
+              top: -4,
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(chatProvider.unreadCount),
+                tween: Tween(begin: 1.4, end: 1.0),
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.elasticOut,
+                builder: (context, scale, child) =>
+                    Transform.scale(scale: scale, child: child),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: FloatingTabBar.brand,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '${chatProvider.unreadCount}',
+                    textAlign: TextAlign.center,
+                    style: AppFont.inter(
+                      color: Colors.white,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      height: 1.7,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   // Sends the app to the background on Android (no-op elsewhere).
@@ -228,11 +294,21 @@ class _MainNavScreenState extends State<MainNavScreen> {
   //   trail not empty -> step back to the previous tab (Home once it empties).
   //   on Home         -> send the app to the background (stays alive in Recents).
   void _handleBackPress() {
+    // An open drawer (or any other local history entry, e.g. a bottom sheet)
+    // must close first. PopScope(canPop: false) is consulted BEFORE the
+    // route's local history, so without this Back would background the app
+    // while the drawer is still open.
+    final route = ModalRoute.of(context);
+    if (route != null && route.willHandlePopInternally) {
+      Navigator.of(context).pop();
+      return;
+    }
     if (_tabHistory.isNotEmpty) {
       setState(() {
         _tabHistory.removeLast();
         _selectedIndex = _tabHistory.isEmpty ? _homeIndex : _tabHistory.last;
       });
+      _compact.value = false;
       return;
     }
     _moveToBackground();
@@ -272,140 +348,69 @@ class _MainNavScreenState extends State<MainNavScreen> {
         if (!didPop) _handleBackPress();
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            if (_visitedTabs.contains(0))
-              HomeScreen(
-                key: _homeKey,
-                onSearch: _handleHomeSearch,
-                onCategoryTap: _handleCategoryTap,
-                onViewAllAds: _handleViewAllAds,
-                newAdsNotifier: _homeHasNewAds,
-              )
-            else
-              const SizedBox.shrink(),
-            if (_visitedTabs.contains(1))
-              SearchScreen(key: _searchKey)
-            else
-              const SizedBox.shrink(),
-            if (_visitedTabs.contains(2))
-              const MessagesScreen()
-            else
-              const SizedBox.shrink(),
-            if (_visitedTabs.contains(3))
-              const ProfileScreen()
-            else
-              const SizedBox.shrink(),
-          ],
+        // The bar floats: content scrolls underneath it. Each tab pads its
+        // own bottom by MediaQuery.paddingOf(context).bottom, which the
+        // Scaffold sets to FloatingTabBar.reservedHeight.
+        extendBody: true,
+        body: NotificationListener<ScrollNotification>(
+          onNotification: _onScroll,
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              if (_visitedTabs.contains(0))
+                HomeScreen(
+                  key: _homeKey,
+                  onSearch: _handleHomeSearch,
+                  onCategoryTap: _handleCategoryTap,
+                  onViewAllAds: _handleViewAllAds,
+                  newAdsNotifier: _homeHasNewAds,
+                )
+              else
+                const SizedBox.shrink(),
+              if (_visitedTabs.contains(1))
+                SearchScreen(key: _searchKey)
+              else
+                const SizedBox.shrink(),
+              if (_visitedTabs.contains(2))
+                const MessagesScreen()
+              else
+                const SizedBox.shrink(),
+              if (_visitedTabs.contains(3))
+                const ProfileScreen()
+              else
+                const SizedBox.shrink(),
+            ],
+          ),
         ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
+        bottomNavigationBar: ValueListenableBuilder<bool>(
+          valueListenable: _compact,
+          builder: (context, compact, _) => FloatingTabBar(
+            // `.tr()` reads a static and registers no dependency, so without
+            // this key the labels stayed in the old language until the next
+            // setState. Reading the locale here subscribes this build to it.
+            key: ValueKey(Localizations.localeOf(context).languageCode),
+            compact: compact,
+            currentIndex: _selectedIndex,
+            onTap: _onTabTapped,
+            onPost: _navigateToPostAd,
+            postLabel: 'gate.postAd.cta'.tr(),
+            items: [
+              FloatingTabItem(icon: _buildHomeIcon(), label: 'nav.home'.tr()),
+              FloatingTabItem(
+                icon: const Icon(LucideIcons.search),
+                label: 'nav.search'.tr(),
+              ),
+              FloatingTabItem(
+                icon: _buildChatsIcon(),
+                label: 'nav.messages'.tr(),
+              ),
+              FloatingTabItem(
+                icon: const Icon(LucideIcons.user),
+                label: 'nav.profile'.tr(),
               ),
             ],
           ),
-          child: Consumer<ChatProvider>(
-            builder: (context, chatProvider, child) {
-              return BottomNavigationBar(
-                currentIndex: _screenToNav(_selectedIndex),
-                onTap: _onItemTapped,
-                type: BottomNavigationBarType.fixed,
-                backgroundColor: Colors.white,
-                selectedItemColor: const Color(0xFF10B981),
-                unselectedItemColor: Colors.grey[400],
-                selectedLabelStyle: AppFont.inter(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-                unselectedLabelStyle: AppFont.inter(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                ),
-                items: [
-                  BottomNavigationBarItem(
-                    icon: _buildHomeIcon(),
-                    activeIcon: _buildHomeIcon(),
-                    label: 'nav.home'.tr(),
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(LucideIcons.search),
-                    activeIcon: const Icon(LucideIcons.search),
-                    label: 'nav.search'.tr(),
-                  ),
-                  // Spacer for FAB — invisible, FAB covers this slot
-                  const BottomNavigationBarItem(
-                    icon: SizedBox.shrink(),
-                    label: '',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Stack(
-                      children: [
-                        const Icon(LucideIcons.messageCircle),
-                        if (chatProvider.unreadCount > 0)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: TweenAnimationBuilder<double>(
-                              key: ValueKey(chatProvider.unreadCount),
-                              tween: Tween(begin: 1.4, end: 1.0),
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.elasticOut,
-                              builder: (context, scale, child) {
-                                return Transform.scale(
-                                  scale: scale,
-                                  child: child,
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 14,
-                                  minHeight: 14,
-                                ),
-                                child: Text(
-                                  '${chatProvider.unreadCount}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    activeIcon: const Icon(LucideIcons.messageCircle),
-                    label: 'nav.messages'.tr(),
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(LucideIcons.user),
-                    activeIcon: const Icon(LucideIcons.user),
-                    label: 'nav.profile'.tr(),
-                  ),
-                ],
-              );
-            },
-          ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _navigateToPostAd,
-          backgroundColor: const Color(0xFF10B981),
-          shape: const CircleBorder(),
-          elevation: 4,
-          child: const Icon(LucideIcons.plus, color: Colors.white, size: 32),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
     );
   }

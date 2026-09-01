@@ -251,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               constraints: const BoxConstraints(minHeight: 500),
               child: _buildTabContent(),
             ),
-            const SizedBox(height: 100), // Bottom padding
+            SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom),
           ],
         ),
       ),

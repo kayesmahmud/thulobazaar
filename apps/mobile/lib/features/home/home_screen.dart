@@ -415,7 +415,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
 
-                    const SliverToBoxAdapter(child: SizedBox(height: 50)),
+                    // Clears the floating tab bar (Scaffold puts its height in
+                    // MediaQuery padding) plus breathing room.
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 24 + MediaQuery.paddingOf(context).bottom,
+                      ),
+                    ),
                   ],
                 ),
               ),

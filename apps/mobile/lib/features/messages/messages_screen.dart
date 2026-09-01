@@ -62,7 +62,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
         body: Skeletonizer(
           enabled: true,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.only(
+              top: 8,
+              bottom: 8 + MediaQuery.paddingOf(context).bottom,
+            ),
             itemCount: 5,
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) => _buildConversationItem(
@@ -95,7 +98,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
           return Skeletonizer(
             enabled: true,
             child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.only(
+                top: 8,
+                bottom: 8 + MediaQuery.paddingOf(context).bottom,
+              ),
               itemCount: 5,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) => _buildConversationItem(
@@ -126,7 +132,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
               Expanded(
                 child: ListView.separated(
                   cacheExtent: 500,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.only(
+                    top: 8,
+                    bottom: 8 + MediaQuery.paddingOf(context).bottom,
+                  ),
                   itemCount: chatProvider.conversations.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {

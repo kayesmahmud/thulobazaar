@@ -432,7 +432,12 @@ class SearchScreenState extends State<SearchScreen> {
       return Skeletonizer(
         enabled: true,
         child: GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.paddingOf(context).bottom,
+          ),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             childAspectRatio: 0.65,
@@ -489,7 +494,12 @@ class SearchScreenState extends State<SearchScreen> {
       child: GridView.builder(
         controller: _scrollController,
         cacheExtent: 500,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.paddingOf(context).bottom,
+        ),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.65,
