@@ -56,44 +56,8 @@ describe('Auth Routes', () => {
       expect(response.body.success).toBe(false);
     });
 
-    it('should return 400 when email already exists', async () => {
+    it('rejects email registration: sign-up is phone OTP or OAuth only now', async () => {
       const { prisma } = await import('@thulobazaar/database');
-      vi.mocked(prisma.users.findUnique).mockResolvedValue({
-        id: 1,
-        email: 'test@test.com',
-      } as any);
-
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'test@test.com',
-          password: 'test123',
-          fullName: 'Test User',
-        });
-
-      expect(response.status).toBe(400);
-      expect(response.body.message).toContain('already exists');
-    });
-
-    it('should successfully register a new user', async () => {
-      const { prisma } = await import('@thulobazaar/database');
-
-      // User doesn't exist
-      vi.mocked(prisma.users.findUnique).mockResolvedValue(null);
-      // Slug doesn't exist
-      vi.mocked(prisma.users.findFirst).mockResolvedValue(null);
-      // Create user
-      vi.mocked(prisma.users.create).mockResolvedValue({
-        id: 1,
-        email: 'new@test.com',
-        full_name: 'New User',
-        phone: null,
-        created_at: new Date(),
-        account_type: 'individual',
-        shop_slug: 'new-user',
-        business_verification_status: null,
-        individual_verified: false,
-      } as any);
 
       const response = await request(app)
         .post('/api/auth/register')
@@ -103,10 +67,10 @@ describe('Auth Routes', () => {
           fullName: 'New User',
         });
 
-      expect(response.status).toBe(201);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.token).toBeDefined();
-      expect(response.body.data.user.email).toBe('new@test.com');
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('no longer supported');
+      expect(prisma.users.create).not.toHaveBeenCalled();
     });
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import request from 'supertest';
+import { browserRequest } from '../helpers/browserRequest.js';
 import { createApp } from '../../app.js';
 
 // Mock Prisma
@@ -69,7 +69,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.$queryRaw).mockResolvedValue(mockCategories as any);
 
-      const response = await request(app).get('/api/categories');
+      const response = await browserRequest(app).get('/api/categories');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -83,7 +83,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.categories.findMany).mockResolvedValue([mockCategoryWithSubcategories] as any);
 
-      const response = await request(app).get('/api/categories?includeSubcategories=true');
+      const response = await browserRequest(app).get('/api/categories?includeSubcategories=true');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -96,7 +96,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.$queryRaw).mockResolvedValue([]);
 
-      const response = await request(app).get('/api/categories');
+      const response = await browserRequest(app).get('/api/categories');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -113,7 +113,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.categories.findUnique).mockResolvedValue(mockCategoryWithSubcategories as any);
 
-      const response = await request(app).get('/api/categories/1');
+      const response = await browserRequest(app).get('/api/categories/1');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -126,7 +126,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.categories.findFirst).mockResolvedValue(mockCategoryWithSubcategories as any);
 
-      const response = await request(app).get('/api/categories/electronics');
+      const response = await browserRequest(app).get('/api/categories/electronics');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -138,7 +138,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.categories.findUnique).mockResolvedValue(null);
 
-      const response = await request(app).get('/api/categories/999');
+      const response = await browserRequest(app).get('/api/categories/999');
 
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
@@ -149,7 +149,7 @@ describe('Categories Routes', () => {
 
       vi.mocked(prisma.categories.findUnique).mockResolvedValue(mockCategoryWithSubcategories as any);
 
-      const response = await request(app).get('/api/categories/1');
+      const response = await browserRequest(app).get('/api/categories/1');
 
       expect(response.status).toBe(200);
       expect(response.body.category.other_categories).toBeDefined();
@@ -162,7 +162,7 @@ describe('Categories Routes', () => {
   // ==========================================
   describe('POST /api/categories', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/categories')
         .send({ name: 'New Category' });
 
@@ -181,7 +181,7 @@ describe('Categories Routes', () => {
   // ==========================================
   describe('PUT /api/categories/:id', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app)
+      const response = await browserRequest(app)
         .put('/api/categories/1')
         .send({ name: 'Updated Category' });
 
@@ -194,7 +194,7 @@ describe('Categories Routes', () => {
   // ==========================================
   describe('DELETE /api/categories/:id', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app).delete('/api/categories/1');
+      const response = await browserRequest(app).delete('/api/categories/1');
 
       expect(response.status).toBe(401);
     });

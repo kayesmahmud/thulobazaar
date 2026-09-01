@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import request from 'supertest';
+import { browserRequest } from '../helpers/browserRequest.js';
 import { createApp } from '../../app.js';
 
 // Mock Prisma
@@ -75,7 +75,7 @@ describe('Editor Routes', () => {
   // ==========================================
   describe('POST /api/editor/auth/login', () => {
     it('should return 400 when email is missing', async () => {
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ password: 'test123' });
 
@@ -84,7 +84,7 @@ describe('Editor Routes', () => {
     });
 
     it('should return 400 when password is missing', async () => {
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'editor@thulobazaar.com.np' });
 
@@ -100,7 +100,7 @@ describe('Editor Routes', () => {
         role: 'user', // Regular user, not editor
       } as any);
 
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'user@test.com', password: 'test123' });
 
@@ -114,7 +114,7 @@ describe('Editor Routes', () => {
       vi.mocked(prisma.users.findUnique).mockResolvedValue(mockEditor as any);
       vi.mocked(bcrypt.default.compare).mockResolvedValue(false as never);
 
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'editor@thulobazaar.com.np', password: 'wrongpassword' });
 
@@ -129,7 +129,7 @@ describe('Editor Routes', () => {
         is_active: false,
       } as any);
 
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'editor@thulobazaar.com.np', password: 'test123' });
 
@@ -144,7 +144,7 @@ describe('Editor Routes', () => {
       vi.mocked(bcrypt.default.compare).mockResolvedValue(true as never);
       vi.mocked(prisma.users.update).mockResolvedValue(mockEditor as any);
 
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'editor@thulobazaar.com.np', password: 'editor123' });
 
@@ -162,7 +162,7 @@ describe('Editor Routes', () => {
       vi.mocked(bcrypt.default.compare).mockResolvedValue(true as never);
       vi.mocked(prisma.users.update).mockResolvedValue(mockAdmin as any);
 
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'admin@thulobazaar.com.np', password: 'admin123' });
 
@@ -179,7 +179,7 @@ describe('Editor Routes', () => {
       vi.mocked(bcrypt.default.compare).mockResolvedValue(true as never);
       vi.mocked(prisma.users.update).mockResolvedValue(mockEditor as any);
 
-      await request(app)
+      await browserRequest(app)
         .post('/api/editor/auth/login')
         .send({ email: 'editor@thulobazaar.com.np', password: 'editor123' });
 
@@ -197,7 +197,7 @@ describe('Editor Routes', () => {
   // ==========================================
   describe('GET /api/editor/profile', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app).get('/api/editor/profile');
+      const response = await browserRequest(app).get('/api/editor/profile');
 
       expect(response.status).toBe(401);
     });
@@ -208,7 +208,7 @@ describe('Editor Routes', () => {
   // ==========================================
   describe('GET /api/editor/stats', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app).get('/api/editor/stats');
+      const response = await browserRequest(app).get('/api/editor/stats');
 
       expect(response.status).toBe(401);
     });
@@ -219,7 +219,7 @@ describe('Editor Routes', () => {
   // ==========================================
   describe('GET /api/editor/ads', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app).get('/api/editor/ads');
+      const response = await browserRequest(app).get('/api/editor/ads');
 
       expect(response.status).toBe(401);
     });
@@ -230,7 +230,7 @@ describe('Editor Routes', () => {
   // ==========================================
   describe('GET /api/editor/verifications', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app).get('/api/editor/verifications');
+      const response = await browserRequest(app).get('/api/editor/verifications');
 
       expect(response.status).toBe(401);
     });

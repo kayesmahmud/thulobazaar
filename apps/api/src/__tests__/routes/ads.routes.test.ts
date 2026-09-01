@@ -20,9 +20,18 @@ vi.mock('@thulobazaar/database', () => ({
     },
     categories: {
       findUnique: vi.fn(),
+      // Category filters expand to the parent + its subcategories; none by default
+      findMany: vi.fn(async () => []),
     },
     locations: {
       findUnique: vi.fn(),
+      // Location filters expand to descendant locations; none by default
+      findMany: vi.fn(async () => []),
+    },
+    // The public detail response carries a favourites count
+    user_favorites: {
+      count: vi.fn(async () => 0),
+      findFirst: vi.fn(async () => null),
     },
   },
 }));
@@ -133,10 +142,11 @@ describe('Ads Routes', () => {
       const response = await request(app).get('/api/ads?category=1');
 
       expect(response.status).toBe(200);
+      // The filter covers the category and all its subcategories (none mocked here)
       expect(prisma.ads.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            category_id: 1,
+            category_id: { in: [1] },
           }),
         })
       );
@@ -151,10 +161,11 @@ describe('Ads Routes', () => {
       const response = await request(app).get('/api/ads?location=1');
 
       expect(response.status).toBe(200);
+      // The filter covers the location and all its descendants (none mocked here)
       expect(prisma.ads.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            location_id: 1,
+            location_id: { in: [1] },
           }),
         })
       );

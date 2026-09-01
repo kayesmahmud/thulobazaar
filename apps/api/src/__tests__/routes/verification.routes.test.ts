@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import request from 'supertest';
+import { browserRequest } from '../helpers/browserRequest.js';
 import { createApp } from '../../app.js';
 
 // Mock Prisma
@@ -32,7 +32,7 @@ describe('Verification Routes', () => {
   // ==========================================
   describe('GET /api/verification/status', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app).get('/api/verification/status');
+      const response = await browserRequest(app).get('/api/verification/status');
 
       expect(response.status).toBe(401);
     });
@@ -59,7 +59,7 @@ describe('Verification Routes', () => {
   // ==========================================
   describe('POST /api/verification/business', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/verification/business')
         .send({ businessName: 'Test Business', licenseDocument: 'license.pdf' });
 
@@ -72,7 +72,7 @@ describe('Verification Routes', () => {
   // ==========================================
   describe('POST /api/verification/individual', () => {
     it('should return 401 without authentication', async () => {
-      const response = await request(app)
+      const response = await browserRequest(app)
         .post('/api/verification/individual')
         .send({ documentUrls: ['doc1.pdf'] });
 
