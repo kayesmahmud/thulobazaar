@@ -11,11 +11,12 @@ export function useReportedAds() {
   const [tabCounts, setTabCounts] = useState<TabCounts>({ pending: 0, resolved: 0, dismissed: 0, restored: 0 });
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadReportedAds = useCallback(async (status: TabStatus, page: number = 1) => {
+  const loadReportedAds = useCallback(async (status: TabStatus, page: number = 1, search: string = '') => {
     try {
       setLoading(true);
       const response = await getReportedAds<ReportedAd>(undefined, {
         status,
+        search: search || undefined,
         page,
         limit: 20,
       });

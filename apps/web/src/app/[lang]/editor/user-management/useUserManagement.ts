@@ -27,7 +27,8 @@ interface UseUserManagementReturn {
 
   // Filters
   searchTerm: string;
-  setSearchTerm: (term: string) => void;
+  /** Commit a search term (explicit submit) and jump back to page 1. */
+  handleSearch: (term: string) => void;
   statusFilter: StatusFilter;
   setStatusFilter: (filter: StatusFilter) => void;
 
@@ -75,6 +76,11 @@ export function useUserManagement(lang: string): UseUserManagementReturn {
     await logout();
     router.push(`/${lang}/editor/login`);
   }, [logout, router, lang]);
+
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  }, []);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -258,7 +264,7 @@ export function useUserManagement(lang: string): UseUserManagementReturn {
     setPage,
     totalPages,
     searchTerm,
-    setSearchTerm,
+    handleSearch,
     statusFilter,
     setStatusFilter,
     selectedUser,

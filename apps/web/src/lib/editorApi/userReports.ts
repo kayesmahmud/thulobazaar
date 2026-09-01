@@ -8,6 +8,7 @@ import type { ApiResponse } from './types';
 
 export interface ReportedUsersParams {
   status?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }

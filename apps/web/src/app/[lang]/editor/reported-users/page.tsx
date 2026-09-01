@@ -3,6 +3,7 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
+import { EditorSearchBar } from '@/components/editor';
 import { getEditorNavSections } from '@/lib/navigation';
 import { useReportedUsersPage, TabsBar, StatsCards, ReportCard } from './components';
 
@@ -19,7 +20,7 @@ export default function ReportedUsersPage({ params: paramsPromise }: { params: P
     actionLoading,
     activeTab,
     searchTerm,
-    setSearchTerm,
+    handleSearch,
     tabCounts,
     handleLogout,
     handleTabChange,
@@ -71,12 +72,10 @@ export default function ReportedUsersPage({ params: paramsPromise }: { params: P
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <input
-            type="text"
-            placeholder="Search by user name, reporter, email, or reason..."
+          <EditorSearchBar
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            onSearch={handleSearch}
+            placeholder="Search by user name, reporter, email, or reason..."
           />
         </div>
 

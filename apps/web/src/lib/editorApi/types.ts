@@ -218,6 +218,7 @@ export interface GetAdsParams {
 
 export interface ReportedAdsParams {
   status?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -314,6 +315,7 @@ export interface ReportedShop {
 
 export interface ReportedShopsParams {
   status?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }

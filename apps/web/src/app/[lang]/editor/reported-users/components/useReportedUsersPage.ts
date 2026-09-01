@@ -27,7 +27,12 @@ export function useReportedUsersPage(lang: string) {
     async (status: TabStatus) => {
       try {
         setLoading(true);
-        const response = await getReportedUsers<ReportedUser>(undefined, { status, page, limit: 50 });
+        const response = await getReportedUsers<ReportedUser>(undefined, {
+          status,
+          search: searchTerm || undefined,
+          page,
+          limit: 50,
+        });
         setReports(response.success && Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Error loading reported users:', error);
@@ -36,7 +41,7 @@ export function useReportedUsersPage(lang: string) {
         setLoading(false);
       }
     },
-    [page]
+    [page, searchTerm]
   );
 
   const loadTabCounts = useCallback(async () => {
@@ -116,24 +121,21 @@ export function useReportedUsersPage(lang: string) {
     }
   };
 
-  const filteredReports = reports.filter((report) =>
-    searchTerm
-      ? report.reportedUserName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reporterName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reportedUserEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reason?.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
+  // Search is server-side across every page; it only runs on an explicit submit
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  };
 
   return {
     staff,
     authLoading,
-    reports: filteredReports,
+    reports,
     loading,
     actionLoading,
     activeTab,
     searchTerm,
-    setSearchTerm,
+    handleSearch,
     tabCounts,
     handleLogout,
     handleTabChange,

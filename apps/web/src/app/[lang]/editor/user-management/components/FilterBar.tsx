@@ -1,34 +1,28 @@
 'use client';
 
+import { EditorSearchBar } from '@/components/editor';
 import type { StatusFilter } from '../types';
 
 interface FilterBarProps {
   searchTerm: string;
-  onSearchChange: (term: string) => void;
+  onSearch: (term: string) => void;
   statusFilter: StatusFilter;
   onStatusChange: (filter: StatusFilter) => void;
 }
 
 export default function FilterBar({
   searchTerm,
-  onSearchChange,
+  onSearch,
   statusFilter,
   onStatusChange,
 }: FilterBarProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-        />
+      <EditorSearchBar value={searchTerm} onSearch={onSearch} placeholder="Search by name or email...">
         <select
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value as StatusFilter)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+          className="min-h-[44px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:w-64"
         >
           <option value="all">All Users</option>
           <option value="active">Active Only</option>
@@ -37,7 +31,7 @@ export default function FilterBar({
           <option value="individual-verified">Individual Verified Only</option>
           <option value="business-verified">Business Verified Only</option>
         </select>
-      </div>
+      </EditorSearchBar>
     </div>
   );
 }

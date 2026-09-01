@@ -3,6 +3,7 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
+import { EditorSearchBar } from '@/components/editor';
 import { getEditorNavSections } from '@/lib/navigation';
 import {
   useIndividualVerificationPage,
@@ -86,12 +87,10 @@ export default function IndividualVerificationPage({ params: paramsPromise }: { 
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <input
-            type="text"
-            placeholder="Search by name, email, or seller name..."
+          <EditorSearchBar
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            onSearch={setSearchTerm}
+            placeholder="Search by name, email, or seller name..."
           />
         </div>
 

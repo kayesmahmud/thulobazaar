@@ -28,7 +28,7 @@ export default function UserManagementPage({ params: paramsPromise }: { params: 
     setPage,
     totalPages,
     searchTerm,
-    setSearchTerm,
+    handleSearch,
     statusFilter,
     setStatusFilter,
     selectedUser,
@@ -95,7 +95,7 @@ export default function UserManagementPage({ params: paramsPromise }: { params: 
         {/* Filters */}
         <FilterBar
           searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearch={handleSearch}
           statusFilter={statusFilter}
           onStatusChange={setStatusFilter}
         />

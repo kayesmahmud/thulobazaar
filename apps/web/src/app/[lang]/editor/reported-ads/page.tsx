@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
+import { EditorSearchBar } from '@/components/editor';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getEditorNavSections } from '@/lib/navigation';
 import { markSectionSeen } from '@/lib/editorApi';
-import { ReportTabs, StatsCards, SearchBar, ReportsList } from './components';
+import { ReportTabs, StatsCards, ReportsList } from './components';
 import { useReportedAds } from './useReportedAds';
 import { TABS, type TabStatus } from './types';
 import Pagination from '../ad-management/components/Pagination';
@@ -52,9 +53,9 @@ export default function ReportedAdsPage({ params: paramsPromise }: { params: Pro
       router.push(`/${params.lang}/editor/login`);
       return;
     }
-    loadReportedAds(activeTab, page);
+    loadReportedAds(activeTab, page, searchTerm);
     loadTabCounts();
-  }, [authLoading, staff, isEditor, params.lang, router, loadReportedAds, loadTabCounts, activeTab, page]);
+  }, [authLoading, staff, isEditor, params.lang, router, loadReportedAds, loadTabCounts, activeTab, page, searchTerm]);
 
   const handleTabChange = (tab: TabStatus) => {
     setActiveTab(tab);
@@ -62,14 +63,11 @@ export default function ReportedAdsPage({ params: paramsPromise }: { params: Pro
     setSearchTerm('');
   };
 
-  const filteredReports = reports.filter((report) =>
-    searchTerm
-      ? report.adTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reporterName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.sellerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reason?.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
+  // Search is server-side across every page; it only runs on an explicit submit
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  };
 
   if (authLoading) {
     return (
@@ -117,15 +115,21 @@ export default function ReportedAdsPage({ params: paramsPromise }: { params: Pro
 
         {/* Stats - Only show for pending tab */}
         {activeTab === 'pending' && (
-          <StatsCards tabCounts={tabCounts} filteredReports={filteredReports} />
+          <StatsCards tabCounts={tabCounts} filteredReports={reports} />
         )}
 
         {/* Search Bar */}
-        <SearchBar value={searchTerm} onChange={setSearchTerm} />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <EditorSearchBar
+            value={searchTerm}
+            onSearch={handleSearch}
+            placeholder="Search by ad title, reporter, seller, or reason..."
+          />
+        </div>
 
         {/* Reports List */}
         <ReportsList
-          reports={filteredReports}
+          reports={reports}
           loading={loading}
           activeTab={activeTab}
           lang={params.lang}

@@ -11,3 +11,4 @@ export { EditorLoadingScreen } from './EditorLoadingScreen';
 export { EditorModal } from './EditorModal';
 export { EditorPageHeader } from './EditorPageHeader';
 export { EditorStatsCard } from './EditorStatsCard';
+export { EditorSearchBar } from './EditorSearchBar';

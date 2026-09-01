@@ -31,7 +31,8 @@ export function useIndividualVerificationPage(lang: string) {
   const loadVerifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getVerifications(activeTab, 'individual');
+      // Search is server-side (all records), committed only on an explicit submit
+      const response = await getVerifications(activeTab, 'individual', undefined, undefined, undefined, searchTerm || undefined);
 
       if (response.success && Array.isArray(response.data)) {
         const individualVerifications = response.data.map((v: any) => ({
@@ -70,7 +71,7 @@ export function useIndividualVerificationPage(lang: string) {
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, searchTerm]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -130,14 +131,6 @@ export function useIndividualVerificationPage(lang: string) {
     }
   };
 
-  const filteredVerifications = verifications.filter((v) =>
-    searchTerm
-      ? v.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.verifiedSellerName?.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
-
   const openRejectModal = (verification: IndividualVerification) => {
     setSelectedVerification(verification);
     setShowRejectModal(true);
@@ -153,7 +146,7 @@ export function useIndividualVerificationPage(lang: string) {
     staff,
     authLoading,
     loading,
-    verifications: filteredVerifications,
+    verifications,
     activeTab,
     setActiveTab,
     searchTerm,

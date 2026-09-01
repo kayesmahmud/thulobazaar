@@ -31,7 +31,8 @@ export function useBusinessVerificationPage(lang: string) {
   const loadVerifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getVerifications(activeTab, 'business');
+      // Search is server-side (all records), committed only on an explicit submit
+      const response = await getVerifications(activeTab, 'business', undefined, undefined, undefined, searchTerm || undefined);
 
       if (response.success && Array.isArray(response.data)) {
         const businessVerifications = response.data.map((v: any) => ({
@@ -66,7 +67,7 @@ export function useBusinessVerificationPage(lang: string) {
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, searchTerm]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -126,14 +127,6 @@ export function useBusinessVerificationPage(lang: string) {
     }
   };
 
-  const filteredVerifications = verifications.filter((v) =>
-    searchTerm
-      ? v.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
-
   const openRejectModal = (verification: BusinessVerification) => {
     setSelectedVerification(verification);
     setShowRejectModal(true);
@@ -149,7 +142,7 @@ export function useBusinessVerificationPage(lang: string) {
     staff,
     authLoading,
     loading,
-    verifications: filteredVerifications,
+    verifications,
     activeTab,
     setActiveTab,
     searchTerm,

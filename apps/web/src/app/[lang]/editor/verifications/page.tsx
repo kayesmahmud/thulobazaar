@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/admin';
+import { EditorSearchBar } from '@/components/editor';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { getVerifications } from '@/lib/editorApi';
 import { getEditorNavSections } from '@/lib/navigation';
@@ -50,7 +51,12 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
     router.push(`/${params.lang}/editor/login`);
   }, [logout, router, params.lang]);
 
-  const loadVerifications = useCallback(async (currentPage: number = 1, status: string = 'all', type: string = 'all') => {
+  const loadVerifications = useCallback(async (
+    currentPage: number = 1,
+    status: string = 'all',
+    type: string = 'all',
+    search: string = ''
+  ) => {
     try {
       setLoading(true);
 
@@ -59,7 +65,8 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
         type as 'all' | 'business' | 'individual',
         undefined,
         currentPage,
-        ITEMS_PER_PAGE
+        ITEMS_PER_PAGE,
+        search || undefined
       );
 
       if (response.success && response.data) {
@@ -101,8 +108,8 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
       return;
     }
 
-    loadVerifications(page, activeTab, typeFilter);
-  }, [authLoading, staff, isEditor, params.lang, router, loadVerifications, page, activeTab, typeFilter]);
+    loadVerifications(page, activeTab, typeFilter, searchTerm);
+  }, [authLoading, staff, isEditor, params.lang, router, loadVerifications, page, activeTab, typeFilter, searchTerm]);
 
   // Reset page when filters change
   const handleTabChange = (tab: 'all' | 'pending' | 'approved' | 'rejected') => {
@@ -115,18 +122,11 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
     setPage(1);
   };
 
-  // Client-side search filtering (search is applied to the current page's data)
-  const filteredVerifications = verifications.filter((v) => {
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      return (
-        v.email?.toLowerCase().includes(search) ||
-        v.fullName?.toLowerCase().includes(search) ||
-        v.businessName?.toLowerCase().includes(search)
-      );
-    }
-    return true;
-  });
+  // Search is server-side across every page; it only runs on an explicit submit
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  };
 
   if (authLoading || loading) {
     return (
@@ -186,30 +186,26 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
           </div>
 
           {/* Type and Search Filters */}
-          <div className="flex gap-4 flex-wrap items-center">
+          <EditorSearchBar
+            value={searchTerm}
+            onSearch={handleSearch}
+            placeholder="Search by email, name, or business..."
+          >
             <select
               value={typeFilter}
               onChange={(e) => handleTypeFilterChange(e.target.value as 'all' | 'business' | 'individual')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="min-h-[44px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="all">All Types</option>
               <option value="business">Business Only</option>
               <option value="individual">Individual Only</option>
             </select>
-
-            <input
-              type="text"
-              placeholder="Search by email, name, or business..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
+          </EditorSearchBar>
         </div>
 
         {/* Verifications List */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {filteredVerifications.length === 0 ? (
+          {verifications.length === 0 ? (
             <div className="p-12 text-center">
               <div className="text-6xl mb-4">📋</div>
               <div className="text-xl font-semibold text-gray-700 mb-2">No verifications found</div>
@@ -248,7 +244,7 @@ export default function AllVerificationsPage({ params: paramsPromise }: { params
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredVerifications.map((verification) => (
+                  {verifications.map((verification) => (
                     <tr key={`${verification.type}-${verification.id}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

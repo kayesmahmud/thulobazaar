@@ -10,6 +10,7 @@ import { requireEditor } from '@/lib/auth';
  * Query params:
  * - status: 'pending' | 'rejected' | 'approved' | 'all' (default: 'pending')
  * - type: 'individual' | 'business' | 'all' (default: 'all')
+ * - search: matches applicant email / name, and business name (case-insensitive)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -36,14 +37,44 @@ export async function GET(request: NextRequest) {
       statusFilter = { status: 'pending' };
     }
 
+    // Optional search across the applicant's identity fields
+    const search = searchParams.get('search')?.trim() || '';
+    const contains = { contains: search, mode: 'insensitive' as const };
+    const businessWhere = search
+      ? {
+          ...statusFilter,
+          OR: [
+            { business_name: contains },
+            {
+              users_business_verification_requests_user_idTousers: {
+                OR: [{ email: contains }, { full_name: contains }],
+              },
+            },
+          ],
+        }
+      : statusFilter;
+    const individualWhere = search
+      ? {
+          ...statusFilter,
+          OR: [
+            { full_name: contains },
+            {
+              users_individual_verification_requests_user_idTousers: {
+                OR: [{ email: contains }, { full_name: contains }],
+              },
+            },
+          ],
+        }
+      : statusFilter;
+
     // Count totals for pagination
     let businessCount = 0;
     let individualCount = 0;
     if (typeParam === 'all' || typeParam === 'business') {
-      businessCount = await prisma.business_verification_requests.count({ where: statusFilter });
+      businessCount = await prisma.business_verification_requests.count({ where: businessWhere });
     }
     if (typeParam === 'all' || typeParam === 'individual') {
-      individualCount = await prisma.individual_verification_requests.count({ where: statusFilter });
+      individualCount = await prisma.individual_verification_requests.count({ where: individualWhere });
     }
     const total = businessCount + individualCount;
     const totalPages = Math.ceil(total / limit);
@@ -121,7 +152,7 @@ export async function GET(request: NextRequest) {
       const fetchLimit = typeParam === 'all' ? skip + limit : limit;
       const fetchSkip = typeParam === 'all' ? 0 : skip;
       businessVerifications = await prisma.business_verification_requests.findMany({
-        where: statusFilter,
+        where: businessWhere,
         select: businessSelect,
         orderBy: { created_at: 'desc' },
         take: fetchLimit,
@@ -135,7 +166,7 @@ export async function GET(request: NextRequest) {
       const fetchLimit = typeParam === 'all' ? skip + limit : limit;
       const fetchSkip = typeParam === 'all' ? 0 : skip;
       individualVerifications = await prisma.individual_verification_requests.findMany({
-        where: statusFilter,
+        where: individualWhere,
         select: individualSelect,
         orderBy: { created_at: 'desc' },
         take: fetchLimit,

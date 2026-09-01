@@ -11,6 +11,7 @@ import { requireEditor } from '@/lib/auth';
  * - status: 'pending' | 'resolved' | 'dismissed' (default: all)
  * - page: number (default: 1)
  * - limit: number (default: 50)
+ * - search: matches shop name/email, reporter name/email, or reason (case-insensitive)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const search = searchParams.get('search')?.trim() || '';
     const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const offset = (page - 1) * limit;
@@ -28,6 +30,14 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (status) {
       where.status = status;
+    }
+    if (search) {
+      const contains = { contains: search, mode: 'insensitive' as const };
+      where.OR = [
+        { shop: { OR: [{ business_name: contains }, { full_name: contains }, { email: contains }] } },
+        { reporter: { OR: [{ full_name: contains }, { email: contains }] } },
+        { reason: contains },
+      ];
     }
 
     // Get total count

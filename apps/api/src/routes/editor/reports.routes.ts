@@ -164,7 +164,7 @@ router.get(
   '/reported-ads',
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
-    const { status, limit = '10', page = '1' } = req.query;
+    const { status, limit = '10', page = '1', search } = req.query;
     const pageNum = Math.max(parseInt(page as string), 1);
     const limitNum = Math.min(parseInt(limit as string), 100);
     const offset = (pageNum - 1) * limitNum;
@@ -172,6 +172,17 @@ router.get(
     const where: any = {};
     if (status) {
       where.status = status;
+    }
+    // Optional search: ad title, seller, reporter, or reason
+    const term = typeof search === 'string' ? search.trim() : '';
+    if (term) {
+      const contains = { contains: term, mode: 'insensitive' as const };
+      where.OR = [
+        { ads: { title: contains } },
+        { ads: { users_ads_user_idTousers: { OR: [{ full_name: contains }, { email: contains }] } } },
+        { users: { OR: [{ full_name: contains }, { email: contains }] } },
+        { reason: contains },
+      ];
     }
 
     const total = await prisma.ad_reports.count({ where });
@@ -314,7 +325,7 @@ router.get(
   authenticateToken,
   requireEditorOrAdmin,
   catchAsync(async (req: Request, res: Response) => {
-    const { status, limit = '10', page = '1' } = req.query;
+    const { status, limit = '10', page = '1', search } = req.query;
     const pageNum = Math.max(parseInt(page as string), 1);
     const limitNum = Math.min(parseInt(limit as string), 100);
     const offset = (pageNum - 1) * limitNum;
@@ -322,6 +333,16 @@ router.get(
     const where: any = {};
     if (status) {
       where.status = status;
+    }
+    // Optional search: reported user, reporter, or reason
+    const term = typeof search === 'string' ? search.trim() : '';
+    if (term) {
+      const contains = { contains: term, mode: 'insensitive' as const };
+      where.OR = [
+        { reported: { OR: [{ full_name: contains }, { email: contains }] } },
+        { reporter: { OR: [{ full_name: contains }, { email: contains }] } },
+        { reason: contains },
+      ];
     }
 
     const total = await prisma.user_reports.count({ where });

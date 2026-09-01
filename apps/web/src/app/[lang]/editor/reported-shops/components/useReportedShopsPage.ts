@@ -34,6 +34,7 @@ export function useReportedShopsPage(lang: string) {
         setLoading(true);
         const response = await getReportedShops<ReportedShop>(undefined, {
           status,
+          search: searchTerm || undefined,
           page,
           limit: 50,
         });
@@ -50,7 +51,7 @@ export function useReportedShopsPage(lang: string) {
         setLoading(false);
       }
     },
-    [page]
+    [page, searchTerm]
   );
 
   const loadTabCounts = useCallback(async () => {
@@ -162,24 +163,21 @@ export function useReportedShopsPage(lang: string) {
     }
   };
 
-  const filteredReports = reports.filter((report) =>
-    searchTerm
-      ? report.shopName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reporterName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.shopEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.reason?.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
+  // Search is server-side across every page; it only runs on an explicit submit
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  };
 
   return {
     staff,
     authLoading,
-    reports: filteredReports,
+    reports,
     loading,
     actionLoading,
     activeTab,
     searchTerm,
-    setSearchTerm,
+    handleSearch,
     tabCounts,
     handleLogout,
     handleTabChange,

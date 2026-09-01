@@ -79,11 +79,13 @@ router.get(
       where.deleted_at = null;
     }
 
-    // Add search filter
+    // Add search filter: title, description, or seller (the UI placeholder promises all three)
     if (search) {
+      const contains = { contains: search as string, mode: 'insensitive' as const };
       where.OR = [
-        { title: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } },
+        { title: contains },
+        { description: contains },
+        { users_ads_user_idTousers: { OR: [{ full_name: contains }, { email: contains }] } },
       ];
     }
 

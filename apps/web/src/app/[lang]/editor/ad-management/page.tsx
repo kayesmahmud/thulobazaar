@@ -14,8 +14,9 @@ import {
   AdHistoryModal,
   EditHistoryModal,
   RecentOwnerEditsModal,
+  EditorSearchBar,
 } from '@/components/editor';
-import { AdTabs, AdSearchBar, AdsList, Pagination } from './components';
+import { AdTabs, AdsList, Pagination } from './components';
 import { useAdManagement } from './useAdManagement';
 import type { Ad, TabStatus } from './types';
 
@@ -59,10 +60,12 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
     updateUrl(1, newTab, searchTerm);
   }, [setPage, updateUrl, searchTerm]);
 
-  // Handle search change with URL update (debounced effect handles the actual search)
-  const handleSearchChange = useCallback((newSearch: string) => {
+  // Search runs only on an explicit submit (Search button / Enter), never per keystroke
+  const handleSearch = useCallback((newSearch: string) => {
     setSearchTerm(newSearch);
-  }, []);
+    setPage(1);
+    updateUrl(1, activeTab, newSearch);
+  }, [setPage, updateUrl, activeTab]);
 
   // Modal states
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -88,17 +91,6 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
       loadAds(activeTab, searchTerm, page);
     }
   }, [staff, activeTab, searchTerm, page, loadAds]);
-
-  // Update URL when search changes (with debounce effect)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm !== initialSearch) {
-        setPage(1);
-        updateUrl(1, activeTab, searchTerm);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, initialSearch, activeTab, setPage, updateUrl]);
 
   // Modal handlers
   const openRejectModal = (ad: Ad) => {
@@ -182,7 +174,13 @@ export default function AdManagementPage({ params: paramsPromise }: { params: Pr
         </div>
 
         {/* Search */}
-        <AdSearchBar value={searchTerm} onChange={handleSearchChange} />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <EditorSearchBar
+            value={searchTerm}
+            onSearch={handleSearch}
+            placeholder="Search ads by title, description, seller..."
+          />
+        </div>
 
         {/* Ads List */}
         <AdsList
