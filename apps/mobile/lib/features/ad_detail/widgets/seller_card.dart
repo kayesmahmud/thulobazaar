@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/core/api/api_config.dart';
@@ -84,7 +84,7 @@ class SellerCard extends StatelessWidget {
                               (context.locale.languageCode == 'ne'
                                   ? "विक्रेता"
                                   : "Seller"),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF1F2937),
@@ -116,7 +116,7 @@ class SellerCard extends StatelessWidget {
                         : (context.locale.languageCode == 'ne'
                               ? "विक्रेता"
                               : "Seller"),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 12,
                       color: const Color(0xFF6B7280),
                     ),

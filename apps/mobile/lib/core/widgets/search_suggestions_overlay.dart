@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../services/search_history_service.dart';
 
@@ -129,7 +129,7 @@ class _SearchSuggestionsDropdown extends StatelessWidget {
                         children: [
                           Text(
                             'Recent Searches',
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[600],
@@ -139,7 +139,7 @@ class _SearchSuggestionsDropdown extends StatelessWidget {
                             onTap: onClearAll,
                             child: Text(
                               'Clear all',
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 12,
                                 color: const Color(0xFF10B981),
                                 fontWeight: FontWeight.w500,
@@ -175,7 +175,7 @@ class _SearchSuggestionsDropdown extends StatelessWidget {
                                   Expanded(
                                     child: Text(
                                       search,
-                                      style: GoogleFonts.inter(
+                                      style: AppFont.inter(
                                         fontSize: 14,
                                         color: Colors.grey[800],
                                       ),

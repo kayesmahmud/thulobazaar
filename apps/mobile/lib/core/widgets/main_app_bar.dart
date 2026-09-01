@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../providers/notification_provider.dart';
@@ -31,7 +31,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) => Text(
           "THULO BAZAAR",
-          style: GoogleFonts.poppins(
+          style: AppFont.poppins(
             color: const Color(0xFFDC2626),
             fontWeight: FontWeight.w900,
             fontSize: 20,

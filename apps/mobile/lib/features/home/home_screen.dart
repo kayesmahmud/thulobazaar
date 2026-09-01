@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:mobile/core/widgets/main_app_bar.dart';
@@ -455,7 +455,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children: [
           Text(
             'home.heroTitle'.tr(),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -476,7 +476,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 filled: true,
                 fillColor: Colors.white,
                 hintText: 'home.searchPlaceholder'.tr(),
-                hintStyle: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+                hintStyle: AppFont.inter(fontSize: 14, color: Colors.grey),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 0,
@@ -520,7 +520,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children: [
           Text(
             title,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppTheme.textDark,
@@ -531,7 +531,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onTap: onTap,
               child: Text(
                 actionText,
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   color: AppTheme.primary,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -748,13 +748,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-
   void _updateCategoryScrollEdges() {
     if (!_categoryScrollController.hasClients) return;
     final position = _categoryScrollController.position;
     final canLeft = position.pixels > 4;
     final canRight = position.pixels < position.maxScrollExtent - 4;
-    final page = position.maxScrollExtent > 0 &&
+    final page =
+        position.maxScrollExtent > 0 &&
             position.pixels > position.maxScrollExtent / 2
         ? 1
         : 0;
@@ -838,7 +838,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           const SizedBox(height: 8),
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textDark),
+            style: AppFont.inter(fontSize: 12, color: AppTheme.textDark),
           ),
         ],
       ),
@@ -885,7 +885,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               height: 30,
               child: Text(
                 name,
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 11,
                   height: 1.3,
                   color: AppTheme.textDark,
@@ -934,7 +934,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             height: 30,
             child: Text(
               name,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 11,
                 height: 1.3,
                 color: AppTheme.textDark,
@@ -975,10 +975,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: 60,
               child: Text(
                 category.localizedName(context.locale.languageCode),
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: AppTheme.textDark,
-                ),
+                style: AppFont.inter(fontSize: 11, color: AppTheme.textDark),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1000,7 +997,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: Center(
               child: Text(
                 'home.noAdsYet'.tr(),
-                style: GoogleFonts.inter(color: Colors.grey[500]),
+                style: AppFont.inter(color: Colors.grey[500]),
               ),
             ),
           ),
@@ -1043,7 +1040,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(width: 8),
               Text(
                 'home.featuredAds'.tr(),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textDark,
@@ -1054,7 +1051,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           const SizedBox(height: 4),
           Text(
             'home.featuredSubtitle'.tr(),
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+            style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -1070,7 +1067,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Center(
             child: Text(
               'home.noFeaturedAds'.tr(),
-              style: GoogleFonts.inter(color: Colors.grey[500]),
+              style: AppFont.inter(color: Colors.grey[500]),
             ),
           ),
         ),

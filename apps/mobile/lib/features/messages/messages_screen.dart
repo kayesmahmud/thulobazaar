@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -224,7 +224,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           conversation.otherUserName.isNotEmpty
                               ? conversation.otherUserName[0].toUpperCase()
                               : '?',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey[600],
@@ -262,7 +262,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             Flexible(
                               child: Text(
                                 conversation.otherUserName,
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 15,
                                   fontWeight: conversation.hasUnread
                                       ? FontWeight.w700
@@ -282,7 +282,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       ),
                       Text(
                         _formatTime(conversation.lastMessageAt),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 12,
                           color: conversation.hasUnread
                               ? const Color(0xFFDC143C)
@@ -299,7 +299,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           conversation.lastMessage.isNotEmpty
                               ? conversation.lastMessage
                               : 'No messages yet',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 14,
                             fontWeight: conversation.hasUnread
                                 ? FontWeight.w600
@@ -325,7 +325,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           ),
                           child: Text(
                             '${conversation.unreadCount}',
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -349,7 +349,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             conversation.adTitle!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               color: Colors.grey[500],
                             ),
@@ -382,7 +382,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             const SizedBox(height: 16),
             Text(
               chatProvider.error ?? 'Failed to load conversations',
-              style: GoogleFonts.inter(color: Colors.grey[600]),
+              style: AppFont.inter(color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -427,7 +427,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               const SizedBox(height: 24),
               Text(
                 'messages.noMessages'.tr(),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[800],
@@ -436,7 +436,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               const SizedBox(height: 8),
               Text(
                 'messages.startConversation'.tr(),
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+                style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
             ],

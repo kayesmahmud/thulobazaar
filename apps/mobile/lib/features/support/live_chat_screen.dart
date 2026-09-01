@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -169,9 +169,9 @@ class _LiveChatScreenState extends State<LiveChatScreen>
     });
 
     if (!response.hasData) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.errorMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.errorMessage)));
       return;
     }
     _startTyping();
@@ -193,14 +193,14 @@ class _LiveChatScreenState extends State<LiveChatScreen>
           children: [
             Text(
               'liveChat.title'.tr(),
-              style: GoogleFonts.poppins(
+              style: AppFont.poppins(
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF1F2937),
               ),
             ),
             Text(
               'liveChat.subtitle'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 11,
                 color: const Color(0xFF6B7280),
               ),
@@ -214,7 +214,9 @@ class _LiveChatScreenState extends State<LiveChatScreen>
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFE11D48)));
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFE11D48)),
+      );
     }
 
     if (_error != null && _messages.isEmpty) {
@@ -224,12 +226,16 @@ class _LiveChatScreenState extends State<LiveChatScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(LucideIcons.alertCircle, size: 40, color: Color(0xFFE11D48)),
+              const Icon(
+                LucideIcons.alertCircle,
+                size: 40,
+                color: Color(0xFFE11D48),
+              ),
               const SizedBox(height: 12),
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: const Color(0xFF6B7280)),
+                style: AppFont.inter(color: const Color(0xFF6B7280)),
               ),
               const SizedBox(height: 16),
               OutlinedButton(
@@ -252,7 +258,10 @@ class _LiveChatScreenState extends State<LiveChatScreen>
                   child: ListView.builder(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     itemCount: _messages.length + (_assistantTyping ? 1 : 0),
                     itemBuilder: (context, index) => index == _messages.length
                         ? const _TypingBubble()
@@ -279,12 +288,16 @@ class _LiveChatScreenState extends State<LiveChatScreen>
                 color: Color(0xFFFFE4E6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(LucideIcons.headphones, size: 30, color: Color(0xFFE11D48)),
+              child: const Icon(
+                LucideIcons.headphones,
+                size: 30,
+                color: Color(0xFFE11D48),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               'liveChat.emptyTitle'.tr(),
-              style: GoogleFonts.poppins(
+              style: AppFont.poppins(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF1F2937),
@@ -294,7 +307,10 @@ class _LiveChatScreenState extends State<LiveChatScreen>
             Text(
               'liveChat.emptyBody'.tr(),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF6B7280)),
+              style: AppFont.inter(
+                fontSize: 13,
+                color: const Color(0xFF6B7280),
+              ),
             ),
           ],
         ),
@@ -323,8 +339,9 @@ class _LiveChatScreenState extends State<LiveChatScreen>
           border: isOwn ? null : Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Column(
-          crossAxisAlignment:
-              isOwn ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isOwn
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isOwn)
               Padding(
@@ -351,7 +368,7 @@ class _LiveChatScreenState extends State<LiveChatScreen>
                       msg.sender.fullName.isNotEmpty
                           ? msg.sender.fullName
                           : 'support.supportTeam'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFFE11D48),
@@ -362,7 +379,7 @@ class _LiveChatScreenState extends State<LiveChatScreen>
               ),
             Text(
               msg.content,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 14,
                 height: 1.4,
                 color: isOwn ? Colors.white : const Color(0xFF1F2937),
@@ -370,8 +387,12 @@ class _LiveChatScreenState extends State<LiveChatScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              formatNepalTime(msg.createdAt, 'h:mm a', context.locale.languageCode),
-              style: GoogleFonts.inter(
+              formatNepalTime(
+                msg.createdAt,
+                'h:mm a',
+                context.locale.languageCode,
+              ),
+              style: AppFont.inter(
                 fontSize: 10,
                 color: isOwn ? Colors.white70 : const Color(0xFF9CA3AF),
               ),
@@ -403,13 +424,15 @@ class _LiveChatScreenState extends State<LiveChatScreen>
                     maxLines: 4,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    style: GoogleFonts.inter(fontSize: 14),
+                    style: AppFont.inter(fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'liveChat.inputPlaceholder'.tr(),
                       filled: true,
                       fillColor: const Color(0xFFF3F4F6),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -436,7 +459,11 @@ class _LiveChatScreenState extends State<LiveChatScreen>
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(LucideIcons.send, color: Colors.white, size: 18),
+                        : const Icon(
+                            LucideIcons.send,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                   ),
                 ),
               ],
@@ -445,7 +472,10 @@ class _LiveChatScreenState extends State<LiveChatScreen>
             Text(
               'liveChat.aiNotice'.tr(),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF9CA3AF)),
+              style: AppFont.inter(
+                fontSize: 10,
+                color: const Color(0xFF9CA3AF),
+              ),
             ),
           ],
         ),

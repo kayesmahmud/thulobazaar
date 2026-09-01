@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/widgets/category_icon.dart';
 import 'package:mobile/core/models/models.dart';
@@ -558,7 +558,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
               children: [
                 Text(
                   context.locale.languageCode == 'ne' ? 'फिल्टरहरू' : 'Filters',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -657,7 +657,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                     ),
                     child: Text(
                       context.locale.languageCode == 'ne' ? 'रिसेट' : 'Reset',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         color: Colors.black,
                         fontWeight: FontWeight.w600,
                       ),
@@ -679,7 +679,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                       context.locale.languageCode == 'ne'
                           ? 'नतिजा देखाउनुहोस्'
                           : 'Show Results',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -713,7 +713,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
               children: [
                 Text(
                   displayTitle ?? title,
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -766,7 +766,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                     context.locale.languageCode == 'ne'
                         ? 'सबै वर्गहरू'
                         : "All Categories",
-                    style: GoogleFonts.inter(fontSize: 14),
+                    style: AppFont.inter(fontSize: 14),
                   ),
                   const Spacer(),
                   if (_selectedCategoryId == null)
@@ -840,7 +840,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                 Expanded(
                   child: Text(
                     category.localizedName(context.locale.languageCode),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       color: isSelected ? AppTheme.primary : Colors.black87,
                       fontWeight: isSelected
@@ -900,7 +900,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
             Expanded(
               child: Text(
                 subcategory.localizedName(context.locale.languageCode),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 13,
                   color: isSelected ? AppTheme.primary : Colors.black87,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -961,7 +961,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                     context.locale.languageCode == 'ne'
                         ? 'सम्पूर्ण नेपाल'
                         : "All Nepal",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: noLocationSelected
                           ? FontWeight.w600
@@ -991,7 +991,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
             children: [
               TextFormField(
                 controller: _locationSearchController,
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   color: Colors.black87,
                   fontSize: 14,
                 ), // Explicit text color
@@ -999,7 +999,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                   hintText: context.locale.languageCode == 'ne'
                       ? 'स्थान खोज्नुहोस्...'
                       : "Search location...",
-                  hintStyle: GoogleFonts.inter(
+                  hintStyle: AppFont.inter(
                     color: Colors.grey[500],
                     fontSize: 14,
                   ), // Explicit hint color
@@ -1264,7 +1264,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                   Expanded(
                     child: Text(
                       _buildLocationPath(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         color: AppTheme.primary,
                         fontWeight: FontWeight.w500,
@@ -1297,7 +1297,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
           children: [
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: enabled ? Colors.grey[700] : Colors.grey[400],
@@ -1321,7 +1321,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
           value: value,
           hint: Text(
             hint,
-            style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 14),
+            style: AppFont.inter(color: Colors.grey[500], fontSize: 14),
           ),
           isExpanded: true,
           decoration: InputDecoration(
@@ -1350,7 +1350,7 @@ class _SearchFilterModalState extends State<SearchFilterModal> {
                   value: item,
                   child: Text(
                     itemLabel(item),
-                    style: GoogleFonts.inter(fontSize: 14),
+                    style: AppFont.inter(fontSize: 14),
                   ),
                 ),
               )

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class VerificationBenefitsGrid extends StatelessWidget {
   const VerificationBenefitsGrid({super.key});
@@ -62,7 +62,7 @@ class VerificationBenefitsGrid extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 benefit['title'] as String,
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[800],
@@ -72,7 +72,7 @@ class VerificationBenefitsGrid extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 benefit['desc'] as String,
-                style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500]),
+                style: AppFont.inter(fontSize: 11, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
             ],

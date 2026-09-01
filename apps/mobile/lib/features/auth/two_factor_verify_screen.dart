@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -73,7 +73,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
           lang == 'ne'
               ? 'तपाईंको खाता मेटिने क्रममा छ'
               : 'Your Account Is Scheduled for Deletion',
-          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
+          style: AppFont.inter(fontWeight: FontWeight.bold, fontSize: 18),
           textAlign: TextAlign.center,
         ),
         content: Column(
@@ -83,7 +83,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
               lang == 'ne'
                   ? 'तपाईंले आफ्नो खाता मेटाउन अनुरोध गर्नुभएको थियो।${daysRemaining.isNotEmpty ? ' तपाईंसँग $daysRemaining दिन बाँकी छ।' : ''} के तपाईं आफ्नो खाता राख्न चाहनुहुन्छ?'
                   : 'You previously requested to delete your account.${daysRemaining.isNotEmpty ? ' You have $daysRemaining days remaining before permanent deletion.' : ''} Would you like to keep your account?',
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700]),
+              style: AppFont.inter(fontSize: 14, color: Colors.grey[700]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -101,7 +101,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                 ),
                 child: Text(
                   lang == 'ne' ? 'मेरो खाता राख्नुहोस्' : 'Keep My Account',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -121,10 +121,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                   lang == 'ne'
                       ? 'मेटाउने प्रक्रिया जारी राख्नुहोस्'
                       : 'Continue with Deletion',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
                 ),
               ),
             ),
@@ -266,10 +263,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
               lang == 'ne'
                   ? 'प्रमाणीकरण कोड प्रविष्ट गर्नुहोस्'
                   : 'Enter Authentication Code',
-              style: GoogleFonts.inter(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppFont.inter(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -281,7 +275,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                         ? 'तपाईंको authenticator एपबाट ६-अंकको कोड प्रविष्ट गर्नुहोस्'
                         : 'Enter the 6-digit code from your authenticator app'),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 32),
             TextField(
@@ -296,7 +290,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F]')),
               ],
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 8,
@@ -304,7 +298,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
               decoration: InputDecoration(
                 counterText: '',
                 hintText: _useBackupCode ? 'a1b2c3d4' : '000000',
-                hintStyle: GoogleFonts.inter(
+                hintStyle: AppFont.inter(
                   fontSize: 24,
                   color: Colors.grey[300],
                   letterSpacing: 8,
@@ -359,7 +353,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                       )
                     : Text(
                         lang == 'ne' ? 'प्रमाणित गर्नुहोस्' : 'Verify',
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -384,7 +378,7 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                     : (lang == 'ne'
                           ? 'ब्याकअप कोड पनि प्रयोग गर्नुहोस्'
                           : 'You can also use a backup code'),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 13,
                   color: AppTheme.primary,
                   fontWeight: FontWeight.w600,

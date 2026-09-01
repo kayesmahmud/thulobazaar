@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
@@ -43,7 +43,7 @@ class LoginRequiredWidget extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               title,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textDark,
@@ -52,7 +52,7 @@ class LoginRequiredWidget extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -76,7 +76,7 @@ class LoginRequiredWidget extends StatelessWidget {
                 ),
                 child: Text(
                   'auth.loginToContinue'.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -94,7 +94,7 @@ class LoginRequiredWidget extends StatelessWidget {
               },
               child: Text(
                 'auth.createAnAccount'.tr(),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.primary,

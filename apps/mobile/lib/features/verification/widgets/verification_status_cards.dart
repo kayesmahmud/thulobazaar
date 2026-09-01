@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/models/verification.dart';
 
 class VerificationStatusCard extends StatelessWidget {
@@ -83,7 +83,7 @@ class VerificationStatusCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.grey[800],
@@ -92,7 +92,7 @@ class VerificationStatusCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 13,
                           color: Colors.grey[500],
                         ),
@@ -124,7 +124,7 @@ class VerificationStatusCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         statusData!.request!.rejectionReason!,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 12,
                           color: const Color(0xFFEF4444),
                         ),
@@ -147,7 +147,7 @@ class VerificationStatusCard extends StatelessWidget {
                   ),
                   child: Text(
                     'Resubmit Application',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
@@ -174,7 +174,7 @@ class VerificationStatusCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       'Expires in ${statusData?.daysRemaining} days',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 12,
                         color: const Color(0xFFD97706),
                       ),
@@ -206,7 +206,7 @@ class VerificationStatusBadge extends StatelessWidget {
         ),
         child: Text(
           'Not Verified',
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Colors.grey[600],
@@ -262,7 +262,7 @@ class VerificationStatusBadge extends StatelessWidget {
           ],
           Text(
             text,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: textColor,

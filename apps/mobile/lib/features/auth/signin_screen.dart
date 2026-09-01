@@ -4,7 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/auth_kit.dart';
 import '../../core/api/auth_client.dart';
@@ -119,7 +119,7 @@ class _SignInScreenState extends State<SignInScreen> {
           lang == 'ne'
               ? 'तपाईंको खाता मेटिने क्रममा छ'
               : 'Your Account Is Scheduled for Deletion',
-          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
+          style: AppFont.inter(fontWeight: FontWeight.bold, fontSize: 18),
           textAlign: TextAlign.center,
         ),
         content: Column(
@@ -129,7 +129,7 @@ class _SignInScreenState extends State<SignInScreen> {
               lang == 'ne'
                   ? 'तपाईंले आफ्नो खाता मेटाउन अनुरोध गर्नुभएको थियो।${daysRemaining.isNotEmpty ? ' तपाईंसँग $daysRemaining दिन बाँकी छ।' : ''} के तपाईं आफ्नो खाता राख्न चाहनुहुन्छ?'
                   : 'You previously requested to delete your account.${daysRemaining.isNotEmpty ? ' You have $daysRemaining days remaining before permanent deletion.' : ''} Would you like to keep your account?',
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700]),
+              style: AppFont.inter(fontSize: 14, color: Colors.grey[700]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -147,7 +147,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 child: Text(
                   lang == 'ne' ? 'मेरो खाता राख्नुहोस्' : 'Keep My Account',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -167,10 +167,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   lang == 'ne'
                       ? 'मेटाउने प्रक्रिया जारी राख्नुहोस्'
                       : 'Continue with Deletion',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
                 ),
               ),
             ),

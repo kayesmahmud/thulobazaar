@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
@@ -80,7 +80,7 @@ class _MainDrawerState extends State<MainDrawer> {
                     height: 28,
                     errorBuilder: (context, error, stackTrace) => Text(
                       'common.appNameFallback'.tr(),
-                      style: GoogleFonts.poppins(
+                      style: AppFont.poppins(
                         color: const Color(0xFFDC2626),
                         fontWeight: FontWeight.bold,
                       ),
@@ -196,7 +196,7 @@ class _MainDrawerState extends State<MainDrawer> {
                           ),
                           child: Text(
                             'auth.signOut'.tr(),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),
@@ -231,7 +231,7 @@ class _MainDrawerState extends State<MainDrawer> {
                               ),
                               child: Text(
                                 'auth.signIn'.tr(),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -259,7 +259,7 @@ class _MainDrawerState extends State<MainDrawer> {
                               ),
                               child: Text(
                                 'auth.signUp'.tr(),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -385,7 +385,7 @@ class _MainDrawerState extends State<MainDrawer> {
                   child: Text(
                     'English',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: !isNepali ? FontWeight.w600 : FontWeight.w400,
                       color: !isNepali
@@ -417,7 +417,7 @@ class _MainDrawerState extends State<MainDrawer> {
                   child: Text(
                     'नेपाली',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: isNepali ? FontWeight.w600 : FontWeight.w400,
                       color: isNepali
@@ -448,7 +448,7 @@ class _MainDrawerState extends State<MainDrawer> {
           : null,
       title: Text(
         title,
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           color: const Color(0xFF374151),
           fontSize: 14,
           fontWeight: FontWeight.w500,
@@ -480,7 +480,7 @@ class _MainDrawerState extends State<MainDrawer> {
       ),
       child: Text(
         'FREE',
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.bold,

@@ -3,7 +3,7 @@ import 'dart:io' show Platform;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -470,6 +470,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final ne = context.locale.languageCode == 'ne';
@@ -533,15 +534,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Center(
             child: Column(
               children: [
-                Text('auth.otpSentTo'.tr(args: [phone]),
-                    style: AuthT.caption(ne), textAlign: TextAlign.center),
+                Text(
+                  'auth.otpSentTo'.tr(args: [phone]),
+                  style: AuthT.caption(ne),
+                  textAlign: TextAlign.center,
+                ),
                 if (_otpExpiry > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'auth.otpExpiresIn'.tr(args: [_formatTime(_otpExpiry)]),
-                      style: AuthT.caption(ne)
-                          .copyWith(color: const Color(0xFFB45309)),
+                      style: AuthT.caption(
+                        ne,
+                      ).copyWith(color: const Color(0xFFB45309)),
                     ),
                   ),
               ],
@@ -555,8 +560,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
             keyboardType: TextInputType.number,
             maxLength: 6,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-                fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 8),
+            style: AppFont.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 8,
+            ),
             // Without this the Verify button stays disabled after the sixth
             // digit until some other rebuild happens to land.
             onChanged: (_) => setState(() {}),
@@ -578,8 +586,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Text('auth.changeNumber'.tr(), style: AuthT.caption(ne)),
               ),
               TextButton(
-                onPressed:
-                    _isLoading || _otpCooldown > 0 ? null : _handleSendOtp,
+                onPressed: _isLoading || _otpCooldown > 0
+                    ? null
+                    : _handleSendOtp,
                 child: Text(
                   _otpCooldown > 0
                       ? 'auth.resendIn'.tr(args: ['$_otpCooldown'])
@@ -604,14 +613,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(LucideIcons.checkCircle,
-                    color: AppTheme.success, size: 18),
+                const Icon(
+                  LucideIcons.checkCircle,
+                  color: AppTheme.success,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     'auth.phoneVerified'.tr(args: [phone]),
-                    style: AuthT.label(ne)
-                        .copyWith(color: const Color(0xFF047857)),
+                    style: AuthT.label(
+                      ne,
+                    ).copyWith(color: const Color(0xFF047857)),
                   ),
                 ),
               ],
@@ -652,7 +665,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   value: _agreedToTerms,
                   onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4)),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                   activeColor: AuthT.brand,
                   side: const BorderSide(color: Color(0xFF9CA3AF)),
                 ),
@@ -665,16 +679,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Text('auth.iAgreeTo'.tr(), style: AuthT.caption(ne)),
                     InkWell(
                       onTap: () => _openUrl(
-                          'https://thulobazaar.com.np/en/support/terms-of-service'),
-                      child: Text('auth.termsAndConditions'.tr(),
-                          style: AuthT.link().copyWith(fontSize: 13)),
+                        'https://thulobazaar.com.np/en/support/terms-of-service',
+                      ),
+                      child: Text(
+                        'auth.termsAndConditions'.tr(),
+                        style: AuthT.link().copyWith(fontSize: 13),
+                      ),
                     ),
                     Text('auth.and'.tr(), style: AuthT.caption(ne)),
                     InkWell(
                       onTap: () => _openUrl(
-                          'https://thulobazaar.com.np/en/support/privacy-policy'),
-                      child: Text('auth.privacyPolicy'.tr(),
-                          style: AuthT.link().copyWith(fontSize: 13)),
+                        'https://thulobazaar.com.np/en/support/privacy-policy',
+                      ),
+                      child: Text(
+                        'auth.privacyPolicy'.tr(),
+                        style: AuthT.link().copyWith(fontSize: 13),
+                      ),
                     ),
                   ],
                 ),

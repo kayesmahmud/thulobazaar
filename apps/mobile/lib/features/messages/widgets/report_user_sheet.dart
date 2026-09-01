@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/api/message_client.dart';
@@ -188,14 +188,14 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                     children: [
                       Text(
                         'reportUser.title'.tr(),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         widget.userName,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 12,
                           color: Colors.grey[500],
                         ),
@@ -222,7 +222,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                 children: [
                   Text(
                     'reportUser.whyReporting'.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -235,7 +235,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
 
                   Text(
                     'reportUser.additionalDetails'.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -247,7 +247,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                     maxLength: 500,
                     decoration: InputDecoration(
                       hintText: 'reportUser.detailsHint'.tr(),
-                      hintStyle: GoogleFonts.inter(
+                      hintStyle: AppFont.inter(
                         color: Colors.grey[400],
                         fontSize: 13,
                       ),
@@ -256,7 +256,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                       ),
                       contentPadding: const EdgeInsets.all(12),
                     ),
-                    style: GoogleFonts.inter(fontSize: 14),
+                    style: AppFont.inter(fontSize: 14),
                   ),
                   const SizedBox(height: 16),
 
@@ -280,7 +280,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                           Expanded(
                             child: Text(
                               _errorMessage!,
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 13,
                                 color: const Color(0xFFB91C1C),
                               ),
@@ -317,7 +317,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                             )
                           : Text(
                               'reportUser.submit'.tr(),
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -330,7 +330,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                     padding: const EdgeInsets.only(top: 12, bottom: 8),
                     child: Text(
                       'reportUser.disclaimer'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 11,
                         color: Colors.grey[400],
                       ),
@@ -374,7 +374,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
               Expanded(
                 child: Text(
                   reason.labelKey.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: isSelected

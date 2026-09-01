@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class SafetyTipsCard extends StatelessWidget {
   const SafetyTipsCard({super.key});
@@ -22,7 +22,7 @@ class SafetyTipsCard extends StatelessWidget {
         children: [
           Text(
             isNe ? 'सुरक्षा सुझावहरू' : "Safety Tips",
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               color: const Color(0xFFC2410C),
               fontWeight: FontWeight.bold,
             ),
@@ -56,7 +56,7 @@ class SafetyTipsCard extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 12,
                 color: const Color(0xFF9A3412),
               ),

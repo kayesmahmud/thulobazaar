@@ -121,6 +121,11 @@ flutter:
     - assets/category-icons/
     - assets/translations/
     - assets/certs/
+    # Latin faces google_fonts would otherwise fetch on first launch; bundled
+    # so a fresh install offline (and `flutter test`) never falls back to the
+    # system font. Names must stay <Family>-<Weight>.ttf (google_fonts matches
+    # by suffix). Licences sit alongside.
+    - assets/google_fonts/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -128,6 +133,23 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+  # Nepali text. Inter (loaded by google_fonts) has no Devanagari glyphs;
+  # AppFont appends this family as the per-glyph fallback everywhere.
+  # Files: assets/fonts/mukta (SIL OFL 1.1, licence alongside).
+  fonts:
+    - family: Mukta
+      fonts:
+        - asset: assets/fonts/mukta/Mukta-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/mukta/Mukta-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/mukta/Mukta-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/mukta/Mukta-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/mukta/Mukta-ExtraBold.ttf
+          weight: 800
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

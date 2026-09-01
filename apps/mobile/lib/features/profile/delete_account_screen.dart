@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -201,7 +201,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                   const SizedBox(width: 8),
                   Text(
                     lang == 'ne' ? 'चेतावनी' : 'Warning',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.red,
@@ -260,7 +260,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               lang == 'ne'
                   ? 'हो, प्रमाणीकरण कोड पठाउनुहोस्'
                   : 'Yes, Send Verification Code',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -281,10 +281,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             ),
             child: Text(
               lang == 'ne' ? 'रद्द गर्नुहोस्' : 'Cancel',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -305,7 +302,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.red[800]),
+              style: AppFont.inter(fontSize: 14, color: Colors.red[800]),
             ),
           ),
         ],
@@ -323,7 +320,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           lang == 'ne'
               ? 'प्रमाणीकरण कोड प्रविष्ट गर्नुहोस्'
               : 'Enter Verification Code',
-          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+          style: AppFont.inter(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (_maskedPhone != null)
@@ -331,7 +328,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             lang == 'ne'
                 ? '$_maskedPhone मा कोड पठाइयो'
                 : 'Code sent to $_maskedPhone',
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+            style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
           ),
         const SizedBox(height: 24),
         TextField(
@@ -340,7 +337,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           textAlign: TextAlign.center,
           maxLength: 6,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             letterSpacing: 8,
@@ -348,7 +345,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           decoration: InputDecoration(
             counterText: '',
             hintText: '000000',
-            hintStyle: GoogleFonts.inter(
+            hintStyle: AppFont.inter(
               fontSize: 24,
               color: Colors.grey[300],
               letterSpacing: 8,
@@ -387,7 +384,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               lang == 'ne'
                   ? 'खाता मेटाउने पुष्टि गर्नुहोस्'
                   : 'Confirm Account Deletion',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -439,7 +436,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           lang == 'ne'
               ? 'खाता मेटाउन तालिकाबद्ध'
               : 'Account Scheduled for Deletion',
-          style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+          style: AppFont.inter(fontSize: 20, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
@@ -457,10 +454,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     ? 'तपाईंको खाता $deadlineText मा स्थायी रूपमा मेटिनेछ।'
                     : 'Your account will be permanently deleted on $deadlineText.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.amber[900],
-                ),
+                style: AppFont.inter(fontSize: 14, color: Colors.amber[900]),
               ),
               const SizedBox(height: 8),
               Text(
@@ -468,10 +462,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     ? 'त्यसअघि लगइन गरेर खाता पुनर्स्थापित गर्न सक्नुहुन्छ।'
                     : 'You can recover your account by logging in before then.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: Colors.amber[800],
-                ),
+                style: AppFont.inter(fontSize: 13, color: Colors.amber[800]),
               ),
             ],
           ),
@@ -500,7 +491,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             ),
             child: Text(
               lang == 'ne' ? 'ठीक छ' : 'OK',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

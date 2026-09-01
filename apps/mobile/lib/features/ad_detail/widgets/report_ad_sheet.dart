@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile/core/theme/app_theme.dart';
@@ -181,14 +181,14 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                     children: [
                       Text(
                         'report.title'.tr(),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         widget.adTitle,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 12,
                           color: Colors.grey[500],
                         ),
@@ -218,7 +218,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                   children: [
                     Text(
                       'report.whyReporting'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -233,7 +233,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                     // Details field
                     Text(
                       'report.additionalDetails'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -245,7 +245,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                       maxLength: 500,
                       decoration: InputDecoration(
                         hintText: 'report.detailsHint'.tr(),
-                        hintStyle: GoogleFonts.inter(
+                        hintStyle: AppFont.inter(
                           color: Colors.grey[400],
                           fontSize: 13,
                         ),
@@ -254,7 +254,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                         ),
                         contentPadding: const EdgeInsets.all(12),
                       ),
-                      style: GoogleFonts.inter(fontSize: 14),
+                      style: AppFont.inter(fontSize: 14),
                     ),
                     const SizedBox(height: 16),
 
@@ -284,7 +284,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                               )
                             : Text(
                                 'report.submit'.tr(),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -298,7 +298,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
                       padding: const EdgeInsets.only(top: 12, bottom: 8),
                       child: Text(
                         'report.disclaimer'.tr(),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 11,
                           color: Colors.grey[400],
                         ),
@@ -342,7 +342,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
               Expanded(
                 child: Text(
                   reason.labelKey.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: isSelected
@@ -373,12 +373,12 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
           const SizedBox(height: 16),
           Text(
             'report.loginRequired'.tr(),
-            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+            style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             'report.loginToReport'.tr(),
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
+            style: AppFont.inter(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -399,7 +399,7 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
             ),
             child: Text(
               'auth.signIn'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

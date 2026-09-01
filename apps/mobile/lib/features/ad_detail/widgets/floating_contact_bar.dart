@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -209,7 +209,7 @@ class FloatingContactBar extends StatelessWidget {
         icon: Icon(icon, size: 18),
         label: Text(
           label,
-          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+          style: AppFont.inter(fontSize: 13, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: bg,

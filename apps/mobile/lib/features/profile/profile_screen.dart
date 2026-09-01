@@ -5,7 +5,7 @@ import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile/core/widgets/staggered_fade_in.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/widgets/app_cached_image.dart';
@@ -264,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return AppBar(
       title: Text(
         context.locale.languageCode == 'ne' ? 'प्रोफाइल' : "Profile",
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           fontWeight: FontWeight.bold,
           color: AppTheme.textDark,
         ),
@@ -332,7 +332,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             context.locale.languageCode == 'ne'
                 ? 'थुलो बजारमा स्वागत छ'
                 : "Welcome to Thulo Bazaar",
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppTheme.textDark,
@@ -344,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ? 'तपाईंको विज्ञापन र सन्देशहरू व्यवस्थापन गर्न लगइन गर्नुहोस्'
                 : "Log in to manage your ads and messages",
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+            style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
           Row(
@@ -364,7 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   child: Text(
                     context.locale.languageCode == 'ne' ? 'साइन इन' : "Sign In",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: AppTheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -388,7 +388,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   child: Text(
                     context.locale.languageCode == 'ne' ? 'साइन अप' : "Sign Up",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
@@ -522,7 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(height: 12),
                 Text(
                   fullName,
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textDark,
@@ -574,7 +574,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                           child: Text(
                             label,
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               color: textColor,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -586,7 +586,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(width: 8),
                     Text(
                       createdAt,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         color: Colors.grey[500],
                         fontSize: 12,
                       ),
@@ -619,7 +619,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               children: [
                 const Icon(LucideIcons.heart),
                 const SizedBox(width: 4),
-                Text("${_favorites.length}", style: GoogleFonts.inter()),
+                Text("${_favorites.length}", style: AppFont.inter()),
               ],
             ),
           ),
@@ -660,7 +660,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               Text(
                 isNepali ? 'पूरा नाम' : "Full Name",
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
                 ),
@@ -687,7 +687,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const SizedBox(width: 4),
                       Text(
                         isNepali ? 'लक' : 'Locked',
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFFB45309),
@@ -723,7 +723,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 borderSide: BorderSide(color: Colors.grey[200]!),
               ),
             ),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               color: isNameLocked ? Colors.grey[500] : AppTheme.textDark,
             ),
           ),
@@ -733,7 +733,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               isNepali
                   ? 'तपाईंको खाता प्रमाणित भएकाले नाम परिवर्तन गर्न मिल्दैन। प्रमाणीकरण समाप्त भएपछि वा रद्द गरेपछि मात्र परिवर्तन गर्न सकिनेछ।'
                   : 'Your name cannot be changed because your account is verified. You can edit it after your verification expires or is revoked.',
-              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
           const SizedBox(height: 20),
@@ -745,7 +745,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 context.locale.languageCode == 'ne'
                     ? 'इमेल ठेगाना'
                     : "Email Address",
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
                 ),
@@ -755,7 +755,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 context.locale.languageCode == 'ne'
                     ? '(परिवर्तन गर्न सकिँदैन)'
                     : "(Cannot be changed)",
-                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                style: AppFont.inter(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
@@ -785,7 +785,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Phone Number
           Text(
             context.locale.languageCode == 'ne' ? 'फोन नम्बर' : "Phone Number",
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontWeight: FontWeight.w600,
               color: Colors.grey[700],
             ),
@@ -830,7 +830,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             : (context.locale.languageCode == 'ne'
                                   ? 'फोन नम्बर थपिएको छैन'
                                   : 'No phone added'),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.textDark,
                         ),
@@ -839,7 +839,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         const SizedBox(width: 8),
                         Text(
                           l('verified', context.locale.languageCode),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontWeight: FontWeight.w500,
                             color: const Color(0xFF10B981),
                             fontSize: 13,
@@ -855,7 +855,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             : (context.locale.languageCode == 'ne'
                                   ? 'प्रमाणित गर्नुहोस्'
                                   : "Verify"),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primary,
                           fontSize: 13,
@@ -878,7 +878,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Location
           Text(
             l('location', context.locale.languageCode),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontWeight: FontWeight.w600,
               color: Colors.grey[700],
             ),
@@ -904,7 +904,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           (context.locale.languageCode == 'ne'
                               ? 'स्थान चयन गर्नुहोस्'
                               : "Select Location"),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontWeight: FontWeight.w500,
                         color: AppTheme.textDark,
                       ),
@@ -916,7 +916,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     context.locale.languageCode == 'ne'
                         ? 'परिवर्तन गर्नुहोस्'
                         : "Change",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontWeight: FontWeight.w600,
                       color: AppTheme.primary,
                       fontSize: 13,
@@ -949,7 +949,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   child: Text(
                     l('cancel', context.locale.languageCode),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: Colors.grey[700],
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -1031,7 +1031,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     context.locale.languageCode == 'ne'
                         ? 'सेभ गर्नुहोस्'
                         : "Save Changes",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -1309,14 +1309,14 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         title: Text(
           title,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontWeight: FontWeight.w600,
             color: AppTheme.textDark,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
         ),
         trailing: const Icon(
           LucideIcons.chevronRight,
@@ -1344,7 +1344,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(height: 16),
             Text(
               _favoritesError!,
-              style: GoogleFonts.inter(color: Colors.grey[600]),
+              style: AppFont.inter(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -1383,7 +1383,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 context.locale.languageCode == 'ne'
                     ? 'अहिलेसम्म सेभ गरिएको विज्ञापन छैन'
                     : "No saved ads yet",
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
@@ -1394,7 +1394,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 context.locale.languageCode == 'ne'
                     ? 'बुकमार्क आइकनमा क्लिक गरेर विज्ञापनहरू सेभ गर्नुहोस्'
                     : "Save ads by clicking the bookmark icon",
-                style: GoogleFonts.inter(color: Colors.grey[500]),
+                style: AppFont.inter(color: Colors.grey[500]),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -1510,7 +1510,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     children: [
                       Text(
                         ad.title,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: AppTheme.textDark,
@@ -1533,7 +1533,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                               child: Text(
                                 ad.categoryName!,
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 10,
                                   color: Colors.grey[600],
                                 ),
@@ -1545,7 +1545,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             Expanded(
                               child: Text(
                                 ad.locationName!,
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 11,
                                   color: Colors.grey[500],
                                 ),
@@ -1564,7 +1564,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             : (context.locale.languageCode == 'ne'
                                   ? 'मूल्यको लागि सम्पर्क गर्नुहोस्'
                                   : 'Price on request'),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF10B981),
@@ -1608,7 +1608,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             context.locale.languageCode == 'ne'
                                 ? 'हेर्नुहोस्'
                                 : "View",
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontWeight: FontWeight.w600,
                               color: AppTheme.primary,
                               fontSize: 13,
@@ -1638,7 +1638,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             context.locale.languageCode == 'ne'
                                 ? 'हटाउनुहोस्'
                                 : "Remove",
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[600],
                               fontSize: 13,
@@ -1673,7 +1673,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         alignment: Alignment.centerLeft,
         child: Text(
           title.toUpperCase(),
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             color: Colors.grey[500],
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1697,7 +1697,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         leading: Icon(icon, color: Colors.grey[700], size: 22),
         title: Text(
           title,
-          style: GoogleFonts.inter(fontSize: 15, color: Colors.grey[900]),
+          style: AppFont.inter(fontSize: 15, color: Colors.grey[900]),
         ),
         trailing: const Icon(
           LucideIcons.chevronRight,

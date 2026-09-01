@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class ValidatedStepIndicator extends StatelessWidget {
   final int currentStep;
@@ -43,7 +43,7 @@ class ValidatedStepIndicator extends StatelessWidget {
                           )
                         : Text(
                             '${index + 1}',
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: isActive ? Colors.white : Colors.grey[600],
@@ -55,7 +55,7 @@ class ValidatedStepIndicator extends StatelessWidget {
                 Expanded(
                   child: Text(
                     steps[index],
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 12,
                       fontWeight: isActive
                           ? FontWeight.w600

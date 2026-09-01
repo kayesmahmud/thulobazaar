@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -220,7 +220,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: Text(
                       'Please use respectful language. Offensive words are not allowed on Thulo Bazaar.',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -231,10 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
               const SizedBox(height: 4),
               Text(
                 'Thulo Bazaar promotes respectful communication between buyers and sellers.',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: Colors.red.shade100,
-                ),
+                style: AppFont.inter(fontSize: 11, color: Colors.red.shade100),
               ),
             ],
           ),
@@ -612,7 +609,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           widget.recipientName.isNotEmpty
                               ? widget.recipientName[0].toUpperCase()
                               : '?',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey[600],
@@ -630,7 +627,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           Flexible(
                             child: Text(
                               widget.recipientName,
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
@@ -659,7 +656,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             const SizedBox(width: 4),
                             Text(
                               'messages.online'.tr(),
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 12,
                                 color: const Color(0xFF10B981),
                               ),
@@ -743,10 +740,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: Text(
                   'messages.aboutAd'.tr(args: [widget.adTitle!]),
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
+                  style: AppFont.inter(fontSize: 13, color: Colors.grey[700]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -852,7 +846,7 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Text(
         text,
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           fontSize: 12,
           color: Colors.grey[500],
           fontWeight: FontWeight.w500,
@@ -872,11 +866,11 @@ class _ChatScreenState extends State<ChatScreen> {
   /// Builds a widget with only thulobazaar.com.np links clickable.
   /// External URLs are rendered as plain text for security.
   Widget _buildLinkifiedText(String text, bool isMe) {
-    final style = GoogleFonts.inter(
+    final style = AppFont.inter(
       fontSize: 15,
       color: isMe ? Colors.white : Colors.black87,
     );
-    final linkStyle = GoogleFonts.inter(
+    final linkStyle = AppFont.inter(
       fontSize: 15,
       color: isMe ? Colors.blue[100] : Colors.blue[700],
       decoration: TextDecoration.underline,
@@ -952,7 +946,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Text(
               'messages.messageDeleted'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 14,
                 color: Colors.grey[500],
                 fontStyle: FontStyle.italic,
@@ -1042,7 +1036,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           'h:mm a',
                           context.locale.languageCode,
                         ),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 11,
                           color: isMe
                               ? Colors.white.withValues(alpha: 0.7)
@@ -1053,7 +1047,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(width: 4),
                         Text(
                           'messages.edited'.tr(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 11,
                             color: isMe
                                 ? Colors.white.withValues(alpha: 0.7)
@@ -1115,7 +1109,7 @@ class _ChatScreenState extends State<ChatScreen> {
               const SizedBox(width: 8),
               Text(
                 'messages.typing'.tr(args: [widget.recipientName]),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 13,
                   color: Colors.grey[600],
                   fontStyle: FontStyle.italic,
@@ -1150,7 +1144,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Text(
               'messages.imageReady'.tr(),
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700]),
+              style: AppFont.inter(fontSize: 14, color: Colors.grey[700]),
             ),
           ),
           if (_isUploading)
@@ -1191,7 +1185,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Text(
                   'messages.editingMessage'.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFFDC143C),
@@ -1201,10 +1195,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   _editingMessage?.content ?? '',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -1254,7 +1245,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       focusNode: _focusNode,
                       decoration: InputDecoration(
                         hintText: 'messages.typeMessage'.tr(),
-                        hintStyle: GoogleFonts.inter(
+                        hintStyle: AppFont.inter(
                           color: Colors.grey[500],
                           fontSize: 15,
                         ),
@@ -1263,7 +1254,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           vertical: 12,
                         ),
                       ),
-                      style: GoogleFonts.inter(fontSize: 15),
+                      style: AppFont.inter(fontSize: 15),
                       maxLines: null,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _sendMessage(),
@@ -1324,7 +1315,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[700]),
+              style: AppFont.inter(fontSize: 13, color: Colors.grey[700]),
             ),
           ),
           if (_blockedByMe) ...[
@@ -1367,7 +1358,7 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(height: 16),
           Text(
             'messages.noMessagesYet'.tr(),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.grey[700],
@@ -1376,7 +1367,7 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(height: 4),
           Text(
             'messages.startTheConversation'.tr(),
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
+            style: AppFont.inter(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),

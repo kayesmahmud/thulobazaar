@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -96,7 +96,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       appBar: AppBar(
         title: Text(
           'support.title'.tr(),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFont.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1F2937),
@@ -180,7 +180,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           const Spacer(),
           Text(
             '${_tickets.length} ${'support.totalLabel'.tr()}',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[400]),
+            style: AppFont.inter(fontSize: 12, color: Colors.grey[400]),
           ),
         ],
       ),
@@ -206,7 +206,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           const SizedBox(width: 5),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: color,
@@ -250,7 +250,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             const SizedBox(height: 24),
             Text(
               'support.howCanWeHelp'.tr(),
-              style: GoogleFonts.poppins(
+              style: AppFont.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF1F2937),
@@ -259,7 +259,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
             const SizedBox(height: 8),
             Text(
               'support.createSubtitle'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 14,
                 color: Colors.grey[500],
                 height: 1.5,
@@ -274,7 +274,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 icon: const Icon(LucideIcons.pencil, size: 18),
                 label: Text(
                   'support.createTicket'.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -302,7 +302,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 ),
                 label: Text(
                   'support.browseHelp'.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.grey[700],
@@ -377,7 +377,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                           const SizedBox(width: 4),
                           Text(
                             _formatDate(ticket.updatedAt),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               color: Colors.grey[400],
                             ),
@@ -389,7 +389,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                       // Subject
                       Text(
                         ticket.subject,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF1F2937),
@@ -402,7 +402,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                         const SizedBox(height: 6),
                         Text(
                           ticket.lastMessageContent!,
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 13,
                             color: Colors.grey[500],
                             height: 1.3,
@@ -425,7 +425,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                           const SizedBox(width: 3),
                           Text(
                             ticket.ticketNumber,
-                            style: GoogleFonts.robotoMono(
+                            style: AppFont.robotoMono(
                               fontSize: 11,
                               color: Colors.grey[400],
                             ),
@@ -442,7 +442,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                             ),
                             child: Text(
                               ticket.category.label,
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 11,
                                 color: Colors.grey[600],
                               ),
@@ -541,7 +541,7 @@ class _StatusBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             status.label,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: fg,

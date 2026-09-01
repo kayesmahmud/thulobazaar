@@ -4,7 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:mobile/core/widgets/staggered_fade_in.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
@@ -210,10 +210,7 @@ class _ShopScreenState extends State<ShopScreen> {
             const SizedBox(height: 12),
             Text(
               isNe ? 'कभर फोटो अपलोड गर्नुहोस्' : 'Upload Cover Photo',
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Container(
@@ -238,7 +235,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       isNe
                           ? 'सिफारिस गरिएको साइज: 1290 × 552 px'
                           : 'Recommended size: 1290 × 552 px',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         color: const Color(0xFF065F46),
                         fontWeight: FontWeight.w500,
@@ -259,7 +256,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 icon: const Icon(LucideIcons.upload, size: 18),
                 label: Text(
                   isNe ? 'फोटो छान्नुहोस्' : 'Choose Photo',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  style: AppFont.inter(fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF43F5E),
@@ -667,7 +664,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                   Flexible(
                                     child: Text(
                                       _shop!.displayName,
-                                      style: GoogleFonts.inter(
+                                      style: AppFont.inter(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black87,
@@ -705,7 +702,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                     : (context.locale.languageCode == 'ne'
                                           ? 'विक्रेता'
                                           : 'Seller'),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 13,
                                   color: Colors.grey[600],
                                 ),
@@ -812,7 +809,7 @@ class _ShopScreenState extends State<ShopScreen> {
           _shop!.displayName.isNotEmpty
               ? _shop!.displayName[0].toUpperCase()
               : '?',
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 40,
             fontWeight: FontWeight.bold,
             color: Colors.grey[500],
@@ -828,7 +825,7 @@ class _ShopScreenState extends State<ShopScreen> {
       children: [
         Text(
           value,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: const Color(0xFFF43F5E),
@@ -836,7 +833,7 @@ class _ShopScreenState extends State<ShopScreen> {
         ),
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
     );
@@ -862,7 +859,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 context.locale.languageCode == 'ne'
                     ? 'अहिलेसम्म कुनै विज्ञापन छैन'
                     : 'No active ads at the moment',
-                style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+                style: AppFont.inter(fontSize: 16, color: Colors.grey[600]),
               ),
             ],
           ),

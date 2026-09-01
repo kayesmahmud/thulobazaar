@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 
@@ -44,7 +44,7 @@ class LoadErrorView extends StatelessWidget {
             Text(
               title.tr(),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textDark,
@@ -54,7 +54,7 @@ class LoadErrorView extends StatelessWidget {
             Text(
               subtitle.tr(),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(

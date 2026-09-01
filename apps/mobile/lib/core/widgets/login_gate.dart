@@ -1,7 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
 import 'package:mobile/features/auth/signup_screen.dart';
@@ -268,7 +268,7 @@ class LoginGateScreen extends StatelessWidget {
           Text(
             spec.titleKey.tr(),
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: ne ? 24 : 26,
               fontWeight: FontWeight.w800,
               letterSpacing: ne ? 0 : -0.4,
@@ -280,7 +280,7 @@ class LoginGateScreen extends StatelessWidget {
           Text(
             spec.subtitleKey.tr(),
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 15,
               fontWeight: FontWeight.w500,
               height: ne ? 1.60 : 1.45,
@@ -328,7 +328,7 @@ class LoginGateScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     spec.benefits[i].$2.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       height: ne ? 1.52 : 1.35,
@@ -372,7 +372,7 @@ class LoginGateScreen extends StatelessWidget {
               ),
               child: Text(
                 spec.ctaKey.tr(),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.1,
@@ -387,7 +387,7 @@ class LoginGateScreen extends StatelessWidget {
             onPressed: () => _openSignIn(context),
             child: Text(
               'gate.haveAccount'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 height: 1.30,
@@ -402,5 +402,5 @@ class LoginGateScreen extends StatelessWidget {
 
   // Unused today but kept so a future gate can show a muted footnote.
   static TextStyle footnote() =>
-      GoogleFonts.inter(fontSize: 12, height: 1.45, color: _inkFaint);
+      AppFont.inter(fontSize: 12, height: 1.45, color: _inkFaint);
 }

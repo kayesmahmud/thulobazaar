@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile/features/post_ad/create_ad_screen.dart';
 import 'package:mobile/features/post_ad/models/ad_draft_model.dart';
@@ -98,7 +98,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                       isNe
                           ? "निःशुल्क विज्ञापन पोस्ट गर्नुहोस्"
                           : "Post a Free Ad",
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF111827),
@@ -109,7 +109,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                       isNe
                           ? "आफ्नो सूची बनाउन तलका विवरणहरू भर्नुहोस्"
                           : "Fill in the details below to create your listing",
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 16,
                         color: Colors.grey[500],
                       ),
@@ -135,7 +135,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                           isNe
                               ? "सुरक्षित ड्राफ्ट (${_drafts.length})"
                               : "Saved Drafts (${_drafts.length})",
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
@@ -159,7 +159,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                         icon: const Icon(LucideIcons.plus, size: 18),
                         label: Text(
                           isNe ? "नयाँ विज्ञापन" : "Start New Ad",
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                          style: AppFont.inter(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -200,7 +200,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                         isNe
                             ? "कुनै ड्राफ्ट छैन। नयाँ विज्ञापन सुरु गर्नुहोस्!"
                             : "No drafts yet. Start a new ad!",
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 14,
                           color: Colors.grey[400],
                         ),
@@ -265,7 +265,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
         children: [
           Text(
             title,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF111827),
@@ -274,7 +274,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
+            style: AppFont.inter(fontSize: 14, color: Colors.grey[500]),
           ),
           const SizedBox(height: 16),
           Row(
@@ -292,7 +292,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                   ),
                   child: Text(
                     isNe ? "जारी राख्नुहोस्" : "Continue",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
                     ),
@@ -313,7 +313,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
                   ),
                   child: Text(
                     isNe ? "हटाउनुहोस्" : "Delete",
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: Colors.red,
                       fontWeight: FontWeight.w500,
                     ),

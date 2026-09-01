@@ -5,7 +5,7 @@ import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:mobile/core/widgets/staggered_fade_in.dart';
 import 'package:mobile/core/widgets/floating_widget.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/widgets/app_cached_image.dart';
 import 'package:mobile/core/api/ad_client.dart';
 import 'package:mobile/core/api/api_config.dart';
@@ -190,7 +190,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
       appBar: AppBar(
         title: Text(
           'myAds.title'.tr(),
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontWeight: FontWeight.bold,
             color: AppTheme.textDark,
           ),
@@ -213,7 +213,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
               labelColor: AppTheme.primary,
               unselectedLabelColor: Colors.grey,
               indicatorColor: AppTheme.primary,
-              labelStyle: GoogleFonts.inter(
+              labelStyle: AppFont.inter(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -287,7 +287,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
       children: [
         Text(
           count.toString(),
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: color,
@@ -295,7 +295,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
         ),
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
     );
@@ -322,7 +322,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
             const SizedBox(height: 16),
             Text(
               'myAds.noAdsFound'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[600],
@@ -331,7 +331,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
             const SizedBox(height: 8),
             Text(
               'myAds.startSelling'.tr(),
-              style: GoogleFonts.inter(color: Colors.grey[500]),
+              style: AppFont.inter(color: Colors.grey[500]),
             ),
           ],
         ),
@@ -398,7 +398,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
                       children: [
                         Text(
                           ad.title,
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -408,7 +408,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
                         const SizedBox(height: 4),
                         Text(
                           _formatPrice(ad.price),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             color: AppTheme.primary,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -427,7 +427,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
                             const SizedBox(width: 4),
                             Text(
                               '${ad.viewCount ?? 0}',
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 12,
                                 color: Colors.grey[500],
                               ),
@@ -523,16 +523,13 @@ class _MyAdsScreenState extends State<MyAdsScreen>
                   const SizedBox(width: 4),
                   Text(
                     'Posted ${_formatDate(ad.publishedAt)}',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
+                    style: AppFont.inter(fontSize: 12, color: Colors.grey[500]),
                   ),
                   const Spacer(),
                   if (ad.categoryName != null)
                     Text(
                       ad.categoryName!,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 12,
                         color: Colors.grey[500],
                       ),
@@ -586,7 +583,7 @@ class _MyAdsScreenState extends State<MyAdsScreen>
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           fontSize: 10,
           fontWeight: FontWeight.w600,
           color: textColor,

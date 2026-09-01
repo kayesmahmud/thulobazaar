@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class AppTheme {
   // Brand Colors from globals.css
@@ -25,7 +25,7 @@ class AppTheme {
       ),
 
       // Typography
-      textTheme: GoogleFonts.interTextTheme().apply(
+      textTheme: AppFont.interTextTheme().apply(
         bodyColor: textDark,
         displayColor: textDark,
       ),
@@ -36,7 +36,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: textDark),
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: AppFont.inter(
           color: textDark,
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -50,10 +50,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          textStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
+          textStyle: AppFont.inter(fontWeight: FontWeight.w600, fontSize: 16),
         ),
       ),
 
@@ -61,10 +58,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primary, // Or secondary depending on exact usage
-          textStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
+          textStyle: AppFont.inter(fontWeight: FontWeight.w500, fontSize: 14),
         ),
       ),
 
@@ -93,8 +87,8 @@ class AppTheme {
           horizontal: 16,
           vertical: 16,
         ),
-        labelStyle: GoogleFonts.inter(color: Colors.grey[600]),
-        hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+        labelStyle: AppFont.inter(color: Colors.grey[600]),
+        hintStyle: AppFont.inter(color: Colors.grey[400]),
       ),
     );
   }

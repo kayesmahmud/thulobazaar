@@ -140,7 +140,11 @@ class Ad extends Equatable {
 * **Aesthetics:** Premium, custom look. "Wow" the user. Avoid default blue.
 * **Theme:** Use `ThemeData` with `ColorScheme.fromSeed`.
 * **Modes:** Support Light & Dark modes (`ThemeMode.system`).
-* **Typography:** `google_fonts`. Define a consistent Type Scale.
+* **Typography:** ALWAYS `AppFont.inter(...)` / `AppFont.poppins(...)` from
+  `lib/core/theme/app_font.dart`, NEVER `GoogleFonts.*` at a call site. Inter has
+  no Devanagari; AppFont appends the bundled Mukta family as the per-glyph
+  fallback so Nepali text renders in the same face on every phone. A test in
+  `test/app_font_test.dart` fails the build on any direct `GoogleFonts.` call.
 * **Layout:** `LayoutBuilder` for responsiveness. `OverlayPortal` for popups.
 * **Components:** Use `ThemeExtension` for custom tokens (colors/sizes).
 

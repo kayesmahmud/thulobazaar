@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class VerificationFaqSection extends StatelessWidget {
   const VerificationFaqSection({super.key});
@@ -42,7 +42,7 @@ class VerificationFaqSection extends StatelessWidget {
         children: [
           Text(
             'Frequently Asked Questions',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
@@ -59,7 +59,7 @@ class VerificationFaqSection extends StatelessWidget {
     return ExpansionTile(
       title: Text(
         question,
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: Colors.grey[700],
@@ -70,7 +70,7 @@ class VerificationFaqSection extends StatelessWidget {
       children: [
         Text(
           answer,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 13,
             color: Colors.grey[600],
             height: 1.5,

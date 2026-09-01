@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:like_button/like_button.dart';
 import 'package:mobile/core/api/api_config.dart';
@@ -175,7 +175,7 @@ class _AdImageGalleryState extends State<AdImageGallery> {
             ),
             child: Text(
               "${_currentImageIndex + 1}/${images.length}",
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 color: Colors.white,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -239,7 +239,7 @@ class _AdImageGalleryState extends State<AdImageGallery> {
                       ),
                       child: Text(
                         '${widget.ad.favoritesCount}',
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: Colors.red,

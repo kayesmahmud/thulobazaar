@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
@@ -318,11 +318,11 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 backgroundColor: Colors.white,
                 selectedItemColor: const Color(0xFF10B981),
                 unselectedItemColor: Colors.grey[400],
-                selectedLabelStyle: GoogleFonts.inter(
+                selectedLabelStyle: AppFont.inter(
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
-                unselectedLabelStyle: GoogleFonts.inter(
+                unselectedLabelStyle: AppFont.inter(
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
                 ),
@@ -420,7 +420,7 @@ class PlaceholderScreen extends StatelessWidget {
     return Center(
       child: Text(
         title,
-        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
+        style: AppFont.inter(fontSize: 18, fontWeight: FontWeight.w600),
       ),
     );
   }

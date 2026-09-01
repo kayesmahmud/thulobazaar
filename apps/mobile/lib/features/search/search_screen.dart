@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/api/ad_client.dart';
 import 'package:mobile/core/models/models.dart';
 import 'package:mobile/features/search/search_filter_modal.dart';
@@ -286,7 +286,7 @@ class SearchScreenState extends State<SearchScreen> {
                                   hintText: context.locale.languageCode == 'ne'
                                       ? "केही पनि खोज्नुहोस्..."
                                       : "Search for anything...",
-                                  hintStyle: GoogleFonts.inter(
+                                  hintStyle: AppFont.inter(
                                     color: Colors.grey[500],
                                   ),
                                   filled: true,
@@ -467,12 +467,12 @@ class SearchScreenState extends State<SearchScreen> {
               const SizedBox(height: 16),
               Text(
                 'No ads found',
-                style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+                style: AppFont.inter(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
               Text(
                 'Try adjusting your filters',
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
+                style: AppFont.inter(fontSize: 14, color: Colors.grey[500]),
               ),
             ],
           ),
@@ -570,7 +570,7 @@ class SearchScreenState extends State<SearchScreen> {
             ],
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 13,
                 color: isActive ? const Color(0xFF10B981) : Colors.grey[800],
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../core/theme/app_theme.dart';
@@ -180,7 +180,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
           lang == 'ne'
               ? 'चरण १: QR कोड स्क्यान गर्नुहोस्'
               : 'Step 1: Scan QR Code',
-          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+          style: AppFont.inter(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
@@ -188,7 +188,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
               ? 'Google Authenticator वा कुनै TOTP एपले यो QR कोड स्क्यान गर्नुहोस्'
               : 'Scan this QR code with Google Authenticator or any TOTP app',
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
         ),
         const SizedBox(height: 24),
         if (_qrCodeBase64 != null)
@@ -210,7 +210,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
           lang == 'ne'
               ? 'वा म्यानुअल कोड प्रयोग गर्नुहोस्:'
               : 'Or enter this code manually:',
-          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 13, color: Colors.grey[600]),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -234,7 +234,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                 Flexible(
                   child: Text(
                     _secret ?? '',
-                    style: GoogleFonts.robotoMono(
+                    style: AppFont.robotoMono(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -260,7 +260,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
             ),
             child: Text(
               lang == 'ne' ? 'अर्को' : 'Next',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -280,7 +280,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
           lang == 'ne'
               ? 'चरण २: कोड प्रमाणित गर्नुहोस्'
               : 'Step 2: Verify Code',
-          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+          style: AppFont.inter(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
@@ -288,7 +288,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
               ? 'तपाईंको authenticator एपबाट ६-अंकको कोड प्रविष्ट गर्नुहोस्'
               : 'Enter the 6-digit code from your authenticator app',
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
         ),
         const SizedBox(height: 32),
         TextField(
@@ -297,7 +297,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
           textAlign: TextAlign.center,
           maxLength: 6,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             letterSpacing: 8,
@@ -305,7 +305,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
           decoration: InputDecoration(
             counterText: '',
             hintText: '000000',
-            hintStyle: GoogleFonts.inter(
+            hintStyle: AppFont.inter(
               fontSize: 24,
               color: Colors.grey[300],
               letterSpacing: 8,
@@ -351,7 +351,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                   )
                 : Text(
                     lang == 'ne' ? 'प्रमाणित गर्नुहोस्' : 'Verify & Enable',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -380,7 +380,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
         const SizedBox(height: 16),
         Text(
           lang == 'ne' ? '2FA सक्रिय भयो!' : '2FA Enabled!',
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.green,
@@ -407,10 +407,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                   lang == 'ne'
                       ? 'यी ब्याकअप कोडहरू सुरक्षित रूपमा सेभ गर्नुहोस्। यो फेरि देखाइने छैन।'
                       : 'Save these backup codes securely. They won\'t be shown again.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.amber[900],
-                  ),
+                  style: AppFont.inter(fontSize: 13, color: Colors.amber[900]),
                 ),
               ),
             ],
@@ -437,7 +434,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                         Expanded(
                           child: Text(
                             _backupCodes![idx1],
-                            style: GoogleFonts.robotoMono(fontSize: 14),
+                            style: AppFont.robotoMono(fontSize: 14),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -445,7 +442,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                           Expanded(
                             child: Text(
                               _backupCodes![idx2],
-                              style: GoogleFonts.robotoMono(fontSize: 14),
+                              style: AppFont.robotoMono(fontSize: 14),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -487,7 +484,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
             ),
             child: Text(
               lang == 'ne' ? 'सम्पन्न' : 'Done',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

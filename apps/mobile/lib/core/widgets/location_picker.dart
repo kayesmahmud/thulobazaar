@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../api/location_client.dart';
 import '../models/models.dart';
@@ -299,7 +299,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
               children: [
                 Text(
                   'Select Location',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textDark,
@@ -335,7 +335,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                             value: _selectedProvince,
                             hint: Text(
                               'Select Province',
-                              style: GoogleFonts.inter(color: Colors.grey[500]),
+                              style: AppFont.inter(color: Colors.grey[500]),
                             ),
                             isExpanded: true,
                             decoration: _dropdownDecoration(),
@@ -343,10 +343,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                                 .map(
                                   (p) => DropdownMenuItem(
                                     value: p,
-                                    child: Text(
-                                      p.name,
-                                      style: GoogleFonts.inter(),
-                                    ),
+                                    child: Text(p.name, style: AppFont.inter()),
                                   ),
                                 )
                                 .toList(),
@@ -374,7 +371,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                               _selectedProvince == null
                                   ? 'Select Province first'
                                   : 'Select District',
-                              style: GoogleFonts.inter(color: Colors.grey[500]),
+                              style: AppFont.inter(color: Colors.grey[500]),
                             ),
                             isExpanded: true,
                             decoration: _dropdownDecoration(
@@ -384,10 +381,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                                 .map(
                                   (d) => DropdownMenuItem(
                                     value: d,
-                                    child: Text(
-                                      d.name,
-                                      style: GoogleFonts.inter(),
-                                    ),
+                                    child: Text(d.name, style: AppFont.inter()),
                                   ),
                                 )
                                 .toList(),
@@ -419,7 +413,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                               _selectedDistrict == null
                                   ? 'Select District first'
                                   : 'Select Municipality',
-                              style: GoogleFonts.inter(color: Colors.grey[500]),
+                              style: AppFont.inter(color: Colors.grey[500]),
                             ),
                             isExpanded: true,
                             decoration: _dropdownDecoration(
@@ -429,10 +423,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                                 .map(
                                   (m) => DropdownMenuItem(
                                     value: m,
-                                    child: Text(
-                                      m.name,
-                                      style: GoogleFonts.inter(),
-                                    ),
+                                    child: Text(m.name, style: AppFont.inter()),
                                   ),
                                 )
                                 .toList(),
@@ -472,7 +463,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                             ),
                             child: Text(
                               'No areas available',
-                              style: GoogleFonts.inter(color: Colors.grey[500]),
+                              style: AppFont.inter(color: Colors.grey[500]),
                             ),
                           )
                         : DropdownButtonFormField<Area>(
@@ -481,7 +472,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                               _selectedMunicipality == null
                                   ? 'Select Municipality first'
                                   : 'Select Area',
-                              style: GoogleFonts.inter(color: Colors.grey[500]),
+                              style: AppFont.inter(color: Colors.grey[500]),
                             ),
                             isExpanded: true,
                             decoration: _dropdownDecoration(
@@ -493,10 +484,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                                 .map(
                                   (a) => DropdownMenuItem(
                                     value: a,
-                                    child: Text(
-                                      a.name,
-                                      style: GoogleFonts.inter(),
-                                    ),
+                                    child: Text(a.name, style: AppFont.inter()),
                                   ),
                                 )
                                 .toList(),
@@ -535,7 +523,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                               children: [
                                 Text(
                                   'Selected Location',
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     color: Colors.grey[600],
                                   ),
@@ -543,7 +531,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                                 const SizedBox(height: 4),
                                 Text(
                                   _buildSelectedLocation().displayName,
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontWeight: FontWeight.w600,
                                     color: AppTheme.textDark,
                                   ),
@@ -589,7 +577,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
                   ),
                   child: Text(
                     'Confirm Location',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -617,7 +605,7 @@ class _LocationPickerContentState extends State<_LocationPickerContent> {
           children: [
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontWeight: FontWeight.w600,
                 color: enabled ? Colors.grey[700] : Colors.grey[400],
               ),

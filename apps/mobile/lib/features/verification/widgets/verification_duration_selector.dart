@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/models/verification.dart';
 
 class VerificationDurationSelector extends StatelessWidget {
@@ -52,7 +52,7 @@ class VerificationDurationSelector extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Select Duration',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
@@ -63,7 +63,7 @@ class VerificationDurationSelector extends StatelessWidget {
                 onPressed: onClearSelection,
                 child: Text(
                   'Cancel',
-                  style: GoogleFonts.inter(color: Colors.grey[500]),
+                  style: AppFont.inter(color: Colors.grey[500]),
                 ),
               ),
             ],
@@ -101,7 +101,7 @@ class VerificationDurationSelector extends StatelessWidget {
                 isFreeVerification
                     ? 'Continue with Free Verification'
                     : 'Continue',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -153,7 +153,7 @@ class VerificationDurationSelector extends StatelessWidget {
                 children: [
                   Text(
                     '${free.durationDays} Days - FREE',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[800],
@@ -162,10 +162,7 @@ class VerificationDurationSelector extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'New user promotional offer',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
+                    style: AppFont.inter(fontSize: 12, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -206,7 +203,7 @@ class VerificationDurationSelector extends StatelessWidget {
                 children: [
                   Text(
                     option.durationLabel,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[800],
@@ -218,7 +215,7 @@ class VerificationDurationSelector extends StatelessWidget {
                       children: [
                         Text(
                           'Rs. ${option.price.toStringAsFixed(0)}',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             decoration: TextDecoration.lineThrough,
                             color: Colors.grey[400],
@@ -236,7 +233,7 @@ class VerificationDurationSelector extends StatelessWidget {
                           ),
                           child: Text(
                             '${option.discountPercentage}% OFF',
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFFD97706),
@@ -251,7 +248,7 @@ class VerificationDurationSelector extends StatelessWidget {
             ),
             Text(
               'Rs. ${option.finalPrice.toStringAsFixed(0)}',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF6366F1),

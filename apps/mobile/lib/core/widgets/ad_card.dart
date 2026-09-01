@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../api/api_config.dart';
@@ -128,7 +128,7 @@ class AdCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               '${ad.images.length}',
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 color: Colors.white,
                                 fontSize: 10,
                               ),
@@ -165,7 +165,7 @@ class AdCard extends StatelessWidget {
                           context.locale.languageCode == 'ne'
                               ? (isNew ? 'नयाँ' : 'पुरानो')
                               : ad.condition!.toUpperCase(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -189,7 +189,7 @@ class AdCard extends StatelessWidget {
                   // Title: Dija test ad
                   Text(
                     ad.title,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       color: AppTheme.textDark,
@@ -215,7 +215,7 @@ class AdCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             ad.districtName!,
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               color: Colors.grey[600],
                             ),
@@ -231,7 +231,7 @@ class AdCard extends StatelessWidget {
                   // Price: Rs. 4,444 (Green, Bold)
                   Text(
                     formatLocalizedPrice(ad.price, context.locale.languageCode),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       color: const Color(0xFF10B981),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -246,7 +246,7 @@ class AdCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           ad.userName ?? 'common.seller'.tr(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             color: Colors.grey[800],
                             fontWeight: FontWeight.w500,
@@ -289,7 +289,7 @@ class AdCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           formattedDate,
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 10,
                             color: Colors.grey[500],
                           ),
@@ -332,7 +332,7 @@ class AdCard extends StatelessWidget {
             const SizedBox(width: 2),
             Text(
               'URGENT',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 color: Colors.white,
                 fontSize: 8,
                 fontWeight: FontWeight.bold,
@@ -363,7 +363,7 @@ class AdCard extends StatelessWidget {
               const SizedBox(width: 2),
               Text(
                 'common.featured'.tr(),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   color: Colors.white,
                   fontSize: 8,
                   fontWeight: FontWeight.bold,
@@ -391,7 +391,7 @@ class AdCard extends StatelessWidget {
             const SizedBox(width: 2),
             Text(
               'STICKY',
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 color: Colors.white,
                 fontSize: 8,
                 fontWeight: FontWeight.bold,

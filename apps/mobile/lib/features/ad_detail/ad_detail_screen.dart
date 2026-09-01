@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -292,7 +292,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                 children: [
                   Text(
                     'Loading ad title placeholder text here',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -300,12 +300,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   const SizedBox(height: 6),
                   Text(
                     '2 days ago • 123 views',
-                    style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                    style: AppFont.inter(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'Rs. 99,999',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -315,7 +315,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Description',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -323,12 +323,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'This is a placeholder description that spans multiple lines to create a realistic skeleton shimmer effect for the ad detail screen loading state.',
-                    style: GoogleFonts.inter(fontSize: 14, height: 1.5),
+                    style: AppFont.inter(fontSize: 14, height: 1.5),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     'Location',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -346,7 +346,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         const SizedBox(width: 12),
                         Text(
                           'Kathmandu, Nepal',
-                          style: GoogleFonts.inter(fontSize: 14),
+                          style: AppFont.inter(fontSize: 14),
                         ),
                       ],
                     ),
@@ -371,14 +371,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           children: [
                             Text(
                               'Seller Name',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: AppFont.inter(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Member since 2024',
-                              style: GoogleFonts.inter(fontSize: 12),
+                              style: AppFont.inter(fontSize: 12),
                             ),
                           ],
                         ),
@@ -405,7 +403,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
             const SizedBox(height: 16),
             Text(
               _error ?? l('somethingWentWrong', context.locale.languageCode),
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -528,7 +526,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         // 2. TITLE & META
                         Text(
                           ad.title,
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF1F2937),
@@ -537,7 +535,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         const SizedBox(height: 6),
                         Text(
                           '${localizedTimeAgo(ad.publishedAt, context.locale.languageCode)} • ${ad.viewCount} ${l('views', context.locale.languageCode)}',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             color: const Color(0xFF6B7280),
                           ),
@@ -550,7 +548,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                             Expanded(
                               child: Text(
                                 _formatPrice(ad.price),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF10B981),
@@ -581,7 +579,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  textStyle: GoogleFonts.inter(
+                                  textStyle: AppFont.inter(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -618,7 +616,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                             ? 'नयाँ'
                                             : 'पुरानो')
                                       : ad.condition!,
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -640,7 +638,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                   context.locale.languageCode == 'ne'
                                       ? 'मोलमोलाई योग्य'
                                       : 'Negotiable',
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -663,7 +661,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                   context.locale.languageCode == 'ne'
                                       ? 'डेलिभरीमा नगद भुक्तानी'
                                       : 'Cash on Delivery',
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -687,7 +685,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                   ad.localizedCategoryName(
                                     context.locale.languageCode,
                                   ),
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF10B981),
@@ -702,7 +700,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                   null) ...[
                                 Text(
                                   ' > ',
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     color: const Color(0xFF10B981),
                                   ),
@@ -715,7 +713,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                           context.locale.languageCode,
                                         ) ??
                                         '',
-                                    style: GoogleFonts.inter(
+                                    style: AppFont.inter(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF10B981),
@@ -742,7 +740,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       children: [
                         Text(
                           l('description', context.locale.languageCode),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF1F2937),
@@ -751,7 +749,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         const SizedBox(height: 8),
                         Text(
                           ad.description,
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 14,
                             color: const Color(0xFF4B5563),
                             height: 1.5,
@@ -772,7 +770,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       children: [
                         Text(
                           l('location', context.locale.languageCode),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF1F2937),
@@ -811,7 +809,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                             if (i > 0)
                                               Text(
                                                 ', ',
-                                                style: GoogleFonts.inter(
+                                                style: AppFont.inter(
                                                   fontSize: 14,
                                                   color: const Color(
                                                     0xFF374151,
@@ -829,7 +827,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                                           .locale
                                                           .languageCode,
                                                     ),
-                                                style: GoogleFonts.inter(
+                                                style: AppFont.inter(
                                                   fontSize: 14,
                                                   color: const Color(
                                                     0xFF374151,
@@ -851,7 +849,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                         ad.localizedLocationName(
                                           context.locale.languageCode,
                                         ),
-                                        style: GoogleFonts.inter(
+                                        style: AppFont.inter(
                                           fontSize: 14,
                                           color: const Color(0xFF374151),
                                           fontWeight: FontWeight.w500,
@@ -869,7 +867,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                               ad.locationType!
                                                   .replaceAll('_', ' ')
                                                   .substring(1),
-                                          style: GoogleFonts.inter(
+                                          style: AppFont.inter(
                                             fontSize: 12,
                                             color: const Color(0xFF6B7280),
                                           ),
@@ -926,7 +924,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                 const SizedBox(width: 8),
                                 Text(
                                   'report.reportThisAd'.tr(),
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     color: const Color(0xFF9CA3AF),
                                     fontSize: 12,
                                   ),
@@ -1029,7 +1027,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           context.locale.languageCode == 'ne'
                               ? 'यो विज्ञापन प्रवर्द्धन गर्नुहोस्'
                               : 'Promote this Ad',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             color: Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -1039,7 +1037,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           context.locale.languageCode == 'ne'
                               ? 'प्रवर्द्धनसँग दृश्यता बढाउनुहोस्'
                               : 'Increase visibility with promotions',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             color: Colors.white70,
                             fontSize: 12,
                           ),
@@ -1071,7 +1069,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
             context.locale.languageCode == 'ne'
                 ? 'सम्बन्धित विज्ञापनहरू'
                 : "Related Ads",
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF1F2937),
@@ -1122,7 +1120,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               const SizedBox(width: 4),
               Text(
                 context.locale.languageCode == 'ne' ? 'अत्यावश्यक' : 'URGENT',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 12,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -1151,7 +1149,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               const SizedBox(width: 4),
               Text(
                 context.locale.languageCode == 'ne' ? 'विशेष' : 'FEATURED',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 12,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -1180,7 +1178,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               const SizedBox(width: 4),
               Text(
                 context.locale.languageCode == 'ne' ? 'स्टिकी' : 'STICKY',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 12,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,

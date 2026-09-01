@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import 'package:mobile/features/contact/contact_screen.dart';
@@ -156,7 +156,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       appBar: AppBar(
         title: Text(
           'help.title'.tr(),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFont.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1F2937),
@@ -174,7 +174,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
                 hintText: 'help.searchPlaceholder'.tr(),
-                hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+                hintStyle: AppFont.inter(color: Colors.grey[400]),
                 prefixIcon: Icon(
                   LucideIcons.search,
                   color: Colors.grey[400],
@@ -201,7 +201,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              style: GoogleFonts.inter(fontSize: 15),
+              style: AppFont.inter(fontSize: 15),
             ),
           ),
 
@@ -234,7 +234,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const SizedBox(height: 12),
           Text(
             'help.noResults'.tr(),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               color: Colors.grey[500],
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -243,7 +243,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const SizedBox(height: 4),
           Text(
             'help.tryDifferentKeywords'.tr(),
-            style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+            style: AppFont.inter(color: Colors.grey[400], fontSize: 14),
           ),
         ],
       ),
@@ -296,7 +296,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                       children: [
                         Text(
                           category.titleKey.tr(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
                             color: const Color(0xFF1F2937),
@@ -304,7 +304,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                         ),
                         Text(
                           category.descriptionKey.tr(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 13,
                             color: Colors.grey[500],
                           ),
@@ -352,7 +352,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                               Expanded(
                                 child: Text(
                                   faq.questionKey.tr(),
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: const Color(0xFF374151),
@@ -372,7 +372,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             const SizedBox(height: 10),
                             Text(
                               faq.answerKey.tr(),
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 13,
                                 color: Colors.grey[600],
                                 height: 1.5,
@@ -407,7 +407,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const SizedBox(height: 12),
           Text(
             'help.stillNeedHelp'.tr(),
-            style: GoogleFonts.poppins(
+            style: AppFont.poppins(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -416,7 +416,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const SizedBox(height: 4),
           Text(
             'help.supportTeamHere'.tr(),
-            style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
+            style: AppFont.inter(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 16),
           Row(
@@ -434,7 +434,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   icon: const Icon(LucideIcons.ticket, size: 16),
                   label: Text(
                     'help.supportTicket'.tr(),
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                    style: AppFont.inter(fontWeight: FontWeight.w500),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
@@ -458,7 +458,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   icon: const Icon(LucideIcons.mail, size: 16),
                   label: Text(
                     'help.contactUs'.tr(),
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                    style: AppFont.inter(fontWeight: FontWeight.w500),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/core/widgets/app_cached_image.dart';
 
@@ -97,7 +97,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer> {
                 ),
                 child: Text(
                   '${_currentIndex + 1}/${widget.images.length}',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

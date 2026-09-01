@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import '../../../../core/utils/localized_helpers.dart';
 
 class IndividualReviewStep extends StatelessWidget {
@@ -36,7 +36,7 @@ class IndividualReviewStep extends StatelessWidget {
       children: [
         Text(
           lang == 'ne' ? 'समीक्षा र पेश गर्नुहोस्' : 'Review & Submit',
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.grey[800],
@@ -47,7 +47,7 @@ class IndividualReviewStep extends StatelessWidget {
           lang == 'ne'
               ? 'कृपया पेश गर्नु अघि आफ्नो जानकारी समीक्षा गर्नुहोस्।'
               : 'Please review your information before submitting.',
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
         ),
         const SizedBox(height: 24),
 
@@ -97,7 +97,7 @@ class IndividualReviewStep extends StatelessWidget {
         // Documents preview
         Text(
           lang == 'ne' ? 'अपलोड गरिएका कागजातहरू' : 'Documents Uploaded',
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.grey[800],
@@ -145,11 +145,11 @@ class IndividualReviewStep extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
         ),
         Text(
           value,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: isHighlighted ? const Color(0xFF6366F1) : Colors.grey[800],
@@ -165,7 +165,7 @@ class IndividualReviewStep extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Colors.grey[600],

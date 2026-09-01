@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/core/models/models.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
@@ -73,7 +73,7 @@ class AdSpecifications extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
               isNe ? 'विशेषताहरू' : "Specifications",
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF1F2937),
@@ -90,7 +90,7 @@ class AdSpecifications extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Text(
                 isNe ? 'सुविधाहरू' : 'Amenities',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF1F2937),
@@ -124,7 +124,7 @@ class AdSpecifications extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         amenity,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF374151),
@@ -180,7 +180,7 @@ class AdSpecifications extends StatelessWidget {
 
     final label = Text(
       row.label,
-      style: GoogleFonts.inter(
+      style: AppFont.inter(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: const Color(0xFF6B7280),
@@ -191,7 +191,7 @@ class AdSpecifications extends StatelessWidget {
     final value = url == null
         ? Text(
             row.value,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF111827),
@@ -201,7 +201,7 @@ class AdSpecifications extends StatelessWidget {
             onTap: () => _launchUrl(url),
             child: Text(
               row.value,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF2563EB),

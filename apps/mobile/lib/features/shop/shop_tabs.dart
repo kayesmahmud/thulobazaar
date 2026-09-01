@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:mobile/core/api/shop_client.dart';
@@ -99,7 +99,7 @@ class _ShopTabsState extends State<ShopTabs> {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                   color: isActive ? const Color(0xFFF43F5E) : Colors.grey[600],
@@ -279,10 +279,7 @@ class _ShopAboutSectionState extends State<ShopAboutSection> {
           children: [
             Text(
               l('about', context.locale.languageCode),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             if (widget.isOwner)
               IconButton(
@@ -302,7 +299,7 @@ class _ShopAboutSectionState extends State<ShopAboutSection> {
               : (context.locale.languageCode == 'ne'
                     ? 'कुनै विवरण उपलब्ध छैन।'
                     : 'No description available.'),
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 14,
             color: Colors.grey[700],
             height: 1.5,
@@ -520,7 +517,7 @@ class _ShopContactSectionState extends State<ShopContactSection> {
                   Expanded(
                     child: Text(
                       '${isNe ? 'दर्ता नम्बर' : 'Registered'}: ${formatPhone(widget.shop.phone!)}',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         color: const Color(0xFF15803D),
                       ),
@@ -569,7 +566,7 @@ class _ShopContactSectionState extends State<ShopContactSection> {
                         isNe
                             ? 'दर्ता नम्बर नै प्रयोग गर्नुहोस् (${formatPhone(widget.shop.phone!)})'
                             : 'Same as registered number (${formatPhone(widget.shop.phone!)})',
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 13,
                           color: Colors.black87,
                         ),
@@ -702,10 +699,7 @@ class _ShopContactSectionState extends State<ShopContactSection> {
           children: [
             Text(
               l('contactInfo', context.locale.languageCode),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             if (widget.isOwner)
               IconButton(
@@ -722,7 +716,7 @@ class _ShopContactSectionState extends State<ShopContactSection> {
         if (!hasAny)
           Text(
             isNe ? 'सम्पर्क जानकारी छैन।' : 'No contact info.',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 14,
               color: Colors.grey,
               fontStyle: FontStyle.italic,
@@ -795,7 +789,7 @@ class _ShopContactSectionState extends State<ShopContactSection> {
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
       text,
-      style: GoogleFonts.inter(
+      style: AppFont.inter(
         fontSize: 13,
         fontWeight: FontWeight.w500,
         color: Colors.black87,
@@ -826,10 +820,7 @@ class _ShopContactSectionState extends State<ShopContactSection> {
           ),
           child: Text(
             prefix,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: const Color(0xFF6B7280),
-            ),
+            style: AppFont.inter(fontSize: 13, color: const Color(0xFF6B7280)),
           ),
         ),
         Expanded(
@@ -906,14 +897,14 @@ class _ShopContactSectionState extends State<ShopContactSection> {
                   children: [
                     Text(
                       label,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 11,
                         color: Colors.grey[500],
                       ),
                     ),
                     Text(
                       value,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 14,
                         color: onTap != null
                             ? const Color(0xFFF43F5E)
@@ -1106,10 +1097,7 @@ class _ShopCategorySectionState extends State<ShopCategorySection> {
           children: [
             Text(
               l('category', context.locale.languageCode),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             if (widget.isOwner)
               IconButton(
@@ -1140,7 +1128,7 @@ class _ShopCategorySectionState extends State<ShopCategorySection> {
             context.locale.languageCode == 'ne'
                 ? 'पूर्वनिर्धारित वर्ग सेट गरिएको छैन।'
                 : 'No default category set.',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 14,
               color: Colors.grey,
               fontStyle: FontStyle.italic,
@@ -1157,7 +1145,7 @@ class _ShopCategorySectionState extends State<ShopCategorySection> {
         children: [
           Icon(icon, size: 20, color: Colors.grey[600]),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: GoogleFonts.inter(fontSize: 14))),
+          Expanded(child: Text(text, style: AppFont.inter(fontSize: 14))),
         ],
       ),
     );
@@ -1411,7 +1399,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                       Expanded(
                         child: Text(
                           _selectedLocation!.name,
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF15803D),
@@ -1429,7 +1417,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                         ),
                         child: Text(
                           _locationTypeLabel(_selectedLocation!.type, isNe),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
                             color: const Color(0xFF15803D),
@@ -1457,7 +1445,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                             isNe
                                 ? 'स्थान लोड हुँदैछ...'
                                 : 'Loading hierarchy...',
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               color: const Color(0xFF16A34A),
                             ),
@@ -1484,7 +1472,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                                   const SizedBox(width: 6),
                                   Text(
                                     _ancestryChain[i].name,
-                                    style: GoogleFonts.inter(
+                                    style: AppFont.inter(
                                       fontSize: 12,
                                       color: const Color(0xFF16A34A),
                                     ),
@@ -1492,7 +1480,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                                   const SizedBox(width: 4),
                                   Text(
                                     '(${_locationTypeLabel(_ancestryChain[i].type, isNe)})',
-                                    style: GoogleFonts.inter(
+                                    style: AppFont.inter(
                                       fontSize: 10,
                                       color: Colors.green[400],
                                     ),
@@ -1542,7 +1530,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                           Expanded(
                             child: Text(
                               loc.name,
-                              style: GoogleFonts.inter(fontSize: 14),
+                              style: AppFont.inter(fontSize: 14),
                             ),
                           ),
                           Container(
@@ -1556,7 +1544,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                             ),
                             child: Text(
                               _locationTypeLabel(loc.type, isNe),
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 10,
                                 color: Colors.grey[600],
                               ),
@@ -1616,10 +1604,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
           children: [
             Text(
               l('location', context.locale.languageCode),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             if (widget.isOwner)
               IconButton(
@@ -1645,7 +1630,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                 const SizedBox(width: 8),
                 Text(
                   isNe ? 'स्थान लोड हुँदैछ...' : 'Loading location...',
-                  style: GoogleFonts.inter(fontSize: 13, color: Colors.grey),
+                  style: AppFont.inter(fontSize: 13, color: Colors.grey),
                 ),
               ],
             )
@@ -1661,7 +1646,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                     Expanded(
                       child: Text(
                         _displayAncestry[0].name,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1678,7 +1663,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                       ),
                       child: Text(
                         _locationTypeLabel(_displayAncestry[0].type, isNe),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 10,
                           color: Colors.grey[600],
                         ),
@@ -1706,7 +1691,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                                 const SizedBox(width: 6),
                                 Text(
                                   _displayAncestry[i].name,
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 12,
                                     color: Colors.grey[600],
                                   ),
@@ -1714,7 +1699,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
                                 const SizedBox(width: 4),
                                 Text(
                                   '(${_locationTypeLabel(_displayAncestry[i].type, isNe)})',
-                                  style: GoogleFonts.inter(
+                                  style: AppFont.inter(
                                     fontSize: 10,
                                     color: Colors.grey[400],
                                   ),
@@ -1736,7 +1721,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
         if (widget.shop.locationId == null)
           Text(
             isNe ? 'स्थान सेट गरिएको छैन।' : 'No location set.',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 14,
               color: Colors.grey,
               fontStyle: FontStyle.italic,
@@ -1751,7 +1736,7 @@ class _ShopLocationSectionState extends State<ShopLocationSection> {
       children: [
         Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 8),
-        Expanded(child: Text(text, style: GoogleFonts.inter(fontSize: 14))),
+        Expanded(child: Text(text, style: AppFont.inter(fontSize: 14))),
       ],
     );
   }

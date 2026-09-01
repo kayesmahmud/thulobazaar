@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/api/ad_client.dart';
 import 'package:mobile/core/models/models.dart';
 
@@ -38,9 +38,9 @@ Future<bool?> showEditAdWarningDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(
         title,
-        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 17),
+        style: AppFont.inter(fontWeight: FontWeight.bold, fontSize: 17),
       ),
-      content: Text(body, style: GoogleFonts.inter(fontSize: 14, height: 1.5)),
+      content: Text(body, style: AppFont.inter(fontSize: 14, height: 1.5)),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),

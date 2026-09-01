@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:dio/dio.dart';
@@ -804,7 +804,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                 children: [
                   Text(
                     loc.name,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -812,7 +812,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   if (hint.isNotEmpty)
                     Text(
                       hint,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 11,
                         color: Colors.grey[600],
                       ),
@@ -851,7 +851,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   context.locale.languageCode == 'ne'
                       ? 'क्यामेराबाट फोटो खिच्नुहोस्'
                       : 'Take Photo',
-                  style: GoogleFonts.inter(),
+                  style: AppFont.inter(),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -864,7 +864,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   context.locale.languageCode == 'ne'
                       ? 'ग्यालेरीबाट छान्नुहोस्'
                       : 'Choose from Gallery',
-                  style: GoogleFonts.inter(),
+                  style: AppFont.inter(),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1121,10 +1121,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               Text(
                 'postAd.aiConfirmTitle'.tr(),
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+                style: AppFont.inter(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 18),
               for (final key in warningKeys)
@@ -1148,7 +1145,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                       Expanded(
                         child: Text(
                           key.tr(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 13.5,
                             height: 1.45,
                             color: const Color(0xFF78350F),
@@ -1172,7 +1169,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   ),
                   child: Text(
                     'postAd.aiReviewAgain'.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
@@ -1193,7 +1190,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   ),
                   child: Text(
                     'postAd.aiPostAnyway'.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
@@ -1656,7 +1653,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                           ? 'विज्ञापन सम्पादन'
                           : 'Edit Ad'))
               : 'postAd.title'.tr(),
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             color: Colors.black,
             fontWeight: FontWeight.w600,
             fontSize: 16,
@@ -1689,7 +1686,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                       child: Center(
                         child: Text(
                           '${_drafts.length}',
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 10,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1767,7 +1764,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         children: [
           Icon(icon, size: 13, color: color),
           const SizedBox(width: 4),
-          Text(label, style: GoogleFonts.inter(fontSize: 12, color: color)),
+          Text(label, style: AppFont.inter(fontSize: 12, color: color)),
         ],
       ),
     );
@@ -1779,7 +1776,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Text(
           'postAd.noSavedDrafts'.tr(),
-          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[500]),
+          style: AppFont.inter(fontSize: 13, color: Colors.grey[500]),
         ),
       );
     }
@@ -1798,7 +1795,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Text(
               'postAd.savedDrafts'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: Colors.grey[700],
@@ -1837,7 +1834,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   ),
                   title: Text(
                     draft.displayName,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 13,
                       fontWeight: isActive
                           ? FontWeight.w600
@@ -1849,10 +1846,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   ),
                   subtitle: Text(
                     timeLabel,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: Colors.grey[500],
-                    ),
+                    style: AppFont.inter(fontSize: 11, color: Colors.grey[500]),
                   ),
                   trailing: IconButton(
                     icon: const Icon(
@@ -1997,7 +1991,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -2052,7 +2046,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   height: 1.25,
@@ -2081,7 +2075,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         const SizedBox(height: 28),
         Text(
           'postAd.aboutProduct'.tr(),
-          style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+          style: AppFont.inter(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
 
@@ -2130,7 +2124,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   child: Text(
                     selectedCategory?.localizedName(locale) ??
                         'postAd.selectCategoryHint'.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       color: selectedCategory == null
                           ? Colors.grey[400]
@@ -2172,7 +2166,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     child: Text(
                       selectedSub?.localizedName(locale) ??
                           'postAd.selectSubcategoryHint'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 14,
                         color: selectedSub == null
                             ? Colors.grey[400]
@@ -2294,7 +2288,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               const SizedBox(width: 8),
               Text(
                 'postAd.priceNegotiable'.tr(),
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+                style: AppFont.inter(fontSize: 14, color: Colors.black87),
               ),
             ],
           ),
@@ -2319,7 +2313,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               const SizedBox(width: 8),
               Text(
                 'postAd.cashOnDelivery'.tr(),
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+                style: AppFont.inter(fontSize: 14, color: Colors.black87),
               ),
             ],
           ),
@@ -2338,14 +2332,11 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
           children: [
             Text(
               'postAd.photosLabel'.tr(),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             Text(
               'postAd.maxImages'.tr(),
-              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[500]),
+              style: AppFont.inter(fontSize: 12, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -2382,7 +2373,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'postAd.tapToUpload'.tr(),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
@@ -2519,7 +2510,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                         children: [
                           Text(
                             'postAd.aiFillingWait'.tr(),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF5B21B6),
@@ -2527,7 +2518,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                           ),
                           Text(
                             'postAd.aiFillingWaitHint'.tr(),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 12,
                               color: const Color(0xFF7C3AED),
                             ),
@@ -2560,7 +2551,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             ),
             child: Text(
               'postAd.aiExplicitBlocked'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFFB91C1C),
@@ -2578,7 +2569,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             ),
             child: Text(
               _aiCouldNotFillKey.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 12.5,
                 color: const Color(0xFF92400E),
               ),
@@ -2596,7 +2587,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         const SizedBox(height: 28),
         Text(
           'postAd.locationLabel'.tr(),
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+          style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
 
@@ -2605,10 +2596,10 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         TextField(
           controller: _locationSearchController,
           onChanged: _onLocationSearchChanged,
-          style: GoogleFonts.inter(fontSize: 14),
+          style: AppFont.inter(fontSize: 14),
           decoration: _inputDecoration().copyWith(
             hintText: 'postAd.searchLocationHint'.tr(),
-            hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+            hintStyle: AppFont.inter(color: Colors.grey[400], fontSize: 14),
             prefixIcon: const Icon(
               LucideIcons.search,
               size: 18,
@@ -2664,7 +2655,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
           isExpanded: true,
           hint: Text(
             'postAd.selectProvince'.tr(),
-            style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+            style: AppFont.inter(color: Colors.grey[400], fontSize: 14),
           ),
           decoration: _inputDecoration(),
           items: _provinces.map<DropdownMenuItem<LocationProvince>>((
@@ -2674,7 +2665,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               value: prov,
               child: Text(
                 prov.localizedName(context.locale.languageCode),
-                style: GoogleFonts.inter(fontSize: 14),
+                style: AppFont.inter(fontSize: 14),
               ),
             );
           }).toList(),
@@ -2696,7 +2687,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             isExpanded: true,
             hint: Text(
               'postAd.selectDistrict'.tr(),
-              style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+              style: AppFont.inter(color: Colors.grey[400], fontSize: 14),
             ),
             decoration: _inputDecoration(),
             items: _selectedProvince!.districts
@@ -2707,7 +2698,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     value: dist,
                     child: Text(
                       dist.localizedName(context.locale.languageCode),
-                      style: GoogleFonts.inter(fontSize: 14),
+                      style: AppFont.inter(fontSize: 14),
                     ),
                   );
                 })
@@ -2730,7 +2721,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             isExpanded: true,
             hint: Text(
               'postAd.selectCity'.tr(),
-              style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+              style: AppFont.inter(color: Colors.grey[400], fontSize: 14),
             ),
             decoration: _inputDecoration(),
             items: _selectedDistrict!.municipalities
@@ -2741,7 +2732,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     value: city,
                     child: Text(
                       city.localizedName(context.locale.languageCode),
-                      style: GoogleFonts.inter(fontSize: 14),
+                      style: AppFont.inter(fontSize: 14),
                     ),
                   );
                 })
@@ -2765,7 +2756,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             isExpanded: true,
             hint: Text(
               'postAd.selectArea'.tr(),
-              style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+              style: AppFont.inter(color: Colors.grey[400], fontSize: 14),
             ),
             decoration: _inputDecoration(),
             items: _selectedMunicipality!.areas
@@ -2774,7 +2765,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     value: area,
                     child: Text(
                       area.localizedName(context.locale.languageCode),
-                      style: GoogleFonts.inter(fontSize: 14),
+                      style: AppFont.inter(fontSize: 14),
                     ),
                   );
                 })
@@ -2799,7 +2790,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         const SizedBox(height: 28),
         Text(
           'postAd.contactInfo'.tr(),
-          style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+          style: AppFont.inter(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
 
@@ -2817,7 +2808,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             children: [
               Text(
                 'postAd.phoneLabel'.tr(),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -2836,7 +2827,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     _verifiedPhone.isNotEmpty
                         ? _verifiedPhone
                         : 'postAd.noPhoneAdded'.tr(),
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 15,
                       color: _verifiedPhone.isNotEmpty
                           ? Colors.black87
@@ -2871,7 +2862,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                           const SizedBox(width: 4),
                           Text(
                             'common.verified'.tr(),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 11,
                               color: const Color(0xFF047857),
                               fontWeight: FontWeight.w600,
@@ -2898,7 +2889,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         // WhatsApp Section
         Text(
           'postAd.whatsappLabel'.tr(),
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+          style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
 
@@ -2937,7 +2928,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               const SizedBox(width: 8),
               Text(
                 'postAd.sameAsPhone'.tr(),
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+                style: AppFont.inter(fontSize: 14, color: Colors.black87),
               ),
             ],
           ),
@@ -2959,7 +2950,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             padding: const EdgeInsets.only(top: 4, left: 4),
             child: Text(
               'postAd.uncheckNote'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 12,
                 color: Colors.grey[500],
                 fontStyle: FontStyle.italic,
@@ -3002,7 +2993,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                   children: [
                     Text(
                       'postAd.phoneNotVerifiedTitle'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF92400E),
@@ -3011,7 +3002,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${'postAd.phoneNotVerifiedMsg'.tr()} $detail',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         height: 1.4,
                         color: const Color(0xFF92400E),
@@ -3030,7 +3021,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               icon: const Icon(LucideIcons.shieldCheck, size: 16),
               label: Text(
                 'postAd.verifyPhoneCta'.tr(),
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                style: AppFont.inter(fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF59E0B),
@@ -3105,7 +3096,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                     const SizedBox(width: 10),
                     Text(
                       _uploadLabel(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -3122,7 +3113,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                                   ? 'अपडेट गर्नुहोस्'
                                   : 'Update Ad'))
                       : 'postAd.postAdNow'.tr(),
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -3159,7 +3150,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         children: [
           Text(
             text,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontWeight: FontWeight.w600,
               fontSize: 13,
               color: Colors.grey[800],
@@ -3176,7 +3167,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               ),
               child: Text(
                 '✨ ${aiBadgeKey.tr()}',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 10,
                   color: const Color(0xFF7C3AED),
                 ),
@@ -3224,13 +3215,13 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       validator: validator,
       inputFormatters: inputFormatters,
       enabled: enabled,
-      style: GoogleFonts.inter(
+      style: AppFont.inter(
         fontSize: 15,
         color: enabled ? Colors.black87 : Colors.grey[600],
       ),
       decoration: _inputDecoration().copyWith(
         hintText: hintText,
-        hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+        hintStyle: AppFont.inter(color: Colors.grey[400], fontSize: 14),
         // Greyed background makes "you can't type here" obvious at a glance,
         // rather than the field looking editable and silently rejecting edits.
         filled: !enabled,
@@ -3246,7 +3237,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         padding: const EdgeInsets.only(top: 6),
         child: Text(
           text,
-          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[400]),
+          style: AppFont.inter(fontSize: 12, color: Colors.grey[400]),
         ),
       ),
     );

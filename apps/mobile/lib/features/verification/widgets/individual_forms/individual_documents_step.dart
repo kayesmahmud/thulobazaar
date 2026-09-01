@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class IndividualDocumentsStep extends StatelessWidget {
   final File? idFrontFile;
@@ -36,7 +36,7 @@ class IndividualDocumentsStep extends StatelessWidget {
       children: [
         Text(
           lang == 'ne' ? 'कागजातहरू अपलोड गर्नुहोस्' : 'Upload Documents',
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.grey[800],
@@ -47,7 +47,7 @@ class IndividualDocumentsStep extends StatelessWidget {
           lang == 'ne'
               ? 'तपाईंको परिचयपत्र र सेल्फीको स्पष्ट फोटो अपलोड गर्नुहोस्।'
               : 'Upload clear photos of your ID document and a selfie.',
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
         ),
         const SizedBox(height: 24),
 
@@ -109,7 +109,7 @@ class IndividualDocumentsStep extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     lang == 'ne' ? 'फोटो आवश्यकताहरू' : 'Photo Requirements',
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFFD97706),
@@ -128,7 +128,7 @@ class IndividualDocumentsStep extends StatelessWidget {
                           '• Avoid glare and shadows\n'
                           '• For selfie: Hold ID next to your face\n'
                           '• Max file size: 5MB per image',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 13,
                   color: Colors.grey[700],
                   height: 1.5,
@@ -154,7 +154,7 @@ class IndividualDocumentsStep extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.grey[700],
@@ -236,7 +236,7 @@ class IndividualDocumentsStep extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         hint,
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 13,
                           color: Colors.grey[500],
                         ),

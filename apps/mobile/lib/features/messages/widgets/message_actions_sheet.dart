@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mobile/core/models/message.dart';
 
@@ -112,7 +112,7 @@ class _MessageActionsSheet extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               item.labelKey.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: color,

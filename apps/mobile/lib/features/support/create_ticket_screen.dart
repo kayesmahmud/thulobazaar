@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -68,7 +68,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       appBar: AppBar(
         title: Text(
           'support.newTicket'.tr(),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFont.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1F2937),
@@ -100,7 +100,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     Expanded(
                       child: Text(
                         'support.ticketHelper'.tr(),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 13,
                           color: const Color(0xFF1E40AF),
                           height: 1.4,
@@ -125,7 +125,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                         value: c,
                         child: Text(
                           c.label,
-                          style: GoogleFonts.inter(fontSize: 15),
+                          style: AppFont.inter(fontSize: 15),
                         ),
                       ),
                     )
@@ -147,7 +147,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     ? 'support.subjectRequired'.tr()
                     : null,
                 textInputAction: TextInputAction.next,
-                style: GoogleFonts.inter(fontSize: 15),
+                style: AppFont.inter(fontSize: 15),
               ),
 
               const SizedBox(height: 20),
@@ -165,7 +165,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     ? 'support.descriptionRequired'.tr()
                     : null,
                 maxLines: 6,
-                style: GoogleFonts.inter(fontSize: 15),
+                style: AppFont.inter(fontSize: 15),
               ),
 
               const SizedBox(height: 32),
@@ -201,7 +201,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                             const SizedBox(width: 8),
                             Text(
                               'support.submitTicket'.tr(),
-                              style: GoogleFonts.inter(
+                              style: AppFont.inter(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -224,7 +224,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         const SizedBox(width: 6),
         Text(
           text,
-          style: GoogleFonts.inter(
+          style: AppFont.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF374151),
@@ -237,7 +237,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+      hintStyle: AppFont.inter(color: Colors.grey[400]),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(

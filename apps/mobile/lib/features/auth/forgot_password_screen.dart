@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/api/auth_client.dart';
 
@@ -279,7 +279,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           fit: BoxFit.contain,
           errorBuilder: (ctx, err, stack) => Text(
             'common.appNameFallback'.tr(),
-            style: GoogleFonts.poppins(
+            style: AppFont.poppins(
               color: AppTheme.primary,
               fontWeight: FontWeight.bold,
             ),
@@ -296,7 +296,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SizedBox(height: 10),
             Text(
               'common.appName'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.primary,
@@ -305,7 +305,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SizedBox(height: 12),
             Text(
               'forgotPassword.title'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textDark,
@@ -316,7 +316,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               _currentStep == ForgotPasswordStep.newPassword
                   ? 'forgotPassword.createNewPassword'.tr()
                   : 'forgotPassword.subtitle'.tr(),
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -342,7 +342,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   if (_currentStep == ForgotPasswordStep.phone) ...[
                     Text(
                       'forgotPassword.phoneLabel'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textDark,
                         fontSize: 14,
@@ -353,7 +353,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'auth.phoneValidation'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 12,
                         color: Colors.grey[500],
                       ),
@@ -388,7 +388,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                         args: ['$_otpCooldown'],
                                       )
                                     : 'forgotPassword.sendOtp'.tr(),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -407,7 +407,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             'auth.otpSentTo'.tr(
                               args: [_phoneController.text.trim()],
                             ),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               color: Colors.grey[600],
                               fontSize: 14,
                             ),
@@ -417,7 +417,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
                                 'Expires in ${_formatTime(_otpExpiry)}',
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 12,
                                   color: Colors.orange[700],
                                 ),
@@ -430,7 +430,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                     Text(
                       'auth.enterOtp'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -441,7 +441,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       keyboardType: TextInputType.number,
                       maxLength: 6,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(fontSize: 24, letterSpacing: 8),
+                      style: AppFont.inter(fontSize: 24, letterSpacing: 8),
                       decoration: InputDecoration(
                         hintText: 'auth.otpPlaceholder'.tr(),
                         counterText: "",
@@ -482,7 +482,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               )
                             : Text(
                                 'auth.verifyOtp'.tr(),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -499,7 +499,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           onPressed: _handleChangeNumber,
                           child: Text(
                             'auth.changeNumber'.tr(),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 13,
                               color: Colors.grey[600],
                             ),
@@ -513,7 +513,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             _otpCooldown > 0
                                 ? 'auth.resendIn'.tr(args: ['$_otpCooldown'])
                                 : 'auth.resendOtp'.tr(),
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 13,
                               color: _otpCooldown > 0
                                   ? Colors.grey[400]
@@ -548,7 +548,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           const SizedBox(width: 8),
                           Text(
                             '+977 ${_phoneController.text.trim()} verified',
-                            style: GoogleFonts.inter(
+                            style: AppFont.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: AppTheme.success,
@@ -560,7 +560,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                     Text(
                       'forgotPassword.newPassword'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -599,7 +599,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                     Text(
                       'forgotPassword.confirmPassword'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -660,7 +660,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               )
                             : Text(
                                 'forgotPassword.resetPassword'.tr(),
-                                style: GoogleFonts.inter(
+                                style: AppFont.inter(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -698,7 +698,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             child: Text(
               'auth.phonePrefix'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontWeight: FontWeight.w500,
                 color: AppTheme.textDark,
                 fontSize: 15,
@@ -718,7 +718,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 focusedBorder: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
-              style: GoogleFonts.inter(fontSize: 15),
+              style: AppFont.inter(fontSize: 15),
             ),
           ),
         ],

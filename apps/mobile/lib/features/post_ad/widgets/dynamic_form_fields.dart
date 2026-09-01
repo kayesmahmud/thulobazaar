@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/post_ad/services/form_template_service.dart';
 
@@ -63,7 +63,7 @@ class DynamicFormFields extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 locale == 'ne' ? 'थप विवरण' : 'Additional Details',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.blue[900],
@@ -105,7 +105,7 @@ class DynamicFormFields extends StatelessWidget {
     return RichText(
       text: TextSpan(
         text: _localizedLabel(field),
-        style: GoogleFonts.inter(
+        style: AppFont.inter(
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: Colors.grey[800],
@@ -166,7 +166,7 @@ class DynamicFormFields extends StatelessWidget {
             );
             return DropdownMenuItem(
               value: entry.value,
-              child: Text(displayLabel, style: GoogleFonts.inter(fontSize: 14)),
+              child: Text(displayLabel, style: AppFont.inter(fontSize: 14)),
             );
           }).toList(),
         );
@@ -180,7 +180,7 @@ class DynamicFormFields extends StatelessWidget {
           onChanged: (val) => onChanged(field.name, val),
           title: Text(
             _localizedLabel(field),
-            style: GoogleFonts.inter(fontSize: 14),
+            style: AppFont.inter(fontSize: 14),
           ),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
@@ -216,7 +216,7 @@ class DynamicFormFields extends StatelessWidget {
           return FilterChip(
             label: Text(
               displayLabel,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 13,
                 color: isSelected ? Colors.white : Colors.grey[800],
               ),
@@ -337,7 +337,7 @@ class _DateFieldInputState extends State<_DateFieldInput> {
 InputDecoration _inputDecoration(String? hint) {
   return InputDecoration(
     hintText: hint ?? 'Enter value',
-    hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
+    hintStyle: AppFont.inter(color: Colors.grey[400], fontSize: 14),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
       borderSide: BorderSide(color: Colors.grey[300]!),

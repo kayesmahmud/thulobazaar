@@ -4,7 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/widgets/app_cached_image.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile/core/api/ad_client.dart';
@@ -284,7 +284,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 children: [
                                   Text(
                                     'dashboard.myListings'.tr(),
-                                    style: GoogleFonts.inter(
+                                    style: AppFont.inter(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
                                       color: AppTheme.textDark,
@@ -293,7 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'dashboard.manageAds'.tr(),
-                                    style: GoogleFonts.inter(
+                                    style: AppFont.inter(
                                       fontSize: 14,
                                       color: Colors.grey[600],
                                     ),
@@ -359,7 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             height: 32,
             errorBuilder: (context, error, stackTrace) => Text(
               'common.appNameFallback'.tr(),
-              style: GoogleFonts.poppins(
+              style: AppFont.poppins(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -388,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Text(
             'dashboard.title'.tr(),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -397,7 +397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 4),
           Text(
             'dashboard.welcomeBack'.tr(args: [userName]),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 15,
               color: Colors.white.withOpacity(0.9),
             ),
@@ -464,7 +464,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: CountUpText(
                 value: value,
                 formatter: _formatCompactNumber,
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textDark,
@@ -474,7 +474,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 2),
             Text(
               label,
-              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+              style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -533,7 +533,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Center(
           child: Text(
             _localizedFilterLabel(label, count),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: isSelected ? Colors.white : Colors.grey[700],
@@ -580,7 +580,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 lang == 'ne'
                     ? 'तपाईंको विज्ञापन समीक्षाको लागि पर्खिरहेको छ। सम्पादकले स्वीकृत गरेपछि यो सक्रिय हुनेछ। तपाईं अझै पनि पेन्डिङ विज्ञापनहरू सम्पादन गर्न सक्नुहुन्छ।'
                     : 'Your ads are awaiting review. They will go live once an editor approves them. You can still edit pending ads.',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 12,
                   color: Colors.amber[900],
                   height: 1.4,
@@ -629,7 +629,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 16),
             Text(
               'dashboard.noAdsFound'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[600],
@@ -638,7 +638,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
             Text(
               'dashboard.startSelling'.tr(),
-              style: GoogleFonts.inter(color: Colors.grey[500]),
+              style: AppFont.inter(color: Colors.grey[500]),
             ),
           ],
         ),
@@ -702,7 +702,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       ad.title,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: AppTheme.textDark,
@@ -723,7 +723,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(ad.publishedAt),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             color: Colors.grey[500],
                           ),
@@ -741,7 +741,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 4),
                         Text(
                           _formatCompactNumber(ad.viewCount ?? 0),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             color: Colors.grey[500],
                           ),
@@ -780,7 +780,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Text(
                           _aiHoldMessage(ad.aiReasonCode),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             height: 1.4,
                             color: const Color(0xFF5B21B6),
@@ -791,7 +791,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         // banner — fixing the ad beats waiting for review.
                         Text(
                           'dashboard.aiHold.editNudge'.tr(),
-                          style: GoogleFonts.inter(
+                          style: AppFont.inter(
                             fontSize: 12,
                             height: 1.4,
                             fontWeight: FontWeight.w600,
@@ -813,12 +813,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'dashboard.price'.tr(),
-                style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
+                style: AppFont.inter(fontSize: 13, color: Colors.grey[600]),
               ),
               const Spacer(),
               Text(
                 _formatPrice(ad.price),
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primary,
@@ -862,7 +862,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 6),
                     Text(
                       'dashboard.promote'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -973,7 +973,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 4),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: filled ? Colors.white : color,
@@ -1038,7 +1038,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: textColor,
@@ -1094,10 +1094,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Icon(icon, color: Colors.grey, size: 24),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
-          ),
+          Text(label, style: AppFont.inter(fontSize: 11, color: Colors.grey)),
         ],
       ),
     );

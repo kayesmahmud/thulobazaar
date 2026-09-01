@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 /// Official "Thulo Bazaar Team" badge shown next to staff names in chat.
 /// Driven by the server-computed `isStaff` flag (users.role), so regular
@@ -28,7 +28,7 @@ class TeamBadge extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             compact ? 'TEAM' : 'THULO BAZAAR TEAM',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: compact ? 9 : 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,

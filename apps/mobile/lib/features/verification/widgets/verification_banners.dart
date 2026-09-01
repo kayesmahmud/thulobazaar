@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:mobile/core/models/verification.dart';
 
 class FreeVerificationBanner extends StatelessWidget {
@@ -41,7 +41,7 @@ class FreeVerificationBanner extends StatelessWidget {
               children: [
                 Text(
                   'Free Verification Available!',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -50,7 +50,7 @@ class FreeVerificationBanner extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Get ${free.durationDays} days free verification as a new user',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
@@ -93,7 +93,7 @@ class CampaignBanner extends StatelessWidget {
               children: [
                 Text(
                   '${campaign.discountPercentage}% OFF - ${campaign.name}',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -102,7 +102,7 @@ class CampaignBanner extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${campaign.daysRemaining} days remaining',
-                  style: GoogleFonts.inter(
+                  style: AppFont.inter(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.9),
                   ),

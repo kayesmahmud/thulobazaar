@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -82,7 +82,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       final response = await _client.getTicketDetail(widget.ticketId);
       if (!mounted || !response.hasData) return;
       final fresh = response.data!;
-      final hasNewMessage = fresh.messages.length != (_ticket?.messages.length ?? 0);
+      final hasNewMessage =
+          fresh.messages.length != (_ticket?.messages.length ?? 0);
       final statusChanged = fresh.status != _ticket?.status;
       if (!hasNewMessage && !statusChanged) return;
       setState(() => _ticket = fresh);
@@ -149,7 +150,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                   Expanded(
                     child: Text(
                       'Please use respectful language. Offensive words are not allowed on Thulo Bazaar.',
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -160,10 +161,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               const SizedBox(height: 4),
               Text(
                 'Thulo Bazaar promotes respectful communication between users and customer support team.',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: Colors.red.shade100,
-                ),
+                style: AppFont.inter(fontSize: 11, color: Colors.red.shade100),
               ),
             ],
           ),
@@ -287,17 +285,14 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
           children: [
             Text(
               _ticket?.subject ?? 'support.supportTicket'.tr(),
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+              style: AppFont.poppins(fontWeight: FontWeight.w600, fontSize: 16),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             if (_ticket != null)
               Text(
                 _ticket!.ticketNumber,
-                style: GoogleFonts.robotoMono(
+                style: AppFont.robotoMono(
                   fontSize: 11,
                   color: Colors.grey[500],
                 ),
@@ -341,7 +336,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: GoogleFonts.inter(color: Colors.grey[500]),
+                style: AppFont.inter(color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -389,9 +384,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                               const SizedBox(height: 8),
                               Text(
                                 'support.noMessages'.tr(),
-                                style: GoogleFonts.inter(
-                                  color: Colors.grey[400],
-                                ),
+                                style: AppFont.inter(color: Colors.grey[400]),
                               ),
                             ],
                           ),
@@ -402,28 +395,28 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                 : RefreshIndicator(
                     onRefresh: _pollOnce,
                     child: ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    itemCount: ticket.messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = ticket.messages[index];
-                      final showDate =
-                          index == 0 ||
-                          !_isSameDay(
-                            ticket.messages[index - 1].createdAt,
-                            msg.createdAt,
-                          );
-                      return Column(
-                        children: [
-                          if (showDate) _buildDateSeparator(msg.createdAt),
-                          _buildMessageBubble(msg),
-                        ],
-                      );
-                    },
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      itemCount: ticket.messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = ticket.messages[index];
+                        final showDate =
+                            index == 0 ||
+                            !_isSameDay(
+                              ticket.messages[index - 1].createdAt,
+                              msg.createdAt,
+                            );
+                        return Column(
+                          children: [
+                            if (showDate) _buildDateSeparator(msg.createdAt),
+                            _buildMessageBubble(msg),
+                          ],
+                        );
+                      },
                     ),
                   ),
           ),
@@ -473,7 +466,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
           const SizedBox(width: 8),
           Text(
             ticket.status.label,
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: fg,
@@ -488,7 +481,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
             ),
             child: Text(
               ticket.category.label,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: fg,
@@ -524,7 +517,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
             ),
             child: Text(
               label,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey[500],
@@ -598,7 +591,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                       msg.sender.fullName.isNotEmpty
                           ? msg.sender.fullName
                           : 'support.supportTeam'.tr(),
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFFE11D48),
@@ -609,7 +602,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               ),
             Text(
               msg.content,
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 14,
                 color: isOwn ? Colors.white : const Color(0xFF1F2937),
                 height: 1.4,
@@ -622,7 +615,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                 'h:mm a',
                 context.locale.languageCode,
               ),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 11,
                 color: isOwn ? Colors.white70 : Colors.grey[400],
               ),
@@ -660,7 +653,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               controller: _messageController,
               decoration: InputDecoration(
                 hintText: 'support.typeMessage'.tr(),
-                hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+                hintStyle: AppFont.inter(color: Colors.grey[400]),
                 filled: true,
                 fillColor: Colors.grey[100],
                 border: OutlineInputBorder(
@@ -672,7 +665,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                   vertical: 10,
                 ),
               ),
-              style: GoogleFonts.inter(fontSize: 15),
+              style: AppFont.inter(fontSize: 15),
               maxLines: 4,
               minLines: 1,
               textInputAction: TextInputAction.send,
@@ -743,7 +736,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
             const SizedBox(height: 6),
             Text(
               'support.feedbackReceived'.tr(),
-              style: GoogleFonts.inter(
+              style: AppFont.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: Colors.green[700],
@@ -754,7 +747,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               const SizedBox(height: 4),
               Text(
                 '"${ticket.csatComment}"',
-                style: GoogleFonts.inter(
+                style: AppFont.inter(
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                   color: Colors.grey[600],
@@ -786,7 +779,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         children: [
           Text(
             'support.rateExperience'.tr(),
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF1F2937),
@@ -826,7 +819,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                 return ChoiceChip(
                   label: Text(
                     label,
-                    style: GoogleFonts.inter(
+                    style: AppFont.inter(
                       fontSize: 12,
                       color: isSelected
                           ? Colors.white
@@ -859,10 +852,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'support.csatCommentHint'.tr(),
-                hintStyle: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: Colors.grey[400],
-                ),
+                hintStyle: AppFont.inter(fontSize: 13, color: Colors.grey[400]),
                 filled: true,
                 fillColor: Colors.grey[50],
                 border: OutlineInputBorder(
@@ -878,7 +868,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                   vertical: 10,
                 ),
               ),
-              style: GoogleFonts.inter(fontSize: 14),
+              style: AppFont.inter(fontSize: 14),
               maxLines: 2,
               minLines: 1,
             ),
@@ -906,7 +896,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                       )
                     : Text(
                         'support.submitFeedback'.tr(),
-                        style: GoogleFonts.inter(
+                        style: AppFont.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),

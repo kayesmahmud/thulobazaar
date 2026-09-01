@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 /// Shared chrome for the four auth surfaces (sign in, sign up, forgot
@@ -34,7 +34,7 @@ class AuthT {
 
   // Every style carries an explicit height: Inter has no Devanagari coverage,
   // so Nepali falls back to a font with different ascent/descent metrics.
-  static TextStyle headline(bool ne) => GoogleFonts.inter(
+  static TextStyle headline(bool ne) => AppFont.inter(
     fontSize: ne ? 24 : 26,
     fontWeight: FontWeight.w800,
     letterSpacing: ne ? 0 : -0.4,
@@ -42,35 +42,35 @@ class AuthT {
     color: Colors.white,
   );
 
-  static TextStyle subhead(bool ne) => GoogleFonts.inter(
+  static TextStyle subhead(bool ne) => AppFont.inter(
     fontSize: 15,
     fontWeight: FontWeight.w500,
     height: ne ? 1.60 : 1.45,
     color: Colors.white.withValues(alpha: 0.86),
   );
 
-  static TextStyle body(bool ne) => GoogleFonts.inter(
+  static TextStyle body(bool ne) => AppFont.inter(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     height: ne ? 1.52 : 1.35,
     color: ink,
   );
 
-  static TextStyle label(bool ne) => GoogleFonts.inter(
+  static TextStyle label(bool ne) => AppFont.inter(
     fontSize: 13,
     fontWeight: FontWeight.w600,
     height: ne ? 1.62 : 1.45,
     color: inkMuted,
   );
 
-  static TextStyle caption(bool ne) => GoogleFonts.inter(
+  static TextStyle caption(bool ne) => AppFont.inter(
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: ne ? 1.62 : 1.45,
     color: inkFaint,
   );
 
-  static TextStyle cta() => GoogleFonts.inter(
+  static TextStyle cta() => AppFont.inter(
     fontSize: 16,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.1,
@@ -78,7 +78,7 @@ class AuthT {
     color: Colors.white,
   );
 
-  static TextStyle link() => GoogleFonts.inter(
+  static TextStyle link() => AppFont.inter(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.30,
@@ -537,7 +537,7 @@ Widget googleButton({required String label, required VoidCallback? onTap}) =>
               const SizedBox(width: 10),
               Text(
                 label,
-                style: GoogleFonts.roboto(
+                style: AppFont.roboto(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF3C4043),

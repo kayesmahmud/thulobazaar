@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 
 class VerificationHeroHeader extends StatelessWidget {
   const VerificationHeroHeader({super.key});
@@ -34,7 +34,7 @@ class VerificationHeroHeader extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Build Trust with Buyers',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -44,7 +44,7 @@ class VerificationHeroHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Get verified to stand out and gain buyer confidence',
-            style: GoogleFonts.inter(
+            style: AppFont.inter(
               fontSize: 14,
               color: Colors.white.withValues(alpha: 0.9),
             ),

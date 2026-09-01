@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -18,7 +18,7 @@ class ContactScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'contact.title'.tr(),
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: AppFont.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1F2937),
@@ -49,7 +49,7 @@ class ContactScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     'contact.wereHereToHelp'.tr(),
-                    style: GoogleFonts.poppins(
+                    style: AppFont.poppins(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -59,10 +59,7 @@ class ContactScreen extends StatelessWidget {
                   Text(
                     'contact.reachOut'.tr(),
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: AppFont.inter(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
@@ -107,7 +104,7 @@ class ContactScreen extends StatelessWidget {
             // Quick action buttons
             Text(
               'contact.quickActions'.tr(),
-              style: GoogleFonts.poppins(
+              style: AppFont.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF1F2937),
@@ -209,7 +206,7 @@ class _ContactCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 13,
                         color: Colors.grey[500],
                       ),
@@ -217,7 +214,7 @@ class _ContactCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       value,
-                      style: GoogleFonts.inter(
+                      style: AppFont.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: onTap != null
@@ -276,11 +273,11 @@ class _ActionButton extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500),
+          style: AppFont.inter(fontSize: 15, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[500]),
+          style: AppFont.inter(fontSize: 13, color: Colors.grey[500]),
         ),
         trailing: Icon(
           LucideIcons.chevronRight,
