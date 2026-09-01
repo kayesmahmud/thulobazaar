@@ -1,12 +1,14 @@
 'use client';
 
+import Link from 'next/link';
 import { formatCurrency, type TopCustomer } from '../types';
 
 interface TopCustomersTableProps {
   data: TopCustomer[];
+  lang: string;
 }
 
-export default function TopCustomersTable({ data }: TopCustomersTableProps) {
+export default function TopCustomersTable({ data, lang }: TopCustomersTableProps) {
   if (data.length === 0) {
     return null;
   }
@@ -29,10 +31,15 @@ export default function TopCustomersTable({ data }: TopCustomersTableProps) {
             {data.map((customer) => (
               <tr key={customer.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
-                  <div>
-                    <div className="font-semibold text-gray-900">{customer.fullName}</div>
+                  <Link
+                    href={`/${lang}/super-admin/financial/customers/${customer.id}`}
+                    className="block group"
+                  >
+                    <div className="font-semibold text-indigo-600 group-hover:text-indigo-800 group-hover:underline">
+                      {customer.fullName}
+                    </div>
                     <div className="text-sm text-gray-500">{customer.email}</div>
-                  </div>
+                  </Link>
                 </td>
                 <td className="px-6 py-4 text-gray-600">{customer.transactions}</td>
                 <td className="px-6 py-4 text-right font-bold text-gray-900">{formatCurrency(customer.totalSpent)}</td>

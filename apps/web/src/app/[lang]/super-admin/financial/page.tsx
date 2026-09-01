@@ -12,6 +12,7 @@ import {
   PromotionStatsTable,
   TopCustomersTable,
   DailyRevenueTrend,
+  MonthlyRevenueTable,
 } from './components';
 
 export default function FinancialTrackingPage({ params: paramsPromise }: { params: Promise<{ lang: string }> }) {
@@ -86,11 +87,14 @@ export default function FinancialTrackingPage({ params: paramsPromise }: { param
           </div>
         )}
 
+        {/* Monthly Purchase History (all time, independent of the period filter) */}
+        <MonthlyRevenueTable lang={params.lang} />
+
         {/* Promotion Stats */}
         {stats && <PromotionStatsTable data={stats.promotionStats} />}
 
         {/* Top Customers */}
-        {stats && <TopCustomersTable data={stats.topCustomers} />}
+        {stats && <TopCustomersTable data={stats.topCustomers} lang={params.lang} />}
 
         {/* Daily Revenue Trend */}
         {stats && <DailyRevenueTrend data={stats.dailyRevenue} />}

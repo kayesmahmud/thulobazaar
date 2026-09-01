@@ -5,3 +5,4 @@ export { default as RevenueByType } from './RevenueByType';
 export { default as PromotionStatsTable } from './PromotionStatsTable';
 export { default as TopCustomersTable } from './TopCustomersTable';
 export { default as DailyRevenueTrend } from './DailyRevenueTrend';
+export { default as MonthlyRevenueTable } from './MonthlyRevenueTable';

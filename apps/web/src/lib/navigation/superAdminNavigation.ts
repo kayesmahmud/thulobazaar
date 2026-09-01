@@ -68,6 +68,11 @@ export function getSuperAdminNavSections(
           icon: 'DollarSign',
           label: 'Financial Tracking',
         },
+        {
+          href: `/${lang}/super-admin/financial/customers`,
+          icon: 'Users',
+          label: 'Customer Purchases',
+        },
       ],
     },
     {
