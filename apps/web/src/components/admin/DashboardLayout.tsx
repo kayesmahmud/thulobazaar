@@ -26,7 +26,6 @@ interface DashboardLayoutProps {
   userEmail?: string;
   userAvatar?: string;
   navSections: NavSection[];
-  searchPlaceholder?: string;
   systemAlert?: {
     message: string;
     type?: 'warning' | 'info' | 'error';
@@ -45,7 +44,6 @@ export function DashboardLayout({
   userEmail,
   userAvatar,
   navSections,
-  searchPlaceholder,
   systemAlert,
   notificationCount,
   theme = 'superadmin',
@@ -116,7 +114,6 @@ export function DashboardLayout({
         {/* Header */}
         <Header
           onSidebarToggle={handleSidebarToggle}
-          searchPlaceholder={searchPlaceholder}
           systemAlert={systemAlert}
           notificationCount={notificationCount}
           userName={userName}

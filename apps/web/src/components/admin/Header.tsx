@@ -6,7 +6,6 @@ import type { AdminTheme } from '@/lib/themes';
 
 interface HeaderProps {
   onSidebarToggle?: () => void;
-  searchPlaceholder?: string;
   systemAlert?: {
     message: string;
     type?: 'warning' | 'info' | 'error';
@@ -25,7 +24,6 @@ interface HeaderProps {
 
 export function Header({
   onSidebarToggle,
-  searchPlaceholder = 'Quick search across platform...',
   systemAlert,
   notificationCount = 0,
   userName,
@@ -38,8 +36,6 @@ export function Header({
   showDashboardButton = false,
   lastLogin,
 }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -96,47 +92,10 @@ export function Header({
           </button>
         )}
 
-        {/* Editor brand — mobile only (slim header, no search) */}
+        {/* Editor brand — mobile only (slim header) */}
         {theme === 'editor' && (
           <span className="lg:hidden text-lg font-bold text-gray-900 flex-shrink-0">Editor</span>
         )}
-
-        {/* Search Bar — hidden on mobile for the editor's slim header */}
-        <div className={`relative w-full max-w-[420px] min-w-0 ${theme === 'editor' ? 'hidden lg:block' : ''}`}>
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            placeholder={searchPlaceholder}
-            className={`
-              w-full pl-11 pr-4 py-2.5
-              bg-gray-50 border-2 rounded-xl text-sm
-              focus:outline-none focus:bg-white
-              transition-all duration-200
-              ${isSearchFocused
-                ? 'border-emerald-400 ring-4 ring-emerald-50 shadow-lg'
-                : 'border-gray-200 hover:border-gray-300'
-              }
-            `}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Right Section */}
