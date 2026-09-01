@@ -30,7 +30,8 @@ export default function MonthlyRevenueTable({ lang }: { lang: string }) {
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Monthly Purchase History</h3>
           <p className="text-sm text-gray-500 mt-0.5">
-            All time · completed payments only (abandoned checkouts excluded)
+            All time · completed payments only (abandoned checkouts excluded) · verification
+            badges granted free are listed under Customer Purchases
           </p>
         </div>
         <Link
@@ -55,8 +56,8 @@ export default function MonthlyRevenueTable({ lang }: { lang: string }) {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Month</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Buyers</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Promotions</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Business Verif.</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Individual Verif.</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Business verif. (paid)</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Individual verif. (paid)</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Revenue</th>
                 </tr>
               </thead>
@@ -78,13 +79,14 @@ export default function MonthlyRevenueTable({ lang }: { lang: string }) {
               </tbody>
               <tfoot className="bg-gray-50 border-t-2 border-gray-300">
                 <tr>
-                  <td className="px-6 py-4 font-bold text-gray-900">All time</td>
-                  <td className="px-6 py-4" />
-                  <td className="px-6 py-4" />
-                  <td className="px-6 py-4" />
-                  <td className="px-6 py-4 text-right text-sm text-gray-600">
-                    {report.totals.purchases} purchases
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="font-bold text-gray-900">All time</div>
+                    <div className="text-sm text-gray-600">{report.totals.purchases} purchases</div>
                   </td>
+                  <td className="px-6 py-4" />
+                  <td className="px-6 py-4" />
+                  <td className="px-6 py-4" />
+                  <td className="px-6 py-4" />
                   <td className="px-6 py-4 text-right font-bold text-gray-900 whitespace-nowrap">
                     {formatCurrency(report.totals.revenue)}
                   </td>

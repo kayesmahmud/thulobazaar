@@ -109,6 +109,8 @@ export function useSettingsPage(lang: string) {
           admobInterstitialAndroid: db.admob_interstitial_android || prev.admobInterstitialAndroid,
           admobInterstitialIos: db.admob_interstitial_ios || prev.admobInterstitialIos,
           admobInterstitialInterval: db.admob_interstitial_interval ? parseInt(db.admob_interstitial_interval) : prev.admobInterstitialInterval,
+          // Financial reports (empty string is a valid value = exclude nobody)
+          financialExcludedUserIds: db.financial_excluded_user_ids ?? prev.financialExcludedUserIds,
         }));
       }
     } catch (err) {

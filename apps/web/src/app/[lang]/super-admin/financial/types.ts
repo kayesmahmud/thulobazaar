@@ -1,3 +1,10 @@
+/**
+ * Mirrors NEPAL_TZ in '@/lib/financial/time'. Not imported from there: that
+ * module pulls in '@thulobazaar/database' (which instantiates the Prisma
+ * client at import time) and this file is consumed by 'use client' components.
+ */
+const NEPAL_TZ = 'Asia/Kathmandu';
+
 export interface FinancialStats {
   summary: {
     totalRevenue: number;
@@ -92,33 +99,29 @@ export interface MonthlyReport {
   totals: { purchases: number; revenue: number };
 }
 
-export interface CustomerListItem {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  purchases: number;
-  totalSpent: number;
-  firstPurchase: string | null;
-  lastPurchase: string | null;
-  bought: string[];
-  activePromotions: number;
-}
+/**
+ * active  = is_active AND not expired
+ * ended   = deactivated/replaced (e.g. extended) before its expiry
+ * expired = past expires_at
+ * unknown = orphan payment whose ad (and promotion row) was deleted
+ */
+export type PromotionStatus = 'active' | 'ended' | 'expired' | 'unknown';
 
 export interface CustomerPromotion {
   id: number;
-  adId: number;
+  adId: number | null;
   adTitle: string;
+  /** The ad was hard-deleted; the purchase is kept from the payment record. */
+  adDeleted: boolean;
   adSlug: string | null;
   type: string;
-  durationDays: number;
+  durationDays: number | null;
   pricePaid: number;
   paymentMethod: string;
   comped: boolean;
   startsAt: string | null;
-  expiresAt: string;
-  expired: boolean;
-  isActive: boolean;
+  expiresAt: string | null;
+  status: PromotionStatus;
 }
 
 export interface CustomerPayment {
@@ -142,6 +145,7 @@ export interface CustomerDetail {
     accountType: string;
     businessName: string;
     joinedAt: string | null;
+    shopSlug: string | null;
   };
   summary: {
     totalSpent: number;
@@ -164,7 +168,10 @@ export interface CustomerDetail {
     };
   };
   promotions: CustomerPromotion[];
+  verifications: CustomerVerification[];
   payments: CustomerPayment[];
+  /** Marked as a test account — omitted from every aggregate on the Financial page. */
+  excludedFromReports: boolean;
 }
 
 /** "ad_promotion" -> "Ad Promotion" */
@@ -174,40 +181,54 @@ export const formatPaymentType = (type: string): string =>
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
-/** "2026-08" -> "August 2026" */
-export const formatMonth = (month: string): string => {
+/** "2026-08" -> "August 2026" (long) or "Aug 2026" (short). Echoes malformed input unchanged. */
+export const formatMonth = (month: string, style: 'long' | 'short' = 'long'): string => {
+  if (!/^\d{4}-\d{2}$/.test(month)) return month;
   const [year, m] = month.split('-');
-  if (!year || !m) return month;
   const date = new Date(Number(year), Number(m) - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: style, year: 'numeric' });
 };
 
+/**
+ * Timestamps are stored as naive UTC; the owner reads them in Nepal, so the
+ * displayed day must be the Nepal calendar day or a purchase at 00:15 NPT on
+ * the 1st shows as the previous month's last day.
+ */
 export const formatDate = (iso: string | null): string =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  iso
+    ? new Date(iso).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: NEPAL_TZ,
+      })
+    : '—';
 
 // ---------------------------------------------------------------------------
 // Promotions purchased (monthly) — GET /api/editor/financial/promotions
 // ---------------------------------------------------------------------------
 
 export interface PromotionRow {
-  id: number;
+  /** 'promo-<ad_promotions.id>' or 'txn-<payment_transactions.id>' for orphan payments */
+  id: string;
   userId: number;
   userName: string;
   userPhone: string;
   userEmail: string;
   shopSlug: string | null;
-  adId: number;
+  adId: number | null;
   adTitle: string;
+  /** The ad was hard-deleted; the purchase is kept from the payment record. */
+  adDeleted: boolean;
   /** featured | urgent | sticky | bump_up */
   type: string;
-  durationDays: number;
+  durationDays: number | null;
   pricePaid: number;
-  paymentMethod: string;
   comped: boolean;
   purchasedAt: string | null;
   startsAt: string | null;
-  expiresAt: string;
-  expired: boolean;
+  expiresAt: string | null;
+  status: PromotionStatus;
 }
 
 export interface PromotionMonth {
@@ -245,7 +266,10 @@ export interface VerificationRow {
   shopSlug: string | null;
   label: string;
   verifiedAt: string | null;
+  /** An older grant of the same badge — a newer row describes the live badge. */
   superseded: boolean;
+  /** The current badge was revoked by staff (status 'revoked' / individual_verified=false). */
+  revoked: boolean;
   expiresAt: string | null;
   expired: boolean;
   amount: number;
@@ -267,24 +291,8 @@ export interface VerificationsResponse {
   pagination: Pagination;
 }
 
-/** A verification badge shown on the customer drill-down page. */
-export interface CustomerVerification {
-  id: string;
-  type: 'business' | 'individual';
-  label: string;
-  verifiedAt: string | null;
-  superseded: boolean;
-  expiresAt: string | null;
-  expired: boolean;
-  amount: number;
-  paymentStatus: string;
-  durationDays: number | null;
-}
-
-/** "2026-08" -> "Aug 2026" */
-export const formatMonthShort = (month: string): string => {
-  if (!/^\d{4}-\d{2}$/.test(month)) return month;
-  const [year, m] = month.split('-');
-  const date = new Date(Number(year), Number(m) - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-};
+/** A verification badge shown on the customer drill-down page (the customer columns are implied). */
+export type CustomerVerification = Omit<
+  VerificationRow,
+  'userId' | 'userName' | 'userPhone' | 'userEmail' | 'shopSlug'
+>;

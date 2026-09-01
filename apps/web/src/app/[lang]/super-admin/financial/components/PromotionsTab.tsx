@@ -6,15 +6,51 @@ import { financialFetch } from '../api';
 import {
   formatCurrency,
   formatDate,
-  formatMonthShort,
+  formatMonth,
   formatPaymentType,
-  type PromotionMonth,
+  type PromotionRow,
   type PromotionsResponse,
 } from '../types';
 
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 300;
 const ALL_MONTHS = '';
+
+function StatusPill({ status }: { status: PromotionRow['status'] }) {
+  // Text always carries the state; colour is reinforcement only.
+  switch (status) {
+    case 'active':
+      return (
+        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 whitespace-nowrap">
+          Active
+        </span>
+      );
+    case 'ended':
+      return (
+        <span
+          className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 whitespace-nowrap"
+          title="Replaced or deactivated before its expiry"
+        >
+          Ended early
+        </span>
+      );
+    case 'expired':
+      return (
+        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
+          Expired
+        </span>
+      );
+    default:
+      return (
+        <span
+          className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500 whitespace-nowrap"
+          title="No promotion dates on record — usually because the ad was deleted and only the payment survives"
+        >
+          Unknown
+        </span>
+      );
+  }
+}
 
 /**
  * Every ad promotion ever bought, month by month.
@@ -30,10 +66,6 @@ export default function PromotionsTab({ lang }: { lang: string }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-
-  // Month options come from the unfiltered response so narrowing the filter
-  // can never empty the dropdown the user is standing in.
-  const [monthOptions, setMonthOptions] = useState<PromotionMonth[]>([]);
 
   const requestId = useRef(0);
 
@@ -58,20 +90,25 @@ export default function PromotionsTab({ lang }: { lang: string }) {
       .then(result => {
         if (id !== requestId.current) return; // a newer request already won
         setData(result);
-        if (!month) setMonthOptions(result.months);
-        else setMonthOptions(prev => (prev.length === 0 ? result.months : prev));
         setLoading(false);
+        // Stranded page: a filter change (or a deleted row) can leave `page`
+        // past the last page — snap back to the first one.
+        if (result.rows.length === 0 && page > 1) setPage(1);
       })
       .catch((err: unknown) => {
         if (id !== requestId.current) return;
+        // Keep the previous data so the month dropdown survives a failed refetch.
         setError(err instanceof Error ? err.message : 'Failed to load promotions');
         setLoading(false);
       });
   }, [month, debouncedSearch, page]);
 
+  // The months aggregate is unfiltered server-side, so the dropdown can never
+  // empty out when a filter narrows the rows.
+  const months = data?.months ?? [];
+
   const summary = useMemo(() => {
-    const source = monthOptions.length > 0 ? monthOptions : (data?.months ?? []);
-    const rows = month ? source.filter(m => m.month === month) : source;
+    const rows = month ? months.filter(m => m.month === month) : months;
     return rows.reduce(
       (acc, m) => ({
         purchases: acc.purchases + m.purchases,
@@ -80,7 +117,7 @@ export default function PromotionsTab({ lang }: { lang: string }) {
       }),
       { purchases: 0, buyers: 0, revenue: 0 }
     );
-  }, [monthOptions, data, month]);
+  }, [months, month]);
 
   const handleMonthChange = (value: string) => {
     setMonth(value);
@@ -106,9 +143,9 @@ export default function PromotionsTab({ lang }: { lang: string }) {
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value={ALL_MONTHS}>All months</option>
-            {monthOptions.map(m => (
+            {months.map(m => (
               <option key={m.month} value={m.month}>
-                {`${formatMonthShort(m.month)} — ${m.purchases} purchases · ${m.buyers} buyers`}
+                {`${formatMonth(m.month, 'short')} — ${m.purchases} purchases · ${m.buyers} buyers`}
               </option>
             ))}
           </select>
@@ -122,34 +159,38 @@ export default function PromotionsTab({ lang }: { lang: string }) {
         </div>
       </div>
 
-      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-x-10 gap-y-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Purchases</div>
-          <div className="text-xl font-bold text-gray-900 mt-0.5">{summary.purchases}</div>
-        </div>
-        {/* Only shown for a single month: `buyers` is a per-month DISTINCT count,
-            and distinct counts are not additive — summing them across months
-            would count a repeat buyer once per month they bought in. */}
-        {month && (
+      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex flex-wrap gap-x-10 gap-y-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Buyers</div>
-            <div className="text-xl font-bold text-gray-900 mt-0.5">{summary.buyers}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Purchases</div>
+            <div className="text-xl font-bold text-gray-900 mt-0.5">{summary.purchases}</div>
           </div>
-        )}
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Revenue</div>
-          <div className="text-xl font-bold text-gray-900 mt-0.5">{formatCurrency(summary.revenue)}</div>
-        </div>
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Period</div>
-          <div className="text-xl font-bold text-gray-900 mt-0.5">
-            {month ? formatMonthShort(month) : 'All months'}
+          {/* Only shown for a single month: `buyers` is a per-month DISTINCT count,
+              and distinct counts are not additive — summing them across months
+              would count a repeat buyer once per month they bought in. */}
+          {month && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Buyers</div>
+              <div className="text-xl font-bold text-gray-900 mt-0.5">{summary.buyers}</div>
+            </div>
+          )}
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Revenue</div>
+            <div className="text-xl font-bold text-gray-900 mt-0.5">{formatCurrency(summary.revenue)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Period</div>
+            <div className="text-xl font-bold text-gray-900 mt-0.5">
+              {month ? formatMonth(month, 'short') : 'All months'}
+            </div>
           </div>
         </div>
+        {/* The counts above come from the month aggregate, which ignores the
+            search box — so say how many rows actually match once it is active. */}
         {debouncedSearch && pagination && (
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Matching rows</div>
-            <div className="text-xl font-bold text-gray-900 mt-0.5">{pagination.total}</div>
+          <div className="mt-3 text-sm text-gray-600">
+            Matching rows: <span className="font-bold text-gray-900">{pagination.total}</span>
+            <span className="text-gray-400"> (counts above ignore the search)</span>
           </div>
         )}
       </div>
@@ -220,23 +261,26 @@ export default function PromotionsTab({ lang }: { lang: string }) {
                     <div className="max-w-[260px] truncate text-gray-900" title={row.adTitle}>
                       {row.adTitle}
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">Ad #{row.adId}</div>
+                    <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                      {row.adId !== null && <span>Ad #{row.adId}</span>}
+                      {row.adDeleted && (
+                        <span
+                          className="inline-block px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-semibold"
+                          title="The ad was deleted; this purchase is kept from the payment record"
+                        >
+                          ad deleted
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-gray-700 whitespace-nowrap">
-                    {formatPaymentType(row.type)} · {row.durationDays}d
+                    {formatPaymentType(row.type)}
+                    {row.durationDays !== null && ` · ${row.durationDays}d`}
                   </td>
                   <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(row.purchasedAt)}</td>
                   <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(row.expiresAt)}</td>
                   <td className="px-6 py-4">
-                    {row.expired ? (
-                      <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-                        Expired
-                      </span>
-                    ) : (
-                      <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
-                        Active
-                      </span>
-                    )}
+                    <StatusPill status={row.status} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {row.comped ? (

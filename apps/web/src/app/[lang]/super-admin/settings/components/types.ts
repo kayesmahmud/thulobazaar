@@ -77,6 +77,8 @@ export interface SystemSettings {
   admobInterstitialAndroid: string;
   admobInterstitialIos: string;
   admobInterstitialInterval: number;
+  // Financial reports
+  financialExcludedUserIds: string;
 }
 
 export type SettingsTab = 'general' | 'ads' | 'users' | 'email' | 'sms' | 'google-ads';
@@ -166,6 +168,8 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   admobInterstitialAndroid: '',
   admobInterstitialIos: '',
   admobInterstitialInterval: 5,
+  // Financial reports
+  financialExcludedUserIds: '',
 };
 
 export const SETTINGS_TABS = [

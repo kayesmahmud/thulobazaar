@@ -12,31 +12,94 @@ import {
   formatDate,
   formatPaymentType,
   type CustomerDetail,
+  type CustomerPromotion,
   type CustomerVerification,
 } from '../../types';
 
-/**
- * Fields the API is growing. Deployed builds may not return them yet, so every
- * one is optional here and guarded at the use site.
- */
-type CustomerDetailWithHistory = CustomerDetail & {
-  customer: { shopSlug?: string | null };
-  verifications?: CustomerVerification[];
-  excludedFromReports?: boolean;
+type PillTone = 'green' | 'gray' | 'red' | 'amber';
+
+const PILL_TONES: Record<PillTone, string> = {
+  green: 'bg-green-100 text-green-700',
+  gray: 'bg-gray-100 text-gray-600',
+  red: 'bg-red-100 text-red-700',
+  amber: 'bg-amber-100 text-amber-700',
 };
 
-function Pill({ tone, children }: { tone: 'green' | 'gray' | 'red' | 'amber'; children: React.ReactNode }) {
-  const tones = {
-    green: 'bg-green-100 text-green-700',
-    gray: 'bg-gray-100 text-gray-600',
-    red: 'bg-red-100 text-red-700',
-    amber: 'bg-amber-100 text-amber-700',
-  };
+function Pill({ tone, title, children }: { tone: PillTone; title?: string; children: React.ReactNode }) {
   return (
-    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${tones[tone]}`}>
+    <span
+      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${PILL_TONES[tone]}`}
+      title={title}
+    >
       {children}
     </span>
   );
+}
+
+/**
+ * Never print a raw DB status inside a tone that asserts meaning —
+ * 'pending'/'rejected' used to render green. Those are checked before
+ * `expired` so a re-application over a lapsed badge reads "Pending", not "Expired".
+ */
+function BusinessBadgePill({ badge }: { badge: CustomerDetail['badges']['business'] }) {
+  const s = badge.status;
+  if (s === 'none') return <Pill tone="gray">Never applied</Pill>;
+  if (s === 'pending') return <Pill tone="amber">Pending</Pill>;
+  if (s === 'rejected') return <Pill tone="red">Rejected</Pill>;
+  if (s === 'revoked') return <Pill tone="red">Revoked</Pill>;
+  if (badge.expired) return <Pill tone="red">Expired</Pill>;
+  if (s === 'approved' || s === 'verified') return <Pill tone="green">Active</Pill>;
+  return <Pill tone="gray">{formatPaymentType(s)}</Pill>;
+}
+
+/** Same precedence as VerificationsTab: superseded / revoked / no expiry / expired / active. */
+function VerificationStatusPill({ v }: { v: CustomerVerification }) {
+  if (v.superseded) {
+    return (
+      <Pill tone="gray" title="Replaced by a later verification for this customer">
+        Superseded
+      </Pill>
+    );
+  }
+  // Revoke clears the expiry, so it must be checked before "No expiry".
+  if (v.revoked) return <Pill tone="red" title="Badge revoked by staff">Revoked</Pill>;
+  if (!v.expiresAt) return <Pill tone="gray">No expiry</Pill>;
+  if (v.expired) return <Pill tone="red">Expired</Pill>;
+  return <Pill tone="green">Active</Pill>;
+}
+
+function PromotionStatusPill({ status }: { status: CustomerPromotion['status'] }) {
+  switch (status) {
+    case 'active':
+      return <Pill tone="green">Active</Pill>;
+    case 'ended':
+      return (
+        <Pill tone="amber" title="Replaced or deactivated before its expiry">
+          Ended early
+        </Pill>
+      );
+    case 'expired':
+      return <Pill tone="gray">Expired</Pill>;
+    default:
+      return <Pill tone="gray" title="No promotion dates on record">Unknown</Pill>;
+  }
+}
+
+/**
+ * Both "expired" (cleanup keeps expires_at) and "revoked" (revoke route nulls it)
+ * clear individual_verified, so `verified` alone cannot tell them apart. Prefer
+ * the newest non-superseded history row, which already carries the route's
+ * badge state; fall back to the summary fields, where a kept verifiedAt is what
+ * separates a revoked badge from one never granted.
+ */
+function IndividualBadgePill({ detail }: { detail: CustomerDetail }) {
+  const current = detail.verifications.find(v => v.type === 'individual' && !v.superseded);
+  const badge = detail.badges.individual;
+  if (current?.expired || badge.expired) return <Pill tone="red">Expired</Pill>;
+  if (current?.revoked) return <Pill tone="red" title="Badge revoked by staff">Revoked</Pill>;
+  if (badge.verified) return <Pill tone="green">Active</Pill>;
+  if (badge.verifiedAt) return <Pill tone="red" title="Badge revoked by staff">Revoked</Pill>;
+  return <Pill tone="gray">Not verified</Pill>;
 }
 
 export default function CustomerHistoryPage({
@@ -48,13 +111,13 @@ export default function CustomerHistoryPage({
   const router = useRouter();
   const { staff, logout } = useStaffAuth();
 
-  const [detail, setDetail] = useState<CustomerDetailWithHistory | null>(null);
+  const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    financialFetch<CustomerDetailWithHistory>(`/api/editor/financial/customers/${params.id}`)
+    financialFetch<CustomerDetail>(`/api/editor/financial/customers/${params.id}`)
       .then(d => { if (!cancelled) setDetail(d); })
       .catch(err => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -88,7 +151,7 @@ export default function CustomerHistoryPage({
 
         {!loading && !error && detail && (
           <>
-            {detail.excludedFromReports === true && (
+            {detail.excludedFromReports && (
               <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm font-medium">
                 This account is excluded from financial reports (marked as a test account).
               </div>
@@ -158,19 +221,7 @@ export default function CustomerHistoryPage({
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold text-gray-900">Business</span>
-                    {(() => {
-                      // Never print a raw DB status inside a tone that asserts
-                      // meaning — 'pending'/'rejected' used to render green.
-                      // Those are checked before `expired` so a re-application
-                      // over a lapsed badge reads "Pending", not "Expired".
-                      const s = detail.badges.business.status;
-                      if (s === 'none') return <Pill tone="gray">Never applied</Pill>;
-                      if (s === 'pending') return <Pill tone="amber">Pending</Pill>;
-                      if (s === 'rejected') return <Pill tone="red">Rejected</Pill>;
-                      if (detail.badges.business.expired) return <Pill tone="red">Expired</Pill>;
-                      if (s === 'approved' || s === 'verified') return <Pill tone="green">Active</Pill>;
-                      return <Pill tone="gray">{formatPaymentType(s)}</Pill>;
-                    })()}
+                    <BusinessBadgePill badge={detail.badges.business} />
                   </div>
                   <div className="text-sm text-gray-600">
                     Verified: {formatDate(detail.badges.business.verifiedAt)}<br />
@@ -180,13 +231,7 @@ export default function CustomerHistoryPage({
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold text-gray-900">Individual</span>
-                    {!detail.badges.individual.verified ? (
-                      <Pill tone="gray">Not verified</Pill>
-                    ) : detail.badges.individual.expired ? (
-                      <Pill tone="red">Expired</Pill>
-                    ) : (
-                      <Pill tone="green">Active</Pill>
-                    )}
+                    <IndividualBadgePill detail={detail} />
                   </div>
                   <div className="text-sm text-gray-600">
                     Verified: {formatDate(detail.badges.individual.verifiedAt)}<br />
@@ -204,7 +249,7 @@ export default function CustomerHistoryPage({
                   Every badge ever granted — most were granted free, not sold
                 </p>
               </div>
-              {(detail.verifications ?? []).length === 0 ? (
+              {detail.verifications.length === 0 ? (
                 <div className="px-6 py-8 text-center text-gray-500">No verifications.</div>
               ) : (
                 <div className="overflow-x-auto">
@@ -220,7 +265,7 @@ export default function CustomerHistoryPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {(detail.verifications ?? []).map(v => (
+                      {detail.verifications.map(v => (
                         <tr key={v.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             {v.type === 'business' ? (
@@ -237,15 +282,7 @@ export default function CustomerHistoryPage({
                           <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(v.verifiedAt)}</td>
                           <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(v.expiresAt)}</td>
                           <td className="px-6 py-4 text-center">
-                            {v.superseded ? (
-                              <Pill tone="gray">Superseded</Pill>
-                            ) : !v.expiresAt ? (
-                              <Pill tone="gray">No expiry</Pill>
-                            ) : v.expired ? (
-                              <Pill tone="red">Expired</Pill>
-                            ) : (
-                              <Pill tone="green">Active</Pill>
-                            )}
+                            <VerificationStatusPill v={v} />
                           </td>
                           <td className="px-6 py-4 text-right whitespace-nowrap">
                             {v.paymentStatus === 'paid' ? (
@@ -299,14 +336,23 @@ export default function CustomerHistoryPage({
                             <div className="truncate font-medium text-gray-900" title={p.adTitle}>
                               {p.adTitle}
                             </div>
+                            {p.adDeleted && (
+                              <span
+                                className="inline-block mt-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600"
+                                title="The ad was deleted; this purchase is kept from the payment record"
+                              >
+                                ad deleted
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-gray-600 capitalize whitespace-nowrap">
-                            {p.type} · {p.durationDays}d
+                            {p.type}
+                            {p.durationDays !== null && ` · ${p.durationDays}d`}
                           </td>
                           <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(p.startsAt)}</td>
                           <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(p.expiresAt)}</td>
                           <td className="px-6 py-4 text-center">
-                            {p.expired ? <Pill tone="gray">Expired</Pill> : <Pill tone="green">Active</Pill>}
+                            <PromotionStatusPill status={p.status} />
                           </td>
                           <td className="px-6 py-4 text-right whitespace-nowrap">
                             {p.comped ? (

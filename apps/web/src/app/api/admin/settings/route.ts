@@ -3,6 +3,9 @@ import { prisma } from '@thulobazaar/database';
 import { requireSuperAdmin } from '@/lib/auth';
 import { applyExpirySettingToAllAds } from '@/lib/services/adLimits.service';
 
+// Empty, or comma-separated positive integers with optional whitespace ("14, 27")
+const EXCLUDED_USER_IDS_PATTERN = /^\s*$|^\s*[1-9]\d*\s*(,\s*[1-9]\d*\s*)*$/;
+
 /**
  * GET /api/admin/settings
  * Get all system settings
@@ -142,7 +145,23 @@ export async function POST(request: NextRequest) {
       admob_interstitial_android: 'string',
       admob_interstitial_ios: 'string',
       admob_interstitial_interval: 'number',
+      // Financial reports
+      financial_excluded_user_ids: 'string',
     };
+
+    if (
+      settings.financialExcludedUserIds !== undefined &&
+      !EXCLUDED_USER_IDS_PATTERN.test(String(settings.financialExcludedUserIds))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            'Excluded test accounts must be a comma-separated list of positive user IDs (e.g. "14, 27") or empty',
+        },
+        { status: 400 }
+      );
+    }
 
     // Expiry changes must propagate to existing ads, so capture the old value
     const previousExpiry = await prisma.site_settings.findUnique({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireEditor } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/auth/jwt';
+import { getExcludedUserIds } from '@/lib/financial/exclusions';
 
 /**
  * GET /api/editor/financial/stats
@@ -10,7 +11,7 @@ import { requireEditor } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate - require super admin
-    await requireEditor(request);
+    await requireSuperAdmin(request);
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || '30days';
@@ -68,9 +69,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Test accounts are excluded from every financial aggregate, matching the
+    // monthly/promotions/verifications views.
+    const excluded = await getExcludedUserIds();
+    const excludeUsers = excluded.length > 0 ? { user_id: { notIn: excluded } } : {};
+
     // Get all transactions in date range
     const transactions = await prisma.payment_transactions.findMany({
       where: {
+        ...excludeUsers,
         created_at: {
           gte: startDate,
           lte: endDate,
@@ -139,6 +146,7 @@ export async function GET(request: NextRequest) {
     // Promotion stats (from ad_promotions)
     const promotions = await prisma.ad_promotions.findMany({
       where: {
+        ...excludeUsers,
         created_at: {
           gte: startDate,
           lte: endDate,

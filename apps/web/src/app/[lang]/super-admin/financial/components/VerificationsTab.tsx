@@ -6,7 +6,7 @@ import { financialFetch } from '../api';
 import {
   formatCurrency,
   formatDate,
-  formatMonthShort,
+  formatMonth,
   type VerificationRow,
   type VerificationsResponse,
 } from '../types';
@@ -48,6 +48,18 @@ function StatusPill({ row }: { row: VerificationRow }) {
       </span>
     );
   }
+  // Revoke clears the expiry, so this must come before the "No expiry" branch
+  // or a revoked badge would read as a permanent one.
+  if (row.revoked) {
+    return (
+      <span
+        className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 whitespace-nowrap"
+        title="Badge revoked by staff"
+      >
+        Revoked
+      </span>
+    );
+  }
   if (!row.expiresAt) {
     return (
       <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
@@ -81,9 +93,6 @@ export default function VerificationsTab({ lang }: { lang: string }) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  // Keep the months dropdown stable while a filtered request narrows the rows.
-  const [months, setMonths] = useState<VerificationsResponse['months']>([]);
-
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -108,18 +117,24 @@ export default function VerificationsTab({ lang }: { lang: string }) {
       .then(result => {
         if (id !== requestId.current) return; // stale response — a newer request is in flight
         setData(result);
-        if (result.months?.length) setMonths(result.months);
+        // Stranded page: a filter change (or a deleted row) can leave `page`
+        // past the last page — snap back to the first one.
+        if (result.rows.length === 0 && page > 1) setPage(1);
       })
       .catch(err => {
         if (id !== requestId.current) return;
+        // Keep the previous data so the month dropdown survives a failed refetch.
         setError(err instanceof Error ? err.message : 'Failed to load verifications');
-        setData(null);
       })
       .finally(() => {
         if (id !== requestId.current) return;
         setLoading(false);
       });
   }, [month, type, debouncedSearch, page]);
+
+  // The months aggregate is unfiltered server-side, so the dropdown can never
+  // empty out when a filter narrows the rows.
+  const months = data?.months ?? [];
 
   const summary = useMemo(() => {
     const source = month ? months.filter(m => m.month === month) : months;
@@ -157,7 +172,7 @@ export default function VerificationsTab({ lang }: { lang: string }) {
             <option value="">All months</option>
             {months.map(m => (
               <option key={m.month} value={m.month}>
-                {`${formatMonthShort(m.month)} — ${m.business} business · ${m.individual} individual`}
+                {`${formatMonth(m.month, 'short')} — ${m.business} business · ${m.individual} individual`}
               </option>
             ))}
           </select>
@@ -200,7 +215,7 @@ export default function VerificationsTab({ lang }: { lang: string }) {
           </span>
           <span className="text-gray-600">
             <span className="font-bold text-gray-900">{summary.business + summary.individual}</span>{' '}
-            total {month ? `in ${formatMonthShort(month)}` : 'all time'}
+            total {month ? `in ${formatMonth(month, 'short')}` : 'all time'}
           </span>
           <span className="text-gray-600">
             Paid: <span className="font-bold text-gray-900">{formatCurrency(summary.revenue)}</span>
@@ -211,7 +226,7 @@ export default function VerificationsTab({ lang }: { lang: string }) {
           {(debouncedSearch || type) && pagination && (
             <span className="text-gray-600">
               Matching rows: <span className="font-bold text-gray-900">{pagination.total}</span>
-              <span className="text-gray-400"> (counts above are unfiltered)</span>
+              <span className="text-gray-400"> (counts above ignore search and type)</span>
             </span>
           )}
         </div>

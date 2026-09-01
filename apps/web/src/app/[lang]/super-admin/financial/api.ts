@@ -20,9 +20,17 @@ export async function financialFetch<T>(path: string): Promise<T> {
     },
   });
 
-  const json = await response.json();
+  // During a deploy the proxy answers with an HTML 502 page; surface the
+  // status instead of letting response.json() throw a bare SyntaxError.
+  let json: any;
+  try {
+    json = await response.json();
+  } catch {
+    throw new Error(`Request failed (HTTP ${response.status})`);
+  }
+
   if (!response.ok || !json?.success) {
-    throw new Error(json?.message || 'Request failed');
+    throw new Error(json?.message || `Request failed (HTTP ${response.status})`);
   }
   return json.data as T;
 }

@@ -15,6 +15,28 @@ import { getExcludedUserIds } from '@/lib/financial/exclusions';
 const isExpired = (until: Date | null | undefined): boolean =>
   !!until && until.getTime() <= Date.now();
 
+/**
+ * Mirrors /api/editor/financial/promotions: a promotion whose clock ran out is
+ * expired whatever is_active says (the deactivation cron lags); otherwise
+ * is_active decides — extending a running promotion flips the OLD row to
+ * is_active=false while its expires_at is still in the future, i.e. 'ended'.
+ */
+const promotionStatus = (isActive: boolean | null, expiresAt: Date): 'active' | 'ended' | 'expired' =>
+  isExpired(expiresAt) ? 'expired' : isActive ? 'active' : 'ended';
+
+/**
+ * Current-badge state, same rule as /api/editor/financial/verifications:
+ *   live                       -> 'approved'
+ *   not live, expiry in past   -> 'expired'  (verificationCleanup.ts keeps the expiry)
+ *   not live, expiry NULL/future -> 'revoked' (revoke route nulls it; the Express
+ *                                 reject path drops the flag but leaves the date)
+ */
+const badgeState = (live: boolean, expiresAt: Date | null): 'approved' | 'expired' | 'revoked' =>
+  live ? 'approved' : isExpired(expiresAt) ? 'expired' : 'revoked';
+
+/** 'verified' is a legacy status value nothing writes any more but readers honour. */
+const BUSINESS_LIVE_STATUSES = ['approved', 'verified'];
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -102,17 +124,37 @@ export async function GET(
     // authoritative for the CURRENT badge — it captures manual extensions that
     // duration_days never records — but only describes the LATEST grant. Both
     // lists are already ordered reviewed_at desc, so index 0 is the live grant;
-    // older ones are superseded and assert no status. Most grants were free
-    // (amount 0) — that is the norm here, not missing data.
+    // older ones are superseded and assert no status. The request tables never
+    // learn about revocation, so `revoked` also comes from users.* (badgeState).
+    // Most grants were free (amount 0) — that is the norm here, not missing data.
+    const businessBadge = badgeState(
+      BUSINESS_LIVE_STATUSES.includes(user.business_verification_status || ''),
+      user.business_verification_expires_at
+    );
+    const individualBadge = badgeState(
+      !!user.individual_verified,
+      user.individual_verification_expires_at
+    );
+
+    const badgeFields = (newest: boolean, state: 'approved' | 'expired' | 'revoked', expiresAt: Date | null) => {
+      const revoked = newest && state === 'revoked';
+      return {
+        superseded: !newest,
+        revoked,
+        // A revoked badge has no meaningful expiry (a leftover future date from
+        // the reject path would otherwise read as "Active").
+        expiresAt: newest && !revoked ? (expiresAt?.toISOString() ?? null) : null,
+        expired: newest && !revoked && isExpired(expiresAt),
+      };
+    };
+
     const verifications = [
       ...businessVerifications.map((v, i) => ({
         id: `business-${v.id}`,
         type: 'business' as const,
         label: v.business_name || '',
         verifiedAt: v.reviewed_at?.toISOString() ?? null,
-        superseded: i > 0,
-        expiresAt: i > 0 ? null : (user.business_verification_expires_at?.toISOString() ?? null),
-        expired: i === 0 && isExpired(user.business_verification_expires_at),
+        ...badgeFields(i === 0, businessBadge, user.business_verification_expires_at),
         amount: Number(v.payment_amount ?? 0),
         paymentStatus: v.payment_status ?? 'unknown',
         durationDays: v.duration_days,
@@ -122,9 +164,7 @@ export async function GET(
         type: 'individual' as const,
         label: v.full_name || '',
         verifiedAt: v.reviewed_at?.toISOString() ?? null,
-        superseded: i > 0,
-        expiresAt: i > 0 ? null : (user.individual_verification_expires_at?.toISOString() ?? null),
-        expired: i === 0 && isExpired(user.individual_verification_expires_at),
+        ...badgeFields(i === 0, individualBadge, user.individual_verification_expires_at),
         amount: Number(v.payment_amount ?? 0),
         paymentStatus: v.payment_status ?? 'unknown',
         durationDays: v.duration_days,
@@ -171,20 +211,23 @@ export async function GET(
           id: p.id,
           adId: p.ad_id,
           adTitle: p.ads?.title || `Ad #${p.ad_id}`,
+          // ad_promotions is ON DELETE CASCADE from ads, so any row here still
+          // has its ad; orphaned purchases only surface in the promotions list.
+          adDeleted: false,
           adSlug: p.ads?.slug || null,
           type: p.promotion_type,
           durationDays: p.duration_days,
           pricePaid: Number(p.price_paid),
           paymentMethod: p.payment_method || '',
-          // A staff-granted comp, not a sale. `payment_method` is the reliable signal:
-          // verified on prod, 'manual' rows always have price_paid = 0 and 'online' rows
-          // always have price_paid > 0. `promoted_by` is NOT a comp flag — it records who
-          // initiated the promotion, which for self-serve checkout is the buyer themselves.
-          comped: p.payment_method === 'manual',
+          // A staff-granted comp, not a sale. price_paid = 0 is the robust signal:
+          // on prod it coincides with payment_method='manual', but no code path ever
+          // writes 'manual' (those rows were hand-inserted), so the method string is
+          // not something to rely on. `promoted_by` is NOT a comp flag — it records
+          // who initiated the promotion, which for self-serve checkout is the buyer.
+          comped: Number(p.price_paid) === 0,
           startsAt: p.starts_at?.toISOString() ?? null,
           expiresAt: p.expires_at.toISOString(),
-          expired: isExpired(p.expires_at),
-          isActive: !!p.is_active,
+          status: promotionStatus(p.is_active, p.expires_at),
         })),
         payments: payments.map(p => ({
           id: p.id,

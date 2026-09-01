@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
 import { requireSuperAdmin } from '@/lib/auth/jwt';
 import { getExcludedUserIds } from '@/lib/financial/exclusions';
+import { nptMonthSql } from '@/lib/financial/time';
 
 /**
  * GET /api/editor/financial/monthly
@@ -10,6 +11,13 @@ import { getExcludedUserIds } from '@/lib/financial/exclusions';
  * Revenue counts ONLY status='verified' transactions — `pending` rows are
  * abandoned checkouts (user opened the gateway and never paid), so summing
  * them would overstate revenue by an order of magnitude.
+ *
+ * Months are Nepal calendar months (see lib/financial/time.ts), matching the
+ * month filters and displayed dates in the promotions/verifications views.
+ * Months are bucketed by the confirmation instant, COALESCE(verified_at,
+ * created_at), matching the Promotions history — not by checkout initiation.
+ * The verifications view buckets on reviewed_at by design, so its months can
+ * differ from the payment month.
  *
  * Test accounts are excluded, exactly as in the promotions/verifications views
  * this table links out to — otherwise the same month reads two different
@@ -29,21 +37,22 @@ export async function GET(request: NextRequest) {
   try {
     await requireSuperAdmin(request);
 
-    // [0] fallback: Prisma cannot infer the element type of an empty array, and
-    // no real user_id is 0.
     const excluded = await getExcludedUserIds();
-    const excludedArr = excluded.length > 0 ? excluded : [0];
 
     const rows = await prisma.$queryRaw<MonthRow[]>`
-      SELECT to_char(created_at, 'YYYY-MM') AS month,
-             COUNT(*) FILTER (WHERE payment_type = 'ad_promotion') AS promotions,
-             COUNT(*) FILTER (WHERE payment_type = 'business_verification') AS business_verifications,
-             COUNT(*) FILTER (WHERE payment_type = 'individual_verification') AS individual_verifications,
-             COUNT(DISTINCT user_id) AS buyers,
-             COALESCE(SUM(amount), 0) AS revenue
-      FROM payment_transactions
-      WHERE status = 'verified'
-        AND user_id <> ALL(${excludedArr}::int[])
+      SELECT ${nptMonthSql('t.paid_at')} AS month,
+             COUNT(*) FILTER (WHERE t.payment_type = 'ad_promotion') AS promotions,
+             COUNT(*) FILTER (WHERE t.payment_type = 'business_verification') AS business_verifications,
+             COUNT(*) FILTER (WHERE t.payment_type = 'individual_verification') AS individual_verifications,
+             COUNT(DISTINCT t.user_id) AS buyers,
+             COALESCE(SUM(t.amount), 0) AS revenue
+      FROM (
+        SELECT payment_type, user_id, amount,
+               COALESCE(verified_at, created_at) AS paid_at
+        FROM payment_transactions
+        WHERE status = 'verified'
+          AND user_id <> ALL(${excluded}::int[])
+      ) t
       GROUP BY 1
       ORDER BY 1 DESC
     `;

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma, prisma } from '@thulobazaar/database';
 import { requireSuperAdmin } from '@/lib/auth/jwt';
 import { getExcludedUserIds } from '@/lib/financial/exclusions';
+import { escapeLike } from '@/lib/financial/like';
+import { MONTH_PATTERN, nptMonthSql } from '@/lib/financial/time';
 
 /**
  * GET /api/editor/financial/verifications
@@ -15,14 +17,12 @@ import { getExcludedUserIds } from '@/lib/financial/exclusions';
  * One row per verification EVENT, so renewals show up as separate rows and a
  * user verified in two different months appears in both.
  *
+ * Months are Nepal calendar months (see lib/financial/time).
+ *
  * Query: ?month=YYYY-MM ?type=business|individual ?search= ?page= ?limit=
  */
 
 const MAX_LIMIT = 100;
-const MONTH_PATTERN = /^\d{4}-\d{2}$/;
-
-/** `%` and `_` are LIKE wildcards — a bare `_` would otherwise match every row. */
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, c => `\\${c}`);
 
 interface VerificationRow {
   kind: string;
@@ -36,11 +36,11 @@ interface VerificationRow {
   label: string | null;
   verified_at: Date | null;
   expires_at: Date | null;
+  badge_status: string;
   payment_amount: unknown;
   payment_status: string | null;
   duration_days: number | null;
   rn: bigint;
-  total_count: bigint;
 }
 
 export async function GET(request: NextRequest) {
@@ -62,7 +62,6 @@ export async function GET(request: NextRequest) {
     }
 
     const excluded = await getExcludedUserIds();
-    const excludedArr = excluded.length > 0 ? excluded : [0];
     const pattern = `%${escapeLike(search)}%`;
     const offset = (page - 1) * limit;
 
@@ -75,6 +74,22 @@ export async function GET(request: NextRequest) {
     // So: newest grant per (user, kind) uses the user column; older grants are
     // SUPERSEDED and assert no status at all. Deriving reviewed_at + duration_days
     // was rejected — it would show a false "Expired" on the extended badges above.
+    //
+    // badge_status classifies the CURRENT badge as 'approved' | 'expired' | 'revoked'
+    // from the users.* columns, because the request tables never learn about
+    // revocation. What the writers leave behind:
+    //   live      business_verification_status IN ('approved','verified')
+    //             ('verified' is a legacy value nothing writes but readers honour)
+    //             / individual_verified = true
+    //   expired   verificationCleanup.ts flips the flag ('expired' / false) but KEEPS
+    //             the expiry, so the expiry is in the past
+    //   revoked   admin/verification/revoke clears the flag AND sets the expiry NULL;
+    //             the Express reject path clears the flag but LEAVES a future expiry
+    // So: not live + expiry in the past => expired (time ran out); not live + expiry
+    // NULL or still in the future => revoked (staff took it away before it ran out).
+    // A NULL expiry falls through the `<=` test to the ELSE branch, which is what we
+    // want. now() is a timestamptz; AT TIME ZONE 'UTC' makes it a naive UTC timestamp
+    // comparable to the naive-UTC columns regardless of the session TimeZone.
     // Both request tables share a shape once aliased; UNION ALL then filter once.
     const unioned = Prisma.sql`
       SELECT 'business' AS kind, r.id AS request_id, r.user_id,
@@ -82,6 +97,11 @@ export async function GET(request: NextRequest) {
              r.business_name AS label,
              r.reviewed_at AS verified_at,
              u.business_verification_expires_at AS expires_at,
+             CASE
+               WHEN u.business_verification_status IN ('approved', 'verified') THEN 'approved'
+               WHEN u.business_verification_expires_at <= (now() AT TIME ZONE 'UTC') THEN 'expired'
+               ELSE 'revoked'
+             END AS badge_status,
              r.payment_amount, r.payment_status, r.duration_days
       FROM business_verification_requests r
       JOIN users u ON u.id = r.user_id
@@ -92,6 +112,11 @@ export async function GET(request: NextRequest) {
              r.full_name,
              r.reviewed_at,
              u.individual_verification_expires_at,
+             CASE
+               WHEN u.individual_verified THEN 'approved'
+               WHEN u.individual_verification_expires_at <= (now() AT TIME ZONE 'UTC') THEN 'expired'
+               ELSE 'revoked'
+             END,
              r.payment_amount, r.payment_status, r.duration_days
       FROM individual_verification_requests r
       JOIN users u ON u.id = r.user_id
@@ -107,10 +132,12 @@ export async function GET(request: NextRequest) {
       FROM (${unioned}) x
     `;
 
+    // The month filter uses the same NPT bucket expression as the aggregate below,
+    // so a row always lands in the month the dropdown says it does.
     const filters = Prisma.sql`
-      WHERE v.user_id <> ALL(${excludedArr}::int[])
+      WHERE v.user_id <> ALL(${excluded}::int[])
         AND (${type} = '' OR v.kind = ${type})
-        AND (${month} = '' OR to_char(v.verified_at, 'YYYY-MM') = ${month})
+        AND (${month} = '' OR ${nptMonthSql('v.verified_at')} = ${month})
         AND (
           ${search} = ''
           OR v.full_name ILIKE ${pattern}
@@ -120,52 +147,65 @@ export async function GET(request: NextRequest) {
         )
     `;
 
-    const [rows, monthRows] = await Promise.all([
+    const [rows, countRows, monthRows] = await Promise.all([
       prisma.$queryRaw<VerificationRow[]>`
-        SELECT v.*, COUNT(*) OVER () AS total_count
+        SELECT v.*
         FROM (${ranked}) v
         ${filters}
-        ORDER BY v.verified_at DESC
+        ORDER BY v.verified_at DESC, v.kind, v.request_id DESC
         LIMIT ${limit} OFFSET ${offset}
+      `,
+      // Separate count so a page past the end still reports the true total.
+      prisma.$queryRaw<{ total: bigint }[]>`
+        SELECT COUNT(*) AS total
+        FROM (${ranked}) v
+        ${filters}
       `,
       prisma.$queryRaw<
         { month: string; business: bigint; individual: bigint; revenue: unknown }[]
       >`
-        SELECT to_char(v.verified_at, 'YYYY-MM') AS month,
+        SELECT ${nptMonthSql('v.verified_at')} AS month,
                COUNT(*) FILTER (WHERE v.kind = 'business') AS business,
                COUNT(*) FILTER (WHERE v.kind = 'individual') AS individual,
                COALESCE(SUM(v.payment_amount) FILTER (WHERE v.payment_status = 'paid'), 0) AS revenue
         FROM (${unioned}) v
-        WHERE v.user_id <> ALL(${excludedArr}::int[])
+        WHERE v.user_id <> ALL(${excluded}::int[])
         GROUP BY 1
         ORDER BY 1 DESC
       `,
     ]);
 
-    const total = rows.length > 0 ? Number(rows[0]!.total_count) : 0;
+    const total = Number(countRows[0]?.total ?? 0);
     const now = Date.now();
 
     return NextResponse.json({
       success: true,
       data: {
-        rows: rows.map(r => ({
-          id: `${r.kind}-${r.request_id}`,
-          type: r.kind,
-          userId: r.user_id,
-          userName: r.full_name || 'Unknown',
-          userPhone: r.phone || '',
-          userEmail: r.email || '',
-          shopSlug: r.custom_shop_slug || r.shop_slug || null,
-          label: r.label || '',
-          verifiedAt: r.verified_at?.toISOString() ?? null,
+        rows: rows.map(r => {
           // Only the newest grant of a kind describes the live badge.
-          superseded: Number(r.rn) > 1,
-          expiresAt: Number(r.rn) > 1 ? null : (r.expires_at?.toISOString() ?? null),
-          expired: Number(r.rn) === 1 && !!r.expires_at && r.expires_at.getTime() <= now,
-          amount: r.payment_amount === null ? 0 : Number(r.payment_amount),
-          paymentStatus: r.payment_status || 'unknown',
-          durationDays: r.duration_days,
-        })),
+          const newest = Number(r.rn) === 1;
+          const revoked = newest && r.badge_status === 'revoked';
+          return {
+            id: `${r.kind}-${r.request_id}`,
+            type: r.kind,
+            userId: r.user_id,
+            userName: r.full_name || 'Unknown',
+            userPhone: r.phone || '',
+            userEmail: r.email || '',
+            shopSlug: r.custom_shop_slug || r.shop_slug || null,
+            label: r.label || '',
+            verifiedAt: r.verified_at?.toISOString() ?? null,
+            superseded: !newest,
+            revoked,
+            // A revoked badge has no meaningful expiry (the revoke route nulls it;
+            // a leftover future date from the reject path would read as "Active").
+            expiresAt: newest && !revoked ? (r.expires_at?.toISOString() ?? null) : null,
+            expired: newest && !revoked && !!r.expires_at && r.expires_at.getTime() <= now,
+            amount: r.payment_amount === null ? 0 : Number(r.payment_amount),
+            paymentStatus: r.payment_status || 'unknown',
+            durationDays: r.duration_days,
+          };
+        }),
         months: monthRows.map(m => ({
           month: m.month,
           business: Number(m.business),

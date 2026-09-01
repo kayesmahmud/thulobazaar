@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
-import { requireEditor } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/auth/jwt';
+import { getExcludedUserIds } from '@/lib/financial/exclusions';
 
 /**
  * GET /api/editor/financial/transactions
@@ -10,7 +11,7 @@ import { requireEditor } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate - require super admin
-    await requireEditor(request);
+    await requireSuperAdmin(request);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -21,8 +22,11 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
+    // Build where clause. Test accounts are excluded, matching every other
+    // financial view.
+    const excluded = await getExcludedUserIds();
     const where: any = {};
+    if (excluded.length > 0) where.user_id = { notIn: excluded };
     if (status) where.status = status;
     if (gateway) where.payment_gateway = gateway;
     if (type) where.payment_type = type;
