@@ -78,6 +78,40 @@ function StatusPill({ row }: { row: VerificationRow }) {
   );
 }
 
+function PaidCell({ row }: { row: VerificationRow }) {
+  switch (row.paymentStatus) {
+    case 'paid':
+      return <span className="font-bold text-gray-900">{formatCurrency(row.amount)}</span>;
+    case 'free':
+      return (
+        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
+          Free
+        </span>
+      );
+    case 'pending':
+      return (
+        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
+          Pending
+        </span>
+      );
+    case 'unverified':
+      return (
+        <span
+          className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700"
+          title="Request claimed paid but no verified payment exists"
+        >
+          Unverified
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
+          Unknown
+        </span>
+      );
+  }
+}
+
 /**
  * Every verification badge ever granted — business and individual.
  * Most rows were granted free, so this is a history of badges, not a sales list.
@@ -156,8 +190,9 @@ export default function VerificationsTab({ lang }: { lang: string }) {
       <div className="px-6 py-4 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900">Verifications</h3>
         <p className="text-sm text-gray-500 mt-0.5">
-          Every business and individual badge ever granted. Badges granted free of charge are
-          included and marked &ldquo;Free&rdquo; — this is a history of verifications, not of sales.
+          Every business and individual badge ever granted — survives account deletion. Badges granted
+          free of charge are included and marked &ldquo;Free&rdquo; — this is a history of
+          verifications, not of sales.
         </p>
 
         <div className="flex flex-wrap items-center gap-3 mt-4">
@@ -275,15 +310,29 @@ export default function VerificationsTab({ lang }: { lang: string }) {
                     >
                       {row.userName}
                     </Link>
+                    {row.accountDeleted && (
+                      <div className="mt-0.5">
+                        <span
+                          className="inline-block px-1.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600"
+                          title="The account was deleted; contact details are from the purchase record"
+                        >
+                          Account deleted
+                        </span>
+                      </div>
+                    )}
                     <div className="text-sm text-gray-500">
                       {row.userPhone ? (
                         <a href={`tel:${row.userPhone}`} className="hover:text-indigo-600 hover:underline">
                           {row.userPhone}
                         </a>
+                      ) : row.userEmail ? (
+                        <a href={`mailto:${row.userEmail}`} className="hover:text-indigo-600 hover:underline">
+                          {row.userEmail}
+                        </a>
                       ) : (
-                        row.userEmail || '—'
+                        '—'
                       )}
-                      {row.shopSlug && (
+                      {row.shopSlug && !row.accountDeleted && (
                         <>
                           {' · '}
                           <Link
@@ -314,13 +363,7 @@ export default function VerificationsTab({ lang }: { lang: string }) {
                     <StatusPill row={row} />
                   </td>
                   <td className="px-6 py-4 text-right whitespace-nowrap">
-                    {row.paymentStatus === 'paid' ? (
-                      <span className="font-bold text-gray-900">{formatCurrency(row.amount)}</span>
-                    ) : (
-                      <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-                        {row.paymentStatus === 'free' ? 'Free' : row.paymentStatus === 'pending' ? 'Pending' : row.paymentStatus}
-                      </span>
-                    )}
+                    <PaidCell row={row} />
                   </td>
                 </tr>
               ))}

@@ -30,8 +30,8 @@ export default function MonthlyRevenueTable({ lang }: { lang: string }) {
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Monthly Purchase History</h3>
           <p className="text-sm text-gray-500 mt-0.5">
-            All time · completed payments only (abandoned checkouts excluded) · verification
-            badges granted free are listed under Customer Purchases
+            All time · money received (verified payments only) · Nepal time · survives ad and
+            account deletion
           </p>
         </div>
         <Link
@@ -47,7 +47,7 @@ export default function MonthlyRevenueTable({ lang }: { lang: string }) {
 
       {!loading && !error && report && (
         report.months.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">No completed purchases yet.</div>
+          <div className="px-6 py-8 text-center text-gray-500">No verified payments yet.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

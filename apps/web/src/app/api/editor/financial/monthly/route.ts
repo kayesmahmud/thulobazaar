@@ -8,16 +8,15 @@ import { nptMonthSql } from '@/lib/financial/time';
  * GET /api/editor/financial/monthly
  * Month-by-month purchase history, all time.
  *
- * Revenue counts ONLY status='verified' transactions — `pending` rows are
- * abandoned checkouts (user opened the gateway and never paid), so summing
- * them would overstate revenue by an order of magnitude.
+ * Reads the append-only `purchase_history` ledger, payment events only: one per
+ * payment_transactions row that reached status='verified', written by a DB
+ * trigger and never cascaded away with the ad or the account. Pending rows are
+ * abandoned checkouts and never enter the ledger, so nothing here overstates.
+ * Grants (comped/unpaid promotions, free badges) are entitlements, not money,
+ * and are deliberately left out.
  *
- * Months are Nepal calendar months (see lib/financial/time.ts), matching the
- * month filters and displayed dates in the promotions/verifications views.
- * Months are bucketed by the confirmation instant, COALESCE(verified_at,
- * created_at), matching the Promotions history — not by checkout initiation.
- * The verifications view buckets on reviewed_at by design, so its months can
- * differ from the payment month.
+ * Months are Nepal calendar months (see lib/financial/time.ts) of occurred_at,
+ * the confirmation instant — matching the Promotions/Verifications histories.
  *
  * Test accounts are excluded, exactly as in the promotions/verifications views
  * this table links out to — otherwise the same month reads two different
@@ -40,19 +39,15 @@ export async function GET(request: NextRequest) {
     const excluded = await getExcludedUserIds();
 
     const rows = await prisma.$queryRaw<MonthRow[]>`
-      SELECT ${nptMonthSql('t.paid_at')} AS month,
-             COUNT(*) FILTER (WHERE t.payment_type = 'ad_promotion') AS promotions,
-             COUNT(*) FILTER (WHERE t.payment_type = 'business_verification') AS business_verifications,
-             COUNT(*) FILTER (WHERE t.payment_type = 'individual_verification') AS individual_verifications,
-             COUNT(DISTINCT t.user_id) AS buyers,
-             COALESCE(SUM(t.amount), 0) AS revenue
-      FROM (
-        SELECT payment_type, user_id, amount,
-               COALESCE(verified_at, created_at) AS paid_at
-        FROM payment_transactions
-        WHERE status = 'verified'
-          AND user_id <> ALL(${excluded}::int[])
-      ) t
+      SELECT ${nptMonthSql('h.occurred_at')} AS month,
+             COUNT(*) FILTER (WHERE h.kind = 'ad_promotion') AS promotions,
+             COUNT(*) FILTER (WHERE h.kind = 'business_verification') AS business_verifications,
+             COUNT(*) FILTER (WHERE h.kind = 'individual_verification') AS individual_verifications,
+             COUNT(DISTINCT h.user_id) AS buyers,
+             COALESCE(SUM(h.amount), 0) AS revenue
+      FROM purchase_history h
+      WHERE h.event = 'payment'
+        AND h.user_id <> ALL(${excluded}::int[])
       GROUP BY 1
       ORDER BY 1 DESC
     `;

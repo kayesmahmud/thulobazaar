@@ -282,6 +282,7 @@ async function handlePaymentSuccess(
           data: {
             status: 'pending', // Now ready for review
             payment_status: 'paid',
+            payment_amount: Number(transaction.amount),
             payment_reference: transaction.transaction_id || '',
           },
         });
@@ -303,6 +304,7 @@ async function handlePaymentSuccess(
           data: {
             status: 'pending', // Now ready for review
             payment_status: 'paid',
+            payment_amount: Number(transaction.amount),
             payment_reference: transaction.transaction_id || '',
           },
         });

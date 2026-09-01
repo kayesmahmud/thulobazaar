@@ -80,8 +80,48 @@ function PromotionStatusPill({ status }: { status: CustomerPromotion['status'] }
       );
     case 'expired':
       return <Pill tone="gray">Expired</Pill>;
+    case 'removed':
+      return (
+        <Pill tone="gray" title="The ad was deleted before this promotion expired, taking the promotion with it">
+          Ad deleted
+        </Pill>
+      );
     default:
-      return <Pill tone="gray" title="No promotion dates on record">Unknown</Pill>;
+      return <Pill tone="gray" title="No promotion dates on record — paid but never provisioned">Unknown</Pill>;
+  }
+}
+
+function PromotionPaidCell({ p }: { p: CustomerPromotion }) {
+  switch (p.paymentStatus) {
+    case 'comped':
+      return <Pill tone="amber">Comped</Pill>;
+    case 'unpaid':
+      return (
+        <Pill tone="red" title="A price was recorded but no verified payment exists">
+          Unpaid
+        </Pill>
+      );
+    default:
+      return <span className="font-semibold text-gray-900">{formatCurrency(p.pricePaid)}</span>;
+  }
+}
+
+function VerificationPaidCell({ v }: { v: CustomerVerification }) {
+  switch (v.paymentStatus) {
+    case 'paid':
+      return <span className="font-semibold text-gray-900">{formatCurrency(v.amount)}</span>;
+    case 'free':
+      return <Pill tone="gray">Free</Pill>;
+    case 'pending':
+      return <Pill tone="gray">Pending</Pill>;
+    case 'unverified':
+      return (
+        <Pill tone="red" title="Request claimed paid but no verified payment exists">
+          Unverified
+        </Pill>
+      );
+    default:
+      return <Pill tone="gray">Unknown</Pill>;
   }
 }
 
@@ -151,6 +191,12 @@ export default function CustomerHistoryPage({
 
         {!loading && !error && detail && (
           <>
+            {detail.accountDeleted && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm font-medium">
+                This account has been deleted. Details below come from the purchase records kept at
+                the time of each purchase.
+              </div>
+            )}
             {detail.excludedFromReports && (
               <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm font-medium">
                 This account is excluded from financial reports (marked as a test account).
@@ -159,7 +205,10 @@ export default function CustomerHistoryPage({
 
             {/* Identity */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h1 className="text-2xl font-bold text-gray-900">{detail.customer.fullName}</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold text-gray-900">{detail.customer.fullName}</h1>
+                {detail.accountDeleted && <Pill tone="gray">Account deleted</Pill>}
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {detail.customer.phone && (
                   <a
@@ -177,7 +226,7 @@ export default function CustomerHistoryPage({
                     {detail.customer.email}
                   </a>
                 )}
-                {detail.customer.shopSlug && (
+                {detail.customer.shopSlug && !detail.accountDeleted && (
                   <Link
                     href={`/${params.lang}/shop/${detail.customer.shopSlug}`}
                     target="_blank"
@@ -190,7 +239,7 @@ export default function CustomerHistoryPage({
               </div>
               <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
                 {detail.customer.businessName && <span>{detail.customer.businessName}</span>}
-                <span>Joined {formatDate(detail.customer.joinedAt)}</span>
+                {detail.customer.joinedAt && <span>Joined {formatDate(detail.customer.joinedAt)}</span>}
               </div>
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
@@ -217,28 +266,43 @@ export default function CustomerHistoryPage({
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Verification Badges</h3>
               </div>
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
+              {/* Live badge state comes from the users row; once that is gone there is
+                  nothing to claim — the history table below still shows what was granted. */}
+              {detail.accountDeleted ? (
+                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex items-center gap-2">
                     <span className="font-semibold text-gray-900">Business</span>
-                    <BusinessBadgePill badge={detail.badges.business} />
+                    <Pill tone="gray">Account deleted</Pill>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Verified: {formatDate(detail.badges.business.verifiedAt)}<br />
-                    Expires: {formatDate(detail.badges.business.expiresAt)}
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2">
                     <span className="font-semibold text-gray-900">Individual</span>
-                    <IndividualBadgePill detail={detail} />
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Verified: {formatDate(detail.badges.individual.verifiedAt)}<br />
-                    Expires: {formatDate(detail.badges.individual.expiresAt)}
+                    <Pill tone="gray">Account deleted</Pill>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-gray-900">Business</span>
+                      <BusinessBadgePill badge={detail.badges.business} />
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Verified: {formatDate(detail.badges.business.verifiedAt)}<br />
+                      Expires: {formatDate(detail.badges.business.expiresAt)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-gray-900">Individual</span>
+                      <IndividualBadgePill detail={detail} />
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Verified: {formatDate(detail.badges.individual.verifiedAt)}<br />
+                      Expires: {formatDate(detail.badges.individual.expiresAt)}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Verification history */}
@@ -285,20 +349,7 @@ export default function CustomerHistoryPage({
                             <VerificationStatusPill v={v} />
                           </td>
                           <td className="px-6 py-4 text-right whitespace-nowrap">
-                            {v.paymentStatus === 'paid' ? (
-                              <span className="font-semibold text-gray-900">{formatCurrency(v.amount)}</span>
-                            ) : v.paymentStatus === 'free' ? (
-                              <Pill tone="gray">Free</Pill>
-                            ) : (
-                              <span className="inline-flex items-center gap-2 justify-end">
-                                {v.amount > 0 && (
-                                  <span className="text-gray-900">{formatCurrency(v.amount)}</span>
-                                )}
-                                <Pill tone="gray">
-                                  {v.paymentStatus === 'pending' ? 'Pending' : v.paymentStatus}
-                                </Pill>
-                              </span>
-                            )}
+                            <VerificationPaidCell v={v} />
                           </td>
                         </tr>
                       ))}
@@ -339,14 +390,14 @@ export default function CustomerHistoryPage({
                             {p.adDeleted && (
                               <span
                                 className="inline-block mt-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600"
-                                title="The ad was deleted; this purchase is kept from the payment record"
+                                title="The ad was deleted; this purchase is kept from the purchase record"
                               >
                                 ad deleted
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-gray-600 capitalize whitespace-nowrap">
-                            {p.type}
+                          <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
+                            {formatPaymentType(p.type)}
                             {p.durationDays !== null && ` · ${p.durationDays}d`}
                           </td>
                           <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(p.startsAt)}</td>
@@ -355,11 +406,7 @@ export default function CustomerHistoryPage({
                             <PromotionStatusPill status={p.status} />
                           </td>
                           <td className="px-6 py-4 text-right whitespace-nowrap">
-                            {p.comped ? (
-                              <Pill tone="amber">Comped</Pill>
-                            ) : (
-                              <span className="font-semibold text-gray-900">{formatCurrency(p.pricePaid)}</span>
-                            )}
+                            <PromotionPaidCell p={p} />
                           </td>
                         </tr>
                       ))}
@@ -374,7 +421,8 @@ export default function CustomerHistoryPage({
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Payment Attempts</h3>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Only <strong>verified</strong> rows are money received; pending means the checkout was abandoned
+                  Only <strong>verified</strong> rows are money received; pending means the checkout was
+                  abandoned. Verified payments survive account deletion; pending and failed attempts do not.
                 </p>
               </div>
               {detail.payments.length === 0 ? (
@@ -396,7 +444,7 @@ export default function CustomerHistoryPage({
                         <tr key={p.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(p.createdAt)}</td>
                           <td className="px-6 py-4 text-gray-900">{formatPaymentType(p.type)}</td>
-                          <td className="px-6 py-4 text-gray-600 capitalize">{p.gateway}</td>
+                          <td className="px-6 py-4 text-gray-600 capitalize">{p.gateway ?? '—'}</td>
                           <td className="px-6 py-4 text-center">
                             {p.status === 'verified' ? (
                               <Pill tone="green">Paid</Pill>

@@ -258,26 +258,9 @@ router.get(
       settingsMap[s.setting_key] = s.setting_value;
     });
 
-    // Check if user is eligible for free verification
-    let isEligibleForFreeVerification = false;
-
-    if (settingsMap['free_verification_enabled'] === 'true') {
-      const user = await prisma.users.findUnique({
-        where: { id: userId },
-        select: {
-          individual_verified: true,
-          individual_verification_expires_at: true,
-          business_verification_status: true,
-          business_verification_expires_at: true,
-        },
-      });
-
-      if (user) {
-        const hasHadIndividualVerification = user.individual_verified || user.individual_verification_expires_at;
-        const hasHadBusinessVerification = user.business_verification_status === 'approved' || user.business_verification_expires_at;
-        isEligibleForFreeVerification = !hasHadIndividualVerification && !hasHadBusinessVerification;
-      }
-    }
+    // Check if user is eligible for free verification (same predicate the submit handlers use)
+    const isEligibleForFreeVerification =
+      settingsMap['free_verification_enabled'] === 'true' && (await hasNeverBeenVerified(userId));
 
     // Helper: format duration label
     const formatDurationLabel = (days: number): string => {
@@ -354,6 +337,73 @@ router.get(
     });
   })
 );
+
+/**
+ * Free-verification eligibility: the user has never held EITHER badge.
+ * Shared by GET /pricing (what the client is told) and the submit handlers
+ * (what the server records), so the free/paid decision cannot diverge.
+ */
+async function hasNeverBeenVerified(userId: number): Promise<boolean> {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      individual_verified: true,
+      individual_verification_expires_at: true,
+      business_verification_status: true,
+      business_verification_expires_at: true,
+    },
+  });
+  if (!user) return false;
+  const hasHadIndividualVerification = user.individual_verified || user.individual_verification_expires_at;
+  const hasHadBusinessVerification = user.business_verification_status === 'approved' || user.business_verification_expires_at;
+  return !hasHadIndividualVerification && !hasHadBusinessVerification;
+}
+
+/**
+ * Server-side resolution of a verification request's payment fields at submit time.
+ * The client is NEVER trusted for payment_status / payment_amount / payment_reference:
+ * 'free' only when the free-verification offer applies, otherwise 'pending' at the
+ * active list price. A 'paid' status is only ever written by the gateway callback
+ * after the transaction is verified.
+ */
+async function resolveSubmitPayment(
+  userId: number,
+  type: 'business' | 'individual',
+  durationDays: number
+): Promise<{ payment_status: 'free' | 'pending'; payment_amount: number } | null> {
+  const pricing = await prisma.verification_pricing.findFirst({
+    where: { verification_type: type, duration_days: durationDays, is_active: true },
+    select: { price: true },
+  });
+  if (!pricing) return null;
+
+  const settings = await prisma.site_settings.findMany({
+    where: {
+      setting_key: {
+        in: ['free_verification_enabled', 'free_verification_duration_days', 'free_verification_types'],
+      },
+    },
+  });
+  const settingsMap: Record<string, string | null> = {};
+  settings.forEach((s) => {
+    settingsMap[s.setting_key] = s.setting_value;
+  });
+
+  const freeEnabled = settingsMap['free_verification_enabled'] === 'true';
+  const freeDurationDays = parseInt(settingsMap['free_verification_duration_days'] || '180', 10);
+  const freeTypes: string[] = JSON.parse(settingsMap['free_verification_types'] || '["individual","business"]');
+
+  const isFree =
+    freeEnabled &&
+    freeTypes.includes(type) &&
+    durationDays === freeDurationDays &&
+    (await hasNeverBeenVerified(userId));
+
+  return {
+    payment_status: isFree ? 'free' : 'pending',
+    payment_amount: isFree ? 0 : parseFloat(pricing.price.toString()),
+  };
+}
 
 /**
  * Check if user already has an active (non-expired) verification or a pending request.
@@ -440,10 +490,13 @@ router.post(
       documentType,
       documentNumber,
       durationDays,
-      paymentStatus,
-      paymentAmount,
-      paymentReference,
     } = req.body;
+
+    const resolvedDurationDays = Number(durationDays) || 365;
+    const payment = await resolveSubmitPayment(userId, 'business', resolvedDurationDays);
+    if (!payment) {
+      return res.status(400).json({ success: false, message: 'Invalid verification duration' });
+    }
 
     // 1. Update user record
     await prisma.users.update({
@@ -480,10 +533,9 @@ router.post(
           document_type: documentType || null,
           document_number: documentNumber || null,
           status: 'pending',
-          duration_days: durationDays || 365,
-          payment_status: paymentStatus || 'free',
-          ...(paymentAmount && { payment_amount: paymentAmount }),
-          ...(paymentReference && { payment_reference: paymentReference }),
+          duration_days: resolvedDurationDays,
+          payment_status: payment.payment_status,
+          payment_amount: payment.payment_amount,
         },
       }),
     ]);
@@ -527,7 +579,13 @@ router.post(
       });
     }
 
-    const { documentUrls, fullName, idType, idNumber, durationDays, paymentStatus, paymentAmount, paymentReference } = req.body;
+    const { documentUrls, fullName, idType, idNumber, durationDays } = req.body;
+
+    const resolvedDurationDays = Number(durationDays) || 365;
+    const payment = await resolveSubmitPayment(userId, 'individual', resolvedDurationDays);
+    if (!payment) {
+      return res.status(400).json({ success: false, message: 'Invalid verification duration' });
+    }
 
     // 1. Update user record
     await prisma.users.update({
@@ -558,10 +616,9 @@ router.post(
           id_document_back: documentUrls?.id_document_back?.filename || documentUrls?.id_document_back?.url || null,
           selfie_with_id: documentUrls?.selfie_with_id?.filename || documentUrls?.selfie_with_id?.url || null,
           status: 'pending',
-          duration_days: durationDays || 365,
-          payment_status: paymentStatus || 'free',
-          ...(paymentAmount && { payment_amount: paymentAmount }),
-          ...(paymentReference && { payment_reference: paymentReference }),
+          duration_days: resolvedDurationDays,
+          payment_status: payment.payment_status,
+          payment_amount: payment.payment_amount,
         },
       }),
     ]);

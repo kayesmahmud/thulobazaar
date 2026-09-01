@@ -591,7 +591,7 @@ async function handleAdPromotionSuccess(
 }
 
 async function handleIndividualVerificationSuccess(
-  transaction: { transaction_id: string | null; user_id: number },
+  transaction: { transaction_id: string | null; user_id: number; amount: unknown },
   relatedId: number | null
 ) {
   if (!relatedId) {
@@ -604,6 +604,7 @@ async function handleIndividualVerificationSuccess(
     data: {
       status: 'pending',
       payment_status: 'paid',
+      payment_amount: Number(transaction.amount),
       payment_reference: transaction.transaction_id || '',
     },
   });
@@ -612,7 +613,7 @@ async function handleIndividualVerificationSuccess(
 }
 
 async function handleBusinessVerificationSuccess(
-  transaction: { transaction_id: string | null; user_id: number },
+  transaction: { transaction_id: string | null; user_id: number; amount: unknown },
   relatedId: number | null
 ) {
   if (!relatedId) {
@@ -625,6 +626,7 @@ async function handleBusinessVerificationSuccess(
     data: {
       status: 'pending',
       payment_status: 'paid',
+      payment_amount: Number(transaction.amount),
       payment_reference: transaction.transaction_id || '',
     },
   });

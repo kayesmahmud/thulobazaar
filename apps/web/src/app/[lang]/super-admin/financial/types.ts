@@ -100,37 +100,38 @@ export interface MonthlyReport {
 }
 
 /**
- * active  = is_active AND not expired
- * ended   = deactivated/replaced (e.g. extended) before its expiry
- * expired = past expires_at
- * unknown = orphan payment whose ad (and promotion row) was deleted
+ * active  = live promotion row, is_active AND not expired
+ * ended   = live row deactivated/replaced (e.g. extended) before its expiry
+ * expired = past expires_at (live row, or the snapshot when the row is gone)
+ * removed = the ad was deleted, taking its promotion row with it
+ * unknown = no dates on record (e.g. paid but never provisioned)
  */
-export type PromotionStatus = 'active' | 'ended' | 'expired' | 'unknown';
+export type PromotionStatus = 'active' | 'ended' | 'expired' | 'removed' | 'unknown';
 
-export interface CustomerPromotion {
-  id: number;
-  adId: number | null;
-  adTitle: string;
-  /** The ad was hard-deleted; the purchase is kept from the payment record. */
-  adDeleted: boolean;
-  adSlug: string | null;
-  type: string;
-  durationDays: number | null;
-  pricePaid: number;
-  paymentMethod: string;
-  comped: boolean;
-  startsAt: string | null;
-  expiresAt: string | null;
-  status: PromotionStatus;
-}
+/**
+ * paid   = a verified payment backs it
+ * comped = price 0, granted by staff
+ * unpaid = a price was recorded but no verified payment exists
+ */
+export type PromotionPaymentStatus = 'paid' | 'comped' | 'unpaid';
+
+/**
+ * paid       = a verified payment backs it
+ * free       = granted free of charge
+ * pending    = payment still pending
+ * unverified = request claimed paid but no verified payment exists (client-writable claim)
+ * unknown    = nothing on record
+ */
+export type VerificationPaymentStatus = 'paid' | 'free' | 'pending' | 'unverified' | 'unknown';
 
 export interface CustomerPayment {
-  id: number;
+  id: string;
   type: string;
-  gateway: string;
+  gateway: string | null;
   amount: number;
-  transactionId: string;
-  status: string | null;
+  transactionId: string | null;
+  /** 'verified' (money received) | 'pending' (abandoned checkout) | 'failed' | other gateway status */
+  status: string;
   createdAt: string | null;
   verifiedAt: string | null;
   failureReason: string | null;
@@ -147,6 +148,10 @@ export interface CustomerDetail {
     joinedAt: string | null;
     shopSlug: string | null;
   };
+  /** The users row is gone; `customer` comes from the latest purchase-record snapshot. */
+  accountDeleted: boolean;
+  /** Marked as a test account — omitted from every aggregate on the Financial page. */
+  excludedFromReports: boolean;
   summary: {
     totalSpent: number;
     totalPurchases: number;
@@ -155,6 +160,7 @@ export interface CustomerDetail {
   };
   badges: {
     business: {
+      /** 'none' when never applied or the account is deleted */
       status: string;
       verifiedAt: string | null;
       expiresAt: string | null;
@@ -170,8 +176,6 @@ export interface CustomerDetail {
   promotions: CustomerPromotion[];
   verifications: CustomerVerification[];
   payments: CustomerPayment[];
-  /** Marked as a test account — omitted from every aggregate on the Financial page. */
-  excludedFromReports: boolean;
 }
 
 /** "ad_promotion" -> "Ad Promotion" */
@@ -209,27 +213,37 @@ export const formatDate = (iso: string | null): string =>
 // ---------------------------------------------------------------------------
 
 export interface PromotionRow {
-  /** 'promo-<ad_promotions.id>' or 'txn-<payment_transactions.id>' for orphan payments */
+  /** 'h-<purchase_history.id>' */
   id: string;
   userId: number;
   userName: string;
   userPhone: string;
   userEmail: string;
   shopSlug: string | null;
+  /** The users row is gone; the identity fields above are the purchase-record snapshot. */
+  accountDeleted: boolean;
   adId: number | null;
   adTitle: string;
-  /** The ad was hard-deleted; the purchase is kept from the payment record. */
+  /** The ad was deleted; the purchase is kept from the purchase record. */
   adDeleted: boolean;
   /** featured | urgent | sticky | bump_up */
   type: string;
   durationDays: number | null;
   pricePaid: number;
+  paymentStatus: PromotionPaymentStatus;
+  /** paymentStatus === 'comped' */
   comped: boolean;
   purchasedAt: string | null;
   startsAt: string | null;
   expiresAt: string | null;
   status: PromotionStatus;
 }
+
+/** An ad promotion shown on the customer drill-down page (the customer columns are implied). */
+export type CustomerPromotion = Omit<
+  PromotionRow,
+  'userId' | 'userName' | 'userPhone' | 'userEmail' | 'shopSlug' | 'accountDeleted'
+>;
 
 export interface PromotionMonth {
   month: string;
@@ -257,6 +271,7 @@ export interface PromotionsResponse {
 // ---------------------------------------------------------------------------
 
 export interface VerificationRow {
+  /** 'h-<purchase_history.id>' */
   id: string;
   type: 'business' | 'individual';
   userId: number;
@@ -264,6 +279,8 @@ export interface VerificationRow {
   userPhone: string;
   userEmail: string;
   shopSlug: string | null;
+  /** The users row is gone; the identity fields above are the purchase-record snapshot. */
+  accountDeleted: boolean;
   label: string;
   verifiedAt: string | null;
   /** An older grant of the same badge — a newer row describes the live badge. */
@@ -273,8 +290,7 @@ export interface VerificationRow {
   expiresAt: string | null;
   expired: boolean;
   amount: number;
-  /** 'free' | 'paid' | 'pending' */
-  paymentStatus: string;
+  paymentStatus: VerificationPaymentStatus;
   durationDays: number | null;
 }
 
@@ -294,5 +310,5 @@ export interface VerificationsResponse {
 /** A verification badge shown on the customer drill-down page (the customer columns are implied). */
 export type CustomerVerification = Omit<
   VerificationRow,
-  'userId' | 'userName' | 'userPhone' | 'userEmail' | 'shopSlug'
+  'userId' | 'userName' | 'userPhone' | 'userEmail' | 'shopSlug' | 'accountDeleted'
 >;

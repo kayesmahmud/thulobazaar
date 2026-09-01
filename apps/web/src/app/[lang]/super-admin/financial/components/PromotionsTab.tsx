@@ -40,15 +40,46 @@ function StatusPill({ status }: { status: PromotionRow['status'] }) {
           Expired
         </span>
       );
+    case 'removed':
+      return (
+        <span
+          className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 whitespace-nowrap"
+          title="The ad was deleted before this promotion expired, taking the promotion with it"
+        >
+          Ad deleted
+        </span>
+      );
     default:
       return (
         <span
           className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500 whitespace-nowrap"
-          title="No promotion dates on record — usually because the ad was deleted and only the payment survives"
+          title="No promotion dates on record — paid but never provisioned"
         >
           Unknown
         </span>
       );
+  }
+}
+
+function PaidCell({ row }: { row: PromotionRow }) {
+  switch (row.paymentStatus) {
+    case 'comped':
+      return (
+        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
+          Comped
+        </span>
+      );
+    case 'unpaid':
+      return (
+        <span
+          className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700"
+          title="A price was recorded but no verified payment exists"
+        >
+          Unpaid
+        </span>
+      );
+    default:
+      return <span className="font-bold text-gray-900">{formatCurrency(row.pricePaid)}</span>;
   }
 }
 
@@ -133,7 +164,7 @@ export default function PromotionsTab({ lang }: { lang: string }) {
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Promotions Purchased</h3>
           <p className="text-sm text-gray-500 mt-0.5">
-            Every ad promotion ever bought — expired ones included
+            Every ad promotion ever bought — expired ones included; survives ad and account deletion
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -236,6 +267,16 @@ export default function PromotionsTab({ lang }: { lang: string }) {
                     >
                       {row.userName}
                     </Link>
+                    {row.accountDeleted && (
+                      <div className="mt-0.5">
+                        <span
+                          className="inline-block px-1.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600"
+                          title="The account was deleted; contact details are from the purchase record"
+                        >
+                          Account deleted
+                        </span>
+                      </div>
+                    )}
                     <div className="text-sm mt-0.5">
                       {row.userPhone ? (
                         <a
@@ -244,11 +285,18 @@ export default function PromotionsTab({ lang }: { lang: string }) {
                         >
                           {row.userPhone}
                         </a>
+                      ) : row.userEmail ? (
+                        <a
+                          href={`mailto:${row.userEmail}`}
+                          className="text-gray-500 hover:text-indigo-600 hover:underline"
+                        >
+                          {row.userEmail}
+                        </a>
                       ) : (
-                        <span className="text-gray-500">{row.userEmail || '—'}</span>
+                        <span className="text-gray-500">—</span>
                       )}
                     </div>
-                    {row.shopSlug && (
+                    {row.shopSlug && !row.accountDeleted && (
                       <Link
                         href={`/${lang}/shop/${row.shopSlug}`}
                         className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
@@ -266,7 +314,7 @@ export default function PromotionsTab({ lang }: { lang: string }) {
                       {row.adDeleted && (
                         <span
                           className="inline-block px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-semibold"
-                          title="The ad was deleted; this purchase is kept from the payment record"
+                          title="The ad was deleted; this purchase is kept from the purchase record"
                         >
                           ad deleted
                         </span>
@@ -283,13 +331,7 @@ export default function PromotionsTab({ lang }: { lang: string }) {
                     <StatusPill status={row.status} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {row.comped ? (
-                      <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
-                        Comped
-                      </span>
-                    ) : (
-                      <span className="font-bold text-gray-900">{formatCurrency(row.pricePaid)}</span>
-                    )}
+                    <PaidCell row={row} />
                   </td>
                 </tr>
               ))}
