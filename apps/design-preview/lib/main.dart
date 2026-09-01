@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app.dart';
+import 'glass_dock_demo.dart';
 import 'tokens.dart';
 
 void main() => runApp(const DesignPreviewApp());
@@ -22,13 +22,12 @@ class DesignPreviewApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.white,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: T.brand,
-          primary: T.brand,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: T.brand, primary: T.brand),
         textTheme: GoogleFonts.interTextTheme(),
       ),
-      home: const RootShell(),
+      // Glass tab bar measurement build: the demo opens first; its X leads to
+      // the rest of the prototype.
+      home: const GlassDockDemo(),
     );
   }
 }
