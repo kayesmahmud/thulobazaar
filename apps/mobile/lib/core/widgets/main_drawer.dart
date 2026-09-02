@@ -190,7 +190,7 @@ class _Identity extends StatelessWidget {
         : 'drawer.notSignedIn'.tr();
     final avatar = ApiConfig.getAvatarUrl(user['avatar'] as String?);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 8, 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Row(
         children: [
           CircleAvatar(
@@ -214,11 +214,6 @@ class _Identity extends StatelessWidget {
                 height: 1.35,
               ),
             ),
-          ),
-          IconButton(
-            tooltip: 'common.close'.tr(),
-            icon: const Icon(LucideIcons.x, color: AppTokens.inkFaint),
-            onPressed: () => Navigator.pop(context),
           ),
         ],
       ),
