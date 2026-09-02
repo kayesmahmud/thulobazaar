@@ -185,6 +185,8 @@
     "priceHighToLow": "Price: High to Low"
   },
   "adDetail": {
+    "viewMore": "View more",
+    "viewLess": "View less",
     "description": "Description",
     "location": "Location",
     "somethingWentWrong": "Something went wrong",

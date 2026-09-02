@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:mobile/core/theme/app_font.dart';
+import 'package:mobile/core/theme/app_tokens.dart';
+import 'package:mobile/core/widgets/expandable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -747,13 +749,20 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          ad.description,
+                        ExpandableText(
+                          text: ad.description,
                           style: AppFont.inter(
                             fontSize: 14,
                             color: const Color(0xFF4B5563),
                             height: 1.5,
                           ),
+                          linkStyle: AppFont.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTokens.brandDeep,
+                          ),
+                          moreLabel: 'adDetail.viewMore'.tr(),
+                          lessLabel: 'adDetail.viewLess'.tr(),
                         ),
                       ],
                     ),

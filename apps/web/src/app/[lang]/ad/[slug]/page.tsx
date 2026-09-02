@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import AdDetailClient from './AdDetailClient';
 import TrackViewContent from './TrackViewContent';
 import PromoteSection from './PromoteSection';
+import ExpandableDescription from './ExpandableDescription';
 import OwnerEditButton from './OwnerEditButton';
 import { Breadcrumb } from '@/components/ui';
 import PromotionSuccessToast from './PromotionSuccessToast';
@@ -484,7 +485,11 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
 
               <div className="mb-8">
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('description')}</h2>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">{ad.description}</p>
+                <ExpandableDescription
+                  text={ad.description ?? ''}
+                  moreLabel={t('viewMore')}
+                  lessLabel={t('viewLess')}
+                />
               </div>
 
               <SpecificationsSection

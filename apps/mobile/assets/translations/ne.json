@@ -145,6 +145,8 @@
     "priceHighToLow": "मूल्य: बढीबाट कम"
   },
   "adDetail": {
+    "viewMore": "थप हेर्नुहोस्",
+    "viewLess": "कम हेर्नुहोस्",
     "description": "विवरण",
     "location": "स्थान",
     "somethingWentWrong": "केही गलत भयो",

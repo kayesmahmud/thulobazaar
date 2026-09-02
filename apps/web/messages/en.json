@@ -212,6 +212,8 @@
     "invalid2FACode": "Invalid code. Please try again."
   },
   "ads": {
+    "viewMore": "View more",
+    "viewLess": "View less",
     "searchPlaceholder": "Search for anything...",
     "search": "Search",
     "noResults": "No results found",
