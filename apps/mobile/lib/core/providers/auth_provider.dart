@@ -21,6 +21,13 @@ class AuthProvider with ChangeNotifier {
   /// Get user ID safely from the user map
   int? get userId => _user?['id'] as int?;
 
+  /// Signed in with a fixed profile, touching neither network nor storage.
+  @visibleForTesting
+  AuthProvider.withUser(Map<String, dynamic> user)
+    : _user = user,
+      _isLoggedIn = true,
+      _isLoading = false;
+
   AuthProvider() {
     _init();
     // Auto-logout when token refresh fails on a 401

@@ -12,6 +12,7 @@ import 'package:mobile/features/dashboard/dashboard_screen.dart';
 import 'package:mobile/features/shop/shop_screen.dart';
 import 'package:mobile/features/verification/verification_screen.dart';
 import 'package:mobile/features/profile/profile_screen.dart';
+import 'package:mobile/features/settings/settings_screen.dart';
 import 'package:mobile/features/help/help_center_screen.dart';
 import 'package:mobile/features/contact/contact_screen.dart';
 import 'package:mobile/features/support/support_tickets_screen.dart';
@@ -140,6 +141,19 @@ class _MainDrawerState extends State<MainDrawer> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => const ProfileScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        'drawer.settings'.tr(),
+                        icon: LucideIcons.settings,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsScreen(),
                             ),
                           );
                         },

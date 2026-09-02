@@ -349,6 +349,7 @@
     "failedToUpdate": "प्रोफाइल अपडेट गर्न असफल"
   },
   "security": {
+    "min8Chars": "कम्तिमा ८ अक्षर",
     "title": "सुरक्षा सेटिङ्स",
     "passwordAuth": "पासवर्ड र प्रमाणीकरण",
     "phoneVerification": "फोन प्रमाणीकरण",
@@ -471,6 +472,7 @@
     "csatChipNeedMore": "अझ राम्रो सहयोग चाहिन्छ"
   },
   "drawer": {
+    "settings": "सेटिङहरू",
     "getVerified": "प्रमाणित हुनुहोस्",
     "myProfile": "मेरो प्रोफाइल",
     "dashboard": "ड्यासबोर्ड",
@@ -786,5 +788,49 @@
       "b1": "खरिदकर्ताले जवाफ दिनेबित्तिकै थाहा",
       "b2": "विज्ञापन लाइभ हुँदा सूचना"
     }
+  },
+  "settings": {
+    "title": "सेटिङहरू",
+    "account": "खाता",
+    "personalInfo": "व्यक्तिगत जानकारी",
+    "personalInfoHint": "नाम, फोटो र स्थान",
+    "phone": "फोन नम्बर",
+    "email": "इमेल ठेगाना",
+    "emailLocked": "परिवर्तन गर्न सहयोग टोलीलाई सम्पर्क गर्नुहोस्",
+    "notAdded": "थपिएको छैन",
+    "verified": "प्रमाणित",
+    "notVerified": "प्रमाणित छैन",
+    "verification": "प्रमाणीकरण",
+    "businessVerified": "व्यापार प्रमाणित",
+    "individualVerified": "व्यक्तिगत प्रमाणित",
+    "payments": "भुक्तानी र बिलिङ",
+    "paymentsHint": "तपाईंका खरिद र रसिदहरू",
+    "signInSecurity": "साइन इन र सुरक्षा",
+    "on": "सक्रिय",
+    "off": "निष्क्रिय",
+    "sessionsHint": "तपाईंको खातामा साइन इन भएका डिभाइसहरू",
+    "revokeSession": "यो डिभाइसबाट साइन आउट गर्नुहोस्",
+    "revokeSessionConfirm": "त्यो डिभाइसले फेरि साइन इन गर्नुपर्नेछ। यही फोन हो भने तपाईं अहिले नै साइन आउट हुनुहुनेछ।",
+    "preferences": "प्राथमिकताहरू",
+    "clearSearchHistory": "खोज इतिहास मेटाउनुहोस्",
+    "clearSearchHistoryHint": "यो फोनमा मात्र सुरक्षित",
+    "clearSearchHistoryConfirm": "यो फोनबाट हालैका खोजहरू हटाउने?",
+    "clear": "मेटाउनुहोस्",
+    "searchHistoryCleared": "खोज इतिहास मेटाइयो",
+    "helpAbout": "सहयोग र बारेमा",
+    "helpCenterHint": "बारम्बार सोधिने प्रश्न र निर्देशिका",
+    "terms": "सेवाका सर्तहरू",
+    "privacy": "गोपनीयता नीति",
+    "about": "थुलो बजारको बारेमा",
+    "version": "संस्करण {} ({})",
+    "couldNotOpenLink": "लिङ्क खोल्न सकिएन",
+    "signOutConfirm": "यो फोनबाट थुलो बजारबाट साइन आउट गर्ने?",
+    "deleteAccount": "खाता मेटाउनुहोस्",
+    "deleteAccountHint": "३० दिनसम्म पुनः प्राप्त गर्न सकिन्छ",
+    "disableTwoFactor": "दुई-चरण प्रमाणीकरण बन्द गर्नुहोस्",
+    "disableTwoFactorHint": "बन्द गर्न आफ्नो पासवर्ड र हालको कोड हाल्नुहोस्",
+    "twoFactorCode": "2FA कोड",
+    "turnOff": "बन्द गर्नुहोस्",
+    "passwordAndCodeRequired": "पासवर्ड र कोड आवश्यक छ"
   }
 }

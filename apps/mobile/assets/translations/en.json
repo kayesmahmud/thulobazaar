@@ -389,6 +389,7 @@
     "failedToUpdate": "Failed to update profile"
   },
   "security": {
+    "min8Chars": "At least 8 characters",
     "title": "Security Settings",
     "passwordAuth": "Password & Authentication",
     "phoneVerification": "Phone Verification",
@@ -511,6 +512,7 @@
     "csatChipNeedMore": "Need better support"
   },
   "drawer": {
+    "settings": "Settings",
     "getVerified": "Get Verified",
     "myProfile": "My Profile",
     "dashboard": "Dashboard",
@@ -786,5 +788,49 @@
       "b1": "Know the moment a buyer replies",
       "b2": "Alerts when your ad goes live"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "personalInfo": "Personal information",
+    "personalInfoHint": "Name, photo and location",
+    "phone": "Phone number",
+    "email": "Email address",
+    "emailLocked": "Contact support to change",
+    "notAdded": "Not added",
+    "verified": "Verified",
+    "notVerified": "Not verified",
+    "verification": "Verification",
+    "businessVerified": "Business verified",
+    "individualVerified": "Individual verified",
+    "payments": "Payments & billing",
+    "paymentsHint": "Your purchases and receipts",
+    "signInSecurity": "Sign-in & security",
+    "on": "On",
+    "off": "Off",
+    "sessionsHint": "Devices signed in to your account",
+    "revokeSession": "Sign out this device",
+    "revokeSessionConfirm": "That device will need to sign in again. If it is this phone, you will be signed out now.",
+    "preferences": "Preferences",
+    "clearSearchHistory": "Clear search history",
+    "clearSearchHistoryHint": "Stored only on this phone",
+    "clearSearchHistoryConfirm": "Remove your recent searches from this phone?",
+    "clear": "Clear",
+    "searchHistoryCleared": "Search history cleared",
+    "helpAbout": "Help & about",
+    "helpCenterHint": "FAQ and guides",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
+    "about": "About Thulo Bazaar",
+    "version": "Version {} ({})",
+    "couldNotOpenLink": "Could not open the link",
+    "signOutConfirm": "Sign out of Thulo Bazaar on this phone?",
+    "deleteAccount": "Delete account",
+    "deleteAccountHint": "Recoverable for 30 days",
+    "disableTwoFactor": "Turn off two-factor authentication",
+    "disableTwoFactorHint": "Enter your password and the current code to turn it off",
+    "twoFactorCode": "2FA code",
+    "turnOff": "Turn off",
+    "passwordAndCodeRequired": "Password and code are required"
   }
 }

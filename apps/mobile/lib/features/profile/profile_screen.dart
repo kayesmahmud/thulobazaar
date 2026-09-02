@@ -14,6 +14,7 @@ import '../../core/theme/app_theme.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
 // import 'package:mobile/features/profile/edit_profile_screen.dart';
 import 'package:mobile/features/profile/security_settings_screen.dart';
+import 'package:mobile/features/settings/settings_screen.dart';
 import 'package:mobile/features/profile/phone_verification_screen.dart';
 import 'package:mobile/features/verification/verification_screen.dart';
 import 'package:mobile/features/profile/delete_account_screen.dart';
@@ -437,25 +438,38 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             child: SafeArea(
               bottom: false,
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  onPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    } else {
-                      // From bottom nav — go to home tab
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MainNavScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    }
-                  },
-                  icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
-                ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        // From bottom nav — go to home tab
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MainNavScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    icon: const Icon(
+                      LucideIcons.arrowLeft,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'settings.title'.tr(),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
+                    icon: const Icon(LucideIcons.settings, color: Colors.white),
+                  ),
+                ],
               ),
             ),
           ),
