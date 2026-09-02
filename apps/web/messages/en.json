@@ -571,7 +571,11 @@
   "messages": {
     "title": "Messages",
     "announcements": "Announcements",
-    "noMessages": "No messages yet"
+    "noMessages": "No messages yet",
+    "signedOutTitle": "Talk to the seller",
+    "signedOutBody": "Ask, offer, agree — right here.",
+    "signInToChat": "Sign in to chat",
+    "newHere": "New here? Create a free account"
   },
   "shop": {
     "seller": "Seller",

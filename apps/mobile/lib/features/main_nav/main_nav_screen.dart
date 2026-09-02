@@ -332,10 +332,21 @@ class _MainNavScreenState extends State<MainNavScreen> {
   /// route has no sheet context to capture, and it matches every other gated
   /// screen instead of being a one-off.
   void _showLoginPrompt() {
-    Navigator.push(
-      context,
+    final navigator = Navigator.of(context);
+    navigator.push(
       MaterialPageRoute(
-        builder: (_) => const LoginGateScreen(kind: LoginGateKind.postAd),
+        builder: (_) => LoginGateScreen(
+          kind: LoginGateKind.postAd,
+          // This gate is a pushed route, not a tab, so the default
+          // return-to-host would land on the gate itself. Pop it too and open
+          // the form the user came for.
+          onLoginSuccess: () {
+            navigator.popUntil((route) => route.isFirst);
+            navigator.push(
+              MaterialPageRoute(builder: (_) => const PostAdScreen()),
+            );
+          },
+        ),
       ),
     );
   }

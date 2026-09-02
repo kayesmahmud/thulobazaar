@@ -17,6 +17,15 @@ vi.mock('@thulobazaar/database', () => ({
       findFirst: vi.fn(),
       create: vi.fn(),
     },
+    verification_pricing: {
+      findMany: vi.fn(),
+    },
+    verification_campaigns: {
+      findMany: vi.fn(),
+    },
+    site_settings: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -77,6 +86,41 @@ describe('Verification Routes', () => {
         .send({ documentUrls: ['doc1.pdf'] });
 
       expect(response.status).toBe(401);
+    });
+  });
+
+  // ==========================================
+  // GET /api/verification/pricing
+  // ==========================================
+  describe('GET /api/verification/pricing', () => {
+    async function mockPricing(freeEnabled: 'true' | 'false') {
+      const { prisma } = await import('@thulobazaar/database');
+      vi.mocked(prisma.verification_pricing.findMany).mockResolvedValue([] as any);
+      vi.mocked(prisma.verification_campaigns.findMany).mockResolvedValue([] as any);
+      vi.mocked(prisma.site_settings.findMany).mockResolvedValue([
+        { setting_key: 'free_verification_enabled', setting_value: freeEnabled },
+      ] as any);
+      return prisma;
+    }
+
+    it('answers guests, who are eligible while the free offer is on', async () => {
+      const prisma = await mockPricing('true');
+
+      const response = await browserRequest(app).get('/api/verification/pricing');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.freeVerification).toMatchObject({ enabled: true, isEligible: true });
+      // No token, no user lookup: a guest's eligibility comes from the setting alone.
+      expect(prisma.users.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('tells guests the offer is off when the setting is off', async () => {
+      await mockPricing('false');
+
+      const response = await browserRequest(app).get('/api/verification/pricing');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.freeVerification).toMatchObject({ enabled: false, isEligible: false });
     });
   });
 });

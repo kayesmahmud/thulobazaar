@@ -738,19 +738,18 @@
     "assistantTyping": "Assistant is typing"
   },
   "gate": {
-    "haveAccount": "I already have an account",
     "postAd": {
-      "title": "Sell it in 2 minutes",
-      "subtitle": "Free to post. No commission.",
-      "cta": "Post free ad",
-      "b1": "Free — no fees, no cut",
+      "title": "Sell it in minutes",
+      "subtitle": "Free to post. No hidden fees.",
+      "cta": "Sign in to post an ad",
+      "b1": "No fees, no commission",
       "b2": "Add a photo — AI writes the rest",
-      "b3": "In front of buyers in minutes"
+      "b3": "Reach buyers all over Nepal"
     },
     "verification": {
       "title": "Get your verified badge",
       "subtitle": "Build trust with buyers.",
-      "cta": "Get verified",
+      "cta": "Sign in to get verified",
       "b1": "Individual or business — your choice",
       "b2": "Send your ID or PAN card",
       "b3": "Reviewed in 24–48 hours"
@@ -758,15 +757,15 @@
     "messages": {
       "title": "Talk to the seller",
       "subtitle": "Ask, offer, agree — in the app.",
-      "cta": "Start chatting",
-      "b1": "Your phone stays hidden",
+      "cta": "Sign in to chat",
+      "b1": "Chat directly with buyers and sellers",
       "b2": "Send photos, check condition",
       "b3": "A push alert on every reply"
     },
     "profile": {
       "title": "Everything in one place",
       "subtitle": "Your ads, saved items and settings.",
-      "cta": "Create free account",
+      "cta": "Sign in to see your profile",
       "b1": "Your ads and saved items",
       "b2": "Get verified",
       "b3": "Account settings and security"
@@ -774,24 +773,25 @@
     "support": {
       "title": "Real help, in your language",
       "subtitle": "Nepali or English.",
-      "cta": "Open a ticket",
+      "cta": "Sign in to open a ticket",
       "b1": "A real person, not just a bot",
       "b2": "One thread until it is fixed"
     },
     "liveChat": {
       "title": "Chat with our team",
       "subtitle": "Quick answers, right here.",
-      "cta": "Start live chat",
+      "cta": "Sign in to chat with us",
       "b1": "Fast replies from our team",
       "b2": "Nepali or English"
     },
     "notifications": {
       "title": "Never miss a reply",
       "subtitle": "Offers, messages and ad updates.",
-      "cta": "Create free account",
+      "cta": "Sign in for alerts",
       "b1": "Know the moment a buyer replies",
       "b2": "Alerts when your ad goes live"
-    }
+    },
+    "newHere": "New here? Create a free account"
   },
   "settings": {
     "phoneChangeHint": "Tap to change your number",

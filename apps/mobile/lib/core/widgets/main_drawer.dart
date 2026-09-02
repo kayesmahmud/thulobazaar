@@ -28,7 +28,10 @@ import 'package:mobile/features/verification/verification_screen.dart';
 /// Contact us here, because Settings, where those live for members, is
 /// behind the sign-in gate.
 class MainDrawer extends StatefulWidget {
-  const MainDrawer({super.key});
+  /// Test seam: the pricing lookup behind the FREE badge.
+  final VerificationClient? verificationClient;
+
+  const MainDrawer({super.key, @visibleForTesting this.verificationClient});
 
   @override
   State<MainDrawer> createState() => _MainDrawerState();
@@ -43,11 +46,12 @@ class _MainDrawerState extends State<MainDrawer> {
     _checkFreeEligibility();
   }
 
+  /// Guests are asked too: the pricing endpoint answers without a token, and
+  /// a brand-new account has never been verified, so the badge is honest.
   Future<void> _checkFreeEligibility() async {
-    final auth = context.read<AuthProvider>();
-    if (!auth.isLoggedIn) return;
     try {
-      final pricing = await VerificationClient().getVerificationPricing();
+      final client = widget.verificationClient ?? VerificationClient();
+      final pricing = await client.getVerificationPricing();
       if (!mounted) return;
       final free = pricing?.freeVerification;
       setState(() {

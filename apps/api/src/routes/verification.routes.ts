@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@thulobazaar/database';
 import { catchAsync, NotFoundError } from '../middleware/errorHandler.js';
-import { authenticateToken, requireEditorOrAdmin } from '../middleware/auth.js';
+import { authenticateToken, optionalAuth, requireEditorOrAdmin } from '../middleware/auth.js';
 import { uploadBusinessVerification, uploadIndividualVerification } from '../middleware/upload.js';
 import { optimizeImage } from '../middleware/optimizeImage.js';
 import { notifyEditors } from '../services/notification.service.js';
@@ -190,9 +190,9 @@ router.get(
  */
 router.get(
   '/pricing',
-  authenticateToken,
+  optionalAuth,
   catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user?.userId;
     const now = new Date();
 
     // Get all active pricing
@@ -258,9 +258,12 @@ router.get(
       settingsMap[s.setting_key] = s.setting_value;
     });
 
-    // Check if user is eligible for free verification (same predicate the submit handlers use)
+    // Same predicate the submit handlers use. Guests (no token) count as
+    // eligible: a brand-new account has never been verified, so the app can
+    // show the FREE badge before sign-in without lying.
     const isEligibleForFreeVerification =
-      settingsMap['free_verification_enabled'] === 'true' && (await hasNeverBeenVerified(userId));
+      settingsMap['free_verification_enabled'] === 'true' &&
+      (userId === undefined || (await hasNeverBeenVerified(userId)));
 
     // Helper: format duration label
     const formatDurationLabel = (days: number): string => {

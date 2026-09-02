@@ -124,6 +124,9 @@ const _specs = <LoginGateKind, _GateSpec>{
 
 class LoginGateScreen extends StatelessWidget {
   final LoginGateKind kind;
+
+  /// Runs after sign-in or sign-up succeeds. Leave null to return to the
+  /// screen that showed the gate — see [_returnToHost].
   final VoidCallback? onLoginSuccess;
 
   /// Pass the host's drawer when the gate replaces a screen that had one, so
@@ -147,25 +150,37 @@ class LoginGateScreen extends StatelessWidget {
   static const _toolbar = 56.0;
   static const _awningTopPad = 8.0;
 
+  /// The primary CTA names the step and the goal ("Sign in to chat") and
+  /// opens sign-in; the secondary link ("New here? Create a free account")
+  /// opens sign-up. The old outcome-only labels ("Start chatting") opened the
+  /// sign-up form, which read as a trick to anyone who already had an account.
   void _openSignIn(BuildContext context) {
+    final onSuccess = onLoginSuccess ?? _returnToHost(context);
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => SignInScreen(onSuccess: onLoginSuccess),
-      ),
+      MaterialPageRoute(builder: (_) => SignInScreen(onSuccess: onSuccess)),
     );
   }
 
-  /// The primary CTA on every gate invites people to CREATE an account
-  /// ("Create free account", "Start chatting"). It used to open sign-in, so a
-  /// new user was met with "Welcome back — login to your account".
   void _openSignUp(BuildContext context) {
+    final onSuccess = onLoginSuccess ?? _returnToHost(context);
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => SignUpScreen(onSuccess: onLoginSuccess),
-      ),
+      MaterialPageRoute(builder: (_) => SignUpScreen(onSuccess: onSuccess)),
     );
+  }
+
+  /// Without a callback the auth screens rebuild the app on Home, so someone
+  /// who tapped Chats and signed in landed on Home and had to tap Chats again.
+  /// Instead, pop every auth route back to the screen that showed this gate:
+  /// every host watches AuthProvider, so it re-renders signed in, exactly
+  /// where the user was. Captures the NavigatorState and the host route, never
+  /// the gate's context — the host rebuilds (and disposes the gate) the moment
+  /// login succeeds.
+  VoidCallback _returnToHost(BuildContext context) {
+    final navigator = Navigator.of(context);
+    final host = ModalRoute.of(context);
+    return () => navigator.popUntil((route) => route == host || route.isFirst);
   }
 
   @override
@@ -363,7 +378,7 @@ class LoginGateScreen extends StatelessWidget {
             width: double.infinity,
             height: 52,
             child: FilledButton(
-              onPressed: () => _openSignUp(context),
+              onPressed: () => _openSignIn(context),
               style: FilledButton.styleFrom(
                 backgroundColor: _brand,
                 shape: RoundedRectangleBorder(
@@ -384,9 +399,9 @@ class LoginGateScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: () => _openSignIn(context),
+            onPressed: () => _openSignUp(context),
             child: Text(
-              'gate.haveAccount'.tr(),
+              'gate.newHere'.tr(),
               style: AppFont.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

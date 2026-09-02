@@ -74,14 +74,17 @@ class FloatingContactBar extends StatelessWidget {
   Future<void> _startChat(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
 
-    // Require login
+    // Require login, then come back to this ad and open the chat they asked
+    // for — a plain pop left them on the ad with nothing happening.
     if (!authProvider.isLoggedIn) {
-      Navigator.push(
-        context,
+      final navigator = Navigator.of(context);
+      final host = ModalRoute.of(context);
+      navigator.push(
         MaterialPageRoute(
           builder: (_) => SignInScreen(
             onSuccess: () {
-              if (context.mounted) Navigator.pop(context);
+              navigator.popUntil((route) => route == host);
+              if (context.mounted) _startChat(context);
             },
           ),
         ),
