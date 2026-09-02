@@ -210,6 +210,8 @@
     "failedToUpdate": "अपडेट गर्न असफल"
   },
   "postAd": {
+    "wantMoreImages": "{} वटासम्म फोटो अपलोड गर्न चाहनुहुन्छ?",
+    "getVerifiedForImages": "प्रमाणित भएर थप फोटो अपलोड गर्नुहोस् र किन्नेहरूको विश्वास बढाउनुहोस्",
     "title": "निःशुल्क विज्ञापन पोस्ट गर्नुहोस्",
     "stepProduct": "उत्पादन",
     "stepVisuals": "फोटोहरू",
@@ -231,9 +233,9 @@
     "selectSubcategoryHint": "उपकोटि छान्नुहोस्",
     "photosAndLocation": "फोटो र स्थान",
     "photosLabel": "फोटोहरू *",
-    "maxImages": "अधिकतम ५ फोटो",
+    "maxImages": "अधिकतम {} फोटो",
     "tapToUpload": "अपलोड गर्न ट्याप गर्नुहोस्",
-    "maxImagesError": "अधिकतम ५ फोटो मात्र अनुमति छ",
+    "maxImagesError": "अधिकतम {} फोटो मात्र राख्न सकिन्छ",
     "imageSizeError": "{} फोटो(हरू) ५MB भन्दा ठूलो छ र छोडियो। कृपया ५MB भन्दा सानो फोटो अपलोड गर्नुहोस्।",
     "locationLabel": "स्थान",
     "searchLocationLabel": "द्रुत खोजी",
@@ -472,6 +474,7 @@
     "csatChipNeedMore": "अझ राम्रो सहयोग चाहिन्छ"
   },
   "drawer": {
+    "notSignedIn": "साइन इन गरिएको छैन",
     "settings": "सेटिङहरू",
     "getVerified": "प्रमाणित हुनुहोस्",
     "myProfile": "मेरो प्रोफाइल",
@@ -790,6 +793,15 @@
     }
   },
   "settings": {
+    "shopUrl": "पसल URL",
+    "shopUrlIntro": "खरिदकर्ताहरू यही ठेगानाबाट तपाईंको पसलमा पुग्छन्। ३ देखि ५० अक्षर, अङ्क वा हाइफन प्रयोग गर्नुहोस्।",
+    "shopUrlAvailable": "उपलब्ध छ",
+    "shopUrlTaken": "पहिले नै लिइसकिएको छ",
+    "shopUrlInvalid": "३ देखि ५० अक्षर, अङ्क वा हाइफन प्रयोग गर्नुहोस्",
+    "shopUrlChecking": "जाँच गर्दै…",
+    "shopUrlSaved": "पसल URL अपडेट भयो",
+    "shopUrlCopied": "पसल URL कपी भयो",
+    "copyLink": "लिङ्क कपी गर्नुहोस्",
     "title": "सेटिङहरू",
     "account": "खाता",
     "personalInfo": "व्यक्तिगत जानकारी",

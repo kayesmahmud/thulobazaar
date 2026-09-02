@@ -20,6 +20,7 @@ import 'package:mobile/features/profile/two_factor_setup_screen.dart';
 import 'package:mobile/features/settings/active_sessions_screen.dart';
 import 'package:mobile/features/settings/dialogs/change_password_dialog.dart';
 import 'package:mobile/features/settings/dialogs/disable_two_factor_dialog.dart';
+import 'package:mobile/features/settings/shop_url_screen.dart';
 import 'package:mobile/features/settings/widgets/settings_kit.dart';
 import 'package:mobile/features/verification/verification_screen.dart';
 
@@ -71,6 +72,14 @@ class _AccountGroup extends StatelessWidget {
   const _AccountGroup({required this.user});
 
   bool get _phoneVerified => user['phoneVerified'] == true;
+
+  bool get _businessVerified {
+    final status = user['businessVerificationStatus'];
+    return status == 'approved' || status == 'verified';
+  }
+
+  String? get _shopSlug =>
+      (user['customShopSlug'] as String?) ?? (user['shopSlug'] as String?);
 
   String _verificationLabel() {
     final business = user['businessVerificationStatus'];
@@ -144,6 +153,16 @@ class _AccountGroup extends StatelessWidget {
           subtitle: _verificationLabel(),
           onTap: () => _push(context, const VerificationScreen()),
         ),
+        // Same gate as the website's Shop tab: verified businesses only.
+        if (_businessVerified)
+          SettingsRow(
+            icon: LucideIcons.link,
+            tint: tint,
+            title: 'settings.shopUrl'.tr(),
+            subtitle:
+                'thulobazaar.com.np/${context.locale.languageCode}/shop/${_shopSlug ?? ''}',
+            onTap: () => _push(context, const ShopUrlScreen()),
+          ),
         SettingsRow(
           icon: LucideIcons.receipt,
           tint: tint,

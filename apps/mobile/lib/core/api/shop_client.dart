@@ -157,6 +157,45 @@ class ShopClient {
     }
   }
 
+  /// Whether [slug] is free for this account to claim.
+  Future<ApiResponse<bool>> checkSlug(String slug) async {
+    try {
+      final response = await _dio.get('/shop/check-slug/$slug');
+      if (response.data['success'] == true) {
+        return ApiResponse.success(response.data['data']?['available'] == true);
+      }
+      return ApiResponse.failure(
+        response.data['message'] ?? 'Could not check shop URL',
+      );
+    } on DioException catch (e) {
+      return ApiResponse.failure(
+        e.response?.data?['message'] ?? 'Could not check shop URL',
+      );
+    }
+  }
+
+  /// Claims [slug] as this account's shop URL. Returns the slug now in use.
+  Future<ApiResponse<String>> updateShopSlug(String slug) async {
+    try {
+      final response = await _dio.put(
+        '/shop/update-slug',
+        data: {'slug': slug},
+      );
+      if (response.data['success'] == true) {
+        return ApiResponse.success(
+          (response.data['data']?['shopSlug'] as String?) ?? slug,
+        );
+      }
+      return ApiResponse.failure(
+        response.data['message'] ?? 'Failed to update shop URL',
+      );
+    } on DioException catch (e) {
+      return ApiResponse.failure(
+        e.response?.data?['message'] ?? 'Failed to update shop URL',
+      );
+    }
+  }
+
   /// Update shop contact details
   Future<ApiResponse<ShopProfile>> updateShopContact(
     Map<String, dynamic> data,

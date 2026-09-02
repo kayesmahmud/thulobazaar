@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile/features/verification/verification_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile/core/theme/app_font.dart';
 import 'package:image_picker/image_picker.dart';
@@ -80,6 +81,8 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
   List<String> _existingImagePaths =
       []; // For edit mode: existing image paths to keep
   int _maxImages = 5; // Default, updated from server
+  // What a verified account may upload; drives the "get verified" nudge.
+  int _maxImagesVerified = 10;
 
   // Dynamic Fields
   final AdClient _adClient = AdClient();
@@ -384,6 +387,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         _categories = categories;
         _provinces = provinces;
         _maxImages = limits.effectiveImageLimit;
+        _maxImagesVerified = limits.maxImagesVerified;
       });
     } catch (e) {
       debugPrint("Error loading initial data: $e");
@@ -828,9 +832,11 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
 
   void _showImageSourceSheet() {
     if (_totalImageCount >= _maxImages) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('postAd.maxImagesError'.tr())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('postAd.maxImagesError'.tr(args: ['$_maxImages'])),
+        ),
+      );
       return;
     }
 
@@ -2335,12 +2341,16 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
               style: AppFont.inter(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             Text(
-              'postAd.maxImages'.tr(),
+              'postAd.maxImages'.tr(args: ['$_maxImages']),
               style: AppFont.inter(fontSize: 12, color: Colors.grey[500]),
             ),
           ],
         ),
         const SizedBox(height: 12),
+        if (_maxImages < _maxImagesVerified) ...[
+          _VerifyForMoreImages(maxVerified: _maxImagesVerified),
+          const SizedBox(height: 12),
+        ],
         GestureDetector(
           onTap: _showImageSourceSheet,
           child: Container(
@@ -3278,6 +3288,73 @@ class _AiSparkleState extends State<_AiSparkle>
         );
       },
       child: const Text('✨', style: TextStyle(fontSize: 20)),
+    );
+  }
+}
+
+/// The website's nudge under the photo picker: unverified sellers get fewer
+/// photos, and one tap leads to verification.
+class _VerifyForMoreImages extends StatelessWidget {
+  final int maxVerified;
+  const _VerifyForMoreImages({required this.maxVerified});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFFFFBEB),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const VerificationScreen()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                LucideIcons.badgeCheck,
+                size: 20,
+                color: Color(0xFFB45309),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'postAd.wantMoreImages'.tr(args: ['$maxVerified']),
+                      style: AppFont.inter(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF92400E),
+                      ),
+                    ),
+                    Text(
+                      'postAd.getVerifiedForImages'.tr(),
+                      style: AppFont.inter(
+                        fontSize: 12.5,
+                        color: const Color(0xFF92400E),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: Color(0xFFB45309),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -63,6 +63,13 @@ class AppTheme {
       ),
 
       // Input Fields
+      // The drawer paints its own glass (GlassSurface); keep the scrim light
+      // so the feed still shows through the blur.
+      drawerTheme: const DrawerThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrimColor: Color(0x33000000),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFFF9FAFB), // gray-50

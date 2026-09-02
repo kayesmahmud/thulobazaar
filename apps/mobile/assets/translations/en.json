@@ -250,6 +250,8 @@
     "failedToUpdate": "Failed to update"
   },
   "postAd": {
+    "wantMoreImages": "Want to upload up to {} images?",
+    "getVerifiedForImages": "Get verified to unlock more images and build buyer trust",
     "title": "Post a Free Ad",
     "stepProduct": "Product",
     "stepVisuals": "Visuals",
@@ -271,9 +273,9 @@
     "selectSubcategoryHint": "Select Subcategory",
     "photosAndLocation": "Photos & Location",
     "photosLabel": "Photos *",
-    "maxImages": "Max 5 Images",
+    "maxImages": "Max {} images",
     "tapToUpload": "Tap to upload",
-    "maxImagesError": "Maximum 5 images allowed",
+    "maxImagesError": "Maximum {} images allowed",
     "imageSizeError": "{} image(s) exceed 5MB and were skipped. Please upload images under 5MB.",
     "locationLabel": "Location",
     "searchLocationLabel": "Quick search",
@@ -512,6 +514,7 @@
     "csatChipNeedMore": "Need better support"
   },
   "drawer": {
+    "notSignedIn": "Not signed in",
     "settings": "Settings",
     "getVerified": "Get Verified",
     "myProfile": "My Profile",
@@ -790,6 +793,15 @@
     }
   },
   "settings": {
+    "shopUrl": "Shop URL",
+    "shopUrlIntro": "Buyers reach your shop at this address. Use 3 to 50 letters, numbers or hyphens.",
+    "shopUrlAvailable": "Available",
+    "shopUrlTaken": "Already taken",
+    "shopUrlInvalid": "Use 3 to 50 letters, numbers or hyphens",
+    "shopUrlChecking": "Checking…",
+    "shopUrlSaved": "Shop URL updated",
+    "shopUrlCopied": "Shop URL copied",
+    "copyLink": "Copy link",
     "title": "Settings",
     "account": "Account",
     "personalInfo": "Personal information",
