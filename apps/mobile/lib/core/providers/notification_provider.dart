@@ -41,6 +41,8 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   /// Fetch notifications (paginated)
+  static const _pageSize = 20;
+
   Future<void> fetchNotifications({bool refresh = false}) async {
     if (_isLoading) return;
 
@@ -59,14 +61,14 @@ class NotificationProvider extends ChangeNotifier {
     try {
       final items = await _client.getNotifications(
         page: _currentPage,
-        limit: 20,
+        limit: _pageSize,
       );
-      if (items.isEmpty) {
-        _hasMore = false;
-      } else {
-        _notifications.addAll(items);
-        _currentPage++;
-      }
+      _notifications.addAll(items);
+      _currentPage++;
+      // A short page is the last page. Waiting for an empty page left a
+      // one-item list showing the "loading more" spinner forever, because
+      // it can never scroll far enough to ask for page two.
+      _hasMore = items.length >= _pageSize;
     } catch (e) {
       developer.log(
         'Error fetching notifications: $e',
