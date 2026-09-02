@@ -370,48 +370,110 @@ class _GuestButtons extends StatelessWidget {
   }
 }
 
+/// Segmented language switch: one white track, a brand thumb that slides to
+/// the chosen language. Both choices sit on a solid background, so neither
+/// vanishes on the frosted drawer, and it stays quiet next to the red
+/// Get Verified card below it.
 class _LanguagePills extends StatelessWidget {
   const _LanguagePills();
+
+  static const _radius = 14.0;
+  static const _inset = 4.0;
+  static const _slide = Duration(milliseconds: 220);
 
   @override
   Widget build(BuildContext context) {
     final nepali = context.locale.languageCode == 'ne';
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : _slide;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: Row(
-        children: [
-          _pill(context, 'English', !nepali, const Locale('en')),
-          const SizedBox(width: 8),
-          _pill(context, 'नेपाली', nepali, const Locale('ne')),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.all(_inset),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: AppTokens.hairline),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Stack(
+            children: [
+              AnimatedAlign(
+                alignment: nepali
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                duration: duration,
+                curve: Curves.easeOutCubic,
+                child: FractionallySizedBox(
+                  widthFactor: 0.5,
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppTokens.brand,
+                      borderRadius: BorderRadius.circular(_radius - _inset),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTokens.brand.withValues(alpha: 0.30),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  _cell(
+                    context,
+                    'English',
+                    const Locale('en'),
+                    !nepali,
+                    duration,
+                  ),
+                  _cell(
+                    context,
+                    'नेपाली',
+                    const Locale('ne'),
+                    nepali,
+                    duration,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _pill(BuildContext context, String label, bool on, Locale locale) {
+  Widget _cell(
+    BuildContext context,
+    String label,
+    Locale locale,
+    bool on,
+    Duration duration,
+  ) {
     return Expanded(
-      child: Material(
-        color: on ? AppTokens.brandTint : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+      child: Semantics(
+        button: true,
+        selected: on,
+        label: label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(_radius - _inset),
           onTap: () => context.setLocale(locale),
-          child: Container(
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: on ? AppTokens.brand : AppTokens.hairline,
-              ),
-            ),
-            child: Text(
-              label,
+          child: Center(
+            child: AnimatedDefaultTextStyle(
+              duration: duration,
               style: AppFont.inter(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: on ? AppTokens.brandDeep : AppTokens.inkMuted,
+                fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+                color: on ? Colors.white : AppTokens.inkMuted,
               ),
+              child: Text(label),
             ),
           ),
         ),

@@ -120,4 +120,22 @@ void main() {
 
     expect(find.text('FREE'), findsNothing);
   });
+
+  testWidgets('language switch: tapping नेपाली slides the thumb and relabels', (
+    tester,
+  ) async {
+    await _openDrawer(tester);
+
+    AnimatedAlign thumb() =>
+        tester.widget<AnimatedAlign>(find.byType(AnimatedAlign).first);
+    expect(thumb().alignment, Alignment.centerLeft);
+    expect(find.text('Settings'), findsOneWidget);
+
+    await tester.tap(find.text('नेपाली'));
+    await tester.pumpAndSettle();
+
+    expect(thumb().alignment, Alignment.centerRight);
+    expect(find.text('सेटिङहरू'), findsOneWidget);
+    expect(find.text('Settings'), findsNothing);
+  });
 }
