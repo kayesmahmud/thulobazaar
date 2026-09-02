@@ -54,7 +54,7 @@ const _specs = <LoginGateKind, _GateSpec>{
     [
       (LucideIcons.banknote, 'gate.postAd.b1'),
       (LucideIcons.sparkles, 'gate.postAd.b2'),
-      (LucideIcons.zap, 'gate.postAd.b3'),
+      (LucideIcons.mapPin, 'gate.postAd.b3'),
     ],
   ),
   LoginGateKind.verification: _GateSpec(
@@ -74,7 +74,7 @@ const _specs = <LoginGateKind, _GateSpec>{
     'gate.messages.subtitle',
     'gate.messages.cta',
     [
-      (LucideIcons.eyeOff, 'gate.messages.b1'),
+      (LucideIcons.users, 'gate.messages.b1'),
       (LucideIcons.image, 'gate.messages.b2'),
       (LucideIcons.bell, 'gate.messages.b3'),
     ],

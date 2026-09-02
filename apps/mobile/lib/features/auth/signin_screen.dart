@@ -465,6 +465,7 @@ class _SignInScreenState extends State<SignInScreen> {
         authDivider('auth.orSignInWithPhone'.tr(), ne),
         SizedBox(height: gap),
         AuthField(
+          key: const ValueKey('signin_phone'),
           controller: _phoneController,
           label: 'auth.phoneNumber'.tr(),
           hint: 'auth.phonePlaceholder'.tr(),
@@ -473,6 +474,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(height: 16),
         AuthField(
+          key: const ValueKey('signin_password'),
           controller: _passwordController,
           label: 'auth.password'.tr(),
           hint: 'auth.enterPassword'.tr(),
