@@ -87,7 +87,9 @@ class _MainDrawerState extends State<MainDrawer> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              _Identity(user: user, signedIn: signedIn),
+              _Avatar(user: user, signedIn: signedIn),
+              const _LanguagePills(),
+              const SizedBox(height: 12),
               _VerifyCard(
                 free: _isFreeEligible,
                 onTap: () => _open(const VerificationScreen()),
@@ -142,8 +144,6 @@ class _MainDrawerState extends State<MainDrawer> {
                   label: 'drawer.contactUs'.tr(),
                   onTap: () => _open(const ContactScreen()),
                 ),
-              const _Sep(),
-              const _LanguagePills(),
               if (signedIn) ...[
                 const _Sep(),
                 _Item(
@@ -178,44 +178,30 @@ class _MainDrawerState extends State<MainDrawer> {
   }
 }
 
-class _Identity extends StatelessWidget {
+class _Avatar extends StatelessWidget {
   final Map<String, dynamic> user;
   final bool signedIn;
-  const _Identity({required this.user, required this.signedIn});
+  const _Avatar({required this.user, required this.signedIn});
 
   @override
   Widget build(BuildContext context) {
-    final name = signedIn
-        ? (user['fullName'] as String?) ?? 'drawer.notSignedIn'.tr()
-        : 'drawer.notSignedIn'.tr();
     final avatar = ApiConfig.getAvatarUrl(user['avatar'] as String?);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: AppTokens.brandTint,
-            foregroundImage: signedIn && avatar.isNotEmpty
-                ? CachedNetworkImageProvider(avatar)
-                : null,
-            child: const Icon(LucideIcons.user, color: AppTokens.brandDeep),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: CircleAvatar(
+          radius: 30,
+          backgroundColor: AppTokens.brandTint,
+          foregroundImage: signedIn && avatar.isNotEmpty
+              ? CachedNetworkImageProvider(avatar)
+              : null,
+          child: const Icon(
+            LucideIcons.user,
+            size: 28,
+            color: AppTokens.brandDeep,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppFont.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppTokens.ink,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -387,7 +373,7 @@ class _LanguagePills extends StatelessWidget {
   Widget build(BuildContext context) {
     final nepali = context.locale.languageCode == 'ne';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Row(
         children: [
           _pill(context, 'English', !nepali, const Locale('en')),

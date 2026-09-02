@@ -52,7 +52,6 @@ void main() {
         reason: '${order[i]} below ${order[i - 1]}',
       );
     }
-    expect(find.text('Everest Electronics'), findsOneWidget);
     expect(find.text('Live Chat'), findsOneWidget);
     expect(find.text('Support Tickets'), findsOneWidget);
     // Help and Contact moved into Settings for members; FAQ was a duplicate.
@@ -66,7 +65,6 @@ void main() {
   ) async {
     await _openDrawer(tester, auth: AuthProvider());
 
-    expect(find.text('Not signed in'), findsOneWidget);
     expect(find.text('Sign In'), findsOneWidget);
     expect(find.text('Sign Up'), findsOneWidget);
     expect(find.text('Help Center'), findsOneWidget);
