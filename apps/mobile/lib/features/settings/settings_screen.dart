@@ -126,15 +126,32 @@ class _AccountGroup extends StatelessWidget {
           tint: tint,
           title: 'settings.phone'.tr(),
           subtitle: (user['phone'] as String?) ?? 'settings.notAdded'.tr(),
-          trailing: _phoneVerified
-              ? SettingsChip(
-                  label: 'settings.verified'.tr(),
-                  color: AppTokens.successInk,
-                )
-              : SettingsChip(
-                  label: 'settings.notVerified'.tr(),
-                  color: AppTokens.warningInk,
-                ),
+          note:
+              (_phoneVerified
+                      ? 'settings.phoneChangeHint'
+                      : 'settings.phoneVerifyHint')
+                  .tr(),
+          // Chip carries the state; the chevron says the row goes somewhere.
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _phoneVerified
+                  ? SettingsChip(
+                      label: 'settings.verified'.tr(),
+                      color: AppTokens.successInk,
+                    )
+                  : SettingsChip(
+                      label: 'settings.notVerified'.tr(),
+                      color: AppTokens.warningInk,
+                    ),
+              const SizedBox(width: 6),
+              const Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: AppTokens.inkFaint,
+              ),
+            ],
+          ),
           onTap: () => _openPhone(context),
         ),
         SettingsRow(

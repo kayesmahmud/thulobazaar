@@ -1,15 +1,29 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:mobile/core/api/auth_client.dart';
-import 'package:mobile/core/theme/app_theme.dart';
-import 'package:easy_localization/easy_localization.dart';
 
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+import 'package:mobile/core/api/auth_client.dart';
+import 'package:mobile/core/theme/app_font.dart';
+import 'package:mobile/features/auth/widgets/auth_kit.dart';
+
+/// Verifies a phone number, or changes a verified one.
+///
+/// Changing is four short steps, one per screen, on the sign-in chrome:
+///   1. confirm it's you: a code goes to the CURRENT number first
+///   2. enter that code
+///   3. type the new number
+///   4. enter its code, and the number is saved
+/// Step 1 exists because verifying only the new number would prove control of
+/// the new SIM, not of the account; a stolen session could move the account.
+/// Nothing is saved until step 4 succeeds.
 class PhoneVerificationScreen extends StatefulWidget {
   final VoidCallback? onVerified;
   final bool isChanging;
 
-  /// The number being replaced. Required to prove ownership before a verified
-  /// number can be changed; null means there is nothing to prove yet.
+  /// The number being replaced. Null means there is nothing to prove yet.
   final String? currentPhone;
 
   const PhoneVerificationScreen({
@@ -24,323 +38,367 @@ class PhoneVerificationScreen extends StatefulWidget {
       _PhoneVerificationScreenState();
 }
 
-class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
-  final AuthClient _authClient = AuthClient();
-  final _phoneController = TextEditingController();
-  final _otpController = TextEditingController();
+enum _Stage { confirmCurrent, currentCode, newNumber, newCode }
 
-  bool _isLoading = false;
-  bool _otpSent = false;
+class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
+  final AuthClient _auth = AuthClient();
+  final _phone = TextEditingController();
+  final _code = TextEditingController();
+
+  late _Stage _stage;
+  late final bool _changing;
+  late final String _current;
+  String? _oldNumberOtpToken;
+  String? _error;
+  bool _busy = false;
   int _cooldown = 0;
   Timer? _timer;
 
-  /// Stage 1 of changing a verified number: confirm the CURRENT number first.
-  /// Verifying the new number only proves you control the new SIM, not that the
-  /// account is yours — so without this, anyone with a stolen session could
-  /// move the account to their own phone.
-  bool _provingOwnership = false;
-  String? _oldNumberOtpToken;
+  static final _nepaliMobile = RegExp(r'^9[78]\d{8}$');
 
   @override
   void initState() {
     super.initState();
-    final current = widget.currentPhone?.trim() ?? '';
-    if (widget.isChanging && current.isNotEmpty) {
-      _provingOwnership = true;
-      _phoneController.text = current;
-    }
+    _current = widget.currentPhone?.trim() ?? '';
+    _changing = widget.isChanging && _current.isNotEmpty;
+    _stage = _changing ? _Stage.confirmCurrent : _Stage.newNumber;
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _phoneController.dispose();
-    _otpController.dispose();
+    _phone.dispose();
+    _code.dispose();
     super.dispose();
   }
 
-  void _startTimer() {
+  // ---- steps -------------------------------------------------------------
+
+  int get _step => switch (_stage) {
+    _Stage.confirmCurrent => 1,
+    _Stage.currentCode => 2,
+    _Stage.newNumber => _changing ? 3 : 1,
+    _Stage.newCode => _changing ? 4 : 2,
+  };
+
+  int get _totalSteps => _changing ? 4 : 2;
+
+  /// The number a code is being sent to at this stage.
+  String get _target =>
+      _stage == _Stage.confirmCurrent || _stage == _Stage.currentCode
+      ? _current
+      : _phone.text.trim();
+
+  void _go(_Stage stage) {
+    _timer?.cancel();
+    setState(() {
+      _stage = stage;
+      _error = null;
+      _code.clear();
+      _cooldown = 0;
+    });
+  }
+
+  void _back() {
+    switch (_stage) {
+      case _Stage.currentCode:
+        _go(_Stage.confirmCurrent);
+      case _Stage.newCode:
+        _go(_Stage.newNumber);
+      default:
+        Navigator.pop(context);
+    }
+  }
+
+  void _startCooldown() {
+    _timer?.cancel();
     setState(() => _cooldown = 60);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_cooldown > 0) {
-        setState(() => _cooldown--);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      if (_cooldown <= 1) {
+        t.cancel();
+        setState(() => _cooldown = 0);
       } else {
-        _timer?.cancel();
+        setState(() => _cooldown--);
       }
     });
   }
 
-  Future<void> _sendOtp() async {
-    final phone = _phoneController.text.trim();
-    if (phone.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.locale.languageCode == 'ne'
-                ? 'कृपया मान्य फोन नम्बर प्रविष्ट गर्नुहोस्'
-                : 'Please enter a valid phone number',
-          ),
-        ),
-      );
+  // ---- network -----------------------------------------------------------
+
+  Future<void> _sendCode() async {
+    final phone = _target;
+    if (!_nepaliMobile.hasMatch(phone)) {
+      setState(() => _error = 'auth.phoneValidation'.tr());
       return;
     }
-
-    setState(() => _isLoading = true);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      final result = await _authClient.sendOtp(
-        phone,
-        purpose: 'phone_verification',
-      );
+      final result = await _auth.sendOtp(phone, purpose: 'phone_verification');
       if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      if (result['success'] == true) {
-        setState(() => _otpSent = true);
-        _startTimer();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.locale.languageCode == 'ne'
-                  ? 'OTP सफलतापूर्वक पठाइयो'
-                  : 'OTP sent successfully',
-            ),
-          ),
+      if (result['success'] != true) {
+        // The server explains itself: number in use, cooldown, invalid.
+        setState(
+          () =>
+              _error = result['message'] as String? ?? 'phone.sendFailed'.tr(),
         );
-      } else {
-        // Server rejected before sending an OTP — e.g. the number is already in
-        // use, on cooldown, or invalid. Show its message as-is (no "Exception:"
-        // wrapper) so the user can act on it (try another number, wait, etc.).
-        final message =
-            result['message'] as String? ??
-            (context.locale.languageCode == 'ne'
-                ? 'OTP पठाउन असफल भयो'
-                : 'Failed to send OTP');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red[600]),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.locale.languageCode == 'ne'
-                  ? 'OTP पठाउन असफल भयो। कृपया फेरि प्रयास गर्नुहोस्।'
-                  : 'Failed to send OTP. Please try again.',
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _verifyAndSave() async {
-    final phone = _phoneController.text.trim();
-    final otp = _otpController.text.trim();
-
-    if (otp.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.locale.languageCode == 'ne'
-                ? 'कृपया मान्य ६ अंकको OTP प्रविष्ट गर्नुहोस्'
-                : 'Please enter a valid 6-digit OTP',
-          ),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      // 1. Verify OTP
-      final verifyResult = await _authClient.verifyOtp(
-        phone,
-        otp,
-        purpose: 'phone_verification',
-      );
-
-      if (verifyResult['success'] != true) {
-        throw Exception(verifyResult['message'] ?? 'Verification failed');
-      }
-
-      final token = verifyResult['verificationToken'];
-      if (token == null) {
-        throw Exception('No verification token received');
-      }
-
-      // Stage 1 done: we have proof of the OLD number. Reset the form and ask
-      // for the new one — nothing is saved until stage 2 completes.
-      if (_provingOwnership) {
-        _timer?.cancel();
-        setState(() {
-          _oldNumberOtpToken = token;
-          _provingOwnership = false;
-          _otpSent = false;
-          _isLoading = false;
-          _cooldown = 0;
-          _phoneController.clear();
-          _otpController.clear();
-        });
         return;
       }
-
-      // 2. Update Phone
-      final updateResult = await _authClient.updatePhone(
-        phone,
-        token,
-        oldNumberOtpToken: _oldNumberOtpToken,
-      );
-
-      if (updateResult['success'] == true) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                context.locale.languageCode == 'ne'
-                    ? 'फोन नम्बर प्रमाणित र अपडेट भयो!'
-                    : 'Phone number verified and updated!',
-              ),
-            ),
-          );
-          widget.onVerified?.call();
-          Navigator.pop(context, true);
-        }
-      } else {
-        throw Exception(updateResult['message']);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      final next = _stage == _Stage.confirmCurrent
+          ? _Stage.currentCode
+          : _Stage.newCode;
+      if (_stage != next) _go(next);
+      _startCooldown();
+    } catch (_) {
+      if (mounted) setState(() => _error = 'phone.sendFailed'.tr());
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
+
+  Future<void> _submitCode() async {
+    final code = _code.text.trim();
+    if (code.length != 6) {
+      setState(() => _error = 'auth.enterValidOtp'.tr());
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final verified = await _auth.verifyOtp(
+        _target,
+        code,
+        purpose: 'phone_verification',
+      );
+      final token = verified['verificationToken'] as String?;
+      if (verified['success'] != true || token == null) {
+        throw Exception(verified['message'] ?? 'phone.codeFailed'.tr());
+      }
+      if (_stage == _Stage.currentCode) {
+        // Ownership proven; nothing saved yet.
+        _oldNumberOtpToken = token;
+        _phone.clear();
+        _go(_Stage.newNumber);
+        return;
+      }
+      await _save(token);
+    } catch (e) {
+      if (mounted) setState(() => _error = _plain(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _save(String token) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final result = await _auth.updatePhone(
+      _phone.text.trim(),
+      token,
+      oldNumberOtpToken: _oldNumberOtpToken,
+    );
+    if (result['success'] != true) {
+      throw Exception(result['message'] ?? 'phone.saveFailed'.tr());
+    }
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text((_changing ? 'phone.updated' : 'phone.verified').tr()),
+      ),
+    );
+    widget.onVerified?.call();
+    navigator.pop(true);
+  }
+
+  static String _plain(Object e) =>
+      e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+
+  // ---- ui ------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _provingOwnership
-              ? (context.locale.languageCode == 'ne'
-                    ? 'यो तपाईं नै हो भनी पुष्टि गर्नुहोस्'
-                    : 'Confirm it\'s you')
-              : widget.isChanging
-              ? (context.locale.languageCode == 'ne'
-                    ? 'फोन नम्बर परिवर्तन गर्नुहोस्'
-                    : 'Change Phone Number')
-              : (context.locale.languageCode == 'ne'
-                    ? 'फोन प्रमाणित गर्नुहोस्'
-                    : 'Verify Phone'),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0.5,
+    final ne = context.locale.languageCode == 'ne';
+    return AuthShell(
+      title: _title(),
+      subtitle: _subtitle(),
+      onBack: _busy ? null : _back,
+      step: _step,
+      totalSteps: _totalSteps,
+      children: switch (_stage) {
+        _Stage.confirmCurrent => _confirmCurrent(ne),
+        _Stage.currentCode || _Stage.newCode => _enterCode(ne),
+        _Stage.newNumber => _enterNumber(),
+      },
+    );
+  }
+
+  String _title() => switch (_stage) {
+    _Stage.confirmCurrent => 'phone.confirmTitle'.tr(),
+    _Stage.currentCode || _Stage.newCode => 'phone.codeTitle'.tr(),
+    _Stage.newNumber =>
+      (_changing ? 'phone.newNumberTitle' : 'phone.addTitle').tr(),
+  };
+
+  String _subtitle() => switch (_stage) {
+    _Stage.confirmCurrent => 'phone.confirmSubtitle'.tr(),
+    _Stage.currentCode ||
+    _Stage.newCode => 'phone.codeSentTo'.tr(args: [_target]),
+    _Stage.newNumber =>
+      (_changing ? 'phone.newNumberSubtitle' : 'phone.addSubtitle').tr(),
+  };
+
+  List<Widget> _confirmCurrent(bool ne) => [
+    _CurrentNumber(phone: _current, ne: ne),
+    if (_error != null) ...[const SizedBox(height: 10), _ErrorText(_error!)],
+    const SizedBox(height: 18),
+    authButton(
+      label: 'phone.sendCode'.tr(),
+      onTap: _busy ? null : _sendCode,
+      loading: _busy,
+    ),
+  ];
+
+  List<Widget> _enterNumber() => [
+    AuthField(
+      key: const ValueKey('phone_new_number'),
+      controller: _phone,
+      label: 'phone.newNumber'.tr(),
+      hint: 'auth.phonePlaceholder'.tr(),
+      prefix: Text('auth.phonePrefix'.tr()),
+      keyboardType: TextInputType.phone,
+      maxLength: 10,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      error: _error,
+      onChanged: (_) => setState(() => _error = null),
+    ),
+    const SizedBox(height: 18),
+    authButton(
+      label: 'phone.sendCode'.tr(),
+      onTap: _busy ? null : _sendCode,
+      loading: _busy,
+    ),
+  ];
+
+  List<Widget> _enterCode(bool ne) => [
+    AuthField(
+      key: const ValueKey('phone_code'),
+      controller: _code,
+      label: 'phone.code'.tr(),
+      hint: 'auth.otpPlaceholder'.tr(),
+      keyboardType: TextInputType.number,
+      maxLength: 6,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      error: _error,
+      onChanged: (_) => setState(() => _error = null),
+      style: AppFont.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 8,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _provingOwnership
-                  ? (context.locale.languageCode == 'ne'
-                        ? 'पहिले तपाईंको हालको नम्बरमा पठाइएको कोड प्रविष्ट गर्नुहोस्। त्यसपछि मात्र नयाँ नम्बर राख्न सकिन्छ।'
-                        : 'First confirm the number on your account. We will send a code to your current number, then you can enter the new one.')
-                  : widget.isChanging
-                  ? (context.locale.languageCode == 'ne'
-                        ? 'नयाँ फोन नम्बर प्रविष्ट गर्नुहोस्। हामी OTP पठाउनेछौं।'
-                        : 'Enter your new phone number. We will send an OTP to verify it.')
-                  : (context.locale.languageCode == 'ne'
-                        ? 'तपाईंको खाता सुरक्षित गर्न र थप सुविधाहरू सक्षम गर्न फोन नम्बर थप्नुहोस्।'
-                        : 'Add a phone number to secure your account and enable more features.'),
-              style: const TextStyle(color: Colors.grey, fontSize: 16),
+    ),
+    const SizedBox(height: 8),
+    Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (_stage == _Stage.newCode)
+          TextButton(
+            onPressed: _busy ? null : () => _go(_Stage.newNumber),
+            child: Text('auth.changeNumber'.tr(), style: AuthT.link()),
+          )
+        else
+          const SizedBox.shrink(),
+        TextButton(
+          onPressed: _busy || _cooldown > 0 ? null : _sendCode,
+          child: Text(
+            _cooldown > 0
+                ? 'auth.resendIn'.tr(args: ['$_cooldown'])
+                : 'auth.resendOtp'.tr(),
+            style: AuthT.link().copyWith(
+              color: _cooldown > 0 ? AuthT.inkFaint : null,
             ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: _provingOwnership
-                    ? (context.locale.languageCode == 'ne'
-                          ? 'हालको नम्बर'
-                          : 'Current number')
-                    : (context.locale.languageCode == 'ne'
-                          ? 'मोबाइल नम्बर'
-                          : 'Mobile Number'),
-                prefixText: '+977 ',
-                border: const OutlineInputBorder(),
-                // Locked while proving ownership: stage 1 must target the
-                // number already on the account, not one the user types.
-                enabled: !_otpSent && !_provingOwnership,
-              ),
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 10),
+    authButton(
+      label:
+          (_stage == _Stage.currentCode
+                  ? 'phone.confirm'
+                  : _changing
+                  ? 'phone.saveNumber'
+                  : 'phone.verify')
+              .tr(),
+      onTap: _busy || _code.text.length != 6 ? null : _submitCode,
+      loading: _busy,
+    ),
+  ];
+}
+
+/// The number already on the account, shown, not typed: step 1 must target
+/// what the server knows, never what the user enters.
+class _CurrentNumber extends StatelessWidget {
+  final String phone;
+  final bool ne;
+  const _CurrentNumber({required this.phone, required this.ne});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AuthT.fieldRest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AuthT.fieldBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AuthT.brand.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
             ),
-            if (_otpSent) ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: context.locale.languageCode == 'ne'
-                      ? 'OTP कोड प्रविष्ट गर्नुहोस्'
-                      : 'Enter OTP Code',
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _cooldown > 0 ? null : _sendOtp,
-                  child: Text(
-                    _cooldown > 0
-                        ? (context.locale.languageCode == 'ne'
-                              ? '${_cooldown}s मा OTP पुन: पठाउनुहोस्'
-                              : 'Resend OTP in ${_cooldown}s')
-                        : (context.locale.languageCode == 'ne'
-                              ? 'OTP पुन: पठाउनुहोस्'
-                              : 'Resend OTP'),
-                  ),
+            child: const Icon(
+              LucideIcons.phone,
+              size: 20,
+              color: AuthT.brandDeep,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('phone.currentNumber'.tr(), style: AuthT.caption(ne)),
+              const SizedBox(height: 2),
+              Text(
+                '${'auth.phonePrefix'.tr()} $phone',
+                style: AuthT.body(ne).copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
-            const Spacer(),
-            ElevatedButton(
-              onPressed: _isLoading
-                  ? null
-                  : (_otpSent ? _verifyAndSave : _sendOtp),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Text(
-                      _otpSent
-                          ? (context.locale.languageCode == 'ne'
-                                ? 'प्रमाणित गर्नुहोस् र सेभ गर्नुहोस्'
-                                : 'Verify & Save')
-                          : (context.locale.languageCode == 'ne'
-                                ? 'OTP पठाउनुहोस्'
-                                : 'Send OTP'),
-                      style: const TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _ErrorText extends StatelessWidget {
+  final String text;
+  const _ErrorText(this.text);
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: AppFont.inter(fontSize: 13, color: AuthT.danger, height: 1.4),
+  );
 }

@@ -792,6 +792,8 @@
     }
   },
   "settings": {
+    "phoneChangeHint": "Tap to change your number",
+    "phoneVerifyHint": "Tap to verify your number",
     "shopUrlLocked": "Get business verified to change your shop URL",
     "shopUrl": "Shop URL",
     "shopUrlIntro": "Buyers reach your shop at this address. Use 3 to 50 letters, numbers or hyphens.",
@@ -844,5 +846,27 @@
     "twoFactorCode": "2FA code",
     "turnOff": "Turn off",
     "passwordAndCodeRequired": "Password and code are required"
+  },
+  "phone": {
+    "confirmTitle": "Confirm it's you",
+    "confirmSubtitle": "Before anything changes, we text a code to the number already on your account.",
+    "currentNumber": "Current number",
+    "sendCode": "Send code",
+    "codeTitle": "Enter the code",
+    "codeSentTo": "Sent to +977 {}",
+    "code": "6-digit code",
+    "confirm": "Confirm",
+    "newNumberTitle": "Your new number",
+    "newNumberSubtitle": "We text a code to it to make sure it is yours.",
+    "addTitle": "Add your phone number",
+    "addSubtitle": "Buyers and sellers reach you here. We text a code to confirm it.",
+    "newNumber": "New number",
+    "saveNumber": "Save number",
+    "verify": "Verify",
+    "sendFailed": "Could not send the code. Try again.",
+    "codeFailed": "That code did not match.",
+    "saveFailed": "Could not save the number.",
+    "updated": "Phone number changed",
+    "verified": "Phone number verified"
   }
 }
