@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'api_error.dart';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -203,7 +204,7 @@ class MessageClient {
       return ApiResponse.failure('Failed to fetch conversation status');
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch conversation status',
+        apiMessage(e.response?.data) ?? 'Failed to fetch conversation status',
       );
     }
   }
@@ -217,11 +218,11 @@ class MessageClient {
       );
       if (response.data['success'] == true) return ApiResponse.success(null);
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to block user',
+        apiMessage(response.data) ?? 'Failed to block user',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to block user',
+        apiMessage(e.response?.data) ?? 'Failed to block user',
       );
     }
   }
@@ -232,11 +233,11 @@ class MessageClient {
       final response = await _dio.delete('/messages/block/$userId');
       if (response.data['success'] == true) return ApiResponse.success(null);
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to unblock user',
+        apiMessage(response.data) ?? 'Failed to unblock user',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to unblock user',
+        apiMessage(e.response?.data) ?? 'Failed to unblock user',
       );
     }
   }
@@ -260,11 +261,11 @@ class MessageClient {
       );
       if (response.data['success'] == true) return ApiResponse.success(null);
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to report user',
+        apiMessage(response.data) ?? 'Failed to report user',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to report user',
+        apiMessage(e.response?.data) ?? 'Failed to report user',
       );
     }
   }

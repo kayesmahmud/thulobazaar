@@ -26,7 +26,7 @@ import 'package:mobile/features/verification/verification_screen.dart';
 
 /// Account, sign-in & security, preferences, help. Every row leads to a
 /// screen or flow that already existed; this screen only gathers them.
-/// Language deliberately stays in the drawer.
+/// Language and Sign out deliberately stay in the drawer.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -383,41 +383,10 @@ class _HelpGroup extends StatelessWidget {
 class _AccountActions extends StatelessWidget {
   const _AccountActions();
 
-  Future<void> _signOut(BuildContext context) async {
-    final auth = context.read<AuthProvider>();
-    final navigator = Navigator.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('auth.signOut'.tr()),
-        content: Text('settings.signOutConfirm'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('common.cancel'.tr()),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('auth.signOut'.tr()),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await auth.logout();
-    navigator.popUntil((route) => route.isFirst);
-  }
-
   @override
   Widget build(BuildContext context) {
     return SettingsCard(
       rows: [
-        SettingsRow(
-          icon: LucideIcons.logOut,
-          tint: AppTokens.inkFaint,
-          title: 'auth.signOut'.tr(),
-          onTap: () => _signOut(context),
-        ),
         SettingsRow(
           icon: LucideIcons.trash2,
           tint: AppTokens.danger,

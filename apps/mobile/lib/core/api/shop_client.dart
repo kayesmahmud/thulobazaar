@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'api_error.dart';
 import '../models/models.dart';
 import 'dio_client.dart';
 
@@ -148,11 +149,11 @@ class ShopClient {
         return ApiResponse.success(ShopProfile.fromJson(response.data['data']));
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to update profile',
+        apiMessage(response.data) ?? 'Failed to update profile',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to update profile',
+        apiMessage(e.response?.data) ?? 'Failed to update profile',
       );
     }
   }
@@ -165,11 +166,11 @@ class ShopClient {
         return ApiResponse.success(response.data['data']?['available'] == true);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Could not check shop URL',
+        apiMessage(response.data) ?? 'Could not check shop URL',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Could not check shop URL',
+        apiMessage(e.response?.data) ?? 'Could not check shop URL',
       );
     }
   }
@@ -187,11 +188,11 @@ class ShopClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to update shop URL',
+        apiMessage(response.data) ?? 'Failed to update shop URL',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to update shop URL',
+        apiMessage(e.response?.data) ?? 'Failed to update shop URL',
       );
     }
   }
@@ -207,11 +208,11 @@ class ShopClient {
         return ApiResponse.success(ShopProfile.fromJson(response.data['data']));
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to update contact info',
+        apiMessage(response.data) ?? 'Failed to update contact info',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to update contact info',
+        apiMessage(e.response?.data) ?? 'Failed to update contact info',
       );
     }
   }
@@ -229,11 +230,11 @@ class ShopClient {
         return ApiResponse.success(ShopProfile.fromJson(response.data['data']));
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to update location',
+        apiMessage(response.data) ?? 'Failed to update location',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to update location',
+        apiMessage(e.response?.data) ?? 'Failed to update location',
       );
     }
   }
@@ -252,11 +253,11 @@ class ShopClient {
         return ApiResponse.success(ShopProfile.fromJson(response.data['data']));
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to update category',
+        apiMessage(response.data) ?? 'Failed to update category',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to update category',
+        apiMessage(e.response?.data) ?? 'Failed to update category',
       );
     }
   }
@@ -276,11 +277,11 @@ class ShopClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to upload avatar',
+        apiMessage(response.data) ?? 'Failed to upload avatar',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to upload avatar',
+        apiMessage(e.response?.data) ?? 'Failed to upload avatar',
       );
     }
   }
@@ -293,11 +294,11 @@ class ShopClient {
         return ApiResponse.success(true);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to remove avatar',
+        apiMessage(response.data) ?? 'Failed to remove avatar',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to remove avatar',
+        apiMessage(e.response?.data) ?? 'Failed to remove avatar',
       );
     }
   }
@@ -317,11 +318,11 @@ class ShopClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to upload cover',
+        apiMessage(response.data) ?? 'Failed to upload cover',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to upload cover',
+        apiMessage(e.response?.data) ?? 'Failed to upload cover',
       );
     }
   }
@@ -334,11 +335,11 @@ class ShopClient {
         return ApiResponse.success(true);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to remove cover',
+        apiMessage(response.data) ?? 'Failed to remove cover',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to remove cover',
+        apiMessage(e.response?.data) ?? 'Failed to remove cover',
       );
     }
   }

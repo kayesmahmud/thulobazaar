@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'api_error.dart';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -22,12 +23,12 @@ class VerificationClient {
 
       return VerificationStatusResponse(
         success: false,
-        error: response.data['message'] ?? 'Failed to fetch status',
+        error: apiMessage(response.data) ?? 'Failed to fetch status',
       );
     } on DioException catch (e) {
       return VerificationStatusResponse(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return VerificationStatusResponse(success: false, error: e.toString());
@@ -77,12 +78,12 @@ class VerificationClient {
 
       return VerificationUploadResponse(
         success: false,
-        error: response.data['message'] ?? 'Upload failed',
+        error: apiMessage(response.data) ?? 'Upload failed',
       );
     } on DioException catch (e) {
       return VerificationUploadResponse(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return VerificationUploadResponse(success: false, error: e.toString());
@@ -129,12 +130,12 @@ class VerificationClient {
 
       return VerificationUploadResponse(
         success: false,
-        error: response.data['message'] ?? 'Upload failed',
+        error: apiMessage(response.data) ?? 'Upload failed',
       );
     } on DioException catch (e) {
       return VerificationUploadResponse(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return VerificationUploadResponse(success: false, error: e.toString());
@@ -172,12 +173,12 @@ class VerificationClient {
 
       return VerificationSubmitResponse(
         success: false,
-        error: response.data['message'] ?? 'Submission failed',
+        error: apiMessage(response.data) ?? 'Submission failed',
       );
     } on DioException catch (e) {
       return VerificationSubmitResponse(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return VerificationSubmitResponse(success: false, error: e.toString());
@@ -215,12 +216,12 @@ class VerificationClient {
 
       return VerificationSubmitResponse(
         success: false,
-        error: response.data['message'] ?? 'Submission failed',
+        error: apiMessage(response.data) ?? 'Submission failed',
       );
     } on DioException catch (e) {
       return VerificationSubmitResponse(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return VerificationSubmitResponse(success: false, error: e.toString());

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'api_error.dart';
 import '../models/models.dart';
 import '../models/promotion.dart';
 import 'dio_client.dart';
@@ -40,11 +41,11 @@ class PromotionClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch pricing',
+        apiMessage(response.data) ?? 'Failed to fetch pricing',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch promotion pricing',
+        apiMessage(e.response?.data) ?? 'Failed to fetch promotion pricing',
       );
     }
   }
@@ -82,11 +83,11 @@ class PromotionClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to calculate price',
+        apiMessage(response.data) ?? 'Failed to calculate price',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to calculate promotion price',
+        apiMessage(e.response?.data) ?? 'Failed to calculate promotion price',
       );
     }
   }
@@ -134,11 +135,11 @@ class PromotionClient {
         );
       }
       return PaginatedResponse.failure(
-        response.data['message'] ?? 'Failed to fetch promotions',
+        apiMessage(response.data) ?? 'Failed to fetch promotions',
       );
     } on DioException catch (e) {
       return PaginatedResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch promotions',
+        apiMessage(e.response?.data) ?? 'Failed to fetch promotions',
       );
     }
   }
@@ -162,14 +163,14 @@ class PromotionClient {
         return ApiResponse.success(null);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch ad promotion',
+        apiMessage(response.data) ?? 'Failed to fetch ad promotion',
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return ApiResponse.success(null); // No active promotion
       }
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch ad promotion',
+        apiMessage(e.response?.data) ?? 'Failed to fetch ad promotion',
       );
     }
   }
@@ -202,14 +203,14 @@ class PromotionClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to apply promotion',
+        apiMessage(response.data) ?? 'Failed to apply promotion',
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         return ApiResponse.failure('Authentication required');
       }
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to apply promotion',
+        apiMessage(e.response?.data) ?? 'Failed to apply promotion',
       );
     }
   }
@@ -242,11 +243,11 @@ class PromotionClient {
         return ApiResponse.success(null);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch campaigns',
+        apiMessage(response.data) ?? 'Failed to fetch campaigns',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch active campaigns',
+        apiMessage(e.response?.data) ?? 'Failed to fetch active campaigns',
       );
     }
   }

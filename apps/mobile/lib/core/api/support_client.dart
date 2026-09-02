@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'api_error.dart';
 import '../models/models.dart';
 import 'dio_client.dart';
 
@@ -29,11 +30,11 @@ class SupportClient {
         return ApiResponse.success(tickets);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch tickets',
+        apiMessage(response.data) ?? 'Failed to fetch tickets',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch tickets',
+        apiMessage(e.response?.data) ?? 'Failed to fetch tickets',
       );
     }
   }
@@ -55,11 +56,11 @@ class SupportClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to create ticket',
+        apiMessage(response.data) ?? 'Failed to create ticket',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to create ticket',
+        apiMessage(e.response?.data) ?? 'Failed to create ticket',
       );
     }
   }
@@ -76,11 +77,11 @@ class SupportClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch ticket',
+        apiMessage(response.data) ?? 'Failed to fetch ticket',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch ticket',
+        apiMessage(e.response?.data) ?? 'Failed to fetch ticket',
       );
     }
   }
@@ -104,11 +105,11 @@ class SupportClient {
         return ApiResponse.success(null);
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to submit rating',
+        apiMessage(response.data) ?? 'Failed to submit rating',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to submit rating',
+        apiMessage(e.response?.data) ?? 'Failed to submit rating',
       );
     }
   }
@@ -129,11 +130,11 @@ class SupportClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to send message',
+        apiMessage(response.data) ?? 'Failed to send message',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to send message',
+        apiMessage(e.response?.data) ?? 'Failed to send message',
       );
     }
   }
@@ -149,17 +150,19 @@ class SupportClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to load live chat',
+        apiMessage(response.data) ?? 'Failed to load live chat',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to load live chat',
+        apiMessage(e.response?.data) ?? 'Failed to load live chat',
       );
     }
   }
 
   /// Sends a live chat message, starting the conversation if there is none yet.
-  Future<ApiResponse<SupportMessage>> sendLiveChatMessage(String content) async {
+  Future<ApiResponse<SupportMessage>> sendLiveChatMessage(
+    String content,
+  ) async {
     try {
       final response = await _dio.post(
         '/support/live-chat/messages',
@@ -173,11 +176,11 @@ class SupportClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to send message',
+        apiMessage(response.data) ?? 'Failed to send message',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to send message',
+        apiMessage(e.response?.data) ?? 'Failed to send message',
       );
     }
   }

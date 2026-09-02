@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'api_error.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -259,7 +260,7 @@ class AdClient {
       return AdSubmitResult.failure(
         response.data['error'] is String
             ? response.data['error']
-            : response.data['message'] ?? 'Failed to create ad',
+            : apiMessage(response.data) ?? 'Failed to create ad',
       );
     } on DioException catch (e) {
       final errorData = e.response?.data;

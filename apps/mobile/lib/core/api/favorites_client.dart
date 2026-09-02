@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'api_error.dart';
 import '../models/models.dart';
 import 'dio_client.dart';
 
@@ -31,12 +32,12 @@ class FavoritesClient {
 
       return FavoritesResponse(
         success: false,
-        error: response.data['message'] ?? 'Failed to fetch favorites',
+        error: apiMessage(response.data) ?? 'Failed to fetch favorites',
       );
     } on DioException catch (e) {
       return FavoritesResponse(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return FavoritesResponse(success: false, error: e.toString());
@@ -50,12 +51,12 @@ class FavoritesClient {
 
       return ApiResult(
         success: response.data['success'] == true,
-        error: response.data['message'],
+        error: apiMessage(response.data),
       );
     } on DioException catch (e) {
       return ApiResult(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return ApiResult(success: false, error: e.toString());
@@ -69,12 +70,12 @@ class FavoritesClient {
 
       return ApiResult(
         success: response.data['success'] == true,
-        error: response.data['message'],
+        error: apiMessage(response.data),
       );
     } on DioException catch (e) {
       return ApiResult(
         success: false,
-        error: e.response?.data?['message'] ?? e.message ?? 'Network error',
+        error: apiMessage(e.response?.data) ?? e.message ?? 'Network error',
       );
     } catch (e) {
       return ApiResult(success: false, error: e.toString());

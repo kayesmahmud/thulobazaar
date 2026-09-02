@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'api_error.dart';
 import '../models/models.dart';
 import '../models/payment.dart';
 import 'api_config.dart';
@@ -28,11 +29,11 @@ class PaymentClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch gateways',
+        apiMessage(response.data) ?? 'Failed to fetch gateways',
       );
     } on DioException catch (e) {
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch payment gateways',
+        apiMessage(e.response?.data) ?? 'Failed to fetch payment gateways',
       );
     }
   }
@@ -82,14 +83,14 @@ class PaymentClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to initiate payment',
+        apiMessage(response.data) ?? 'Failed to initiate payment',
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         return ApiResponse.failure('Authentication required');
       }
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to initiate payment',
+        apiMessage(e.response?.data) ?? 'Failed to initiate payment',
       );
     }
   }
@@ -127,14 +128,14 @@ class PaymentClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Payment verification failed',
+        apiMessage(response.data) ?? 'Payment verification failed',
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         return ApiResponse.failure('Authentication required');
       }
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to verify payment',
+        apiMessage(e.response?.data) ?? 'Failed to verify payment',
       );
     }
   }
@@ -158,14 +159,14 @@ class PaymentClient {
         );
       }
       return ApiResponse.failure(
-        response.data['message'] ?? 'Failed to fetch payment status',
+        apiMessage(response.data) ?? 'Failed to fetch payment status',
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return ApiResponse.failure('Transaction not found');
       }
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch payment status',
+        apiMessage(e.response?.data) ?? 'Failed to fetch payment status',
       );
     }
   }
@@ -217,11 +218,11 @@ class PaymentClient {
         );
       }
       return PaginatedResponse.failure(
-        response.data['message'] ?? 'Failed to fetch payment history',
+        apiMessage(response.data) ?? 'Failed to fetch payment history',
       );
     } on DioException catch (e) {
       return PaginatedResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to fetch payment history',
+        apiMessage(e.response?.data) ?? 'Failed to fetch payment history',
       );
     }
   }
@@ -252,7 +253,7 @@ class PaymentClient {
         );
       }
       return ApiResponse.failure(
-        e.response?.data?['message'] ?? 'Failed to download receipt',
+        apiMessage(e.response?.data) ?? 'Failed to download receipt',
       );
     }
   }

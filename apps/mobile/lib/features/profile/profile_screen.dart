@@ -13,12 +13,8 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
 // import 'package:mobile/features/profile/edit_profile_screen.dart';
-import 'package:mobile/features/profile/security_settings_screen.dart';
 import 'package:mobile/features/settings/settings_screen.dart';
 import 'package:mobile/features/profile/phone_verification_screen.dart';
-import 'package:mobile/features/verification/verification_screen.dart';
-import 'package:mobile/features/profile/delete_account_screen.dart';
-import 'package:mobile/features/payment/payment_history_screen.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import '../../core/api/auth_client.dart';
 import '../../core/api/api_config.dart';
@@ -69,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
     _nameController.addListener(_checkForChanges);
     // User data is already loaded by AuthProvider
@@ -78,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _onTabChanged() {
     // Load favorites when switching to the Wishlist tab (index 2)
-    if (_tabController.index == 2 && _favorites.isEmpty && !_favoritesLoading) {
+    if (_tabController.index == 1 && _favorites.isEmpty && !_favoritesLoading) {
       _loadFavorites();
     }
   }
@@ -626,7 +622,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         indicatorSize: TabBarIndicatorSize.tab,
         tabs: [
           const Tab(icon: Icon(LucideIcons.user)),
-          const Tab(icon: Icon(LucideIcons.lock)),
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -647,11 +642,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       height: 600, // Fixed height for TabBarView
       child: TabBarView(
         controller: _tabController,
-        children: [
-          _buildPersonalInfoTab(),
-          _buildSecurityTab(),
-          _buildSavedAdsTab(),
-        ],
+        children: [_buildPersonalInfoTab(), _buildSavedAdsTab()],
       ),
     );
   }
@@ -1056,288 +1047,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSecurityTab() {
-    final bool isPhoneVerified = _user?['phoneVerified'] ?? false;
-    final String? phone = _user?['phone'];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Phone Verification Status Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isPhoneVerified
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isPhoneVerified
-                    ? Colors.green.withOpacity(0.3)
-                    : Colors.orange.withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isPhoneVerified
-                      ? LucideIcons.shieldCheck
-                      : LucideIcons.alertTriangle,
-                  color: isPhoneVerified ? Colors.green : Colors.orange,
-                  size: 32,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isPhoneVerified
-                            ? (context.locale.languageCode == 'ne'
-                                  ? 'फोन प्रमाणित भयो'
-                                  : 'Phone Verified')
-                            : (context.locale.languageCode == 'ne'
-                                  ? 'तपाईंको फोन प्रमाणित गर्नुहोस्'
-                                  : 'Verify Your Phone'),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isPhoneVerified
-                              ? Colors.green[800]
-                              : Colors.orange[800],
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (phone != null)
-                        Text(
-                          phone,
-                          style: TextStyle(
-                            color: isPhoneVerified
-                                ? Colors.green[800]
-                                : Colors.orange[800],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (!isPhoneVerified)
-                  ElevatedButton(
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PhoneVerificationScreen(
-                            onVerified: () =>
-                                context.read<AuthProvider>().refreshProfile(),
-                          ),
-                        ),
-                      );
-                      // Force refresh regardless of callback sometimes
-                      if (mounted)
-                        context.read<AuthProvider>().refreshProfile();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: Text(
-                      context.locale.languageCode == 'ne'
-                          ? 'प्रमाणित गर्नुहोस्'
-                          : 'Verify',
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-          Text(
-            context.locale.languageCode == 'ne'
-                ? 'सुरक्षा सेटिङहरू'
-                : 'Security Settings',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-
-          // Security Options List
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey[200]!),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    LucideIcons.shield,
-                    color: AppTheme.primary,
-                  ),
-                  title: Text(
-                    context.locale.languageCode == 'ne'
-                        ? 'सुरक्षा केन्द्र'
-                        : 'Security Center',
-                  ),
-                  subtitle: Text(
-                    context.locale.languageCode == 'ne'
-                        ? 'पासवर्ड, 2FA, सक्रिय सत्रहरू'
-                        : 'Password, 2FA, Active Sessions',
-                  ),
-                  trailing: const Icon(LucideIcons.chevronRight),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SecuritySettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(
-                    LucideIcons.badgeCheck,
-                    color: AppTheme.primary,
-                  ),
-                  title: Text(
-                    context.locale.languageCode == 'ne'
-                        ? 'प्रमाणीकरण केन्द्र'
-                        : 'Verification Center',
-                  ),
-                  subtitle: Text(
-                    context.locale.languageCode == 'ne'
-                        ? 'पहिचान, व्यापार, ब्याज'
-                        : 'Identity, Business, Badges',
-                  ),
-                  trailing: const Icon(LucideIcons.chevronRight),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const VerificationScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(
-                    LucideIcons.receipt,
-                    color: AppTheme.primary,
-                  ),
-                  title: Text(
-                    context.locale.languageCode == 'ne' ? 'बिलिङ' : 'Billing',
-                  ),
-                  subtitle: Text(
-                    context.locale.languageCode == 'ne'
-                        ? 'भुक्तानी इतिहास र रसिदहरू'
-                        : 'Payment history & receipts',
-                  ),
-                  trailing: const Icon(LucideIcons.chevronRight),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PaymentHistoryScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-          Text(
-            context.locale.languageCode == 'ne'
-                ? 'खाता व्यवस्थापन'
-                : 'Account Management',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey[200]!),
-            ),
-            child: ListTile(
-              leading: const Icon(LucideIcons.trash2, color: Colors.red),
-              title: Text(
-                context.locale.languageCode == 'ne'
-                    ? 'खाता हटाउनुहोस्'
-                    : 'Delete Account',
-              ),
-              subtitle: Text(
-                context.locale.languageCode == 'ne'
-                    ? 'तपाईंको खाता र डाटा स्थायी रूपमा हटाउनुहोस्'
-                    : 'Permanently delete your account and data',
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DeleteAccountScreen(),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecurityItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: AppTheme.primary, size: 22),
-        ),
-        title: Text(
-          title,
-          style: AppFont.inter(
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textDark,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: AppFont.inter(fontSize: 12, color: Colors.grey[600]),
-        ),
-        trailing: const Icon(
-          LucideIcons.chevronRight,
-          size: 16,
-          color: Colors.grey,
-        ),
-        onTap: onTap,
       ),
     );
   }
