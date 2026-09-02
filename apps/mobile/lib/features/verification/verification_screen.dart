@@ -1,3 +1,4 @@
+import 'package:mobile/core/utils/per_user_load.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -15,18 +16,29 @@ import 'business_verification_form.dart';
 import 'widgets/offer_cards.dart';
 
 class VerificationScreen extends StatefulWidget {
-  const VerificationScreen({Key? key}) : super(key: key);
+  /// Test seam for the pricing/status client.
+  final VerificationClient? verificationClient;
+
+  const VerificationScreen({
+    super.key,
+    @visibleForTesting this.verificationClient,
+  });
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
 }
 
-class _VerificationScreenState extends State<VerificationScreen> {
-  final VerificationClient _client = VerificationClient();
+class _VerificationScreenState extends State<VerificationScreen>
+    with PerUserLoad {
+  late final VerificationClient _client =
+      widget.verificationClient ?? VerificationClient();
   final AuthClient _authClient = AuthClient();
 
   bool _isLoading = true;
   String? _error;
+
+  /// Free-offer state for the signed-out gate's pill.
+  bool _freeOffer = false;
 
   // Phone verification
   bool _isPhoneVerified = true; // default true to avoid flash
@@ -45,7 +57,18 @@ class _VerificationScreenState extends State<VerificationScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // A guest only needs the public offer state, for the gate's FREE pill.
+    // Everything else needs a token and loads once they sign in (see build).
+    if (!context.read<AuthProvider>().isLoggedIn) _loadGuestOffer();
+  }
+
+  Future<void> _loadGuestOffer() async {
+    final pricing = await _client.getVerificationPricing();
+    if (!mounted) return;
+    final free = pricing?.freeVerification;
+    setState(() {
+      _freeOffer = (free?.enabled ?? false) && (free?.isEligible ?? false);
+    });
   }
 
   Future<void> _loadData() async {
@@ -601,8 +624,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     if (!authProvider.isLoggedIn) {
-      return const LoginGateScreen(kind: LoginGateKind.verification);
+      return LoginGateScreen(
+        kind: LoginGateKind.verification,
+        highlight: _freeOffer ? 'gate.verification.free'.tr() : null,
+      );
     }
+    loadOnceFor(authProvider.userId, _loadData);
 
     return Scaffold(
       backgroundColor: Colors.white,

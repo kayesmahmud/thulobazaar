@@ -1,3 +1,4 @@
+import 'package:mobile/core/utils/per_user_load.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -23,18 +24,19 @@ class NotificationScreen extends StatefulWidget {
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends State<NotificationScreen>
+    with PerUserLoad {
   final ScrollController _scrollController = ScrollController();
   Timer? _autoMarkReadTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    // A guest has no notifications and no token — do not fetch or auto-mark.
-    if (!context.read<AuthProvider>().isLoggedIn) return;
+  /// Runs once per signed-in user (from build): a guest has no notifications
+  /// and no token, and a sign-in that returns here must fetch too.
+  void _start() {
     final provider = context.read<NotificationProvider>();
     provider.fetchNotifications(refresh: true);
+    _scrollController.removeListener(_onScroll);
     _scrollController.addListener(_onScroll);
+    _autoMarkReadTimer?.cancel();
 
     // Auto mark-all-as-read after a brief delay so the user can briefly see
     // which items were unread (blue dots / highlighted bg) before they clear.
@@ -63,9 +65,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!context.watch<AuthProvider>().isLoggedIn) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isLoggedIn) {
       return const LoginGateScreen(kind: LoginGateKind.notifications);
     }
+    loadOnceFor(auth.userId, _start);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(

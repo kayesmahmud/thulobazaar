@@ -1,3 +1,4 @@
+import 'package:mobile/core/utils/per_user_load.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -28,7 +29,7 @@ class LiveChatScreen extends StatefulWidget {
 }
 
 class _LiveChatScreenState extends State<LiveChatScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, PerUserLoad {
   final _client = SupportClient();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
@@ -49,8 +50,11 @@ class _LiveChatScreenState extends State<LiveChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Signed out there is no token: getLiveChat() 401s and the screen used to
-    // render the raw server error. Never start the network for a guest.
-    if (!context.read<AuthProvider>().isLoggedIn) return;
+    // render the raw server error. The network starts per signed-in user from
+    // build, which also covers a sign-in that returns to this screen.
+  }
+
+  void _start() {
     _load();
     _startPolling();
   }
@@ -180,9 +184,11 @@ class _LiveChatScreenState extends State<LiveChatScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (!context.watch<AuthProvider>().isLoggedIn) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isLoggedIn) {
       return const LoginGateScreen(kind: LoginGateKind.liveChat);
     }
+    loadOnceFor(auth.userId, _start);
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(

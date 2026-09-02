@@ -1,3 +1,4 @@
+import 'package:mobile/core/utils/per_user_load.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:mobile/core/theme/app_font.dart';
@@ -23,18 +24,13 @@ class SupportTicketsScreen extends StatefulWidget {
   State<SupportTicketsScreen> createState() => _SupportTicketsScreenState();
 }
 
-class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
+class _SupportTicketsScreenState extends State<SupportTicketsScreen>
+    with PerUserLoad {
   final _client = SupportClient();
   List<SupportTicket> _tickets = [];
   bool _isLoading = true;
   String? _error;
   bool _isOffline = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTickets();
-  }
 
   Future<void> _loadTickets() async {
     setState(() {
@@ -90,6 +86,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     if (!authProvider.isLoggedIn) {
       return const LoginGateScreen(kind: LoginGateKind.support);
     }
+    loadOnceFor(authProvider.userId, _loadTickets);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],

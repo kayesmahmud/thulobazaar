@@ -133,11 +133,17 @@ class LoginGateScreen extends StatelessWidget {
   /// the hamburger keeps working.
   final Widget? drawer;
 
+  /// Short offer text shown as a green pill under the subtitle, e.g. "FREE
+  /// right now" on the verification gate while the free offer is on. Sits
+  /// below the headline, so the anchoring rule above still holds.
+  final String? highlight;
+
   const LoginGateScreen({
     super.key,
     required this.kind,
     this.onLoginSuccess,
     this.drawer,
+    this.highlight,
   });
 
   // Brand — see class doc.
@@ -146,6 +152,7 @@ class LoginGateScreen extends StatelessWidget {
   static const _ink = Color(0xFF111827);
   static const _inkFaint = Color(0xFF6B7280);
   static const _hairline = Color(0xFFE5E7EB);
+  static const _success = Color(0xFF10B981);
 
   static const _toolbar = 56.0;
   static const _awningTopPad = 8.0;
@@ -302,6 +309,27 @@ class LoginGateScreen extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.86),
             ),
           ),
+          if (highlight != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              key: const ValueKey('gate_highlight'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: _success,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                highlight!,
+                style: AppFont.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                  height: 1.2,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

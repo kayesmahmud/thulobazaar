@@ -114,4 +114,27 @@ void main() {
     expect(find.byType(SignInScreen), findsNothing);
     expect(find.text('HOST CONTENT'), findsOneWidget);
   });
+
+  testWidgets('an offer pill shows only when the host passes one', (
+    tester,
+  ) async {
+    await pumpLocalized(
+      tester,
+      const LoginGateScreen(
+        kind: LoginGateKind.verification,
+        highlight: 'FREE right now',
+      ),
+    );
+    expect(find.byKey(const ValueKey('gate_highlight')), findsOneWidget);
+    expect(find.text('FREE right now'), findsOneWidget);
+    expect(find.text('Sign in to get verified'), findsOneWidget);
+  });
+
+  testWidgets('no offer pill by default', (tester) async {
+    await pumpLocalized(
+      tester,
+      const LoginGateScreen(kind: LoginGateKind.verification),
+    );
+    expect(find.byKey(const ValueKey('gate_highlight')), findsNothing);
+  });
 }
