@@ -2,24 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/auth/signup_screen.dart';
 
+import 'helpers/pump_localized.dart';
+
 void main() {
-  testWidgets('SignUpScreen has initial phone input and does not show registration fields', (WidgetTester tester) async {
-    // Build the SignUpScreen
-    await tester.pumpWidget(const MaterialApp(home: SignUpScreen()));
+  testWidgets('sign up opens on the phone step only', (tester) async {
+    await pumpLocalized(tester, const SignUpScreen());
     await tester.pumpAndSettle();
 
-    // Verify +977 prefix exists
     expect(find.text('+977'), findsOneWidget);
-    
-    // Verify Phone Input field exists
     expect(find.text('Phone Number *'), findsOneWidget);
-    
-    // Verify Send OTP button exists
     expect(find.text('Send OTP'), findsOneWidget);
 
-    // Verify Registration fields DO NOT exist yet
+    // Later steps must not leak into the first one.
+    expect(find.text('Enter OTP *'), findsNothing);
     expect(find.text('Confirm Password *'), findsNothing);
     expect(find.text('Terms & Conditions'), findsNothing);
-    expect(find.text('Verify & Register'), findsNothing);
+  });
+
+  testWidgets('sign up phone step reads in Nepali', (tester) async {
+    await pumpLocalized(tester, const SignUpScreen(), locale: localeNe);
+    await tester.pumpAndSettle();
+
+    expect(find.text('+977'), findsOneWidget);
+    expect(find.text('फोन नम्बर *'), findsOneWidget);
+    expect(find.text('OTP पठाउनुहोस्'), findsOneWidget);
   });
 }

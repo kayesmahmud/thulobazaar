@@ -2,18 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
 
-void main() {
-  testWidgets('SignInScreen has +977 prefix', (WidgetTester tester) async {
-    // Build the SignInScreen
-    await tester.pumpWidget(const MaterialApp(home: SignInScreen()));
+import 'helpers/pump_localized.dart';
 
-    // Verify +977 text exists
+void main() {
+  testWidgets('sign in shows the +977 prefix, phone and password fields', (
+    tester,
+  ) async {
+    await pumpLocalized(tester, const SignInScreen());
+
     expect(find.text('+977'), findsOneWidget);
-    
-    // Verify Phone Input field exists
-    expect(find.byType(TextFormField), findsAtLeastNWidgets(1));
-    
-    // Verify Password Input field exists
+    expect(find.byType(TextField), findsAtLeastNWidgets(2));
     expect(find.text('Password'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
+  });
+
+  testWidgets('sign in renders in Nepali with the same prefix', (tester) async {
+    await pumpLocalized(tester, const SignInScreen(), locale: localeNe);
+
+    // The dialling prefix stays in Latin digits on purpose: it must match
+    // what the numeric keypad produces.
+    expect(find.text('+977'), findsOneWidget);
+    expect(find.text('पासवर्ड'), findsOneWidget);
+    expect(find.text('फेरि स्वागत छ'), findsOneWidget);
   });
 }
