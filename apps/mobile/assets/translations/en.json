@@ -792,6 +792,7 @@
     }
   },
   "settings": {
+    "shopUrlLocked": "Get business verified to change your shop URL",
     "shopUrl": "Shop URL",
     "shopUrlIntro": "Buyers reach your shop at this address. Use 3 to 50 letters, numbers or hyphens.",
     "shopUrlAvailable": "Available",

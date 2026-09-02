@@ -93,10 +93,16 @@ void main() {
     expect(find.byType(LoginGateScreen), findsOneWidget);
   });
 
-  testWidgets('no Shop URL row for an unverified account', (tester) async {
+  testWidgets('Shop URL row is locked for an account that is not a business', (
+    tester,
+  ) async {
     await _pumpSettings(tester);
     await tester.pump();
-    expect(find.text('Shop URL'), findsNothing);
+    expect(find.text('Shop URL'), findsOneWidget);
+    expect(
+      find.text('Get business verified to change your shop URL'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Shop URL row and address for a verified business', (
@@ -115,6 +121,10 @@ void main() {
     expect(
       find.text('thulobazaar.com.np/en/shop/pixel-mobile-shop'),
       findsOneWidget,
+    );
+    expect(
+      find.text('Get business verified to change your shop URL'),
+      findsNothing,
     );
   });
 }

@@ -153,16 +153,29 @@ class _AccountGroup extends StatelessWidget {
           subtitle: _verificationLabel(),
           onTap: () => _push(context, const VerificationScreen()),
         ),
-        // Same gate as the website's Shop tab: verified businesses only.
-        if (_businessVerified)
-          SettingsRow(
-            icon: LucideIcons.link,
-            tint: tint,
-            title: 'settings.shopUrl'.tr(),
-            subtitle:
-                'thulobazaar.com.np/${context.locale.languageCode}/shop/${_shopSlug ?? ''}',
-            onTap: () => _push(context, const ShopUrlScreen()),
+        // Everyone has a shop address; only a verified business may change
+        // it (the website's rule). Others see why, and a tap leads there.
+        SettingsRow(
+          icon: LucideIcons.link,
+          tint: tint,
+          title: 'settings.shopUrl'.tr(),
+          subtitle:
+              'thulobazaar.com.np/${context.locale.languageCode}/shop/${_shopSlug ?? 'user-${user['id']}'}',
+          note: _businessVerified ? null : 'settings.shopUrlLocked'.tr(),
+          trailing: _businessVerified
+              ? null
+              : const Icon(
+                  LucideIcons.lock,
+                  size: 18,
+                  color: AppTokens.inkFaint,
+                ),
+          onTap: () => _push(
+            context,
+            _businessVerified
+                ? const ShopUrlScreen()
+                : const VerificationScreen(),
           ),
+        ),
         SettingsRow(
           icon: LucideIcons.receipt,
           tint: tint,
