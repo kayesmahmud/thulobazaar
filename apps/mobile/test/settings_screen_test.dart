@@ -18,7 +18,11 @@ const _seller = <String, dynamic>{
   'businessVerificationStatus': '',
 };
 
-Future<void> _pumpSettings(WidgetTester tester, {Locale locale = localeEn}) {
+Future<void> _pumpSettings(
+  WidgetTester tester, {
+  Locale locale = localeEn,
+  Map<String, dynamic> user = _seller,
+}) {
   // Tall surface so every group is built, not just the first screenful.
   tester.view.physicalSize = const Size(1080, 6000);
   tester.view.devicePixelRatio = 2.5;
@@ -29,7 +33,7 @@ Future<void> _pumpSettings(WidgetTester tester, {Locale locale = localeEn}) {
     locale: locale,
     providers: [
       ChangeNotifierProvider<AuthProvider>(
-        create: (_) => AuthProvider.withUser(_seller),
+        create: (_) => AuthProvider.withUser(user),
       ),
     ],
   );
@@ -87,5 +91,30 @@ void main() {
       providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
     );
     expect(find.byType(LoginGateScreen), findsOneWidget);
+  });
+
+  testWidgets('no Shop URL row for an unverified account', (tester) async {
+    await _pumpSettings(tester);
+    await tester.pump();
+    expect(find.text('Shop URL'), findsNothing);
+  });
+
+  testWidgets('Shop URL row and address for a verified business', (
+    tester,
+  ) async {
+    await _pumpSettings(
+      tester,
+      user: {
+        ..._seller,
+        'businessVerificationStatus': 'approved',
+        'customShopSlug': 'pixel-mobile-shop',
+      },
+    );
+    await tester.pump();
+    expect(find.text('Shop URL'), findsOneWidget);
+    expect(
+      find.text('thulobazaar.com.np/en/shop/pixel-mobile-shop'),
+      findsOneWidget,
+    );
   });
 }
