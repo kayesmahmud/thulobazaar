@@ -136,6 +136,8 @@ export function transformAdForDashboard(ad: any) {
     // message. Old app versions simply ignore these fields.
     aiHeld: ad.ai_verdict === 'held',
     aiReasonCode: ad.ai_verdict === 'held' ? (ad.ai_reason_code ?? null) : null,
+    aiSuggestedCategory:
+      ad.ai_verdict === 'held' ? (ad.ai_suggested_category ?? null) : null,
     slug: ad.slug,
     views: ad.view_count,
     viewCount: ad.view_count,
@@ -1219,6 +1221,7 @@ export async function updateAd(
       ai_verdict: options?.directPublish ? 'skipped' : null,
       ai_reason: null,
       ai_reason_code: null,
+      ai_suggested_category: null,
       updated_at: new Date(),
     },
   });

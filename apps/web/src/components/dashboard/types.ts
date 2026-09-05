@@ -14,6 +14,7 @@ export interface Ad {
   /** AI moderation held this ad for manual review (owner-only surface) */
   aiHeld?: boolean;
   /** Whitelisted seller-facing hold category; null → generic message */
+  aiSuggestedCategory?: string | null;
   aiReasonCode?: string | null;
   views: number;
   createdAt: string;

@@ -79,11 +79,58 @@ afterEach(() => {
 });
 
 describe('parseVerdict', () => {
+  it('carries a category suggestion on a details_mismatch hold', () => {
+    const result = parseVerdict(
+      JSON.stringify({
+        verdict: 'hold',
+        reason: 'Phone listed under home electronics',
+        reason_code: 'details_mismatch',
+        suggested_category: 'Mobiles',
+        confidence: 0.9,
+        explicit: false,
+        prohibited: false,
+      })
+    );
+    expect(result.reasonCode).toBe('details_mismatch');
+    expect(result.suggestedCategoryRaw).toBe('Mobiles');
+  });
+
+  it('drops the category suggestion on a policy hold, so nothing leaks', () => {
+    const result = parseVerdict(
+      JSON.stringify({
+        verdict: 'hold',
+        reason: 'Prohibited item',
+        reason_code: 'details_mismatch',
+        suggested_category: 'Mobiles',
+        confidence: 0.9,
+        explicit: false,
+        prohibited: true,
+      })
+    );
+    expect(result.reasonCode).toBe('policy_check');
+    expect(result.suggestedCategoryRaw).toBeNull();
+  });
+
+  it('ignores a non-string category suggestion', () => {
+    const result = parseVerdict(
+      JSON.stringify({
+        verdict: 'hold',
+        reason: 'Mismatch',
+        reason_code: 'details_mismatch',
+        suggested_category: { name: 'Mobiles' },
+        confidence: 0.9,
+        explicit: false,
+        prohibited: false,
+      })
+    );
+    expect(result.suggestedCategoryRaw).toBeNull();
+  });
+
   it('publishes on a confident publish verdict', () => {
     const result = parseVerdict(
       JSON.stringify({ verdict: 'publish', reason: 'Genuine listing', confidence: 0.98 })
     );
-    expect(result).toEqual({ verdict: 'publish', reason: 'Genuine listing', reasonCode: null, confidence: 0.98, explicit: false, prohibited: false });
+    expect(result).toEqual({ verdict: 'publish', reason: 'Genuine listing', reasonCode: null, confidence: 0.98, explicit: false, prohibited: false, suggestedCategoryRaw: null });
   });
 
   it('holds a publish verdict below the 0.95 threshold', () => {
@@ -266,19 +313,19 @@ describe('moderateAd', () => {
   it('holds with ai_unavailable on HTTP errors', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => 'boom' });
     const result = await moderateAd(testAd, images);
-    expect(result).toEqual({ verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false });
+    expect(result).toEqual({ verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null });
   });
 
   it('holds with ai_unavailable on timeout/network failure', async () => {
     mockFetch.mockRejectedValueOnce(new Error('The operation was aborted due to timeout'));
     const result = await moderateAd(testAd, images);
-    expect(result).toEqual({ verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false });
+    expect(result).toEqual({ verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null });
   });
 
   it('holds with ai_unavailable when the reply has no content', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ choices: [] }) });
     const result = await moderateAd(testAd, images);
-    expect(result).toEqual({ verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false });
+    expect(result).toEqual({ verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null });
   });
 });
 

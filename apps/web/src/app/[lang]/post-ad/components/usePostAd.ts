@@ -43,8 +43,16 @@ export function usePostAd(lang: string) {
   // of the dashboard Pending tab (owner spec). Ref mirrors state so the
   // close handler always reads the freshest value.
   const [adPostedLive, setAdPostedLive] = useState(false);
+  /** Seller-facing AI hold reason, once the verdict lands. */
+  const [adPostedHoldCode, setAdPostedHoldCode] = useState<string | null>(null);
+  /** Real category the AI suggests instead — validated server-side. */
+  const [adPostedSuggestedCategory, setAdPostedSuggestedCategory] = useState<string | null>(null);
+  /** False while the AI verdict is still outstanding — the modal shows a
+      "checking" state until this flips. */
+  const [adPostedResolved, setAdPostedResolved] = useState(false);
   const adPostedLiveRef = useRef(false);
   const postedAdSlugRef = useRef<string | null>(null);
+  const postedAdIdRef = useRef<number | null>(null);
 
   // User state
   const [userHasDefaultLocation, setUserHasDefaultLocation] = useState(false);
@@ -773,10 +781,12 @@ export function usePostAd(lang: string) {
           // Show the "under review" modal; redirect happens when the user closes it.
           const created = response.data as { id?: number; slug?: string; status?: string };
           postedAdSlugRef.current = created.slug ?? null;
+          postedAdIdRef.current = created.id ?? null;
           if (created.status === 'approved') {
             // Verified business: published instantly.
             adPostedLiveRef.current = true;
             setAdPostedLive(true);
+            setAdPostedResolved(true);
           } else if (created.id) {
             // Watch for an instant AI publish while the modal is open — the
             // modal flips to "your ad is live" the moment it lands.
@@ -791,14 +801,33 @@ export function usePostAd(lang: string) {
                 if (s === 'approved' || s === 'active') {
                   adPostedLiveRef.current = true;
                   setAdPostedLive(true);
+                  setAdPostedResolved(true);
                   clearApprovalPoll();
                   return;
                 }
-                if (s && s !== 'pending') clearApprovalPoll();
+                if (r?.data?.aiHeld) {
+                  // Verdict is in and it is a hold. A missing reason code (the
+                  // AI was unreachable) must not blame the seller — 'generic'
+                  // maps to neutral copy.
+                  setAdPostedHoldCode(r.data.aiReasonCode || 'generic');
+                  setAdPostedSuggestedCategory(r.data.aiSuggestedCategory ?? null);
+                  setAdPostedResolved(true);
+                  clearApprovalPoll();
+                  return;
+                }
+                if (s && s !== 'pending') {
+                  setAdPostedResolved(true);
+                  clearApprovalPoll();
+                }
               } catch {
                 // Advisory only — polling trouble never affects the flow
               }
-              if (tries >= 5) clearApprovalPoll();
+              // ~25s: covers ~88% of verdicts in production (median 7-9s).
+              // Anything slower is delivered by the dashboard banner instead.
+              if (tries >= 10) {
+                setAdPostedResolved(true);
+                clearApprovalPoll();
+              }
             }, 2500);
           }
           setAdPosted(true);
@@ -854,6 +883,10 @@ export function usePostAd(lang: string) {
   const handleAiConfirmReview = useCallback(() => {
     setAiConfirm(null);
   }, []);
+
+  const handleAdPostedFix = useCallback(() => {
+    if (postedAdIdRef.current) router.push(`/${lang}/edit-ad/${postedAdIdRef.current}`);
+  }, [router, lang]);
 
   const handleAdPostedClose = useCallback(() => {
     // Live (business direct-publish or instant AI approval) → the ad's own
@@ -914,6 +947,10 @@ export function usePostAd(lang: string) {
     handleSubmit,
     adPosted,
     adPostedLive,
+    adPostedHoldCode,
+    adPostedSuggestedCategory,
+    adPostedResolved,
+    handleAdPostedFix,
     draftRestored,
     handleAdPostedClose,
     // Verification status for image limits

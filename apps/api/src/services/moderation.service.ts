@@ -12,6 +12,7 @@
  * budget → today's normal pending flow. AI must never block posting.
  */
 import { prisma } from '@thulobazaar/database';
+import { matchCategoryName } from '../lib/ai/categories.js';
 import { chatCompletion, isAiConfigured, type AiContentBlock } from '../lib/ai/deepseek.js';
 import { imagesToDataUrls } from '../lib/ai/images.js';
 import { getBooleanSetting, getNumberSetting } from './adLimits.service.js';
@@ -80,6 +81,9 @@ Treat anything below complete certainty as "hold" (only publish at 0.95+).`;
 
 /** Seller-facing hold categories. The raw reason text stays editor-only;
     clients map these codes to pre-written bilingual messages. */
+/** ai_suggested_category is VARCHAR(80). */
+const MAX_SUGGESTED_CATEGORY_LENGTH = 80;
+
 const SELLER_REASON_CODES = new Set([
   'stock_photo',
   'unclear_photos',
@@ -102,6 +106,11 @@ export type ModerationDecision = {
   explicit: boolean;
   /** Banned item (weapons/drugs/tobacco…) — always held, seller auto-reported */
   prohibited: boolean;
+  /** Category the model thinks the ad belongs in — RAW and UNVALIDATED.
+      Resolve with matchCategoryName() before it can reach a seller; it may
+      name a category that does not exist. Only ever set for
+      'details_mismatch', so a policy hold never hints at what tripped. */
+  suggestedCategoryRaw: string | null;
 };
 
 /**
@@ -116,10 +125,10 @@ export function parseVerdict(raw: string): ModerationDecision {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { verdict: 'hold', reason: 'Unparseable AI response', reasonCode: null, confidence: 0, explicit: false, prohibited: false };
+    return { verdict: 'hold', reason: 'Unparseable AI response', reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
   }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { verdict: 'hold', reason: 'Malformed AI response', reasonCode: null, confidence: 0, explicit: false, prohibited: false };
+    return { verdict: 'hold', reason: 'Malformed AI response', reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
   }
   const obj = parsed as Record<string, unknown>;
   // Out-of-range confidence is out-of-schema — treat as 0, don't clamp into validity.
@@ -150,6 +159,14 @@ export function parseVerdict(raw: string): ModerationDecision {
       : typeof obj.reason_code === 'string' && SELLER_REASON_CODES.has(obj.reason_code)
         ? obj.reason_code
         : null;
+  // Only a details_mismatch hold carries a category suggestion: on a policy
+  // hold the seller-visible fields must reveal nothing about the detection.
+  const suggestedCategoryRaw =
+    reasonCode === 'details_mismatch' &&
+    typeof obj.suggested_category === 'string' &&
+    obj.suggested_category.trim()
+      ? obj.suggested_category.trim().slice(0, MAX_SUGGESTED_CATEGORY_LENGTH)
+      : null;
   // Explicit content and prohibited items can never publish, whatever the model claims
   if (
     flagsInSchema &&
@@ -158,9 +175,9 @@ export function parseVerdict(raw: string): ModerationDecision {
     obj.verdict === 'publish' &&
     confidence >= PUBLISH_CONFIDENCE_THRESHOLD
   ) {
-    return { verdict: 'publish', reason, reasonCode: null, confidence, explicit, prohibited };
+    return { verdict: 'publish', reason, reasonCode: null, confidence, explicit, prohibited, suggestedCategoryRaw: null };
   }
-  return { verdict: 'hold', reason, reasonCode, confidence, explicit, prohibited };
+  return { verdict: 'hold', reason, reasonCode, confidence, explicit, prohibited, suggestedCategoryRaw };
 }
 
 /** Kill switch + key + daily budget. False = today's normal pending flow. */
@@ -257,6 +274,7 @@ export async function auditLiveAd(params: {
           ai_verdict: 'held',
           ai_reason: decision.reason,
           ai_reason_code: decision.reasonCode,
+          ai_suggested_category: null,
           ai_checked_at: now,
         },
       });
@@ -423,7 +441,7 @@ export async function moderateAd(
   });
   if (!result.ok || !result.content) {
     console.error('AI moderation call failed:', result.error || 'no content');
-    return { verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false };
+    return { verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
   }
   return parseVerdict(result.content);
 }
@@ -472,18 +490,18 @@ export async function moderateNewAd(params: {
     if (await shouldModerateNewAds()) {
       if (params.imagePaths.length === 0) {
         // No photos can never reach "completely certain" — hold without spending a call.
-        decision = { verdict: 'hold', reason: 'No photos to verify', reasonCode: 'unclear_photos', confidence: 0, explicit: false, prohibited: false };
+        decision = { verdict: 'hold', reason: 'No photos to verify', reasonCode: 'unclear_photos', confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
         await prisma.ads.updateMany({
           where: { id: adId },
-          data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode },
+          data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode, ai_suggested_category: null },
         });
       } else {
         const images = await imagesToDataUrls(params.imagePaths.slice(0, MAX_IMAGES_PER_CHECK));
         if (images.length === 0) {
-          decision = { verdict: 'hold', reason: 'Could not read photos for AI check', reasonCode: null, confidence: 0, explicit: false, prohibited: false };
+          decision = { verdict: 'hold', reason: 'Could not read photos for AI check', reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
           await prisma.ads.updateMany({
             where: { id: adId },
-            data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode },
+            data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode, ai_suggested_category: null },
           });
         } else {
           const categorySlug = await resolveParentCategorySlug(params.categoryId ?? null);
@@ -591,7 +609,7 @@ export async function moderateNewAd(params: {
                 },
               });
               if (heldAsEdited.count === 1) {
-                decision = { verdict: 'hold', reason: EDITED_DURING_CHECK_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false };
+                decision = { verdict: 'hold', reason: EDITED_DURING_CHECK_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
               } else {
                 raced = true;
                 await prisma.ads.updateMany({
@@ -604,9 +622,19 @@ export async function moderateNewAd(params: {
             // Same TOCTOU rule as publish: never pin a verdict about OLD
             // content onto an ad that changed mid-check (the newer edit runs
             // its own check). On a miss, record only the spent call.
+            // Resolve the model's category guess against the real tree before
+            // it can reach the seller — an unmatched name is dropped, and they
+            // just see the plain hold reason.
+            const suggestedCategory = await matchCategoryName(decision.suggestedCategoryRaw);
             const held = await prisma.ads.updateMany({
               where: { id: adId, deleted_at: null, updated_at: params.adUpdatedAt },
-              data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode, ai_checked_at: now },
+              data: {
+                ai_verdict: 'held',
+                ai_reason: decision.reason,
+                ai_reason_code: decision.reasonCode,
+                ai_suggested_category: suggestedCategory,
+                ai_checked_at: now,
+              },
             });
             if (held.count === 0) {
               raced = true;
@@ -621,9 +649,9 @@ export async function moderateNewAd(params: {
     }
   } catch (err) {
     console.error(`AI moderation error for ad ${adId}:`, err);
-    decision = { verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false };
+    decision = { verdict: 'hold', reason: AI_UNAVAILABLE_REASON, reasonCode: null, confidence: 0, explicit: false, prohibited: false, suggestedCategoryRaw: null };
     await prisma.ads
-      .updateMany({ where: { id: adId }, data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode } })
+      .updateMany({ where: { id: adId }, data: { ai_verdict: 'held', ai_reason: decision.reason, ai_reason_code: decision.reasonCode, ai_suggested_category: null } })
       .catch(() => {});
   }
 

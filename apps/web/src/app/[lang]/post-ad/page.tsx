@@ -67,6 +67,10 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     handleSubmit,
     adPosted,
     adPostedLive,
+    adPostedHoldCode,
+    adPostedSuggestedCategory,
+    adPostedResolved,
+    handleAdPostedFix,
     draftRestored,
     handleAdPostedClose,
     isUserVerified,
@@ -578,7 +582,17 @@ export default function PostAdPage({ params }: PostAdPageProps) {
           onReview={handleAiConfirmReview}
         />
       )}
-      {adPosted && <AdPostedModal lang={lang} live={adPostedLive} onClose={handleAdPostedClose} />}
+      {adPosted && (
+        <AdPostedModal
+          lang={lang}
+          live={adPostedLive}
+          holdCode={adPostedHoldCode}
+          suggestedCategory={adPostedSuggestedCategory}
+          resolved={adPostedResolved}
+          onFix={handleAdPostedFix}
+          onClose={handleAdPostedClose}
+        />
+      )}
     </div>
   );
 }

@@ -162,6 +162,9 @@ export function createAdMethods(client: AxiosInstance) {
       id: number
     ): Promise<ApiResponse<{
       status: string;
+      aiHeld: boolean;
+      aiReasonCode: string | null;
+      aiSuggestedCategory: string | null;
       canDirectPublish: boolean;
       willGoToPending: boolean;
       editLimit: number;

@@ -600,10 +600,24 @@ class AdEditContext {
   final bool canDirectPublish;
   final bool willGoToPending;
 
+  /// The AI held this ad for a human check. The raw AI sentence stays
+  /// editor-only; [aiReasonCode] is the seller-safe category, and it is null
+  /// when the AI was unreachable — which must never be read as the seller's
+  /// fault.
+  final bool aiHeld;
+  final String? aiReasonCode;
+
+  /// Real category the AI suggests, already validated server-side against the
+  /// category tree — safe to show verbatim.
+  final String? aiSuggestedCategory;
+
   const AdEditContext({
     required this.status,
     required this.canDirectPublish,
     required this.willGoToPending,
+    this.aiHeld = false,
+    this.aiReasonCode,
+    this.aiSuggestedCategory,
   });
 
   factory AdEditContext.fromMap(Map<String, dynamic> map) {
@@ -611,6 +625,9 @@ class AdEditContext {
       status: map['status'] as String? ?? '',
       canDirectPublish: map['canDirectPublish'] == true,
       willGoToPending: map['willGoToPending'] == true,
+      aiHeld: map['aiHeld'] == true,
+      aiReasonCode: map['aiReasonCode'] as String?,
+      aiSuggestedCategory: map['aiSuggestedCategory'] as String?,
     );
   }
 }

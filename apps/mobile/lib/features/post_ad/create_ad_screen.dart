@@ -26,6 +26,7 @@ import 'package:mobile/core/widgets/category_icon.dart';
 import 'package:mobile/core/widgets/success_checkmark.dart';
 import 'package:mobile/features/ad_detail/ad_detail_screen.dart';
 import 'package:mobile/features/dashboard/dashboard_screen.dart';
+import 'package:mobile/features/post_ad/ad_posted_dialog.dart';
 import 'package:mobile/features/post_ad/models/ad_draft_model.dart';
 import 'package:mobile/features/post_ad/models/location_models.dart';
 import 'package:mobile/features/post_ad/services/ad_draft_service.dart';
@@ -1457,31 +1458,33 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         final adId = result.data?.id;
         if (result.isLive) {
           // Verified business: ad published instantly, no review needed.
-          await showSuccessDialog(
+          await showAdPostedDialog(
             context,
-            message: isNepali ? 'तपाईंको विज्ञापन लाइभ छ!' : 'Your ad is live!',
+            verdict: Future.value(const AdPostedOutcome(live: true)),
+            isNepali: isNepali,
           );
           if (!mounted) return;
           _goAfterPost(live: true, adId: adId);
         } else {
-          // Watch for an instant AI publish while the seller reads the dialog —
-          // auto-approved ads land on their detail page, held ones on the
-          // dashboard Pending tab (owner spec).
-          final approvalFuture = adId == null
-              ? Future<bool>.value(false)
-              : _waitForInstantApproval(adId);
-          await showSuccessDialog(
+          // The dialog opens immediately in a "checking" state and flips in
+          // place when the AI verdict lands — to "your ad is live", or to the
+          // specific hold reason. Auto-approved ads land on their detail page,
+          // held ones on the dashboard Pending tab, where the same reason is
+          // repeated on the ad card (owner spec).
+          final verdict = adId == null
+              ? Future.value(const AdPostedOutcome(live: false))
+              : _waitForVerdict(adId);
+          final outcome = await showAdPostedDialog(
             context,
-            message: 'postAd.adPosted'.tr(),
-            subtitle: 'postAd.adPostedReviewNote'.tr(),
-            subtitleTransliteration: isNepali
-                ? null
-                : 'postAd.adPostedReviewNoteLatin'.tr(),
+            verdict: verdict,
+            isNepali: isNepali,
           );
           if (!mounted) return;
-          final live = await _awaitWithSpinner(approvalFuture);
-          if (!mounted) return;
-          _goAfterPost(live: live, adId: adId);
+          if (outcome.editRequested && adId != null) {
+            await _openEditForPostedAd(adId);
+            return;
+          }
+          _goAfterPost(live: outcome.live, adId: adId);
         }
       }
     } else {
@@ -1493,59 +1496,65 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     }
   }
 
-  /// Polls briefly after posting: did the AI publish the ad already?
-  /// Uses the owner-only edit-context endpoint — the public get-ad endpoint
-  /// would increment the new ad's view count on every poll. Bounded at ~10s;
-  /// anything unresolved (including any error) counts as "still pending".
-  Future<bool> _waitForInstantApproval(int adId) async {
+  /// Polls after posting for the AI verdict: published, or held with a
+  /// seller-safe reason. Uses the owner-only edit-context endpoint — the
+  /// public get-ad endpoint would increment the new ad's view count on every
+  /// poll. Bounded at ~25s, which covers roughly 88% of verdicts in
+  /// production (median 7-9s); anything slower is delivered by the dashboard
+  /// banner instead. Any error counts as "still pending".
+  Future<AdPostedOutcome> _waitForVerdict(int adId) async {
     try {
-      for (var i = 0; i < 4; i++) {
+      for (var i = 0; i < 10; i++) {
         await Future.delayed(const Duration(milliseconds: 2500));
         final res = await _adClient.getEditContext(adId);
-        final status = res.data?.status;
-        if (status == 'approved' || status == 'active') return true;
-        if (status != null && status != 'pending') return false;
+        final ctx = res.data;
+        final status = ctx?.status;
+        if (status == 'approved' || status == 'active') {
+          return const AdPostedOutcome(live: true);
+        }
+        if (ctx != null && ctx.aiHeld) {
+          // A null reason code means the AI was unreachable, not that the
+          // seller did something wrong — 'generic' carries neutral copy.
+          return AdPostedOutcome(
+            live: false,
+            holdCode: ctx.aiReasonCode ?? 'generic',
+            suggestedCategory: ctx.aiSuggestedCategory,
+          );
+        }
+        if (status != null && status != 'pending') {
+          return const AdPostedOutcome(live: false);
+        }
       }
     } catch (_) {
       // Advisory only — a polling failure must never surface after a
       // successful post.
     }
-    return false;
+    return const AdPostedOutcome(live: false);
   }
 
-  /// Awaits the approval poll, showing a spinner only if it is still running
-  /// (the seller usually spends those seconds reading the success dialog).
-  Future<bool> _awaitWithSpinner(Future<bool> future) async {
-    final safeFuture = future.catchError((_) => false);
-    var completed = false;
-    var value = false;
-    unawaited(
-      safeFuture.then((v) {
-        completed = true;
-        value = v;
-      }),
-    );
-    // Give the then() a microtask to run for an already-finished future.
-    await Future.delayed(Duration.zero);
-    if (completed) return value;
-    if (!mounted) return safeFuture;
-    // PopScope: the Android back button must not dismiss this spinner — if it
-    // did, the later pop would remove the SCREEN instead and corrupt the
-    // navigation stack when the poll resolves.
-    var dialogOpen = true;
-    unawaited(
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const PopScope(
-          canPop: false,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ).whenComplete(() => dialogOpen = false),
-    );
-    value = await safeFuture;
-    if (mounted && dialogOpen) Navigator.pop(context);
-    return value;
+  /// Reopens the ad the seller just posted in edit mode, so a held ad can be
+  /// fixed on the spot. Re-fetches through the owner-only my-ads endpoint —
+  /// the POST response carries a raw row, not the fully-shaped AdWithDetails
+  /// the edit form needs, and the public get-ad endpoint would inflate views.
+  /// Any failure falls back to the dashboard, where the same hold message and
+  /// an Edit button are waiting.
+  Future<void> _openEditForPostedAd(int adId) async {
+    try {
+      final res = await _adClient.getMyAds(status: 'pending', limit: 50);
+      for (final ad in res.data) {
+        if (ad.id == adId) {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => CreateAdScreen(existingAd: ad)),
+          );
+          return;
+        }
+      }
+    } catch (_) {
+      // Fall through to the dashboard below.
+    }
+    if (mounted) _goAfterPost(live: false, adId: adId);
   }
 
   /// Post-submit destination: live → the ad's own page, pending → dashboard

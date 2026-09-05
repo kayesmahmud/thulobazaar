@@ -534,6 +534,13 @@ router.get(
       success: true,
       data: {
         status: existingAd.status,
+        // Seller-facing AI verdict: the post-success modal polls this endpoint
+        // and flips to the hold reason. The raw ai_reason stays editor-only.
+        aiHeld: existingAd.ai_verdict === 'held',
+        aiReasonCode:
+          existingAd.ai_verdict === 'held' ? (existingAd.ai_reason_code ?? null) : null,
+        aiSuggestedCategory:
+          existingAd.ai_verdict === 'held' ? (existingAd.ai_suggested_category ?? null) : null,
         canDirectPublish: publishInfo.canDirectPublish,
         // Editing an approved ad takes it offline for re-review unless the user is trusted
         willGoToPending: existingAd.status === 'approved' ? !publishInfo.canDirectPublish : true,

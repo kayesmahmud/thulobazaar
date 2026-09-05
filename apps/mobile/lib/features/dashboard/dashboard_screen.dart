@@ -786,6 +786,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: const Color(0xFF5B21B6),
                           ),
                         ),
+                        if (ad.aiSuggestedCategory case final suggested?) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'dashboard.aiHold.tryCategory'.tr(
+                                namedArgs: {'category': suggested},
+                              ),
+                              style: AppFont.inter(
+                                fontSize: 12,
+                                height: 1.4,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF92400E),
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 6),
                         // Nudge toward the Edit button right below this card's
                         // banner — fixing the ad beats waiting for review.

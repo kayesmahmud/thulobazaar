@@ -230,6 +230,8 @@ model ads {
   ai_reason                    String?
   /// Seller-facing hold category chosen by the AI (stock_photo | unclear_photos | details_mismatch | suspicious_price | duplicate | policy_check | other); policy violations always collapse to policy_check
   ai_reason_code               String?            @db.VarChar(30)
+  /// Category the AI thinks the ad belongs in, shown to the seller alongside a details_mismatch hold. Validated against the real category tree before storing — never raw model text.
+  ai_suggested_category        String?            @db.VarChar(80)
   /// Stamped only when a DeepSeek call was actually made — daily budget cap counts these rows
   ai_checked_at                DateTime?          @db.Timestamp(6)
   latitude                     Decimal?           @db.Decimal(10, 8)

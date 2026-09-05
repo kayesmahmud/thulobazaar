@@ -56,6 +56,9 @@ class Ad {
   final bool aiHeld;
   final String? aiReasonCode;
 
+  /// Real category the AI thinks this ad belongs in (validated server-side).
+  final String? aiSuggestedCategory;
+
   Ad({
     required this.id,
     required this.userId,
@@ -90,6 +93,7 @@ class Ad {
     this.locationType,
     this.aiHeld = false,
     this.aiReasonCode,
+    this.aiSuggestedCategory,
   });
 
   factory Ad.fromJson(Map<String, dynamic> json) {
@@ -119,6 +123,7 @@ class Ad {
         viewCount: json['viewCount'] as int? ?? json['view_count'] as int? ?? 0,
         aiHeld: json['aiHeld'] as bool? ?? false,
         aiReasonCode: json['aiReasonCode'] as String?,
+        aiSuggestedCategory: json['aiSuggestedCategory'] as String?,
         isNegotiable:
             json['isNegotiable'] as bool? ??
             json['is_negotiable'] as bool? ??
@@ -204,6 +209,7 @@ class Ad {
       'locationType': locationType,
       'aiHeld': aiHeld,
       'aiReasonCode': aiReasonCode,
+      'aiSuggestedCategory': aiSuggestedCategory,
     };
   }
 
@@ -247,6 +253,7 @@ class Ad {
     String? locationType,
     bool? aiHeld,
     String? aiReasonCode,
+    String? aiSuggestedCategory,
   }) {
     return Ad(
       id: id ?? this.id,
@@ -281,6 +288,7 @@ class Ad {
       locationType: locationType ?? this.locationType,
       aiHeld: aiHeld ?? this.aiHeld,
       aiReasonCode: aiReasonCode ?? this.aiReasonCode,
+      aiSuggestedCategory: aiSuggestedCategory ?? this.aiSuggestedCategory,
     );
   }
 }
@@ -372,6 +380,7 @@ class AdWithDetails extends Ad {
     super.locationType,
     super.aiHeld,
     super.aiReasonCode,
+    super.aiSuggestedCategory,
     required this.userName,
     this.userAvatar,
     this.userPhone,
@@ -432,6 +441,7 @@ class AdWithDetails extends Ad {
       // hide the hold-reason banner (same trap as reviewedAt above).
       aiHeld: ad.aiHeld,
       aiReasonCode: ad.aiReasonCode,
+      aiSuggestedCategory: ad.aiSuggestedCategory,
       userName:
           json['userName'] as String? ??
           json['user_name'] as String? ??

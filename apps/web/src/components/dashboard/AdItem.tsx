@@ -121,6 +121,11 @@ export function AdItem({ ad, lang, onDelete }: AdItemProps) {
                     : 'aiHold_generic'
                 )}
               </p>
+              {ad.aiSuggestedCategory && (
+                <p className="m-0 mt-1.5 inline-block rounded-md bg-amber-100 px-2 py-1 text-sm font-semibold text-amber-800">
+                  {t('aiHold_tryCategory', { category: ad.aiSuggestedCategory })}
+                </p>
+              )}
               <Link
                 href={`/${lang}/edit-ad/${ad.id}`}
                 className="mt-1.5 inline-block text-sm font-semibold text-violet-700 hover:text-violet-900 hover:underline"
