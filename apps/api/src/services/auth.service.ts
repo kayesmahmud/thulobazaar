@@ -674,7 +674,12 @@ export async function setup2FA(userId: number) {
   const user = await prisma.users.findUnique({ where: { id: userId } });
   if (!user) return { success: false, error: 'User not found' };
 
-  if (user.two_factor_enabled) {
+  // Login gates on `two_factor_enabled && two_factor_secret`, so a flag with
+  // no secret protects nothing. Treating it as "enabled" here dead-ends the
+  // account: setup refuses because the flag is set, and disable refuses
+  // because there is no secret to verify against. Only a real, usable second
+  // factor blocks a fresh setup.
+  if (user.two_factor_enabled && user.two_factor_secret) {
     return { success: false, error: '2FA is already enabled. Disable it first to re-setup.' };
   }
 
@@ -683,10 +688,12 @@ export async function setup2FA(userId: number) {
   const otpauthUri = generateURI({ issuer: TWO_FA_APP_NAME, label, secret });
   const qrCode = await QRCode.toDataURL(otpauthUri);
 
-  // Store secret (not yet enabled until verified)
+  // Store secret (not yet enabled until verified). Clearing the flag also
+  // heals the inconsistent row above — we only get here when 2FA is not
+  // actually usable, so false is the truth either way.
   await prisma.users.update({
     where: { id: userId },
-    data: { two_factor_secret: secret },
+    data: { two_factor_secret: secret, two_factor_enabled: false },
   });
 
   return { success: true, secret, qrCode, otpauthUri };

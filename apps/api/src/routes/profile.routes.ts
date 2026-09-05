@@ -49,7 +49,7 @@ async function getCurrentUserProfile(userId: number) {
     // Separate minimal query — avoids loading the hash into the main user object
     prisma.users.findUnique({
       where: { id: userId },
-      select: { password_hash: true },
+      select: { password_hash: true, two_factor_secret: true },
     }),
   ]);
 
@@ -81,7 +81,7 @@ async function getCurrentUserProfile(userId: number) {
     createdAt: user.created_at,
     oauthProvider: user.oauth_provider,
     hasPassword: !!passwordCheck?.password_hash,
-    twoFactorEnabled: user.two_factor_enabled,
+    twoFactorEnabled: user.two_factor_enabled && !!passwordCheck?.two_factor_secret,
   };
 }
 
