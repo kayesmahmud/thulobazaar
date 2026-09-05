@@ -1,10 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:mobile/core/api/api_config.dart';
 import 'package:mobile/core/api/verification_client.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/theme/app_font.dart';
@@ -91,14 +89,29 @@ class _MainDrawerState extends State<MainDrawer> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              _Avatar(user: user, signedIn: signedIn),
+              // Breathing room under the status bar. The avatar used to
+              // create it; without one the first row sat flush against the
+              // notch. Both states clear the cutout by about the same amount.
+              const SizedBox(height: 24),
+              if (signedIn && _verifiedKind(user) != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _VerifiedPill(kind: _verifiedKind(user)!),
+                  ),
+                )
+              else
+                const SizedBox(height: 32),
               const _LanguagePills(),
               const SizedBox(height: 12),
-              _VerifyCard(
-                free: _isFreeEligible,
-                onTap: () => _open(const VerificationScreen()),
-              ),
-              const SizedBox(height: 6),
+              if (_verifiedKind(user) == null) ...[
+                _VerifyCard(
+                  free: _isFreeEligible,
+                  onTap: () => _open(const VerificationScreen()),
+                ),
+                const SizedBox(height: 6),
+              ],
               if (signedIn) ...[
                 _Item(
                   icon: LucideIcons.user,
@@ -182,30 +195,51 @@ class _MainDrawerState extends State<MainDrawer> {
   }
 }
 
-class _Avatar extends StatelessWidget {
-  final Map<String, dynamic> user;
-  final bool signedIn;
-  const _Avatar({required this.user, required this.signedIn});
+/// Which badge, if any, a signed-in user has earned. Mirrors the rule
+/// Settings uses, so the drawer and Settings can never disagree.
+String? _verifiedKind(Map<String, dynamic> user) {
+  final business = user['businessVerificationStatus'];
+  if (business == 'approved' || business == 'verified') return 'business';
+  if (user['individualVerified'] == true) return 'individual';
+  return null;
+}
+
+/// Gold reads as a trading badge, blue as a personal identity check — the
+/// same convention buyers already meet elsewhere.
+class _VerifiedPill extends StatelessWidget {
+  final String kind;
+  const _VerifiedPill({required this.kind});
 
   @override
   Widget build(BuildContext context) {
-    final avatar = ApiConfig.getAvatarUrl(user['avatar'] as String?);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: CircleAvatar(
-          radius: 30,
-          backgroundColor: AppTokens.brandTint,
-          foregroundImage: signedIn && avatar.isNotEmpty
-              ? CachedNetworkImageProvider(avatar)
-              : null,
-          child: const Icon(
-            LucideIcons.user,
-            size: 28,
-            color: AppTokens.brandDeep,
+    final business = kind == 'business';
+    final ink = business ? const Color(0xFFB45309) : const Color(0xFF1D4ED8);
+    final tint = business ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.badgeCheck, size: 14, color: ink),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              business
+                  ? 'settings.businessVerified'.tr()
+                  : 'settings.individualVerified'.tr(),
+              overflow: TextOverflow.ellipsis,
+              style: AppFont.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: ink,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

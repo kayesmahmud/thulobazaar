@@ -14,12 +14,10 @@ import '../../core/theme/app_theme.dart';
 import 'package:mobile/features/auth/signin_screen.dart';
 // import 'package:mobile/features/profile/edit_profile_screen.dart';
 import 'package:mobile/features/settings/settings_screen.dart';
-import 'package:mobile/features/profile/phone_verification_screen.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import '../../core/api/auth_client.dart';
 import '../../core/api/api_config.dart';
 import '../../core/api/favorites_client.dart';
-import '../../core/widgets/location_picker.dart';
 import '../auth/signin_screen.dart';
 import '../auth/signup_screen.dart';
 import 'package:mobile/core/utils/page_transitions.dart';
@@ -50,9 +48,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _favoritesLoading = true;
   String? _favoritesError;
   final Set<int> _removingAdIds = {};
-
-  // Location state
-  SelectedLocation? _selectedLocation;
 
   // Form dirty tracking
   bool _hasChanges = false;
@@ -134,9 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _checkForChanges() {
-    final hasChanges =
-        _nameController.text.trim() != _originalName ||
-        _selectedLocation != null;
+    final hasChanges = _nameController.text.trim() != _originalName;
     if (hasChanges != _hasChanges) {
       setState(() => _hasChanges = hasChanges);
     }
@@ -169,38 +162,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         (route) => false,
       );
     }
-  }
-
-  Future<void> _openLocationPicker() async {
-    final result = await LocationPicker.show(
-      context,
-      initialLocation: _selectedLocation,
-    );
-
-    if (result != null && mounted) {
-      setState(() {
-        _selectedLocation = result;
-      });
-      _checkForChanges();
-    }
-  }
-
-  Future<void> _openPhoneChange() async {
-    final authProvider = context.read<AuthProvider>();
-    final currentPhone = authProvider.user?['phone'] as String?;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PhoneVerificationScreen(
-          isChanging: true,
-          currentPhone: currentPhone,
-          onVerified: () async {
-            await authProvider.refreshProfile();
-            if (mounted) _populateControllers();
-          },
-        ),
-      ),
-    );
   }
 
   @override
@@ -785,158 +746,6 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Phone Number
-          Text(
-            context.locale.languageCode == 'ne' ? 'फोन नम्बर' : "Phone Number",
-            style: AppFont.inter(
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Builder(
-            builder: (context) {
-              final isPhoneVerified = _user?['phoneVerified'] ?? false;
-              return GestureDetector(
-                onTap: _openPhoneChange,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPhoneVerified
-                        ? const Color(0xFFECFDF5)
-                        : Colors.orange.withOpacity(0.08),
-                    border: Border.all(
-                      color: isPhoneVerified
-                          ? const Color(0xFFA7F3D0)
-                          : Colors.orange.withOpacity(0.4),
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isPhoneVerified
-                            ? LucideIcons.checkCircle
-                            : LucideIcons.alertCircle,
-                        color: isPhoneVerified
-                            ? const Color(0xFF10B981)
-                            : Colors.orange,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _phoneController.text.isNotEmpty
-                            ? _phoneController.text
-                            : (context.locale.languageCode == 'ne'
-                                  ? 'फोन नम्बर थपिएको छैन'
-                                  : 'No phone added'),
-                        style: AppFont.inter(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textDark,
-                        ),
-                      ),
-                      if (isPhoneVerified) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          l('verified', context.locale.languageCode),
-                          style: AppFont.inter(
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF10B981),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                      Text(
-                        isPhoneVerified
-                            ? (context.locale.languageCode == 'ne'
-                                  ? 'परिवर्तन गर्नुहोस्'
-                                  : "Change")
-                            : (context.locale.languageCode == 'ne'
-                                  ? 'प्रमाणित गर्नुहोस्'
-                                  : "Verify"),
-                        style: AppFont.inter(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        LucideIcons.chevronRight,
-                        size: 12,
-                        color: AppTheme.primary,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-
-          // Location
-          Text(
-            l('location', context.locale.languageCode),
-            style: AppFont.inter(
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: _openLocationPicker,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                border: Border.all(color: Colors.grey[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(LucideIcons.mapPin, color: Colors.grey[600], size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _selectedLocation?.shortDisplayName ??
-                          _user?['locationName'] ??
-                          (context.locale.languageCode == 'ne'
-                              ? 'स्थान चयन गर्नुहोस्'
-                              : "Select Location"),
-                      style: AppFont.inter(
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.textDark,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    context.locale.languageCode == 'ne'
-                        ? 'परिवर्तन गर्नुहोस्'
-                        : "Change",
-                    style: AppFont.inter(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    LucideIcons.chevronRight,
-                    size: 12,
-                    color: AppTheme.primary,
-                  ),
-                ],
-              ),
-            ),
-          ),
           const SizedBox(height: 32),
 
           // Action Buttons
@@ -982,18 +791,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                       // Build update payload
                       final updateData = <String, dynamic>{'fullName': newName};
 
-                      // Add location if selected
-                      if (_selectedLocation?.finalLocationId != null) {
-                        updateData['locationId'] =
-                            _selectedLocation!.finalLocationId;
-                      }
-
                       await context.read<AuthProvider>().updateProfile(
                         updateData,
                       );
                       if (context.mounted) {
                         _originalName = newName;
-                        _selectedLocation = null;
                         setState(() => _hasChanges = false);
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(

@@ -356,7 +356,10 @@ class LoginGateScreen extends StatelessWidget {
           for (int i = 0; i < spec.benefits.length; i++) ...[
             if (i > 0) const SizedBox(height: 16),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              // Centre the tile against the label: benefit text wraps to two
+              // lines in both languages, and a top-aligned icon then floats
+              // level with the first line instead of the block.
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: 38,
