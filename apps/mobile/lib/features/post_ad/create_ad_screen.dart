@@ -1488,12 +1488,44 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
         }
       }
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(result.errorMessage)));
-      }
+      if (mounted) _showSubmitFailure(result);
     }
+  }
+
+  /// The ad-cap refusal gets localized copy and, for unverified sellers, a
+  /// tap-through to verification. Every other failure shows the server text.
+  void _showSubmitFailure(AdSubmitResult result) {
+    if (result.errorCode != adLimitReachedCode) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.errorMessage)));
+      return;
+    }
+    final details = result.errorDetails ?? const <String, dynamic>{};
+    final verified = details['verified'] == true;
+    final args = {
+      'limit': '${details['limit'] ?? ''}',
+      'verifiedLimit': '${details['verifiedLimit'] ?? ''}',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text(
+          (verified ? 'postAd.adLimitVerified' : 'postAd.adLimitUnverified').tr(
+            namedArgs: args,
+          ),
+        ),
+        action: verified
+            ? null
+            : SnackBarAction(
+                label: 'postAd.adLimitCta'.tr(),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const VerificationScreen()),
+                ),
+              ),
+      ),
+    );
   }
 
   /// Polls after posting for the AI verdict: published, or held with a

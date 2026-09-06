@@ -35,6 +35,7 @@ import {
   getAdLimits,
   isUserVerified,
   countUserActiveAds,
+  AD_LIMIT_REACHED_CODE,
   countUserLimitedDigitalAds,
   calculateExpiresAt,
   getBooleanSetting,
@@ -388,11 +389,14 @@ router.post(
     const imageLimit = verified ? limits.maxImagesVerified : limits.maxImagesUnverified;
 
     if (activeAdCount >= maxActiveAds) {
-      throw new ValidationError(
+      const limitError = new ValidationError(
         verified
           ? `You have reached the maximum limit of ${maxActiveAds} ads`
           : `You have reached the limit of ${maxActiveAds} ads for unverified accounts. Get verified to post up to ${limits.maxAdsPerUser} ads`
       );
+      limitError.code = AD_LIMIT_REACHED_CODE;
+      limitError.details = { limit: maxActiveAds, verifiedLimit: limits.maxAdsPerUser, verified };
+      throw limitError;
     }
 
     // Enforce image limit based on verification status

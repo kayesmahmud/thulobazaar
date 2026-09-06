@@ -270,6 +270,8 @@
     "errValidPrice": "Please enter a valid price",
     "errRequiredFields": "Please fill in all required fields",
     "errCreateFailed": "Failed to create ad. Please try again.",
+    "errAdLimitVerified": "You have reached your limit of {limit} active ads. Delete an old ad to post a new one.",
+    "errAdLimitUnverified": "You have reached the {limit}-ad limit for unverified accounts. Get verified to post up to {verifiedLimit} ads.",
     "aiWarnCategoryMismatch": "Your title doesn't seem to match the selected category — double-check the category before posting.",
     "aiWarnSpelling": "Your title may have a spelling mistake — please re-read it before posting.",
     "aiReviewAgain": "Review again",

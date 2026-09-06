@@ -29,6 +29,8 @@ export function usePostAd(lang: string) {
   const [loading, setLoading] = useState(false);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [error, setError] = useState('');
+  // Unverified seller at the free-tier ad cap: the form offers a Get Verified button
+  const [adLimitReached, setAdLimitReached] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [adPosted, setAdPosted] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
@@ -569,6 +571,7 @@ export function usePostAd(lang: string) {
   const runSubmit = useCallback(
     async () => {
       setError('');
+      setAdLimitReached(false);
 
       if (!phoneVerified) {
         setError(
@@ -838,7 +841,20 @@ export function usePostAd(lang: string) {
         // before retrying, and a stale "confirmed" flag would skip every
         // warning and the server precheck on the retry.
         aiConfirmedRef.current = false;
-        setError(err.message || t('errCreateFailed'));
+        // Axios' own message is "Request failed with status code 400" — the
+        // server's explanation lives in the response body.
+        const body = err?.response?.data;
+        if (body?.code === 'AD_LIMIT_REACHED') {
+          const d = body.details ?? {};
+          setAdLimitReached(!d.verified);
+          setError(
+            d.verified
+              ? t('errAdLimitVerified', { limit: d.limit })
+              : t('errAdLimitUnverified', { limit: d.limit, verifiedLimit: d.verifiedLimit })
+          );
+        } else {
+          setError(body?.message || err.message || t('errCreateFailed'));
+        }
       } finally {
         setSubmitting(false);
       }
@@ -912,6 +928,7 @@ export function usePostAd(lang: string) {
     loading,
     loadingSubcategories,
     error,
+    adLimitReached,
     submitting,
     // User state
     userPhone,

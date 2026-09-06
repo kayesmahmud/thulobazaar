@@ -37,6 +37,7 @@ export default function PostAdPage({ params }: PostAdPageProps) {
     loading,
     loadingSubcategories,
     error,
+    adLimitReached,
     submitting,
     userPhone,
     phoneVerified,
@@ -205,7 +206,15 @@ export default function PostAdPage({ params }: PostAdPageProps) {
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-300 text-red-600 p-4 rounded-lg mb-6">
-                {error}
+                <p className="m-0">{error}</p>
+                {adLimitReached && (
+                  <Link
+                    href={`/${lang}/verification`}
+                    className="mt-3 inline-flex min-h-[44px] items-center rounded-lg bg-rose-600 px-5 font-medium text-white no-underline hover:bg-rose-700"
+                  >
+                    {t('getVerified')}
+                  </Link>
+                )}
               </div>
             )}
 

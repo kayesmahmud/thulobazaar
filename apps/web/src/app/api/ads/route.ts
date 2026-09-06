@@ -19,6 +19,7 @@ import {
   getAdLimits,
   isUserVerified,
   countUserActiveAds,
+  AD_LIMIT_REACHED_CODE,
   calculateExpiresAt,
   getBooleanSetting,
   countUserLimitedDigitalAds,
@@ -198,6 +199,8 @@ export async function POST(request: NextRequest) {
           message: verified
             ? `You have reached the maximum limit of ${maxActiveAds} ads`
             : `You have reached the limit of ${maxActiveAds} ads for unverified accounts. Get verified to post up to ${limits.maxAdsPerUser} ads`,
+          code: AD_LIMIT_REACHED_CODE,
+          details: { limit: maxActiveAds, verifiedLimit: limits.maxAdsPerUser, verified },
         },
         { status: 400 }
       );

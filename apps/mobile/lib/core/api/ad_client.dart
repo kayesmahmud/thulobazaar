@@ -265,8 +265,11 @@ class AdClient {
     } on DioException catch (e) {
       final errorData = e.response?.data;
       String errorMessage = 'Failed to create ad';
+      String? code;
+      Map<String, dynamic>? details;
 
-      if (errorData != null) {
+      // A proxy/CDN error page arrives as a String — indexing it would throw.
+      if (errorData is Map) {
         if (errorData['message'] is String) {
           errorMessage = errorData['message'];
         } else if (errorData['error'] is String) {
@@ -275,9 +278,13 @@ class AdClient {
             errorData['error']['message'] is String) {
           errorMessage = errorData['error']['message'];
         }
+        code = errorData['code']?.toString();
+        if (errorData['details'] is Map) {
+          details = Map<String, dynamic>.from(errorData['details'] as Map);
+        }
       }
 
-      return AdSubmitResult.failure(errorMessage);
+      return AdSubmitResult.failure(errorMessage, code: code, details: details);
     }
   }
 
@@ -634,16 +641,27 @@ class AdEditContext {
 
 /// Result of creating/updating an ad. [resultingStatus] is the raw DB status
 /// ('approved' | 'pending') the ad ended up in — 'approved' means it is live.
+/// `code` the API sends when the seller is at their active-ad cap.
+const adLimitReachedCode = 'AD_LIMIT_REACHED';
+
 class AdSubmitResult {
   final bool success;
   final Ad? data;
   final String? error;
+
+  /// Machine-readable error code (e.g. [adLimitReachedCode]), when the API sent one.
+  final String? errorCode;
+
+  /// Extra payload for [errorCode] — for the ad cap: limit, verifiedLimit, verified.
+  final Map<String, dynamic>? errorDetails;
   final String? resultingStatus;
 
   const AdSubmitResult({
     required this.success,
     this.data,
     this.error,
+    this.errorCode,
+    this.errorDetails,
     this.resultingStatus,
   });
 
@@ -655,8 +673,17 @@ class AdSubmitResult {
     );
   }
 
-  factory AdSubmitResult.failure(String error) {
-    return AdSubmitResult(success: false, error: error);
+  factory AdSubmitResult.failure(
+    String error, {
+    String? code,
+    Map<String, dynamic>? details,
+  }) {
+    return AdSubmitResult(
+      success: false,
+      error: error,
+      errorCode: code,
+      errorDetails: details,
+    );
   }
 
   /// True when the ad is live after this submit (verified business user).

@@ -24,6 +24,13 @@ const DEFAULTS: AdLimits = {
   maxImagesUnverified: 5,
 };
 
+/**
+ * Sent as `code` on the 400 when a seller is at their active-ad cap, with
+ * `details: { limit, verifiedLimit, verified }` so clients can localize the
+ * message and offer a "Get verified" action instead of parsing English text.
+ */
+export const AD_LIMIT_REACHED_CODE = 'AD_LIMIT_REACHED';
+
 const SETTING_KEYS = [
   'max_ads_per_user',
   'ad_expiry_days',

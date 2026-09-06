@@ -9,6 +9,9 @@ export class AppError extends Error {
   statusCode: number;
   status: string;
   isOperational: boolean;
+  /** Machine-readable code + payload so clients can localize or route the error */
+  code?: string;
+  details?: Record<string, unknown>;
 
   constructor(message: string, statusCode: number) {
     super(message);
@@ -130,6 +133,8 @@ const sendErrorDev = (err: AppError, res: Response): void => {
     status: err.status,
     error: err,
     message: err.message,
+    ...(err.code && { code: err.code }),
+    ...(err.details && { details: err.details }),
     stack: err.stack,
   });
 };
@@ -143,6 +148,8 @@ const sendErrorProd = (err: AppError, res: Response): void => {
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
+      ...(err.code && { code: err.code }),
+      ...(err.details && { details: err.details }),
     });
   }
   // Programming or unknown error: don't leak error details
