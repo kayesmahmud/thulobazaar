@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { cache, Suspense } from 'react';
 import { formatPrice, formatRelativeTime } from '@thulobazaar/utils';
 import { prisma } from '@thulobazaar/database';
+import { maskVerificationColumns, publicVerification } from '@thulobazaar/types';
 import { notFound } from 'next/navigation';
 import AdDetailClient from './AdDetailClient';
 import TrackViewContent from './TrackViewContent';
@@ -66,6 +67,8 @@ const getRelatedAds = cache(async (categoryId: number | null, currentAdId: numbe
           account_type: true,
           business_verification_status: true,
           individual_verified: true,
+          is_suspended: true,
+          is_active: true,
         },
       },
     },
@@ -77,7 +80,7 @@ const getRelatedAds = cache(async (categoryId: number | null, currentAdId: numbe
 });
 
 const getAdBySlug = cache(async (slug: string) => {
-  return prisma.ads.findFirst({
+  const ad = await prisma.ads.findFirst({
     where: {
       slug,
       deleted_at: null,
@@ -163,11 +166,20 @@ const getAdBySlug = cache(async (slug: string) => {
           business_name: true,
           individual_verified: true,
           business_verification_status: true,
+          is_suspended: true,
+          is_active: true,
           created_at: true,
         },
       },
     },
   });
+  if (!ad?.users_ads_user_idTousers) return ad;
+  // Suspended/deactivated sellers show no badge: SellerCard reads the raw
+  // seller row, so mask it here rather than in every consumer.
+  return {
+    ...ad,
+    users_ads_user_idTousers: maskVerificationColumns(ad.users_ads_user_idTousers),
+  };
 });
 
 export async function generateMetadata({ params }: AdDetailPageProps): Promise<Metadata> {
@@ -316,8 +328,8 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
     condition: relAd.condition || null,
     slug: relAd.slug,
     accountType: relAd.users_ads_user_idTousers?.account_type || null,
-    businessVerificationStatus: relAd.users_ads_user_idTousers?.business_verification_status || null,
-    individualVerified: relAd.users_ads_user_idTousers?.individual_verified || false,
+    // Suspended/deactivated sellers show no badge (publicVerification)
+    ...publicVerification(relAd.users_ads_user_idTousers),
   }));
 
   const fullLocation = buildFullLocation(ad.locations, lang);

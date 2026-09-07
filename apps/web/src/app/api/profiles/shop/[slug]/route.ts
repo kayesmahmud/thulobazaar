@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { cleanupExpiredPromotionFlags } from '@/lib/promotion/cleanupExpired';
 
 /**
@@ -48,6 +49,8 @@ export async function GET(
         business_verification_status: true,
         business_verified_at: true,
         individual_verified: true,
+        is_suspended: true,
+        is_active: true,
         individual_verified_at: true,
         google_maps_link: true,
         created_at: true,
@@ -174,9 +177,10 @@ export async function GET(
       businessWebsite: user.business_website,
       businessPhone: user.business_phone,
       businessAddress: user.business_address,
-      businessVerificationStatus: user.business_verification_status,
+      // Suspended/deactivated accounts show no badge (publicVerification)
+      businessVerificationStatus: publicVerification(user).businessVerificationStatus,
       businessVerifiedAt: user.business_verified_at,
-      individualVerified: user.individual_verified,
+      individualVerified: publicVerification(user).individualVerified,
       individualVerifiedAt: user.individual_verified_at,
       googleMapsLink: user.google_maps_link,
       createdAt: user.created_at,

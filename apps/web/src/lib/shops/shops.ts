@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { getLocationBreadcrumb } from '@/lib/location';
 import { getImageUrl } from '@/lib/images/imageUrl';
 
@@ -30,6 +31,7 @@ const SHOP_SELECT = {
   business_verification_status: true,
   individual_verified: true,
   is_active: true,
+  is_suspended: true,
   created_at: true,
   locations: {
     select: {
@@ -205,8 +207,8 @@ const transformShop = async (shop: RawShopRow): Promise<ShopProfile> => {
     facebookUrl: shop.facebook_url,
     instagramUrl: shop.instagram_url,
     tiktokUrl: shop.tiktok_url,
-    businessVerificationStatus: shop.business_verification_status,
-    individualVerified: shop.individual_verified || false,
+    // Suspended/deactivated accounts show no badge (publicVerification)
+    ...publicVerification(shop),
     createdAt: shop.created_at,
     location: shop.locations
       ? {

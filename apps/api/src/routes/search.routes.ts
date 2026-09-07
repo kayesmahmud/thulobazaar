@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { catchAsync } from '../middleware/errorHandler.js';
 import { PAGINATION } from '../config/constants.js';
 
@@ -80,6 +81,8 @@ router.get(
               account_type: true,
               business_verification_status: true,
               individual_verified: true,
+              is_suspended: true,
+              is_active: true,
             },
           },
           ad_images: {
@@ -104,8 +107,9 @@ router.get(
       location_name: ad.locations?.name,
       location_name_ne: ad.locations?.name_ne,
       account_type: ad.users_ads_user_idTousers?.account_type,
-      business_verification_status: ad.users_ads_user_idTousers?.business_verification_status,
-      individual_verified: ad.users_ads_user_idTousers?.individual_verified,
+      // Suspended/deactivated sellers show no badge (publicVerification)
+      business_verification_status: publicVerification(ad.users_ads_user_idTousers).businessVerificationStatus,
+      individual_verified: publicVerification(ad.users_ads_user_idTousers).individualVerified,
       primary_image: ad.ad_images[0]?.filename,
       // publishedAt = first time the ad went live (use for "time ago" display);
       // re-approvals after owner edits don't move it

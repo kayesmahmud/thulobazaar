@@ -185,6 +185,8 @@ export const standardAdInclude = {
       account_type: true,
       business_verification_status: true,
       individual_verified: true,
+      is_suspended: true,
+      is_active: true,
     },
   },
   locations: { select: AD_CARD_LOCATION_SELECT },

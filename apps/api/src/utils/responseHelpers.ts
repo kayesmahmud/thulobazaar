@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 
 /**
  * Log review history for ad actions
@@ -81,8 +82,9 @@ export function transformUser(dbUser: any) {
     avatar: dbUser.avatar,
     isActive: dbUser.is_active,
     accountType: dbUser.account_type,
-    businessVerified: dbUser.business_verification_status === 'approved',
-    individualVerified: dbUser.individual_verified,
+    // Suspended/deactivated accounts show no badge (publicVerification)
+    businessVerified: publicVerification(dbUser).businessVerificationStatus === 'approved',
+    individualVerified: publicVerification(dbUser).individualVerified,
     createdAt: dbUser.created_at,
     lastLogin: dbUser.last_login,
   };

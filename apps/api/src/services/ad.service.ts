@@ -8,7 +8,11 @@ import fs from 'fs';
 import { prisma } from '@thulobazaar/database';
 // Aliased: apps/api/src/lib/ai/policies.ts exports an unrelated getCategoryPolicy
 // (the AI moderation markdown loader).
-import { getCategoryPolicy as getCommercePolicy } from '@thulobazaar/types';
+import {
+  getCategoryPolicy as getCommercePolicy,
+  maskVerificationColumns,
+  publicVerification,
+} from '@thulobazaar/types';
 import config from '../config/index.js';
 import { PAGINATION } from '../config/constants.js';
 import { clearExpiredPromotionFlags } from '../jobs/promotionCleanup.js';
@@ -96,8 +100,8 @@ export function transformAdForList(ad: any) {
     locationNameNe: ad.locations?.name_ne,
     districtName: resolveDistrictName(ad.locations),
     accountType: ad.users_ads_user_idTousers?.account_type,
-    businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status,
-    individualVerified: ad.users_ads_user_idTousers?.individual_verified,
+    // Suspended/deactivated sellers show no badge (publicVerification)
+    ...publicVerification(ad.users_ads_user_idTousers),
     userName: ad.users_ads_user_idTousers?.full_name,
     userAvatar: ad.users_ads_user_idTousers?.avatar,
     latitude: ad.latitude ? Number(ad.latitude) : null,
@@ -212,6 +216,7 @@ export async function transformAdForDetail(ad: any) {
   const policed = applyCategoryPolicyToResponse(ad.custom_fields, ad.condition, parentSlug, subSlug);
   const locationLevels = await getLocationLevels(ad.location_id);
   const locName = locationLevels.map((l) => l.name).join(', ');
+  const sellerVerification = publicVerification(ad.users_ads_user_idTousers);
 
   // Get favorites count and location type
   const favoritesCount = await prisma.user_favorites.count({ where: { ad_id: ad.id } });
@@ -276,12 +281,19 @@ export async function transformAdForDetail(ad: any) {
     userAvatar: ad.users_ads_user_idTousers?.avatar,
     userPhone: ad.users_ads_user_idTousers?.phone,
     googleMapsLink: ad.users_ads_user_idTousers?.google_maps_link,
-    userVerified: ['approved', 'verified'].includes(ad.users_ads_user_idTousers?.business_verification_status) || ad.users_ads_user_idTousers?.individual_verified,
-    businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status,
-    individualVerified: ad.users_ads_user_idTousers?.individual_verified,
+    // Suspended/deactivated sellers show no badge (publicVerification); the
+    // raw seller row is masked the same way so no client can read around it.
+    userVerified:
+      ['approved', 'verified'].includes(sellerVerification.businessVerificationStatus ?? '') ||
+      sellerVerification.individualVerified,
+    ...sellerVerification,
     shopSlug: ad.users_ads_user_idTousers?.shop_slug,
     accountType: ad.users_ads_user_idTousers?.account_type,
-    seller: ad.users_ads_user_idTousers,
+    seller: ad.users_ads_user_idTousers
+      ? (({ is_suspended: _s, is_active: _a, ...rest }) => rest)(
+          maskVerificationColumns(ad.users_ads_user_idTousers)
+        )
+      : ad.users_ads_user_idTousers,
     images: ad.ad_images,
     // Both filtered by the category policy — see applyCategoryPolicyToResponse.
     // These must stay after the ...safeAd spread, which carries the raw column.
@@ -744,6 +756,8 @@ const adListSelect = {
         account_type: true,
         business_verification_status: true,
         individual_verified: true,
+        is_suspended: true,
+        is_active: true,
         full_name: true,
         avatar: true,
       },
@@ -771,6 +785,8 @@ const adDetailSelect = {
         account_type: true,
         business_verification_status: true,
         individual_verified: true,
+        is_suspended: true,
+        is_active: true,
         shop_slug: true,
       },
     },

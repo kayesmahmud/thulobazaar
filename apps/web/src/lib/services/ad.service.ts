@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { generateSlug, generateSeoSlug } from '@/lib/urls';
 import { processMultipleImages } from '@/lib/utils';
 import { indexAd } from '@/lib/search';
@@ -89,8 +90,8 @@ export function transformAdForList(ad: any) {
           fullName: ad.users_ads_user_idTousers.full_name,
           avatar: ad.users_ads_user_idTousers.avatar,
           shopSlug: ad.users_ads_user_idTousers.shop_slug,
-          individualVerified: ad.users_ads_user_idTousers.individual_verified,
-          businessVerificationStatus: ad.users_ads_user_idTousers.business_verification_status,
+          // Suspended/deactivated sellers show no badge (publicVerification)
+          ...publicVerification(ad.users_ads_user_idTousers),
         }
       : null,
     primaryImage: ad.ad_images?.[0]

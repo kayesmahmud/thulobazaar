@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { catchAsync, NotFoundError, ValidationError } from '../middleware/errorHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { PAGINATION } from '../config/constants.js';
@@ -141,6 +142,7 @@ router.get(
         business_verification_status: true,
         individual_verified: true,
         is_active: true,
+        is_suspended: true,
         facebook_url: true,
         instagram_url: true,
         tiktok_url: true,
@@ -219,8 +221,8 @@ router.get(
           businessWebsite: user.business_website,
           googleMapsLink: user.google_maps_link,
           email: '', // Don't expose email publicly
-          businessVerificationStatus: user.business_verification_status,
-          individualVerified: user.individual_verified,
+          // Suspended/deactivated accounts show no badge (publicVerification)
+          ...publicVerification(user),
           locationId: (user as any).location_id,
           locationName: (user as any).locations?.name,
           locationFullPath: (user as any).locations?.slug,
