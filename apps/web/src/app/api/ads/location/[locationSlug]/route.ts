@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { cleanupExpiredPromotionFlags } from '@/lib/promotion/cleanupExpired';
 
 /**
@@ -89,6 +90,8 @@ export async function GET(
             account_type: true,
             business_verification_status: true,
             individual_verified: true,
+            is_suspended: true,
+            is_active: true,
           },
         },
         ad_images: {
@@ -131,10 +134,11 @@ export async function GET(
       locationType: ad.locations?.type,
       locationSlug: ad.locations?.slug,
       sellerAccountType: ad.users_ads_user_idTousers?.account_type,
+      // Suspended/deactivated sellers show no badge (publicVerification)
       sellerBusinessVerified:
-        ad.users_ads_user_idTousers?.business_verification_status,
+        publicVerification(ad.users_ads_user_idTousers).businessVerificationStatus,
       sellerIndividualVerified:
-        ad.users_ads_user_idTousers?.individual_verified,
+        publicVerification(ad.users_ads_user_idTousers).individualVerified,
       primaryImage: ad.ad_images[0]?.file_path || null,
     }));
 

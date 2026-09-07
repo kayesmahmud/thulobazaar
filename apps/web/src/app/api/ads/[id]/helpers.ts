@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 
 // Prisma ad with relations type
 export type AdWithRelations = Prisma.adsGetPayload<{
@@ -55,6 +56,8 @@ export type AdWithRelations = Prisma.adsGetPayload<{
         individual_verified: true;
         business_name: true;
         business_verification_status: true;
+        is_suspended: true;
+        is_active: true;
         created_at: true;
       };
     };
@@ -132,9 +135,9 @@ export function transformAdToResponse(ad: AdWithRelations, locationHierarchy: Lo
           avatar: ad.users_ads_user_idTousers.avatar,
           bio: ad.users_ads_user_idTousers.bio,
           shopSlug: ad.users_ads_user_idTousers.shop_slug,
-          individualVerified: ad.users_ads_user_idTousers.individual_verified,
+          // Suspended/deactivated sellers show no badge (publicVerification)
+          ...publicVerification(ad.users_ads_user_idTousers),
           businessName: ad.users_ads_user_idTousers.business_name,
-          businessVerificationStatus: ad.users_ads_user_idTousers.business_verification_status,
           memberSince: ad.users_ads_user_idTousers.created_at,
         }
       : null,
@@ -250,6 +253,8 @@ export const adSelectQuery = {
       individual_verified: true,
       business_name: true,
       business_verification_status: true,
+      is_suspended: true,
+      is_active: true,
       created_at: true,
     },
   },

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { Metadata } from 'next';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import ShopsFilters from './ShopsFilters';
 import ShopCard from './ShopCard';
 import ShopsPagination from './ShopsPagination';
@@ -160,6 +161,8 @@ export default async function ShopsPage({ params, searchParams }: ShopsPageProps
         account_type: true,
         business_verification_status: true,
         individual_verified: true,
+        is_suspended: true,
+        is_active: true,
         created_at: true,
         default_category: {
           select: {
@@ -216,8 +219,8 @@ export default async function ShopsPage({ params, searchParams }: ShopsPageProps
     bio: shop.bio,
     businessDescription: shop.business_description,
     accountType: shop.account_type,
-    businessVerificationStatus: shop.business_verification_status,
-    individualVerified: shop.individual_verified || false,
+    // Suspended/deactivated accounts show no badge (publicVerification)
+    ...publicVerification(shop),
     categoryName: shop.default_category?.name || null,
     categoryIcon: shop.default_category?.icon || null,
     subcategoryName: shop.default_subcategory?.name || null,

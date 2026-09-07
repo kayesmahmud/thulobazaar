@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { AdsFilter, AdsSearchBar, AdsFilterWrapper, AdCard, AdBanner, SortDropdown, AdsPagination } from '@/components/ads';
 import { parseAdUrlParams, getFilterIds, generateAdListingMetadata } from '@/lib/urls';
 import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
@@ -356,8 +357,9 @@ export default async function AdsPage({ params, searchParams }: AdsPageProps) {
                           condition: ad.condition || null,
                           slug: ad.slug || undefined,
                           accountType: ad.users_ads_user_idTousers?.account_type || undefined,
-                          businessVerificationStatus: ad.users_ads_user_idTousers?.business_verification_status || undefined,
-                          individualVerified: ad.users_ads_user_idTousers?.individual_verified || false,
+                          // Suspended/deactivated sellers show no badge (publicVerification)
+                          businessVerificationStatus: publicVerification(ad.users_ads_user_idTousers).businessVerificationStatus || undefined,
+                          individualVerified: publicVerification(ad.users_ads_user_idTousers).individualVerified,
                         }}
                       />
                       {/* In-Feed Ad after every 6th card */}

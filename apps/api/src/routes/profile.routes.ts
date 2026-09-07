@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@thulobazaar/database';
+import { publicVerification } from '@thulobazaar/types';
 import { catchAsync, NotFoundError } from '../middleware/errorHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { uploadAvatar, uploadCover } from '../middleware/upload.js';
@@ -506,6 +507,8 @@ router.get(
         business_name: true,
         business_verification_status: true,
         individual_verified: true,
+        is_suspended: true,
+        is_active: true,
         created_at: true,
       },
     });
@@ -529,8 +532,8 @@ router.get(
         accountType: user.account_type,
         shopSlug: user.custom_shop_slug || user.shop_slug,
         businessName: user.business_name,
-        businessVerificationStatus: user.business_verification_status,
-        individualVerified: user.individual_verified,
+        // Suspended/deactivated accounts show no badge (publicVerification)
+        ...publicVerification(user),
         createdAt: user.created_at,
         adsCount,
       },
