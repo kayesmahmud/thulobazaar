@@ -12,19 +12,28 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
-import { Send, Headphones } from 'lucide-react';
+import { Send, Headphones, ImagePlus, X } from 'lucide-react';
 import { useBackendToken } from '@/hooks/useBackendToken';
 import { useSupportSocket } from '@/hooks/useSupportSocket';
 import { checkProfanity } from '@/utils/profanityCheck';
+import {
+  isImageAttachment,
+  SUPPORT_IMAGE_LIMIT_CODE,
+  SUPPORT_IMAGE_MAX_BYTES,
+} from '@/lib/supportAttachmentDisplay';
 
 interface LiveChatMessage {
   id: number;
   senderId: number;
   content: string;
+  type?: string;
+  attachmentUrl?: string | null;
   createdAt: string;
   isOwnMessage: boolean;
   sender: { id: number; fullName: string | null; avatar: string | null; isStaff: boolean };
 }
+
+const WARNING_DISMISS_MS = 5000;
 
 export default function LiveChatClient() {
   const t = useTranslations('liveChat');
@@ -38,6 +47,37 @@ export default function LiveChatClient() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Preview is an object URL — revoke it whenever the photo changes or goes away.
+  useEffect(() => {
+    if (!pendingImage) {
+      setPendingImagePreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingImage);
+    setPendingImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingImage]);
+
+  const showWarning = (text: string) => {
+    setWarning(text);
+    setTimeout(() => setWarning(null), WARNING_DISMISS_MS);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so the same file can be picked again after removing it.
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > SUPPORT_IMAGE_MAX_BYTES) {
+      showWarning(t('imageTooLarge'));
+      return;
+    }
+    setPendingImage(file);
+  };
   // Shown between the user's message and the assistant's reply — the AI takes
   // several seconds to think, and without this the screen looks frozen.
   const [assistantTyping, setAssistantTyping] = useState(false);
@@ -136,30 +176,52 @@ export default function LiveChatClient() {
     return () => leaveTicket(ticketId);
   }, [ticketId, isConnected, joinTicket, leaveTicket]);
 
+  /** Returns the stored URL, or null after showing the right warning. */
+  const uploadPendingImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await fetch('/api/support/upload', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${backendToken}` },
+      body: formData,
+    });
+    const data = await response.json().catch(() => null);
+    if (data?.success && data.data?.url) return data.data.url;
+    const limitHit = response.status === 429 || data?.code === SUPPORT_IMAGE_LIMIT_CODE;
+    showWarning(limitHit ? t('imageLimitReached') : t('imageUploadFailed'));
+    return null;
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const content = input.trim();
-    if (!content || sending) return;
+    if ((!content && !pendingImage) || sending) return;
 
-    if (checkProfanity(content).hasProfanity) {
-      setWarning(t('profanityWarning'));
-      setTimeout(() => setWarning(null), 5000);
+    if (content && checkProfanity(content).hasProfanity) {
+      showWarning(t('profanityWarning'));
       return;
     }
     setWarning(null);
     setSending(true);
     try {
+      let attachmentUrl: string | null = null;
+      if (pendingImage) {
+        attachmentUrl = await uploadPendingImage(pendingImage);
+        if (!attachmentUrl) return;
+      }
+
       const response = await fetch('/api/support/live-chat/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${backendToken}`,
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(attachmentUrl ? { content, attachmentUrl } : { content }),
       });
-      const data = await response.json();
-      if (data.success) {
+      const data = await response.json().catch(() => null);
+      if (data?.success) {
         setInput('');
+        setPendingImage(null);
         setTicketId(data.data.ticketId);
         setMessages((prev) =>
           prev.some((m) => m.id === data.data.message.id)
@@ -168,13 +230,22 @@ export default function LiveChatClient() {
         );
         startTypingIndicator();
         scrollToBottom();
+        return;
+      }
+      if (response.status === 429 || data?.code === SUPPORT_IMAGE_LIMIT_CODE) {
+        showWarning(t('imageLimitReached'));
+      } else if (attachmentUrl) {
+        showWarning(t('imageUploadFailed'));
       }
     } catch (err) {
       console.error('Live chat send error:', err);
+      if (pendingImage) showWarning(t('imageUploadFailed'));
     } finally {
       setSending(false);
     }
   };
+
+  const canSend = (!!input.trim() || !!pendingImage) && !sending;
 
   if (sessionStatus === 'loading' || tokenLoading) {
     return (
@@ -253,7 +324,26 @@ export default function LiveChatClient() {
                         {message.sender.fullName}
                       </p>
                     )}
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    {message.attachmentUrl && isImageAttachment(message) && (
+                      <a
+                        href={message.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-lg hover:opacity-90 transition-opacity"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={message.attachmentUrl}
+                          alt={t('photo')}
+                          className="max-w-full h-auto max-h-64 rounded-lg object-cover"
+                        />
+                      </a>
+                    )}
+                    {message.content && (
+                      <p className={`whitespace-pre-wrap break-words ${message.attachmentUrl ? 'mt-2' : ''}`}>
+                        {message.content}
+                      </p>
+                    )}
                     <div
                       className={`text-[11px] mt-1 ${
                         message.isOwnMessage ? 'text-white/70 text-right' : 'text-gray-400'
@@ -292,7 +382,48 @@ export default function LiveChatClient() {
         )}
 
         <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-200">
+          {pendingImagePreview && (
+            <div className="flex items-center gap-3 mb-2 px-1">
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={pendingImagePreview}
+                  alt={t('photo')}
+                  className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPendingImage(null)}
+                  disabled={sending}
+                  aria-label={t('removePhoto')}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-800 text-white flex items-center justify-center hover:bg-gray-900 disabled:opacity-50"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <span className="text-xs text-gray-500" aria-live="polite">
+                {sending ? t('sendingPhoto') : t('photo')}
+              </span>
+            </div>
+          )}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sending}
+              aria-label={t('attachPhoto')}
+              title={t('attachPhoto')}
+              className="min-w-11 min-h-11 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 transition-colors"
+            >
+              <ImagePlus size={22} />
+            </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -304,13 +435,13 @@ export default function LiveChatClient() {
               }}
               rows={1}
               placeholder={t('inputPlaceholder')}
-              className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent max-h-32"
+              className="flex-1 min-w-0 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent max-h-32"
             />
             <button
               type="submit"
-              disabled={!input.trim() || sending}
+              disabled={!canSend}
               aria-label={t('send')}
-              className="p-2.5 rounded-xl bg-rose-600 text-white disabled:opacity-50 hover:bg-rose-700 transition-colors"
+              className="min-w-11 min-h-11 flex items-center justify-center rounded-xl bg-rose-600 text-white disabled:opacity-50 hover:bg-rose-700 transition-colors"
             >
               {sending ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

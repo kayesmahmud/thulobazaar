@@ -1185,7 +1185,14 @@
     "signInRequired": "Please sign in",
     "signInMessage": "Sign in to start chatting with us.",
     "signIn": "Sign In",
-    "assistantTyping": "Assistant is typing"
+    "assistantTyping": "Assistant is typing",
+    "attachPhoto": "Attach a photo",
+    "removePhoto": "Remove photo",
+    "photo": "Photo",
+    "sendingPhoto": "Sending photo…",
+    "imageTooLarge": "Photo must be smaller than 5 MB.",
+    "imageLimitReached": "You can send up to 5 photos every 10 minutes. Please wait a few minutes.",
+    "imageUploadFailed": "Could not send the photo. Please try again."
   },
   "scamPrevention": {
     "title": "Scam Prevention",

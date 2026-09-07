@@ -13,7 +13,7 @@ interface SupportMessage {
   senderId: number;
   content: string;
   type: string;
-  attachmentUrl?: string;
+  attachmentUrl?: string | null;
   isInternal: boolean;
   createdAt: string;
   sender: {
@@ -182,8 +182,9 @@ export function useSupportSocket({
   const sendMessage = useCallback((
     ticketId: number,
     content: string,
-    isInternal = false
-  ): Promise<{ success: boolean; message?: SupportMessage; error?: string }> => {
+    isInternal = false,
+    attachmentUrl?: string | null
+  ): Promise<{ success: boolean; message?: SupportMessage; error?: string; code?: string }> => {
     return new Promise((resolve) => {
       if (!socketRef.current || !isConnected) {
         resolve({ success: false, error: 'Socket not connected' });
@@ -192,10 +193,10 @@ export function useSupportSocket({
 
       socketRef.current.emit(
         'support:send-message',
-        { ticketId, content, isInternal },
+        { ticketId, content, isInternal, ...(attachmentUrl ? { attachmentUrl } : {}) },
         (response: any) => {
           if (response.error) {
-            resolve({ success: false, error: response.error });
+            resolve({ success: false, error: response.error, code: response.code });
           } else {
             resolve({ success: true, message: response.message });
           }

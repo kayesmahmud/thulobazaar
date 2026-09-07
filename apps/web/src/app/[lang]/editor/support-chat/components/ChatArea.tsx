@@ -1,8 +1,9 @@
 'use client';
 
-import { RefObject } from 'react';
+import { RefObject, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { FileText } from 'lucide-react';
+import { FileText, ImagePlus, X } from 'lucide-react';
+import { isImageAttachment } from '@/lib/supportAttachmentDisplay';
 import type { TicketDetail, TicketMessage } from './types';
 
 interface ChatAreaProps {
@@ -21,6 +22,10 @@ interface ChatAreaProps {
   onSendMessage: () => void;
   profanityWarning?: string | null;
   onDismissProfanityWarning?: () => void;
+  /** Object URL of the photo waiting in the composer, if any. */
+  pendingImagePreview?: string | null;
+  onAttachImage?: (file: File) => void;
+  onRemoveImage?: () => void;
   /** Mobile master-detail: return to the ticket list (hidden on lg+). */
   onBack?: () => void;
   /**
@@ -46,6 +51,9 @@ export function ChatArea({
   onSendMessage,
   profanityWarning,
   onDismissProfanityWarning,
+  pendingImagePreview,
+  onAttachImage,
+  onRemoveImage,
   onBack,
   showStatusControl = true,
 }: ChatAreaProps) {
@@ -124,6 +132,9 @@ export function ChatArea({
           isConnected={isConnected}
           onMessageInputChange={onMessageInputChange}
           onSendMessage={onSendMessage}
+          pendingImagePreview={pendingImagePreview}
+          onAttachImage={onAttachImage}
+          onRemoveImage={onRemoveImage}
         />
       )}
     </div>
@@ -251,7 +262,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         
         {message.attachmentUrl && (
           <div className="mb-2 mt-1">
-            {message.attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+            {isImageAttachment(message) ? (
               <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-gray-200 hover:opacity-90 transition-opacity">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={message.attachmentUrl} alt="Attachment" className="max-w-full h-auto max-h-64 object-cover" />
@@ -270,7 +281,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+        {message.content && <div className="text-sm whitespace-pre-wrap">{message.content}</div>}
         <div className={`text-xs mt-1 ${isAgent && !message.isInternal ? 'text-teal-100' : 'opacity-70'}`}>
           {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
         </div>
@@ -319,6 +330,9 @@ interface MessageInputProps {
   isConnected: boolean;
   onMessageInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSendMessage: () => void;
+  pendingImagePreview?: string | null;
+  onAttachImage?: (file: File) => void;
+  onRemoveImage?: () => void;
 }
 
 function CsatBanner({ ticket }: { ticket: TicketDetail }) {
@@ -369,7 +383,21 @@ function MessageInput({
   isConnected,
   onMessageInputChange,
   onSendMessage,
+  pendingImagePreview,
+  onAttachImage,
+  onRemoveImage,
 }: MessageInputProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasPhoto = !!pendingImagePreview;
+  const canSend = (!!newMessage.trim() || hasPhoto) && !sendingMessage;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onAttachImage?.(file);
+    // Allow re-picking the same file after removing it.
+    e.target.value = '';
+  };
+
   return (
     <div className="p-4 border-t border-gray-200 bg-white">
       {/* Toggle UI */}
@@ -399,11 +427,56 @@ function MessageInput({
         </label>
       </div>
 
+      {pendingImagePreview && (
+        <div className="mb-2 px-1 flex items-center gap-3">
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pendingImagePreview}
+              alt="Photo to send"
+              className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+            />
+            <button
+              type="button"
+              onClick={onRemoveImage}
+              disabled={sendingMessage}
+              aria-label="Remove photo"
+              title="Remove photo"
+              className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-800 text-white flex items-center justify-center hover:bg-gray-900 disabled:opacity-50"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <span className="text-xs text-gray-500">
+            {sendingMessage ? 'Sending photo…' : 'Photo'}
+          </span>
+        </div>
+      )}
+
       <div className={`flex gap-2 p-2 rounded-xl transition-all
          ${isInternal
           ? 'bg-yellow-50'
           : 'bg-gray-100'
         }`}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <div className="flex flex-col justify-end">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sendingMessage || !onAttachImage}
+            title="Attach photo"
+            aria-label="Attach photo"
+            className="p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ImagePlus size={20} />
+          </button>
+        </div>
         <textarea
           value={newMessage}
           onChange={onMessageInputChange}
@@ -413,14 +486,14 @@ function MessageInput({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              onSendMessage();
+              if (canSend) onSendMessage();
             }
           }}
         />
         <div className="flex flex-col justify-end">
           <button
             onClick={onSendMessage}
-            disabled={!newMessage.trim() || sendingMessage}
+            disabled={!canSend}
             className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isInternal
                 ? 'bg-yellow-600 hover:bg-yellow-700'
                 : 'bg-teal-600 hover:bg-teal-700'

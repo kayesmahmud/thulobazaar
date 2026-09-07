@@ -10,6 +10,12 @@ import { prisma } from '@thulobazaar/database';
 import { requireAuth } from '@/lib/auth';
 import { censorProfanity } from '@/utils/profanityCheck';
 import { notifySupportEvent } from '@/lib/supportBridge';
+import {
+  isSupportAttachmentUrl,
+  supportImageQuotaExceeded,
+  SUPPORT_IMAGE_LIMIT_CODE,
+  SUPPORT_IMAGE_LIMIT_MESSAGE,
+} from '@/lib/supportAttachments';
 
 /**
  * GET - Get ticket details with messages
@@ -310,9 +316,17 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { content, type = 'text', attachmentUrl, isInternal = false } = body;
+    const { content, isInternal = false } = body;
+    const attachmentUrl: string | null = body.attachmentUrl || null;
+    const type = attachmentUrl ? 'image' : 'text';
 
-    if (!content && !attachmentUrl) {
+    if (attachmentUrl && !isSupportAttachmentUrl(attachmentUrl)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid attachment' },
+        { status: 400 }
+      );
+    }
+    if (!content?.trim() && !attachmentUrl) {
       return NextResponse.json(
         { success: false, message: 'Message content is required' },
         { status: 400 }
@@ -349,6 +363,13 @@ export async function POST(
 
     // Non-staff cannot send internal messages
     const actualIsInternal = isStaff ? isInternal : false;
+
+    if (attachmentUrl && (await supportImageQuotaExceeded(userId))) {
+      return NextResponse.json(
+        { success: false, code: SUPPORT_IMAGE_LIMIT_CODE, message: SUPPORT_IMAGE_LIMIT_MESSAGE },
+        { status: 429 }
+      );
+    }
 
     // Create message
     const message = await prisma.support_messages.create({
