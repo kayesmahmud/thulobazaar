@@ -155,9 +155,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           },
         },
       },
-      orderBy: {
-        featured_until: 'desc',
-      },
+      // Most recently bought promotion first; publish date breaks ties
+      // (comped promotions often share the exact same expiry).
+      orderBy: [{ featured_until: 'desc' }, { published_at: { sort: 'desc', nulls: 'last' } }],
       take: 20,
     }),
     // Latest feed: paginated over the full catalog (newest-approved first)

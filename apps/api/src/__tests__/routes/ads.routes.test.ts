@@ -239,6 +239,26 @@ describe('Ads Routes', () => {
       );
     });
 
+    it('ranks the featured strip by newest promotion, then publish date', async () => {
+      const { prisma } = await import('@thulobazaar/database');
+
+      vi.mocked(prisma.ads.findMany).mockResolvedValue([mockAd] as any);
+      vi.mocked(prisma.ads.count).mockResolvedValue(1);
+
+      const response = await request(app).get('/api/ads?is_featured=true');
+
+      expect(response.status).toBe(200);
+      expect(prisma.ads.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ is_featured: true }),
+          orderBy: [
+            { featured_until: 'desc' },
+            { published_at: { sort: 'desc', nulls: 'last' } },
+          ],
+        })
+      );
+    });
+
     it('should pin urgent then sticky ahead of the sort on filtered listings', async () => {
       const { prisma } = await import('@thulobazaar/database');
 
