@@ -49,6 +49,7 @@ export default function Footer({ lang }: FooterProps) {
               <h4 className="text-sm font-semibold text-white mb-3">{t('helpAndSupport')}</h4>
               <ul className="space-y-2">
                 <li><Link href={`/${lang}/help`} className="text-sm text-gray-400 hover:text-rose-400">{t('helpCenter')}</Link></li>
+                <li><Link href={`/${lang}/scam-prevention`} className="text-sm text-gray-400 hover:text-rose-400">{t('scamPrevention')}</Link></li>
                 <li><Link href={`/${lang}/faq`} className="text-sm text-gray-400 hover:text-rose-400">{t('faq')}</Link></li>
                 <li><Link href={`/${lang}/live-chat`} className="text-sm text-gray-400 hover:text-rose-400">{t('liveChat')}</Link></li>
               <li><Link href={`/${lang}/support`} className="text-sm text-gray-400 hover:text-rose-400">{t('supportTickets')}</Link></li>
@@ -226,6 +227,15 @@ export default function Footer({ lang }: FooterProps) {
                 >
                   <span className="mr-2 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                   {t('helpCenter')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={`/${lang}/scam-prevention`}
+                  className="text-gray-400 hover:text-rose-400 transition-colors duration-200 flex items-center group"
+                >
+                  <span className="mr-2 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                  {t('scamPrevention')}
                 </Link>
               </li>
               <li>

@@ -17,6 +17,7 @@ import 'package:mobile/features/profile/delete_account_screen.dart';
 import 'package:mobile/features/profile/phone_verification_screen.dart';
 import 'package:mobile/features/profile/profile_screen.dart';
 import 'package:mobile/features/profile/two_factor_setup_screen.dart';
+import 'package:mobile/features/safety/scam_prevention_screen.dart';
 import 'package:mobile/features/settings/active_sessions_screen.dart';
 import 'package:mobile/features/settings/dialogs/change_password_dialog.dart';
 import 'package:mobile/features/settings/dialogs/disable_two_factor_dialog.dart';
@@ -353,6 +354,12 @@ class _HelpGroup extends StatelessWidget {
           tint: tint,
           title: 'drawer.contactUs'.tr(),
           onTap: () => _push(context, const ContactScreen()),
+        ),
+        SettingsRow(
+          icon: LucideIcons.shieldAlert,
+          tint: tint,
+          title: 'drawer.scamPrevention'.tr(),
+          onTap: () => _push(context, const ScamPreventionScreen()),
         ),
         SettingsRow(
           icon: LucideIcons.fileText,

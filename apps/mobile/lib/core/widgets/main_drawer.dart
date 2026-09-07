@@ -13,6 +13,7 @@ import 'package:mobile/features/auth/signup_screen.dart';
 import 'package:mobile/features/contact/contact_screen.dart';
 import 'package:mobile/features/dashboard/dashboard_screen.dart';
 import 'package:mobile/features/help/help_center_screen.dart';
+import 'package:mobile/features/safety/scam_prevention_screen.dart';
 import 'package:mobile/features/profile/profile_screen.dart';
 import 'package:mobile/features/settings/settings_screen.dart';
 import 'package:mobile/features/shop/shop_screen.dart';
@@ -143,6 +144,11 @@ class _MainDrawerState extends State<MainDrawer> {
                 icon: LucideIcons.messagesSquare,
                 label: 'drawer.liveChat'.tr(),
                 onTap: () => _open(const LiveChatScreen()),
+              ),
+              _Item(
+                icon: LucideIcons.shieldAlert,
+                label: 'drawer.scamPrevention'.tr(),
+                onTap: () => _open(const ScamPreventionScreen()),
               ),
               if (!signedIn)
                 _Item(
