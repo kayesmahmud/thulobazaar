@@ -18,7 +18,12 @@ class ReportReason {
     required this.labelKey,
     required this.icon,
   });
+
+  /// e.g. `report.spam` -> `report.spamDesc`
+  String get descKey => '${labelKey}Desc';
 }
+
+const _otherReason = 'other';
 
 const _reportReasons = [
   ReportReason(value: 'spam', labelKey: 'report.spam', icon: LucideIcons.mail),
@@ -75,15 +80,49 @@ class _ReportAdSheet extends StatefulWidget {
 
 class _ReportAdSheetState extends State<_ReportAdSheet> {
   final _detailsController = TextEditingController();
+  final _detailsFocus = FocusNode();
+  final _scrollController = ScrollController();
   final _adClient = AdClient();
 
   String? _selectedReason;
   bool _isSubmitting = false;
 
+  bool get _needsDetails => _selectedReason == _otherReason;
+
+  bool get _canSubmit {
+    if (_isSubmitting || _selectedReason == null) return false;
+    if (_needsDetails && _detailsController.text.trim().isEmpty) return false;
+    return true;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _detailsController.addListener(() => setState(() {}));
+    _detailsFocus.addListener(_revealDetailsAndSubmit);
+  }
+
   @override
   void dispose() {
     _detailsController.dispose();
+    _detailsFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Once the keyboard has finished sliding in, scroll the sheet to the very
+  /// bottom so the details box, the submit button and the note under it are
+  /// all visible above the keyboard.
+  void _revealDetailsAndSubmit() {
+    if (!_detailsFocus.hasFocus) return;
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   void _handleSubmit() async {
@@ -91,6 +130,12 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('report.selectReason'.tr())));
+      return;
+    }
+    if (_needsDetails && _detailsController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('report.detailsRequiredForOther'.tr())),
+      );
       return;
     }
 
@@ -131,185 +176,205 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
   @override
   Widget build(BuildContext context) {
     final isLoggedIn = context.watch<AuthProvider>().isAuthenticated;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final topPadding = MediaQuery.viewPaddingOf(context).top;
+    // Sheet sits on top of the keyboard; when the keyboard is open the sheet
+    // may use nearly the whole remaining screen so the details field and the
+    // submit button are never hidden behind it.
+    final maxHeight = keyboardInset > 0
+        ? screenHeight - keyboardInset - topPadding - 16
+        : screenHeight * 0.85;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
 
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      LucideIcons.flag,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'report.title'.tr(),
+                          style: AppFont.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          widget.adTitle,
+                          style: AppFont.inter(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(LucideIcons.x, size: 20),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    LucideIcons.flag,
-                    color: Color(0xFFEF4444),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+
+            // Content
+            if (!isLoggedIn)
+              _buildLoginRequired()
+            else
+              Flexible(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'report.title'.tr(),
+                        'report.whyReporting'.tr(),
                         style: AppFont.inter(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 12),
+
+                      // Reason chips
+                      ..._reportReasons.map(
+                        (reason) => _buildReasonTile(reason),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Details field
                       Text(
-                        widget.adTitle,
+                        _needsDetails
+                            ? 'report.additionalDetailsRequired'.tr()
+                            : 'report.additionalDetails'.tr(),
                         style: AppFont.inter(
-                          fontSize: 12,
-                          color: Colors.grey[500],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _detailsController,
+                        focusNode: _detailsFocus,
+                        maxLines: 3,
+                        maxLength: 500,
+                        decoration: InputDecoration(
+                          hintText: 'report.detailsHint'.tr(),
+                          helperText: _needsDetails
+                              ? 'report.detailsRequiredForOther'.tr()
+                              : null,
+                          helperMaxLines: 2,
+                          hintStyle: AppFont.inter(
+                            color: Colors.grey[400],
+                            fontSize: 13,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.all(12),
+                        ),
+                        style: AppFont.inter(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Submit button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _canSubmit ? _handleSubmit : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'report.submit'.tr(),
+                                  style: AppFont.inter(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      // Disclaimer
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12, bottom: 8),
+                        child: Text(
+                          'report.disclaimer'.tr(),
+                          style: AppFont.inter(
+                            fontSize: 11,
+                            color: Colors.grey[400],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(LucideIcons.x, size: 20),
-                ),
-              ],
-            ),
-          ),
-
-          // Content
-          if (!isLoggedIn)
-            _buildLoginRequired()
-          else
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'report.whyReporting'.tr(),
-                      style: AppFont.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Reason chips
-                    ..._reportReasons.map((reason) => _buildReasonTile(reason)),
-
-                    const SizedBox(height: 16),
-
-                    // Details field
-                    Text(
-                      'report.additionalDetails'.tr(),
-                      style: AppFont.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _detailsController,
-                      maxLines: 3,
-                      maxLength: 500,
-                      decoration: InputDecoration(
-                        hintText: 'report.detailsHint'.tr(),
-                        hintStyle: AppFont.inter(
-                          color: Colors.grey[400],
-                          fontSize: 13,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.all(12),
-                      ),
-                      style: AppFont.inter(fontSize: 14),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Submit button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting || _selectedReason == null
-                            ? null
-                            : _handleSubmit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEF4444),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'report.submit'.tr(),
-                                style: AppFont.inter(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    // Disclaimer
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 8),
-                      child: Text(
-                        'report.disclaimer'.tr(),
-                        style: AppFont.inter(
-                          fontSize: 11,
-                          color: Colors.grey[400],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -340,15 +405,30 @@ class _ReportAdSheetState extends State<_ReportAdSheet> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  reason.labelKey.tr(),
-                  style: AppFont.inter(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? const Color(0xFFEF4444)
-                        : Colors.grey[800],
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reason.labelKey.tr(),
+                      style: AppFont.inter(
+                        fontSize: 14,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? const Color(0xFFEF4444)
+                            : Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      reason.descKey.tr(),
+                      style: AppFont.inter(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (isSelected)

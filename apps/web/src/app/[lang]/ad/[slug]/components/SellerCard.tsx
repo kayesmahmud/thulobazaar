@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import AdActions from '../AdActions';
-import ReportAdButton from '../ReportAdButton';
 import SendMessageButton from '@/components/messages/SendMessageButton';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { MaskedPhoneButton } from './MaskedPhoneButton';
@@ -158,22 +157,6 @@ export async function SellerCard({
         showShareFavoriteOnly={true}
         initialFavoritesCount={favoritesCount}
       />
-
-      {/* Report — disabled for owner */}
-      <OwnerGuard sellerId={userId}>
-        <div style={{
-          marginTop: '1.5rem',
-          paddingTop: '1.5rem',
-          borderTop: '1px solid #e5e7eb',
-          textAlign: 'center'
-        }}>
-          <ReportAdButton
-            adId={adId}
-            adTitle={adTitle}
-            lang={lang}
-          />
-        </div>
-      </OwnerGuard>
     </div>
   );
 }

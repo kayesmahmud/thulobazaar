@@ -740,13 +740,25 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          l('description', context.locale.languageCode),
-                          style: AppFont.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1F2937),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l('description', context.locale.languageCode),
+                                style: AppFont.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ),
+                            // Report link lives opposite the section title so
+                            // buyers see it without hunting below the fold.
+                            // Hidden for the ad owner.
+                            if (context.read<AuthProvider>().userId !=
+                                ad.userId)
+                              _ReportThisAdLink(ad: ad),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         ExpandableText(
@@ -900,51 +912,6 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
 
                   // 8.5. SELLER INFORMATION CARD
                   SellerCard(ad: ad),
-
-                  // 9. REPORT LINK (hidden for ad owner)
-                  Builder(
-                    builder: (context) {
-                      final isOwner =
-                          context.read<AuthProvider>().userId == ad.userId;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Opacity(
-                          opacity: isOwner ? 0.4 : 1.0,
-                          child: GestureDetector(
-                            onTap: isOwner
-                                ? null
-                                : () => showReportAdSheet(
-                                    context,
-                                    adId: ad.id,
-                                    adTitle: ad.title,
-                                  ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  LucideIcons.flag,
-                                  color: isOwner
-                                      ? const Color(0xFF9CA3AF)
-                                      : const Color(0xFFEF4444),
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'report.reportThisAd'.tr(),
-                                  style: AppFont.inter(
-                                    color: const Color(0xFF9CA3AF),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
 
                   const SizedBox(height: 16),
 
@@ -1229,5 +1196,30 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         developer.log('Share failed: $e', name: 'AdDetailScreen');
       }
     }
+  }
+}
+
+class _ReportThisAdLink extends StatelessWidget {
+  final Ad ad;
+
+  const _ReportThisAdLink({required this.ad});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => showReportAdSheet(context, adId: ad.id, adTitle: ad.title),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        child: Text(
+          'report.reportThisAd'.tr(),
+          style: AppFont.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTokens.brandDeep,
+          ),
+        ),
+      ),
+    );
   }
 }

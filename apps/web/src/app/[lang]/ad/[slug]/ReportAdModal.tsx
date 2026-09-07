@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 
@@ -24,11 +25,25 @@ const REPORT_REASONS = [
 export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: ReportAdModalProps) {
   const { isAuthenticated } = useUserAuth();
   const t = useTranslations('ads');
+  const pathname = usePathname();
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const needsDetails = selectedReason === 'other';
+
+  // While the dialog is open the page behind it must not scroll, so every
+  // wheel / touch scroll goes to the dialog's own scroll container.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -40,6 +55,11 @@ export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: 
 
     if (!isAuthenticated) {
       setError(t('loginToReport'));
+      return;
+    }
+
+    if (needsDetails && !details.trim()) {
+      setError(t('detailsRequiredForOther'));
       return;
     }
 
@@ -93,15 +113,25 @@ export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+    // The dimmed overlay IS the scroll container (no separate fixed backdrop:
+    // a fixed sibling would swallow wheel/touch scrolling). The whole dialog,
+    // down to the submit button, is reachable by scrolling on any screen.
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/50 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
+        className="min-h-full flex items-center justify-center p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleClose();
+        }}
+      >
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col my-4 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="bg-gradient-to-r from-red-500 to-rose-500 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -127,7 +157,7 @@ export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: 
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-6">
           {success ? (
             /* Success State */
             <div className="text-center py-8">
@@ -150,7 +180,7 @@ export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: 
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('loginRequired')}</h3>
               <p className="text-gray-600 mb-4">{t('loginToReport')}</p>
               <a
-                href={`/${lang}/auth/login`}
+                href={`/${lang}/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                 className="inline-block px-6 py-2 bg-rose-500 text-white rounded-lg font-medium hover:bg-rose-600 transition-colors"
               >
                 {t('loginToContinue')}
@@ -204,20 +234,31 @@ export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: 
               </div>
 
               {/* Additional Details */}
-              <div className="mb-6">
+              <div className="mb-3">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('additionalDetails')}
+                  {needsDetails ? t('additionalDetailsRequired') : t('additionalDetails')}
+                  {needsDetails && <span className="text-red-500"> *</span>}
                 </label>
                 <textarea
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
+                  // On phones the on-screen keyboard can cover the bottom of the
+                  // modal; once it has opened, scroll so the field sits at the top
+                  // of the modal and the submit button below it stays visible.
+                  onFocus={(e) => {
+                    const field = e.currentTarget;
+                    setTimeout(() => field.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300);
+                  }}
                   placeholder={t('additionalDetailsPlaceholder')}
                   rows={3}
                   maxLength={500}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
                 />
-                <div className="text-xs text-gray-400 text-right mt-1">
-                  {details.length}/500
+                <div className="flex items-start justify-between gap-2 mt-1 text-xs">
+                  <p className="text-gray-500">
+                    {needsDetails && !details.trim() ? t('detailsRequiredForOther') : ''}
+                  </p>
+                  <span className="text-gray-400 shrink-0">{details.length}/500</span>
                 </div>
               </div>
 
@@ -250,6 +291,7 @@ export default function ReportAdModal({ adId, adTitle, isOpen, onClose, lang }: 
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

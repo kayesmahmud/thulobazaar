@@ -364,6 +364,8 @@
     "loginToContinue": "जारी राख्न लगइन गर्नुहोस्",
     "whyReporting": "तपाईं यो विज्ञापन किन रिपोर्ट गर्दै हुनुहुन्छ?",
     "additionalDetails": "थप विवरण (वैकल्पिक)",
+    "additionalDetailsRequired": "थप विवरण (आवश्यक)",
+    "detailsRequiredForOther": "\"अन्य\" छान्दा कृपया समस्या लेख्नुहोस्।",
     "additionalDetailsPlaceholder": "अनुसन्धानमा मद्दत गर्न सक्ने कुनै पनि थप जानकारी प्रदान गर्नुहोस्...",
     "submitting": "पेश गर्दैछ...",
     "submitReport": "रिपोर्ट पेश गर्नुहोस्",

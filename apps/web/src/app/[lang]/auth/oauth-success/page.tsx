@@ -18,7 +18,7 @@ export default function OAuthSuccessPage() {
 
     if (!token || !userParam) {
       console.error('Missing token or user in OAuth success');
-      router.push('/en/auth/login?error=MissingData');
+      router.push('/en/auth/signin?error=MissingData');
       return;
     }
 
@@ -41,7 +41,7 @@ export default function OAuthSuccessPage() {
 
         if (result?.error) {
           console.error('NextAuth sign-in error:', result.error);
-          router.push(`/en/auth/login?error=${result.error}`);
+          router.push(`/en/auth/signin?error=${result.error}`);
           return;
         }
 
@@ -55,11 +55,11 @@ export default function OAuthSuccessPage() {
           setStatus('Success! Redirecting...');
           router.push('/en');
         } else {
-          router.push('/en/auth/login?error=SignInFailed');
+          router.push('/en/auth/signin?error=SignInFailed');
         }
       } catch (error) {
         console.error('Failed to process OAuth success:', error);
-        router.push('/en/auth/login?error=ProcessingError');
+        router.push('/en/auth/signin?error=ProcessingError');
       }
     };
 

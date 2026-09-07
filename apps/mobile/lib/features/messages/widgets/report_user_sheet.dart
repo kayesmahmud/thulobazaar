@@ -86,6 +86,8 @@ class _ReportUserSheet extends StatefulWidget {
 
 class _ReportUserSheetState extends State<_ReportUserSheet> {
   final _detailsController = TextEditingController();
+  final _detailsFocus = FocusNode();
+  final _scrollController = ScrollController();
   final _messageClient = MessageClient();
 
   String? _selectedReason;
@@ -93,9 +95,32 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _detailsFocus.addListener(_revealDetailsAndSubmit);
+  }
+
+  @override
   void dispose() {
     _detailsController.dispose();
+    _detailsFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Once the keyboard has finished sliding in, scroll the sheet to the very
+  /// bottom so the details box, the submit button and the note under it are
+  /// all visible above the keyboard.
+  void _revealDetailsAndSubmit() {
+    if (!_detailsFocus.hasFocus) return;
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _handleSubmit() async {
@@ -139,209 +164,223 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final topPadding = MediaQuery.viewPaddingOf(context).top;
+    // Same keyboard handling as the report-ad sheet: sit above the keyboard
+    // and grow so the details field and submit button stay reachable.
+    final maxHeight = keyboardInset > 0
+        ? screenHeight - keyboardInset - topPadding - 16
+        : screenHeight * 0.85;
 
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    LucideIcons.flag,
-                    color: Color(0xFFEF4444),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'reportUser.title'.tr(),
-                        style: AppFont.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        widget.userName,
-                        style: AppFont.inter(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(LucideIcons.x, size: 20),
-                ),
-              ],
-            ),
-          ),
 
-          // Content
-          Flexible(
-            child: SingleChildScrollView(
+            // Header
+            Container(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    'reportUser.whyReporting'.tr(),
-                    style: AppFont.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      LucideIcons.flag,
+                      color: Color(0xFFEF4444),
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  ..._userReportReasons.map(_buildReasonTile),
-
-                  const SizedBox(height: 16),
-
-                  Text(
-                    'reportUser.additionalDetails'.tr(),
-                    style: AppFont.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _detailsController,
-                    maxLines: 3,
-                    maxLength: 500,
-                    decoration: InputDecoration(
-                      hintText: 'reportUser.detailsHint'.tr(),
-                      hintStyle: AppFont.inter(
-                        color: Colors.grey[400],
-                        fontSize: 13,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
-                    style: AppFont.inter(fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (_errorMessage != null) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFFECACA)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            LucideIcons.alertCircle,
-                            size: 18,
-                            color: Color(0xFFEF4444),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'reportUser.title'.tr(),
+                          style: AppFont.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: AppFont.inter(
-                                fontSize: 13,
-                                color: const Color(0xFFB91C1C),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isSubmitting || _selectedReason == null
-                          ? null
-                          : _handleSubmit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              'reportUser.submit'.tr(),
-                              style: AppFont.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
+                        Text(
+                          widget.userName,
+                          style: AppFont.inter(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12, bottom: 8),
-                    child: Text(
-                      'reportUser.disclaimer'.tr(),
-                      style: AppFont.inter(
-                        fontSize: 11,
-                        color: Colors.grey[400],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(LucideIcons.x, size: 20),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'reportUser.whyReporting'.tr(),
+                      style: AppFont.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    ..._userReportReasons.map(_buildReasonTile),
+
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'reportUser.additionalDetails'.tr(),
+                      style: AppFont.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _detailsController,
+                      focusNode: _detailsFocus,
+                      maxLines: 3,
+                      maxLength: 500,
+                      decoration: InputDecoration(
+                        hintText: 'reportUser.detailsHint'.tr(),
+                        hintStyle: AppFont.inter(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                      style: AppFont.inter(fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+
+                    if (_errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              LucideIcons.alertCircle,
+                              size: 18,
+                              color: Color(0xFFEF4444),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: AppFont.inter(
+                                  fontSize: 13,
+                                  color: const Color(0xFFB91C1C),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting || _selectedReason == null
+                            ? null
+                            : _handleSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEF4444),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'reportUser.submit'.tr(),
+                                style: AppFont.inter(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 8),
+                      child: Text(
+                        'reportUser.disclaimer'.tr(),
+                        style: AppFont.inter(
+                          fontSize: 11,
+                          color: Colors.grey[400],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
