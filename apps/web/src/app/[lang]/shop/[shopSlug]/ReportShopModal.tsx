@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { usePathname } from 'next/navigation';
 import { useUserAuth } from '@/contexts/UserAuthContext';
 import { useSession } from 'next-auth/react';
 
@@ -24,6 +25,7 @@ const REPORT_REASONS = [
 
 export default function ReportShopModal({ shopId, shopName, isOpen, onClose, lang }: ReportShopModalProps) {
   const t = useTranslations('shop');
+  const pathname = usePathname();
   const { isAuthenticated } = useUserAuth();
   const { data: session } = useSession();
   const [selectedReason, setSelectedReason] = useState<string>('');
@@ -162,7 +164,7 @@ export default function ReportShopModal({ shopId, shopName, isOpen, onClose, lan
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('loginRequired')}</h3>
               <p className="text-gray-600 mb-4">{t('loginToReportShop')}</p>
               <a
-                href={`/${lang}/auth/login`}
+                href={`/${lang}/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                 className="inline-block px-6 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
               >
                 {t('loginToContinue')}

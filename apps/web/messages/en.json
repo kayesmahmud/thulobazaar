@@ -362,6 +362,8 @@
     "loginToContinue": "Login to Continue",
     "whyReporting": "Why are you reporting this ad?",
     "additionalDetails": "Additional details (optional)",
+    "additionalDetailsRequired": "Additional details (required)",
+    "detailsRequiredForOther": "Please describe the issue when choosing \"Other\".",
     "additionalDetailsPlaceholder": "Provide any additional information that might help us investigate...",
     "submitting": "Submitting...",
     "submitReport": "Submit Report",

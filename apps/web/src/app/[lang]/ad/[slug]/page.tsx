@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import AdDetailClient from './AdDetailClient';
 import TrackViewContent from './TrackViewContent';
 import PromoteSection from './PromoteSection';
+import ReportAdButton from './ReportAdButton';
 import OwnerEditButton from './OwnerEditButton';
 import { Breadcrumb } from '@/components/ui';
 import PromotionSuccessToast from './PromotionSuccessToast';
@@ -483,7 +484,15 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
               />
 
               <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('description')}</h2>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">{t('description')}</h2>
+                  <ReportAdButton
+                    adId={ad.id}
+                    adTitle={ad.title}
+                    lang={lang}
+                    sellerId={ad.user_id}
+                  />
+                </div>
                 <p className="text-gray-600 leading-relaxed whitespace-pre-line">{ad.description}</p>
               </div>
 
