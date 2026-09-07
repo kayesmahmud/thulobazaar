@@ -63,6 +63,17 @@ npm run db:check-drift             # Check for schema drift (CRITICAL!)
 # See: SCHEMA_DRIFT_PREVENTION.md for full guide
 ```
 
+### Mobile store builds (MUST run the check first)
+```bash
+apps/mobile/scripts/check_store_version.sh   # asks the App Store + Play Store what is LIVE;
+                                              # exit 1 = pubspec version is not above it → bump first
+```
+- Never trust a note, a memory, or git history for the last shipped version — the stores are the truth.
+  1.3.3 was rejected by Transporter on 2026-09-08 because it had already been approved and nobody bumped pubspec.
+- The marketing version (`1.3.4`) must be HIGHER than the live one on BOTH stores; the build number (`+28`) must always increase.
+- Build store artifacts from a clean worktree of the committed HEAD, in one sequence: `flutter build apk` → `appbundle` → `ipa`.
+  Output goes to `apps/mobile/build/release-<version>+<build>/`, never to ~/Downloads.
+
 ### Fix Ports
 ```bash
 lsof -ti:3333 | xargs kill -9  # Frontend
