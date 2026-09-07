@@ -32,6 +32,7 @@ class VerificationBenefitsGrid extends StatelessWidget {
 
     return GridView.count(
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
       mainAxisSpacing: 12,

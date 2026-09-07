@@ -399,6 +399,7 @@ class _VerificationScreenState extends State<VerificationScreen>
             // 2-col grid of duration options
             GridView.builder(
               shrinkWrap: true,
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,

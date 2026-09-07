@@ -1087,6 +1087,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.count(
         shrinkWrap: true,
+        // A nested scroll view with null padding inherits the MediaQuery
+        // padding — here the floating tab bar's reserved bottom height —
+        // which showed up as a blank band under the last row.
+        padding: EdgeInsets.zero,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: 2,
         childAspectRatio: 0.65,

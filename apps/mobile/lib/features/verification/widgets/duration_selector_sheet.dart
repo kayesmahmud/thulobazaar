@@ -131,6 +131,7 @@ class _DurationSelectorSheetState extends State<DurationSelectorSheet> {
                 // Duration options grid
                 GridView.builder(
                   shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
