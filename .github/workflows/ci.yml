@@ -71,7 +71,8 @@ jobs:
           npm run build -w packages/api-client
 
       - name: Fix platform-specific native modules
-        run: npm install --no-save @rollup/rollup-linux-x64-gnu
+        # sharp's Linux binary is needed by the image-orientation unit test
+        run: npm install --no-save @rollup/rollup-linux-x64-gnu @img/sharp-linux-x64@0.34.5
 
       - name: Run Unit Tests
         run: npm run test:run
