@@ -86,8 +86,13 @@ export async function processAndSaveImage(
 
   const outputPath = path.join(fullUploadPath, filename);
 
-  // Process image with sharp
-  let sharpInstance = sharp(buffer);
+  // Bake the EXIF orientation tag into the pixels. Phone cameras store portrait
+  // shots as landscape pixels + a tag; re-encoding without rotate() drops the
+  // tag and the saved photo comes out sideways.
+  let sharpInstance = sharp(buffer).rotate();
+
+  // Dimensions as displayed (after orientation), not as stored
+  const { width, height } = metadata.autoOrient;
 
   // Resize if needed
   if (opts.maxWidth || opts.maxHeight) {
@@ -97,17 +102,17 @@ export async function processAndSaveImage(
     });
   }
 
-  if (opts.watermark && metadata.width && metadata.height) {
+  if (opts.watermark && width && height) {
     // sharp applies composite after resize, so size the overlay for the
     // final dimensions (fit: 'inside' preserves aspect ratio)
     const scale = Math.min(
-      opts.maxWidth ? opts.maxWidth / metadata.width : 1,
-      opts.maxHeight ? opts.maxHeight / metadata.height : 1,
+      opts.maxWidth ? opts.maxWidth / width : 1,
+      opts.maxHeight ? opts.maxHeight / height : 1,
       1
     );
     const overlay = await adWatermarkOverlay(
-      Math.round(metadata.width * scale),
-      Math.round(metadata.height * scale)
+      Math.round(width * scale),
+      Math.round(height * scale)
     );
     if (overlay.length > 0) {
       sharpInstance = sharpInstance.composite(overlay);
