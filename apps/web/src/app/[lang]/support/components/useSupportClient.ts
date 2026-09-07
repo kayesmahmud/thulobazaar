@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useBackendToken } from '@/hooks/useBackendToken';
 import { checkProfanity } from '@/utils/profanityCheck';
 import { useSupportSocket } from '@/hooks/useSupportSocket';
+import { SUPPORT_IMAGE_LIMIT_CODE, SUPPORT_IMAGE_MAX_BYTES } from '@/lib/supportAttachmentDisplay';
 import type { Ticket, TicketDetail, NewTicketData } from './types';
 
 export interface UseSupportClientReturn {
@@ -319,58 +320,66 @@ export function useSupportClient(): UseSupportClientReturn {
 
   const handleFileUpload = async (file: File) => {
     if (!selectedTicket) return;
+    if (file.size > SUPPORT_IMAGE_MAX_BYTES) {
+      setError('Photo must be smaller than 5 MB.');
+      return;
+    }
 
     try {
       setSendingFile(true);
+      setError(null);
       const formData = new FormData();
       formData.append('image', file);
 
-      // Upload to messaging endpoint (reusing existing upload infrastructure)
-      const uploadRes = await fetch('/api/messages/upload', {
+      const uploadRes = await fetch('/api/support/upload', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${backendToken}`,
         },
         body: formData,
       });
-
       const uploadData = await uploadRes.json();
-
       if (!uploadData.success) {
-        throw new Error(uploadData.message || 'Upload failed');
+        // The server's quota message is the one worth showing verbatim.
+        throw new Error(uploadData.message || 'Could not send the photo. Please try again.');
       }
 
-      // Send message with attachment
+      const attachmentUrl: string = uploadData.data.url;
+
       if (isConnected) {
-        // Note: Socket might not support attachmentUrl yet in this client-side impl
-        // leaving implementation to API fallback below for now
+        const result = await sendSocketMessage(selectedTicket.id, '', isInternal, attachmentUrl);
+        if (result.success && result.message) {
+          setSelectedTicket((prev) => {
+            if (!prev || prev.messages.some((m) => m.id === result.message!.id)) return prev;
+            return { ...prev, messages: [...prev.messages, { ...result.message!, isOwnMessage: true }] };
+          });
+          setIsInternal(false);
+          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+          return;
+        }
+        if (result.code === SUPPORT_IMAGE_LIMIT_CODE) {
+          throw new Error(result.error || 'Photo limit reached. Please wait a few minutes.');
+        }
       }
 
-      // Fallback to REST API for file messages to ensure attachment is linked
       const response = await fetch(`/api/support/tickets/${selectedTicket.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${backendToken}`,
         },
-        body: JSON.stringify({
-          content: 'Sent an attachment',
-          attachmentUrl: uploadData.data.url,
-          isInternal: isInternal
-        }),
+        body: JSON.stringify({ content: '', attachmentUrl, isInternal }),
       });
-
       const data = await response.json();
       if (data.success) {
         loadTicketDetail(selectedTicket.id);
-        setIsInternal(false); // Reset internal flag after sending
+        setIsInternal(false);
       } else {
         setError(data.message);
       }
-
     } catch (err: any) {
       console.error('File upload error:', err);
-      setError(err.message || 'Failed to upload file');
+      setError(err.message || 'Could not send the photo. Please try again.');
     } finally {
       setSendingFile(false);
     }

@@ -6,6 +6,7 @@ import { Paperclip, Smile, Send, Image as ImageIcon, FileText, X, Check, CheckCh
 import type { TicketDetail, TicketMessage } from './types';
 import { STATUS_COLORS, PRIORITY_COLORS } from './types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { isImageAttachment } from '@/lib/supportAttachmentDisplay';
 
 interface TicketChatProps {
   selectedTicket: TicketDetail | null;
@@ -244,9 +245,9 @@ export function TicketChat({
 
                       {message.attachmentUrl && (
                         <div className="mb-2">
-                          {/* Simple image check based on extension or we assume it's image for now */}
-                          {message.attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          {isImageAttachment(message) ? (
                             <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-gray-200 hover:opacity-90 transition-opacity">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={message.attachmentUrl} alt="Attachment" className="max-w-full h-auto max-h-64 object-cover" />
                             </a>
                           ) : (
@@ -263,9 +264,11 @@ export function TicketChat({
                         </div>
                       )}
 
-                      <p className={`whitespace-pre-wrap leading-relaxed break-words ${message.isOwnMessage ? 'text-white' : 'text-gray-800'}`}>
-                        {message.content}
-                      </p>
+                      {message.content && (
+                        <p className={`whitespace-pre-wrap leading-relaxed break-words ${message.isOwnMessage ? 'text-white' : 'text-gray-800'}`}>
+                          {message.content}
+                        </p>
+                      )}
 
                       <div className={`flex items-center justify-end gap-1 mt-1 ${message.isOwnMessage ? 'text-white/70' : 'text-gray-400'}`}>
                         <span className="text-[10px]">
@@ -408,7 +411,7 @@ export function TicketChat({
             ref={fileInputRef}
             onChange={handleFileSelect}
             className="hidden"
-            accept="image/*,.pdf,.doc,.docx"
+            accept="image/*"
           />
 
           {/* Staff-only: the server forces isInternal=false for customers, so
@@ -479,7 +482,8 @@ export function TicketChat({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors relative"
-                title="Attach File"
+                title="Attach photo"
+                aria-label="Attach photo"
               >
                 <Paperclip size={20} />
                 {sendingFile && (

@@ -1,6 +1,7 @@
 /**
- * POST /api/support/live-chat/messages
- * Thin proxy to Express (see ../route.ts for why).
+ * POST /api/support/upload
+ * Thin proxy to the Express support photo upload, which enforces the
+ * per-sender photo cap (5 per 10 minutes) and the image pipeline.
  */
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -17,18 +18,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const response = await fetch(`${API_URL}/api/support/live-chat/messages`, {
+    const formData = await request.formData();
+    const response = await fetch(`${API_URL}/api/support/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: auth },
-      body: JSON.stringify({ content: body?.content, attachmentUrl: body?.attachmentUrl }),
+      headers: { Authorization: auth },
+      body: formData,
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('Live chat send error:', error);
+    console.error('Support upload proxy error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to send message' },
+      { success: false, message: 'Failed to upload image' },
       { status: 502 }
     );
   }

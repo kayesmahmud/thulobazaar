@@ -13,6 +13,13 @@ import {
   SUPPORT_RESOLVED_PUSH_BODY,
 } from '../../services/supportEvents.service.js';
 import { queueSupportAiReply } from '../../services/supportAi.service.js';
+import {
+  parseSupportMessageInput,
+  supportImageQuotaExceeded,
+  supportMessagePreview,
+  SUPPORT_IMAGE_LIMIT_CODE,
+  SUPPORT_IMAGE_LIMIT_MESSAGE,
+} from '../../services/supportAttachments.js';
 
 // Cooldown (minutes) for support-message editor alerts, per editor per ticket.
 const SUPPORT_ALERT_COOLDOWN_MINUTES = 2;
@@ -70,9 +77,15 @@ export function initializeSupportHandlers(io: Server, socket: AuthenticatedSocke
     ticketId: number;
     content: string;
     isInternal?: boolean;
+    attachmentUrl?: string | null;
   }, callback) => {
     try {
-      const { ticketId, content, isInternal = false } = payload;
+      const { ticketId, isInternal = false } = payload;
+      const parsed = parseSupportMessageInput(payload);
+      if (parsed.ok === false) {
+        return callback({ error: parsed.message });
+      }
+      const input = parsed.value;
 
       const ticket = await prisma.support_tickets.findUnique({
         where: { id: ticketId },
@@ -91,15 +104,21 @@ export function initializeSupportHandlers(io: Server, socket: AuthenticatedSocke
 
       const actualIsInternal = isStaff ? isInternal : false;
 
+      if (input.attachmentUrl && (await supportImageQuotaExceeded(userId))) {
+        return callback({ error: SUPPORT_IMAGE_LIMIT_MESSAGE, code: SUPPORT_IMAGE_LIMIT_CODE });
+      }
+
       // Server-side profanity censoring (safety net)
-      const sanitizedContent = censorProfanity(content.trim());
+      const sanitizedContent = censorProfanity(input.content);
+      const preview = supportMessagePreview(sanitizedContent, input.attachmentUrl);
 
       const message = await prisma.support_messages.create({
         data: {
           ticket_id: ticketId,
           sender_id: userId,
           content: sanitizedContent,
-          type: 'text',
+          type: input.type,
+          attachment_url: input.attachmentUrl,
           is_internal: actualIsInternal,
         },
         select: {
@@ -170,7 +189,7 @@ export function initializeSupportHandlers(io: Server, socket: AuthenticatedSocke
         notifyEditors({
           type: 'support_message',
           title: 'New support reply',
-          body: sanitizedContent.slice(0, 140),
+          body: preview.slice(0, 140),
           data: { route: '/editor/support-chat', ticketId: String(ticketId) },
           referenceId: ticketId,
           cooldownMinutes: SUPPORT_ALERT_COOLDOWN_MINUTES,
@@ -185,7 +204,7 @@ export function initializeSupportHandlers(io: Server, socket: AuthenticatedSocke
           ticketId,
           ownerUserId: ticket.user_id,
           title: SUPPORT_REPLY_PUSH_TITLE,
-          body: sanitizedContent.slice(0, 140),
+          body: preview.slice(0, 140),
           cooldownMinutes: 2,
           route: ticket.source === 'live_chat' ? '/live-chat' : '/support',
         }).catch((err) => console.error('Support owner notification error:', err));

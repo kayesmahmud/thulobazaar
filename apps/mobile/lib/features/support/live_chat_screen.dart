@@ -1,7 +1,9 @@
 import 'package:mobile/core/utils/per_user_load.dart';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile/core/theme/app_font.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -14,6 +16,7 @@ import 'package:mobile/core/widgets/login_gate.dart';
 import 'package:mobile/core/models/support_ticket.dart';
 import 'package:mobile/core/utils/localized_helpers.dart';
 import 'package:mobile/core/utils/profanity_check.dart';
+import 'package:mobile/features/support/widgets/support_photo.dart';
 
 /// Live Chat — one endless conversation with support. Deliberately simpler
 /// than a support ticket: no subject, no category, no status, nothing to
@@ -33,10 +36,13 @@ class _LiveChatScreenState extends State<LiveChatScreen>
   final _client = SupportClient();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  final _imagePicker = ImagePicker();
 
   List<SupportMessage> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
+  File? _pendingImage;
+  bool _isUploading = false;
   bool _isPolling = false;
   String? _error;
   Timer? _pollTimer;
@@ -178,6 +184,58 @@ class _LiveChatScreenState extends State<LiveChatScreen>
       ).showSnackBar(SnackBar(content: Text(response.errorMessage)));
       return;
     }
+    _startTyping();
+    _scrollToBottom();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 80,
+    );
+    if (picked == null || !mounted) return;
+
+    final file = File(picked.path);
+    if (await file.length() > kMaxSupportPhotoBytes) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('messages.imageSizeError'.tr())));
+      return;
+    }
+    setState(() => _pendingImage = file);
+  }
+
+  /// Upload, then send the photo with whatever is typed as its caption.
+  Future<void> _sendPhoto() async {
+    final file = _pendingImage;
+    if (file == null || _isUploading) return;
+    setState(() => _isUploading = true);
+
+    final upload = await _client.uploadImage(file);
+    final sent = upload.hasData
+        ? await _client.sendLiveChatMessage(
+            _messageController.text.trim(),
+            attachmentUrl: upload.data,
+          )
+        : null;
+    if (!mounted) return;
+
+    if (sent == null || !sent.hasData) {
+      setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(supportPhotoFailureText(sent ?? upload))),
+      );
+      return;
+    }
+    setState(() {
+      _isUploading = false;
+      _pendingImage = null;
+      _messageController.clear();
+      _messages = [..._messages, sent.data!];
+    });
     _startTyping();
     _scrollToBottom();
   }
@@ -383,14 +441,21 @@ class _LiveChatScreenState extends State<LiveChatScreen>
                   ],
                 ),
               ),
-            Text(
-              msg.content,
-              style: AppFont.inter(
-                fontSize: 14,
-                height: 1.4,
-                color: isOwn ? Colors.white : const Color(0xFF1F2937),
+            if (msg.attachmentUrl != null)
+              SupportPhotoBubble(
+                url: msg.attachmentUrl!,
+                caption: msg.content,
+                isOwn: isOwn,
+              )
+            else
+              Text(
+                msg.content,
+                style: AppFont.inter(
+                  fontSize: 14,
+                  height: 1.4,
+                  color: isOwn ? Colors.white : const Color(0xFF1F2937),
+                ),
               ),
-            ),
             const SizedBox(height: 4),
             Text(
               formatNepalTime(
@@ -420,9 +485,21 @@ class _LiveChatScreenState extends State<LiveChatScreen>
         top: false,
         child: Column(
           children: [
+            if (_pendingImage != null)
+              PendingPhotoBar(
+                file: _pendingImage!,
+                isUploading: _isUploading,
+                onCancel: () => setState(() => _pendingImage = null),
+                onSend: _sendPhoto,
+              ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                IconButton(
+                  tooltip: 'support.attachPhoto'.tr(),
+                  onPressed: _isUploading ? null : _pickImage,
+                  icon: const Icon(LucideIcons.image, color: Color(0xFF6B7280)),
+                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,

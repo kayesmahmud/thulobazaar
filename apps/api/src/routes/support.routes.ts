@@ -13,6 +13,16 @@ import {
   emitTicketCreated,
 } from '../services/supportEvents.service.js';
 import { queueSupportAiReply } from '../services/supportAi.service.js';
+import { uploadMessageImage } from '../middleware/upload.js';
+import { optimizeImage } from '../middleware/optimizeImage.js';
+import {
+  parseSupportMessageInput,
+  requireSupportImageQuota,
+  supportImageQuotaExceeded,
+  supportMessagePreview,
+  SUPPORT_IMAGE_LIMIT_CODE,
+  SUPPORT_IMAGE_LIMIT_MESSAGE,
+} from '../services/supportAttachments.js';
 
 const router = Router();
 
@@ -77,10 +87,22 @@ async function findLatestLiveChat(userId: number) {
   });
 }
 
+const liveChatMessageSelect = {
+  id: true,
+  sender_id: true,
+  content: true,
+  type: true,
+  attachment_url: true,
+  created_at: true,
+  users: { select: { id: true, full_name: true, avatar: true, role: true } },
+} as const;
+
 function serializeLiveChatMessage(msg: {
   id: number;
   sender_id: number;
   content: string;
+  type: string | null;
+  attachment_url: string | null;
   created_at: Date | null;
   users: { id: number; full_name: string | null; avatar: string | null; role: string | null };
 }, viewerId: number) {
@@ -88,6 +110,8 @@ function serializeLiveChatMessage(msg: {
     id: msg.id,
     senderId: msg.sender_id,
     content: msg.content,
+    type: msg.type ?? 'text',
+    attachmentUrl: msg.attachment_url,
     createdAt: msg.created_at,
     isOwnMessage: msg.sender_id === viewerId,
     sender: {
@@ -121,13 +145,7 @@ router.get(
     const messages = await prisma.support_messages.findMany({
       where: { ticket_id: chat.id, is_internal: false },
       orderBy: { created_at: 'asc' },
-      select: {
-        id: true,
-        sender_id: true,
-        content: true,
-        created_at: true,
-        users: { select: { id: true, full_name: true, avatar: true, role: true } },
-      },
+      select: liveChatMessageSelect,
     });
 
     res.json({
@@ -154,13 +172,21 @@ router.post(
   authenticateToken,
   catchAsync(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const { content } = req.body;
-
-    if (!content?.trim()) {
-      res.status(400).json({ success: false, message: 'Message content is required' });
+    const parsed = parseSupportMessageInput(req.body);
+    if (parsed.ok === false) {
+      res.status(400).json({ success: false, message: parsed.message });
       return;
     }
-    const sanitized = censorProfanity(content.trim());
+    const input = parsed.value;
+    if (input.attachmentUrl && (await supportImageQuotaExceeded(userId))) {
+      res.status(429).json({
+        success: false,
+        code: SUPPORT_IMAGE_LIMIT_CODE,
+        message: SUPPORT_IMAGE_LIMIT_MESSAGE,
+      });
+      return;
+    }
+    const sanitized = censorProfanity(input.content);
 
     // One continuous conversation per user: reuse the existing thread even if
     // it was resolved, so the transcript never disappears from the user's
@@ -190,15 +216,10 @@ router.post(
         ticket_id: chat.id,
         sender_id: userId,
         content: sanitized,
-        type: 'text',
+        type: input.type,
+        attachment_url: input.attachmentUrl,
       },
-      select: {
-        id: true,
-        sender_id: true,
-        content: true,
-        created_at: true,
-        users: { select: { id: true, full_name: true, avatar: true, role: true } },
-      },
+      select: liveChatMessageSelect,
     });
 
     // Customer spoke, so the thread is live again — this also reopens a chat
@@ -213,11 +234,8 @@ router.post(
     const currentStatus = shouldTransition ? 'in_progress' : chat.status;
 
     const payload = serializeLiveChatMessage(message, userId);
-    emitSupportMessage(
-      chat.id,
-      { ...payload, type: 'text', attachmentUrl: null, isInternal: false },
-      currentStatus
-    );
+    const preview = supportMessagePreview(sanitized, input.attachmentUrl);
+    emitSupportMessage(chat.id, { ...payload, isInternal: false }, currentStatus);
     if (isNewChat) {
       emitTicketCreated({
         id: chat.id,
@@ -233,7 +251,7 @@ router.post(
     notifyEditors({
       type: 'support_message',
       title: isNewChat ? 'New live chat' : 'New live chat message',
-      body: sanitized.slice(0, 140),
+      body: preview.slice(0, 140),
       data: { route: '/editor/live-chat', ticketId: String(chat.id) },
       referenceId: chat.id,
       cooldownMinutes: SUPPORT_ALERT_COOLDOWN_MINUTES,
@@ -285,6 +303,7 @@ router.get(
             select: {
               id: true,
               content: true,
+              attachment_url: true,
               created_at: true,
             },
             orderBy: { created_at: 'desc' },
@@ -310,7 +329,10 @@ router.get(
       slaBreachAt: t.sla_breach_at,
       lastMessage: t.support_messages[0]
         ? {
-            content: t.support_messages[0].content.substring(0, 100),
+            content: supportMessagePreview(
+              t.support_messages[0].content,
+              t.support_messages[0].attachment_url
+            ).substring(0, 100),
             createdAt: t.support_messages[0].created_at,
           }
         : null,
@@ -577,12 +599,12 @@ router.post(
       return;
     }
 
-    const { content } = req.body;
-
-    if (!content?.trim()) {
-      res.status(400).json({ success: false, message: 'Message content is required' });
+    const parsed = parseSupportMessageInput(req.body);
+    if (parsed.ok === false) {
+      res.status(400).json({ success: false, message: parsed.message });
       return;
     }
+    const input = parsed.value;
 
     // Verify ticket ownership
     const ticket = await prisma.support_tickets.findUnique({
@@ -600,18 +622,29 @@ router.post(
       return;
     }
 
+    if (input.attachmentUrl && (await supportImageQuotaExceeded(userId))) {
+      res.status(429).json({
+        success: false,
+        code: SUPPORT_IMAGE_LIMIT_CODE,
+        message: SUPPORT_IMAGE_LIMIT_MESSAGE,
+      });
+      return;
+    }
+
     const message = await prisma.support_messages.create({
       data: {
         ticket_id: ticketId,
         sender_id: userId,
-        content: censorProfanity(content.trim()),
-        type: 'text',
+        content: censorProfanity(input.content),
+        type: input.type,
+        attachment_url: input.attachmentUrl,
       },
       select: {
         id: true,
         sender_id: true,
         content: true,
         type: true,
+        attachment_url: true,
         created_at: true,
         users: {
           select: {
@@ -643,7 +676,7 @@ router.post(
         senderId: message.sender_id,
         content: message.content,
         type: message.type,
-        attachmentUrl: null,
+        attachmentUrl: message.attachment_url,
         isInternal: false,
         createdAt: message.created_at,
         sender: {
@@ -661,7 +694,7 @@ router.post(
     notifyEditors({
       type: 'support_message',
       title: 'New support reply',
-      body: message.content.slice(0, 140),
+      body: supportMessagePreview(message.content, message.attachment_url).slice(0, 140),
       data: { route: '/editor/support-chat', ticketId: String(ticketId) },
       referenceId: ticketId,
       cooldownMinutes: SUPPORT_ALERT_COOLDOWN_MINUTES,
@@ -677,6 +710,7 @@ router.post(
         senderId: message.sender_id,
         content: message.content,
         type: message.type,
+        attachmentUrl: message.attachment_url,
         createdAt: message.created_at,
         sender: {
           id: message.users.id,
@@ -685,6 +719,37 @@ router.post(
           isStaff: message.users.role !== 'user',
         },
         isOwnMessage: true,
+      },
+    });
+  })
+);
+
+/**
+ * POST /api/support/upload
+ * Upload a photo for a support conversation (Live Chat or ticket). Reuses the
+ * chat image pipeline (5 MB, images only, resized + AVIF), but sits behind the
+ * support photo cap so a sender who is out of budget is told before the file
+ * leaves their phone.
+ */
+router.post(
+  '/upload',
+  authenticateToken,
+  requireSupportImageQuota,
+  uploadMessageImage.single('image'),
+  optimizeImage('message'),
+  catchAsync(async (req: Request, res: Response) => {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: 'No image file provided' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        url: `/uploads/messages/${req.file.filename}`,
+        filename: req.file.filename,
+        size: req.file.size,
+        type: req.file.mimetype,
       },
     });
   })

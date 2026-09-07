@@ -51,6 +51,9 @@ export default function EditorLiveChatPage({
     handleMessageInputChange,
     profanityWarning,
     setProfanityWarning,
+    pendingImagePreview,
+    handleAttachImage,
+    handleRemoveImage,
   } = useSupportChatPage(params.lang, 'live_chat');
 
   const markedSeen = useRef(false);
@@ -126,6 +129,9 @@ export default function EditorLiveChatPage({
               onSendMessage={handleSendMessage}
               profanityWarning={profanityWarning}
               onDismissProfanityWarning={() => setProfanityWarning(null)}
+              pendingImagePreview={pendingImagePreview}
+              onAttachImage={handleAttachImage}
+              onRemoveImage={handleRemoveImage}
               onBack={handleBackToList}
               showStatusControl={false}
             />

@@ -50,6 +50,9 @@ export default function SupportChatPage({ params: paramsPromise }: { params: Pro
     handleMessageInputChange,
     profanityWarning,
     setProfanityWarning,
+    pendingImagePreview,
+    handleAttachImage,
+    handleRemoveImage,
   } = useSupportChatPage(params.lang);
 
   // Mark this section as seen once per visit → clears the dashboard "Support Chat" badge.
@@ -151,6 +154,9 @@ export default function SupportChatPage({ params: paramsPromise }: { params: Pro
               onSendMessage={handleSendMessage}
               profanityWarning={profanityWarning}
               onDismissProfanityWarning={() => setProfanityWarning(null)}
+              pendingImagePreview={pendingImagePreview}
+              onAttachImage={handleAttachImage}
+              onRemoveImage={handleRemoveImage}
               onBack={handleBackToList}
             />
           </div>

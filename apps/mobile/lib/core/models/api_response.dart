@@ -7,7 +7,17 @@ class ApiResponse<T> {
   final String? error;
   final String? message;
 
-  ApiResponse({required this.success, this.data, this.error, this.message});
+  /// Machine-readable error code from the API body (e.g. a rate-limit code),
+  /// so a screen can word the failure itself instead of echoing the server.
+  final String? code;
+
+  ApiResponse({
+    required this.success,
+    this.data,
+    this.error,
+    this.message,
+    this.code,
+  });
 
   /// Factory for successful response
   factory ApiResponse.success(T data) {

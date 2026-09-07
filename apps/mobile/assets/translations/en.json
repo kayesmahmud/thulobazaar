@@ -558,7 +558,13 @@
     "csatChipSlow": "Took too long",
     "csatChipUnresolved": "Didn't solve my issue",
     "csatChipConfusing": "Confusing answers",
-    "csatChipNeedMore": "Need better support"
+    "csatChipNeedMore": "Need better support",
+    "attachPhoto": "Attach a photo",
+    "photo": "Photo",
+    "photoReady": "Photo ready to send",
+    "sendingPhoto": "Sending photo…",
+    "imageLimitReached": "You can send up to 5 photos every 10 minutes. Please wait a few minutes.",
+    "imageUploadFailed": "Could not send the photo. Please try again."
   },
   "drawer": {
     "settings": "Settings",

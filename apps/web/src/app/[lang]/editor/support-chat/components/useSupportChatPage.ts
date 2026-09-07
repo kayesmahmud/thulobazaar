@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 import { checkProfanity } from '@/utils/profanityCheck';
 import { useSupportSocket } from '@/hooks/useSupportSocket';
+import { SUPPORT_IMAGE_LIMIT_CODE, SUPPORT_IMAGE_MAX_BYTES } from '@/lib/supportAttachmentDisplay';
 import type { SupportTicket, TicketDetail, StatusFilter, PriorityFilter, TicketStats } from './types';
 
 export function useSupportChatPage(lang: string, source?: string) {
@@ -27,6 +28,30 @@ export function useSupportChatPage(lang: string, source?: string) {
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+
+  // Photo waiting in the composer; the preview is an object URL we must revoke.
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingImage) {
+      setPendingImagePreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingImage);
+    setPendingImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingImage]);
+
+  const handleAttachImage = (file: File) => {
+    if (file.size > SUPPORT_IMAGE_MAX_BYTES) {
+      setError('Photo must be smaller than 5 MB.');
+      return;
+    }
+    setError(null);
+    setPendingImage(file);
+  };
+
+  const handleRemoveImage = () => setPendingImage(null);
 
   // Real-time state
   const [isOtherTyping, setIsOtherTyping] = useState(false);
@@ -243,11 +268,33 @@ export function useSupportChatPage(lang: string, source?: string) {
 
   const [profanityWarning, setProfanityWarning] = useState<string | null>(null);
 
+  /** Returns the stored URL, or null after surfacing the failure via setError. */
+  const uploadPendingImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await fetch('/api/support/upload', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await response.json();
+    if (data.success && data.data?.url) return data.data.url;
+    setError(data.message || 'Could not send the photo. Please try again.');
+    return null;
+  };
+
+  const clearComposer = () => {
+    setNewMessage('');
+    setIsInternal(false);
+    setPendingImage(null);
+  };
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedTicket) return;
+    const content = newMessage.trim();
+    if ((!content && !pendingImage) || !selectedTicket) return;
 
     // Client-side profanity check
-    const { hasProfanity } = checkProfanity(newMessage.trim());
+    const { hasProfanity } = checkProfanity(content);
     if (hasProfanity) {
       setProfanityWarning('Please use respectful language. Offensive words are not allowed on Thulo Bazaar.');
       setTimeout(() => setProfanityWarning(null), 5000);
@@ -259,8 +306,14 @@ export function useSupportChatPage(lang: string, source?: string) {
       setSendingMessage(true);
       stopTyping(selectedTicket.id);
 
+      let attachmentUrl: string | null = null;
+      if (pendingImage) {
+        attachmentUrl = await uploadPendingImage(pendingImage);
+        if (!attachmentUrl) return;
+      }
+
       if (isConnected) {
-        const result = await sendSocketMessage(selectedTicket.id, newMessage, isInternal);
+        const result = await sendSocketMessage(selectedTicket.id, content, isInternal, attachmentUrl);
         if (result.success && result.message) {
           setSelectedTicket((prev) => {
             if (!prev) return prev;
@@ -272,12 +325,17 @@ export function useSupportChatPage(lang: string, source?: string) {
               messages: [...prev.messages, { ...result.message!, isOwnMessage: true }],
             };
           });
-          setNewMessage('');
-          setIsInternal(false);
+          clearComposer();
 
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
           }, 100);
+          return;
+        }
+        // The photo quota is a definitive answer, not a transport hiccup —
+        // retrying over HTTP would only hit the same limit.
+        if (result.code === SUPPORT_IMAGE_LIMIT_CODE) {
+          setError(result.error || 'Photo limit reached. Please wait a few minutes.');
           return;
         }
       }
@@ -290,14 +348,14 @@ export function useSupportChatPage(lang: string, source?: string) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          content: newMessage,
+          content,
           isInternal,
+          ...(attachmentUrl ? { attachmentUrl } : {}),
         }),
       });
       const data = await response.json();
       if (data.success) {
-        setNewMessage('');
-        setIsInternal(false);
+        clearComposer();
         loadTicketDetail(selectedTicket.id);
         loadTickets();
       } else {
@@ -403,5 +461,9 @@ export function useSupportChatPage(lang: string, source?: string) {
     handleMessageInputChange,
     profanityWarning,
     setProfanityWarning,
+    pendingImage,
+    pendingImagePreview,
+    handleAttachImage,
+    handleRemoveImage,
   };
 }

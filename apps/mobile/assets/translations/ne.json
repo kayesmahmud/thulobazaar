@@ -510,7 +510,13 @@
     "csatChipSlow": "धेरै समय लाग्यो",
     "csatChipUnresolved": "समस्या समाधान भएन",
     "csatChipConfusing": "अस्पष्ट जवाफहरू",
-    "csatChipNeedMore": "अझ राम्रो सहयोग चाहिन्छ"
+    "csatChipNeedMore": "अझ राम्रो सहयोग चाहिन्छ",
+    "attachPhoto": "फोटो संलग्न गर्नुहोस्",
+    "photo": "फोटो",
+    "photoReady": "फोटो पठाउन तयार छ",
+    "sendingPhoto": "फोटो पठाउँदै…",
+    "imageLimitReached": "१० मिनेटमा बढीमा ५ फोटो पठाउन सकिन्छ। कृपया केही मिनेट पर्खनुहोस्।",
+    "imageUploadFailed": "फोटो पठाउन सकिएन। कृपया फेरि प्रयास गर्नुहोस्।"
   },
   "drawer": {
     "settings": "सेटिङहरू",

@@ -1191,7 +1191,14 @@
     "signInRequired": "कृपया साइन इन गर्नुहोस्",
     "signInMessage": "हामीसँग कुराकानी सुरु गर्न साइन इन गर्नुहोस्।",
     "signIn": "साइन इन",
-    "assistantTyping": "सहायकले लेख्दैछ"
+    "assistantTyping": "सहायकले लेख्दैछ",
+    "attachPhoto": "फोटो संलग्न गर्नुहोस्",
+    "removePhoto": "फोटो हटाउनुहोस्",
+    "photo": "फोटो",
+    "sendingPhoto": "फोटो पठाउँदै…",
+    "imageTooLarge": "फोटो ५ MB भन्दा सानो हुनुपर्छ।",
+    "imageLimitReached": "१० मिनेटमा बढीमा ५ फोटो पठाउन सकिन्छ। कृपया केही मिनेट पर्खनुहोस्।",
+    "imageUploadFailed": "फोटो पठाउन सकिएन। कृपया फेरि प्रयास गर्नुहोस्।"
   },
   "scamPrevention": {
     "title": "ठगीबाट बच्ने उपाय",

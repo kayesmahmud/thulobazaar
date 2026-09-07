@@ -30,7 +30,7 @@ export interface TicketMessage {
   senderId: number;
   content: string;
   type: string;
-  attachmentUrl?: string;
+  attachmentUrl?: string | null;
   isInternal: boolean;
   createdAt: string;
   sender: {

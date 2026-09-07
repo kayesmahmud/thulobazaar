@@ -11,6 +11,7 @@
 import { prisma } from '@thulobazaar/database';
 import { getIO } from '../socket/index.js';
 import { sendNotification, canSendNotification } from './notification.service.js';
+import { supportMessagePreview } from './supportAttachments.js';
 
 // Bilingual copy for owner pushes — old app builds show these verbatim.
 export const SUPPORT_REPLY_PUSH_TITLE = 'Support replied / सपोर्टको जवाफ आयो';
@@ -103,7 +104,9 @@ export function emitSupportMessage(
     ticketId,
     ...(currentStatus ? { status: currentStatus } : {}),
     lastMessage: {
-      content: message.isInternal ? '[Internal note]' : message.content.substring(0, 100),
+      content: message.isInternal
+        ? '[Internal note]'
+        : supportMessagePreview(message.content, message.attachmentUrl).substring(0, 100),
       createdAt: message.createdAt,
     },
   });

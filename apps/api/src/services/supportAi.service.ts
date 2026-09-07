@@ -146,6 +146,7 @@ async function respondToTicketInner(ticketId: number): Promise<boolean> {
           id: true,
           sender_id: true,
           content: true,
+          attachment_url: true,
           users: { select: { role: true } },
         },
         orderBy: { created_at: 'desc' },
@@ -201,7 +202,13 @@ async function respondToTicketInner(ticketId: number): Promise<boolean> {
   const transcript = messages
     .map((m) => {
       const who = m.sender_id === ticket.user_id ? 'CUSTOMER' : 'ASSISTANT (you)';
-      return `${who}: ${JSON.stringify(m.content)}`;
+      // The model cannot see photos; say so instead of silently dropping the
+      // message, so it asks for a description or escalates rather than
+      // answering as if nothing was sent.
+      const text = m.attachment_url
+        ? `[sent a photo you cannot view] ${m.content}`.trim()
+        : m.content;
+      return `${who}: ${JSON.stringify(text)}`;
     })
     .join('\n');
   // Live Chat is a rolling conversation with no ticket workflow the user can
