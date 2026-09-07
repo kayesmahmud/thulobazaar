@@ -514,8 +514,9 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
               />
             </div>
 
-            {/* Seller Card + Promote - Mobile only, shown after ad details */}
+            {/* Safety + Seller Card + Promote - Mobile only, shown after ad details */}
             <div className="lg:hidden mt-4 space-y-4">
+              <SafetyTips />
               <SellerCard
                 seller={ad.users_ads_user_idTousers}
                 adId={ad.id}
@@ -583,7 +584,9 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
               }} />
             </div>
 
-            <SafetyTips />
+            <div className="hidden lg:block">
+              <SafetyTips />
+            </div>
           </div>
 
           {/* Right Vertical Banner */}
