@@ -610,7 +610,18 @@ function buildAdWhereClause(filters: AdFilters) {
   return where;
 }
 
-function buildAdOrderBy(sortBy: string = 'newest', pinPromotions: boolean = false) {
+function buildAdOrderBy(
+  sortBy: string = 'newest',
+  pinPromotions: boolean = false,
+  featuredOnly: boolean = false
+) {
+  // The featured strip ranks by the promotion, not the ad: the most recently
+  // bought promotion (latest expiry) first, publish date as the tiebreak —
+  // same order as the web homepage.
+  if (featuredOnly) {
+    return [{ featured_until: 'desc' }, { published_at: { sort: 'desc', nulls: 'last' } }];
+  }
+
   let base: any;
   // Jobs salaries are optional, so price is nullable now — without nulls:last
   // a blank salary wins every ascending price sort.
@@ -836,7 +847,7 @@ export async function getAds(filters: AdFilters) {
     await clearExpiredPromotionFlags();
   }
 
-  const orderBy = buildAdOrderBy(filters.sortBy, pinPromotions);
+  const orderBy = buildAdOrderBy(filters.sortBy, pinPromotions, filters.isFeatured === 'true');
 
   const limitNum = Math.min(
     parseInt(filters.limit || String(PAGINATION.DEFAULT_LIMIT)) || PAGINATION.DEFAULT_LIMIT,
