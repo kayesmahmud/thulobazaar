@@ -226,6 +226,7 @@
     "selectCategory": "कोटि छान्नुहोस् *",
     "selectCategoryHint": "कोटि छान्नुहोस्",
     "completeAllFields": "कृपया सबै आवश्यक फिल्डहरू भर्नुहोस्",
+    "fieldRequired": "{} आवश्यक छ",
     "selectSubcategory": "उपकोटि छान्नुहोस् *",
     "selectSubcategoryHint": "उपकोटि छान्नुहोस्",
     "photosAndLocation": "फोटो र स्थान",

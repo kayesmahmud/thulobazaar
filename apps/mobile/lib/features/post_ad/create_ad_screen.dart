@@ -1243,6 +1243,32 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       return;
     }
 
+    // Required category fields (Condition on Electronics/Mobiles/Vehicles).
+    // The Form's validators only draw the red text; nothing read their result,
+    // so a starred dropdown never actually blocked the post.
+    if (selectedCategory != null && _selectedSubCategory != null) {
+      final missing = FormTemplateService.missingRequiredFields(
+        _templateService.getApplicableFields(
+          selectedCategory.name,
+          _selectedSubCategory!.name,
+          categorySlug: selectedCategory.slug,
+          subcategorySlug: _selectedSubCategory!.slug,
+        ),
+        _attributeValues,
+      );
+      if (missing.isNotEmpty) {
+        _formKey.currentState?.validate();
+        final isNepali = context.locale.languageCode == 'ne';
+        final label = isNepali
+            ? (missing.first.labelNe ?? missing.first.label)
+            : missing.first.label;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('postAd.fieldRequired'.tr(args: [label]))),
+        );
+        return;
+      }
+    }
+
     if (_selectedImages.isEmpty && _existingImagePaths.isEmpty) {
       ScaffoldMessenger.of(
         context,

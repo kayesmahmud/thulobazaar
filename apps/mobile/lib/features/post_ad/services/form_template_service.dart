@@ -5414,6 +5414,22 @@ class FormTemplateService {
     'Overseas Jobs': _overseasJobFields(['NPR', 'USD']),
   };
 
+  /// Required fields the seller has not filled. The Form's own validators only
+  /// paint red text; this is what actually blocks the post.
+  static List<FormFieldModel> missingRequiredFields(
+    List<FormFieldModel> fields,
+    Map<String, dynamic> values,
+  ) {
+    return fields.where((f) {
+      if (!f.required) return false;
+      final value = values[f.name];
+      if (value == null) return true;
+      if (value is String) return value.trim().isEmpty;
+      if (value is List) return value.isEmpty;
+      return false;
+    }).toList();
+  }
+
   /// Get applicable fields for a subcategory.
   /// 1. Exact subcategory name match
   /// 2. Category-level fallback (Jobs, Overseas Jobs)
