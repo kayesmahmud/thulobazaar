@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.thulobazaar.mobile",
       "sha256_cert_fingerprints": [
-        "61:03:21:94:40:9C:C4:BE:EE:D0:B2:2F:C3:1D:51:E6:7F:A0:AC:37:70:9E:49:70:EF:72:71:9A:1F:4A:E5:D3"
+        "61:03:21:94:40:9C:C4:BE:EE:D0:B2:2F:C3:1D:51:E6:7F:A0:AC:37:70:9E:49:70:EF:72:71:9A:1F:4A:E5:D3",
+        "AA:00:01:DD:3B:7D:CF:AB:8B:4B:7F:C4:B5:F9:91:58:97:02:74:C2:0E:FF:C2:BF:EC:37:BB:E7:3B:19:36:9F"
       ]
     }
   }
