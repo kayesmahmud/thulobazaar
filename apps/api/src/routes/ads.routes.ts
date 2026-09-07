@@ -26,6 +26,7 @@ import {
   getAdEditHistoryForOwner,
   MAX_LIVE_EDITS_PER_MONTH,
   validateAdLocation,
+  validateAdCondition,
   findDuplicateAdForUser,
   AD_DUPLICATE_PENDING_MESSAGE,
   AD_DUPLICATE_LIVE_MESSAGE,
@@ -420,6 +421,14 @@ router.post(
     const condition = (parsedAttributes.condition as string) || undefined;
     const { condition: _cond, ...customFields } = parsedAttributes;
 
+    const conditionError = await validateAdCondition(
+      subcategoryId ? parseInt(subcategoryId) : parseInt(categoryId),
+      condition
+    );
+    if (conditionError) {
+      throw new ValidationError(conditionError);
+    }
+
     // Trusted business users (verified, not expired, not revoked) publish directly
     const publishInfo = await getDirectPublishInfo(userId);
 
@@ -649,6 +658,20 @@ router.put(
       ? ((parsedAttributes.condition as string | undefined) ?? null)
       : undefined;
     const { condition: _cond, ...customFields } = parsedAttributes;
+
+    if (attributes !== undefined) {
+      const leafCategoryId = subcategoryId
+        ? parseInt(subcategoryId)
+        : categoryId
+          ? parseInt(categoryId)
+          : existingAd.category_id;
+      const conditionError = leafCategoryId
+        ? await validateAdCondition(leafCategoryId, condition)
+        : null;
+      if (conditionError) {
+        throw new ValidationError(conditionError);
+      }
+    }
 
     // Parse existing images to keep
     const imagesToKeep = parseExistingImages(existingImages);

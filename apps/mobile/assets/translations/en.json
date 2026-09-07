@@ -272,6 +272,7 @@
     "selectCategory": "Select Category *",
     "selectCategoryHint": "Select Category",
     "completeAllFields": "Please complete all required fields",
+    "fieldRequired": "{} is required",
     "selectSubcategory": "Select Subcategory *",
     "selectSubcategoryHint": "Select Subcategory",
     "photosAndLocation": "Photos & Location",

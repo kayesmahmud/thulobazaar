@@ -311,6 +311,35 @@ export const AD_LOCATION_TIER_MESSAGE =
 export const AD_LOCATION_AREA_MESSAGE =
   'Please choose an area within this municipality — the municipality alone is too broad. कृपया यस नगरपालिकाभित्रको क्षेत्र (जस्तै ठमेल, नक्साल) छान्नुहोस्।';
 
+export const AD_CONDITION_REQUIRED_MESSAGE =
+  'Please select the condition (Brand New or Used) for this category';
+
+/**
+ * Server-side backstop for the category policy: Electronics, Mobiles and
+ * Vehicles require a Condition. Clients gate on it too, but older app builds
+ * only painted the asterisk. Returns null when it passes, otherwise the
+ * message to show the seller. `leafCategoryId` is what ads.category_id stores.
+ */
+export async function validateAdCondition(
+  leafCategoryId: number,
+  condition: string | null | undefined
+): Promise<string | null> {
+  if (condition) return null;
+
+  const leaf = await prisma.categories.findUnique({
+    where: { id: leafCategoryId },
+    select: { slug: true, categories: { select: { slug: true } } },
+  });
+  // Unknown category is rejected elsewhere; nothing to police here
+  if (!leaf) return null;
+
+  const parentSlug = leaf.categories?.slug ?? leaf.slug;
+  const subcategorySlug = leaf.categories ? leaf.slug : undefined;
+  return getCommercePolicy(parentSlug, subcategorySlug).condition === 'required'
+    ? AD_CONDITION_REQUIRED_MESSAGE
+    : null;
+}
+
 /**
  * Validates an ad's location. Returns null when it passes, otherwise the
  * message to show the seller.
