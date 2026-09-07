@@ -35,11 +35,7 @@ class AdCard extends StatelessWidget {
     final isNew = ad.condition?.toLowerCase() == 'brand new';
 
     final lang = context.locale.languageCode;
-    final formattedDate = formatNepalTime(
-      ad.publishedAt,
-      "MMM d, yyyy • h:mm a",
-      lang,
-    );
+    final formattedDate = formatPublishedTime(ad.publishedAt, lang);
 
     return TapScale(
       onTap:

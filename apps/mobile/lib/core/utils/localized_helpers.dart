@@ -52,6 +52,28 @@ String localizedTimeAgo(DateTime dateTime, String locale) {
   }
 }
 
+/// Ad-card publish time, worded like the web card
+/// (`formatDateTime` in @thulobazaar/utils): "Just now", "3h ago • 7:22 PM",
+/// "Yesterday • 7:22 PM", "3 days ago • 7:22 PM", then "Aug 21 • 9:02 AM"
+/// (year only when it differs). Buckets use whole hours/days, like the web.
+String formatPublishedTime(DateTime dateTime, String locale, {DateTime? now}) {
+  final ref = now ?? DateTime.now();
+  final diff = ref.difference(dateTime).abs();
+  final hours = diff.inHours;
+  final days = diff.inDays;
+  final time = formatNepalTime(dateTime, 'h:mm a', locale);
+  final ne = locale == 'ne';
+
+  if (hours < 1) return ne ? 'भर्खरै' : 'Just now';
+  if (hours < 24) return ne ? '$hours घण्टा अघि • $time' : '${hours}h ago • $time';
+  if (days == 1) return ne ? 'हिजो • $time' : 'Yesterday • $time';
+  if (days <= 7) return ne ? '$days दिन अघि • $time' : '$days days ago • $time';
+
+  final sameYear = toNepalTime(dateTime).year == toNepalTime(ref).year;
+  final date = formatNepalTime(dateTime, sameYear ? 'MMM d' : 'MMM d, yyyy', locale);
+  return '$date • $time';
+}
+
 /// Common button/action labels
 String l(String key, String locale) {
   const ne = {
