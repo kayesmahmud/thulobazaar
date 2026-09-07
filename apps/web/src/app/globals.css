@@ -134,3 +134,73 @@
 .animate-gradient-shift {
   animation: gradient-shift 15s ease infinite;
 }
+
+/* ============================================
+   Safety beacon (ad-detail safety card, scam-prevention page)
+   ============================================
+   Two rings ripple outward like an alert. Only transform and opacity
+   animate, so the browser composites it on the GPU with no layout or
+   paint work per frame.
+   ============================================ */
+@keyframes safety-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.safety-beacon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: #ea580c;
+  color: #fff;
+}
+
+.safety-beacon--lg {
+  width: 56px;
+  height: 56px;
+}
+
+.safety-beacon--light {
+  background: #fff;
+  color: #ea580c;
+}
+
+.safety-beacon::before,
+.safety-beacon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: safety-ripple 2.4s ease-out infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.safety-beacon::after {
+  animation-delay: 1.2s;
+}
+
+.safety-beacon--light::before,
+.safety-beacon--light::after {
+  border-color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .safety-beacon::before,
+  .safety-beacon::after {
+    animation: none;
+    opacity: 0;
+  }
+}

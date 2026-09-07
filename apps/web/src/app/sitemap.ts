@@ -155,6 +155,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/contact', changeFrequency: 'monthly' as const, priority: 0.4 },
     { path: '/faq', changeFrequency: 'monthly' as const, priority: 0.4 },
     { path: '/help', changeFrequency: 'monthly' as const, priority: 0.4 },
+    { path: '/scam-prevention', changeFrequency: 'monthly' as const, priority: 0.5 },
     { path: '/support', changeFrequency: 'monthly' as const, priority: 0.4 },
     { path: '/support/privacy-policy', changeFrequency: 'yearly' as const, priority: 0.3 },
     { path: '/support/terms-of-service', changeFrequency: 'yearly' as const, priority: 0.3 },
