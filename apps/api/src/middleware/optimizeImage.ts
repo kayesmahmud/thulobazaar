@@ -33,18 +33,24 @@ const PRESETS: Record<string, OptimizeOptions> = {
 async function optimizeFile(filePath: string, opts: OptimizeOptions): Promise<void> {
   const buffer = await fs.promises.readFile(filePath);
 
-  let instance = sharp(buffer);
-  const metadata = await instance.metadata();
+  const metadata = await sharp(buffer).metadata();
 
   // Skip non-image formats (like PDFs)
   if (!metadata.format || !['jpeg', 'png', 'webp', 'gif', 'tiff', 'heif'].includes(metadata.format)) {
     return;
   }
 
+  // Phone cameras store portrait shots as landscape pixels plus an EXIF
+  // orientation tag. rotate() bakes that tag into the pixels; without it the
+  // AVIF encoder keeps the rotation as an `irot` box that browsers honour but
+  // the Flutter AVIF decoder ignores, so portrait ads showed landscape in-app.
+  let instance = sharp(buffer).rotate();
+
+  // Dimensions as displayed (after orientation), not as stored
+  const { width, height } = metadata.autoOrient;
+
   // Only resize if image is larger than max dimensions
-  const needsResize =
-    (metadata.width && metadata.width > opts.maxWidth) ||
-    (metadata.height && metadata.height > opts.maxHeight);
+  const needsResize = width > opts.maxWidth || height > opts.maxHeight;
 
   if (needsResize) {
     instance = instance.resize(opts.maxWidth, opts.maxHeight, {
@@ -53,15 +59,15 @@ async function optimizeFile(filePath: string, opts: OptimizeOptions): Promise<vo
     });
   }
 
-  if (opts.watermark && metadata.width && metadata.height) {
+  if (opts.watermark && width && height) {
     // sharp applies composite after resize, so size the overlay for the
     // final dimensions (fit: 'inside' preserves aspect ratio)
     const scale = needsResize
-      ? Math.min(opts.maxWidth / metadata.width, opts.maxHeight / metadata.height)
+      ? Math.min(opts.maxWidth / width, opts.maxHeight / height)
       : 1;
     const overlay = await adWatermarkOverlay(
-      Math.round(metadata.width * scale),
-      Math.round(metadata.height * scale)
+      Math.round(width * scale),
+      Math.round(height * scale)
     );
     if (overlay.length > 0) {
       instance = instance.composite(overlay);

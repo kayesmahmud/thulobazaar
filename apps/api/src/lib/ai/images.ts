@@ -15,6 +15,8 @@ const AI_IMAGE_JPEG_QUALITY = 80;
 
 async function toDataUrl(input: Buffer): Promise<string> {
   const buffer = await sharp(input)
+    // Raw uploads carry an EXIF orientation tag; the model should see the photo upright
+    .rotate()
     .resize(AI_IMAGE_MAX_DIM, AI_IMAGE_MAX_DIM, { fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: AI_IMAGE_JPEG_QUALITY })
     .toBuffer();
