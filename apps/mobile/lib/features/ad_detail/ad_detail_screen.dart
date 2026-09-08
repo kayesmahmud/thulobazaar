@@ -60,6 +60,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
   List<AdWithDetails> _relatedAds = [];
   bool _isLoading = true;
   String? _error;
+  // Reason code from the API's 404 (see respondAdNotViewable in ads.routes.ts).
+  String? _errorCode;
+  static const _adPendingCode = 'AD_PENDING';
+  static const _adUnavailableCode = 'AD_UNAVAILABLE';
 
   bool _isFavorite = false;
   bool _isFavoriteLoading = false;
@@ -105,6 +109,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _errorCode = null;
     });
 
     try {
@@ -152,6 +157,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         if (mounted) {
           setState(() {
             _error = response.errorMessage;
+            _errorCode = response.code;
             _isLoading = false;
           });
         }
@@ -255,6 +261,8 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       backgroundColor: Colors.white,
       body: _isLoading
           ? _buildLoadingSkeleton()
+          : _errorCode == _adPendingCode || _errorCode == _adUnavailableCode
+          ? _buildHiddenAdState(pending: _errorCode == _adPendingCode)
           : _error != null
           ? _buildErrorState()
           : _buildContent(),
@@ -390,6 +398,62 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// The API answered 404 with a reason: the ad exists but is not public.
+  /// A pending ad (seller just edited it) is not an error and cannot be
+  /// retried into existence, so say what happened and offer the way back.
+  Widget _buildHiddenAdState({required bool pending}) {
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                pending ? LucideIcons.clock : LucideIcons.eyeOff,
+                size: 64,
+                color: pending ? const Color(0xFFF59E0B) : Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                (pending
+                        ? 'adDetail.pendingAfterEditTitle'
+                        : 'adDetail.unavailableTitle')
+                    .tr(),
+                style: AppFont.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1F2937),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                (pending
+                        ? 'adDetail.pendingAfterEditBody'
+                        : 'adDetail.unavailableBody')
+                    .tr(),
+                style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                ),
+                child: Text(
+                  'common.back'.tr(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

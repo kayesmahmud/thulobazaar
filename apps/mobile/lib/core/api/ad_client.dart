@@ -125,8 +125,14 @@ class AdClient {
       }
       return ApiResponse.failure(response.data['error'] ?? 'Ad not found');
     } on DioException catch (e) {
-      return ApiResponse.failure(
-        e.response?.data?['error'] ?? 'Failed to fetch ad',
+      // Keep the API's reason code (AD_PENDING / AD_UNAVAILABLE) so the
+      // screen can explain a hidden ad instead of showing a retry button.
+      final body = e.response?.data;
+      return ApiResponse(
+        success: false,
+        error: (body is Map ? body['message'] ?? body['error'] : null) ??
+            'Failed to fetch ad',
+        code: body is Map ? body['code']?.toString() : null,
       );
     }
   }
@@ -143,8 +149,14 @@ class AdClient {
       }
       return ApiResponse.failure(response.data['error'] ?? 'Ad not found');
     } on DioException catch (e) {
-      return ApiResponse.failure(
-        e.response?.data?['error'] ?? 'Failed to fetch ad',
+      // Keep the API's reason code (AD_PENDING / AD_UNAVAILABLE) so the
+      // screen can explain a hidden ad instead of showing a retry button.
+      final body = e.response?.data;
+      return ApiResponse(
+        success: false,
+        error: (body is Map ? body['message'] ?? body['error'] : null) ??
+            'Failed to fetch ad',
+        code: body is Map ? body['code']?.toString() : null,
       );
     }
   }

@@ -445,7 +445,12 @@
     "safetyTip2Latin": "Bhuktani garnu aghi saman jaachnuhos",
     "safetyTip3Latin": "Agrim bhuktani nagarnuhos",
     "safetyTip4Latin": "Abastabik prastav bata sawadhan rahanuhos",
-    "safetyLearnMoreLatin": "Thagi bata kasari bachne"
+    "safetyLearnMoreLatin": "Thagi bata kasari bachne",
+    "pendingAfterEditTitle": "This ad is waiting for approval",
+    "pendingAfterEditBody": "The seller edited this ad, so it went back to review. Please check again once our editors approve it.",
+    "unavailableTitle": "This ad is no longer available",
+    "unavailableBody": "It may have been sold, removed, or expired.",
+    "browseOtherAds": "Browse other ads"
   },
   "dashboard": {
     "title": "Dashboard",

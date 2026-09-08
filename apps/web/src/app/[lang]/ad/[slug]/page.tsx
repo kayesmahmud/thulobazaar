@@ -25,7 +25,10 @@ import {
 import { getImageUrl } from '@/lib/images/imageUrl';
 import { AD_CARD_LOCATION_SELECT, resolveDistrictName } from '@/lib/location/district';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { AdJsonLd } from '@/components/seo/AdJsonLd';
+import AdHiddenNotice from './AdHiddenNotice';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
@@ -250,7 +253,8 @@ export async function generateMetadata({ params }: AdDetailPageProps): Promise<M
         },
       };
 
-      if (isLowQuality) {
+      // Non-approved ads render a notice, not the ad — keep them out of the index.
+      if (isLowQuality || ad.status !== 'approved') {
         metadata.robots = { index: false, follow: true };
       }
 
@@ -298,6 +302,18 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
   const ad = await getAdBySlug(slug);
   if (!ad) {
     notFound();
+  }
+
+  // Same rule as the API: only an approved ad is public. A pending one (the
+  // seller edited it and it went back to review), a rejected or an expired
+  // one is shown only to its owner — everyone else gets an explanation, not
+  // the ad, so the website never leaks what the app hides.
+  if (ad.status !== 'approved') {
+    const session = await getServerSession(authOptions);
+    const viewerId = Number((session?.user as { id?: string | number } | undefined)?.id);
+    if (!Number.isFinite(viewerId) || viewerId !== ad.user_id) {
+      return <AdHiddenNotice lang={lang} pending={ad.status === 'pending'} />;
+    }
   }
 
   // Increment view count (fire and forget)
