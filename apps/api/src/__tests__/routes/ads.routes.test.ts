@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../app.js';
+import jwt from 'jsonwebtoken';
 
 // Mock Prisma
 vi.mock('@thulobazaar/database', () => ({
@@ -27,6 +28,10 @@ vi.mock('@thulobazaar/database', () => ({
       findUnique: vi.fn(),
       // Location filters expand to descendant locations; none by default
       findMany: vi.fn(async () => []),
+    },
+    // A signed-in detail view records who looked (fire-and-forget)
+    ad_views: {
+      create: vi.fn(async () => ({})),
     },
     // The public detail response carries a favourites count
     user_favorites: {
@@ -463,6 +468,48 @@ describe('Ads Routes', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.code).toBe('AD_UNAVAILABLE');
+    });
+
+    describe('a pending ad is still shown to its seller and to staff', () => {
+      const pendingAd = { ...mockAd, status: 'pending', deleted_at: null, user_id: 1 };
+      const bearer = (userId: number, role: string) =>
+        `Bearer ${jwt.sign({ userId, email: `${role}${userId}@test.local`, role }, process.env.JWT_SECRET!, { expiresIn: '1h' })}`;
+
+      it('shows the seller their own ad while it waits for review', async () => {
+        const { prisma } = await import('@thulobazaar/database');
+        vi.mocked(prisma.ads.findFirst).mockResolvedValue(pendingAd as any);
+
+        const response = await request(app)
+          .get('/api/ads/slug/test-iphone-15-pro-for-sale-kathmandu-1')
+          .set('Authorization', bearer(1, 'user'));
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.id).toBe(1);
+      });
+
+      it('shows an editor the ad they are reviewing, same as the web editor panel', async () => {
+        const { prisma } = await import('@thulobazaar/database');
+        vi.mocked(prisma.ads.findFirst).mockResolvedValue(pendingAd as any);
+
+        const response = await request(app)
+          .get('/api/ads/slug/test-iphone-15-pro-for-sale-kathmandu-1')
+          .set('Authorization', bearer(100, 'editor'));
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.id).toBe(1);
+      });
+
+      it('still hides it from another signed-in user', async () => {
+        const { prisma } = await import('@thulobazaar/database');
+        vi.mocked(prisma.ads.findFirst).mockResolvedValue(pendingAd as any);
+
+        const response = await request(app)
+          .get('/api/ads/slug/test-iphone-15-pro-for-sale-kathmandu-1')
+          .set('Authorization', bearer(2, 'user'));
+
+        expect(response.status).toBe(404);
+        expect(response.body.code).toBe('AD_PENDING');
+      });
     });
   });
 

@@ -446,8 +446,8 @@
     "safetyTip3Latin": "Agrim bhuktani nagarnuhos",
     "safetyTip4Latin": "Abastabik prastav bata sawadhan rahanuhos",
     "safetyLearnMoreLatin": "Thagi bata kasari bachne",
-    "pendingAfterEditTitle": "यो विज्ञापन स्वीकृतिको पर्खाइमा छ",
-    "pendingAfterEditBody": "विक्रेताले यो विज्ञापन सम्पादन गरेकाले यो पुनः समीक्षामा गयो। हाम्रा सम्पादकले स्वीकृत गरेपछि फेरि हेर्नुहोस्।",
+    "pendingTitle": "यो विज्ञापन स्वीकृतिको पर्खाइमा छ",
+    "pendingBody": "विक्रेताले यो विज्ञापन भर्खरै राखेका वा सम्पादन गरेका छन् र हाम्रा सम्पादकले समीक्षा गरिरहेका छन्। स्वीकृत भएपछि फेरि हेर्नुहोस्।",
     "unavailableTitle": "यो विज्ञापन अब उपलब्ध छैन",
     "unavailableBody": "यो बिक्री भइसकेको, हटाइएको वा म्याद सकिएको हुन सक्छ।",
     "browseOtherAds": "अन्य विज्ञापन हेर्नुहोस्"

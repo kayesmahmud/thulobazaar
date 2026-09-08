@@ -446,8 +446,8 @@
     "safetyTip3Latin": "Agrim bhuktani nagarnuhos",
     "safetyTip4Latin": "Abastabik prastav bata sawadhan rahanuhos",
     "safetyLearnMoreLatin": "Thagi bata kasari bachne",
-    "pendingAfterEditTitle": "This ad is waiting for approval",
-    "pendingAfterEditBody": "The seller edited this ad, so it went back to review. Please check again once our editors approve it.",
+    "pendingTitle": "This ad is waiting for approval",
+    "pendingBody": "The seller posted or edited this ad recently and our editors are reviewing it. Please check again once it's approved.",
     "unavailableTitle": "This ad is no longer available",
     "unavailableBody": "It may have been sold, removed, or expired.",
     "browseOtherAds": "Browse other ads"

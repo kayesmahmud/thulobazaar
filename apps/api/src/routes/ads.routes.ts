@@ -169,7 +169,7 @@ router.get(
 /**
  * A public ad lookup that found nothing viewable. Still a 404 (pending and
  * rejected ads must not be enumerable), but with a reason the apps can word:
- * an ad the seller just edited is "waiting for review", not "failed to load".
+ * an ad just posted or just edited is "waiting for review", not "failed to load".
  */
 export const AD_PENDING_CODE = 'AD_PENDING';
 export const AD_UNAVAILABLE_CODE = 'AD_UNAVAILABLE';
@@ -184,7 +184,7 @@ async function respondAdNotViewable(res: Response, where: { id: number } | { slu
     success: false,
     code: pending ? AD_PENDING_CODE : AD_UNAVAILABLE_CODE,
     message: pending
-      ? 'This ad was edited by the seller and is waiting for editor approval'
+      ? 'This ad is waiting for editor approval'
       : 'Ad not found',
   });
 }
@@ -198,7 +198,7 @@ router.get(
   optionalAuth,
   catchAsync(async (req: Request, res: Response) => {
     const { slug } = req.params;
-    const ad = await getAdBySlug(slug, req.user?.userId);
+    const ad = await getAdBySlug(slug, req.user);
 
     if (!ad) {
       return respondAdNotViewable(res, { slug: String(slug) });
@@ -225,8 +225,8 @@ router.get(
     const { id } = req.params;
 
     const ad = !isNaN(Number(id))
-      ? await getAdById(parseInt(id), req.user?.userId)
-      : await getAdBySlug(id, req.user?.userId);
+      ? await getAdById(parseInt(id), req.user)
+      : await getAdBySlug(id, req.user);
 
     if (!ad) {
       return respondAdNotViewable(

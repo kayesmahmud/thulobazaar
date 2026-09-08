@@ -29,6 +29,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { AdJsonLd } from '@/components/seo/AdJsonLd';
 import AdHiddenNotice from './AdHiddenNotice';
+import { canViewNonPublicAd, type AdPageViewer } from './adVisibility';
 
 interface AdDetailPageProps {
   params: Promise<{ lang: string; slug: string }>;
@@ -305,13 +306,14 @@ export default async function AdDetailPage({ params, searchParams }: AdDetailPag
   }
 
   // Same rule as the API: only an approved ad is public. A pending one (the
-  // seller edited it and it went back to review), a rejected or an expired
-  // one is shown only to its owner — everyone else gets an explanation, not
-  // the ad, so the website never leaks what the app hides.
+  // seller edited it and it went back to review), a rejected or an expired one
+  // is shown to its owner and to staff — editors reach this page from the
+  // editor panel's "View Details" and must see the real ad to approve it.
+  // Everyone else gets an explanation, not the ad, so the website never leaks
+  // what the app hides.
   if (ad.status !== 'approved') {
     const session = await getServerSession(authOptions);
-    const viewerId = Number((session?.user as { id?: string | number } | undefined)?.id);
-    if (!Number.isFinite(viewerId) || viewerId !== ad.user_id) {
+    if (!canViewNonPublicAd(session?.user as AdPageViewer | undefined, ad)) {
       return <AdHiddenNotice lang={lang} pending={ad.status === 'pending'} />;
     }
   }
