@@ -6,6 +6,9 @@
 #   scripts/release.sh --skip-build reuse the artifacts already in build/release-<v>/
 #   scripts/release.sh --allow-dirty  build even with uncommitted changes (avoid)
 #
+# Before uploading it runs check_store_identity.sh, which refuses to publish
+# unless the keys in use actually own this app — see scripts/store_identity.env.
+#
 # Credentials live OUTSIDE the repo, per company (Build Stack Solutions has its
 # own set — never mix them):
 #   ~/.config/thulobazaar/asc.env                  ASC_KEY_ID / ASC_ISSUER_ID
@@ -66,7 +69,11 @@ for f in "$apk" "$aab" "$ipa"; do
 done
 echo "==> artifacts in $out"
 
-# 4. Ask Apple whether it would accept this build, before spending an upload.
+# 4. Prove the credentials and the artifacts belong to THIS company before
+#    anything leaves the machine (two companies publish from this Mac).
+"$MOBILE_DIR/scripts/check_store_identity.sh" "$ipa" "$apk"
+
+# 5. Ask Apple whether it would accept this build, before spending an upload.
 # shellcheck source=/dev/null
 [ -f "$ASC_ENV" ] && source "$ASC_ENV"
 : "${ASC_KEY_ID:?set ASC_KEY_ID in $ASC_ENV}"
@@ -80,7 +87,7 @@ if ! $upload; then
   exit 0
 fi
 
-# 5. Publish. A build number can only ever be used once per store.
+# 6. Publish. A build number can only ever be used once per store.
 echo "==> uploading IPA to App Store Connect"
 xcrun altool --upload-app --type ios -f "$ipa" \
   --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"

@@ -63,11 +63,27 @@ npm run db:check-drift             # Check for schema drift (CRITICAL!)
 # See: SCHEMA_DRIFT_PREVENTION.md for full guide
 ```
 
-### Mobile store builds (MUST run the check first)
+### Mobile store builds & publishing (MASTER RULES)
+
+**This Mac holds credentials for TWO companies.** Thulo Bazaar (Apple team `6AFL485WA2`,
+package `com.thulobazaar.mobile`) and **Build Stack Solutions** (`9DXQHATFGW` — Speakly,
+Fluentist). Never use one's keys for the other. Thulo Bazaar's live in
+`~/.config/thulobazaar/` + `~/.appstoreconnect/private_keys/`; identity is declared in
+`apps/mobile/scripts/store_identity.env`.
+
 ```bash
-apps/mobile/scripts/check_store_version.sh   # asks the App Store + Play Store what is LIVE;
-                                              # exit 1 = pubspec version is not above it → bump first
+apps/mobile/scripts/release.sh            # version check → identity check → build → validate
+apps/mobile/scripts/release.sh --upload   # ...then publish to BOTH stores
 ```
+`release.sh` refuses to continue unless, in order:
+1. `check_store_version.sh` — pubspec version is ABOVE what both stores have live.
+2. The `apps/mobile` tree has no uncommitted changes.
+3. `check_store_identity.sh` — the App Store key actually owns `com.thulobazaar.mobile`, the
+   Play service account is Thulo Bazaar's, and the IPA/APK carry that bundle id and team.
+4. Apple's own `--validate-app` accepts the IPA.
+
+Never bypass these by calling `altool`/`fastlane` by hand. Uploads land as DRAFTS; promoting to
+production stays a human decision in each console. Build numbers are consumed permanently.
 - Never trust a note, a memory, or git history for the last shipped version — the stores are the truth.
   1.3.3 was rejected by Transporter on 2026-09-08 because it had already been approved and nobody bumped pubspec.
 - The marketing version (`1.3.4`) must be HIGHER than the live one on BOTH stores; the build number (`+28`) must always increase.
