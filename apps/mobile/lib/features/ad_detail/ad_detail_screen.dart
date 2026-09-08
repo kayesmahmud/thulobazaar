@@ -403,8 +403,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
   }
 
   /// The API answered 404 with a reason: the ad exists but is not public.
-  /// A pending ad (seller just edited it) is not an error and cannot be
-  /// retried into existence, so say what happened and offer the way back.
+  /// A pending ad (just posted, or edited and back in review) is not an error
+  /// and cannot be retried into existence, so say what happened and offer the
+  /// way back.
   Widget _buildHiddenAdState({required bool pending}) {
     return SafeArea(
       child: Center(
@@ -421,7 +422,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               const SizedBox(height: 16),
               Text(
                 (pending
-                        ? 'adDetail.pendingAfterEditTitle'
+                        ? 'adDetail.pendingTitle'
                         : 'adDetail.unavailableTitle')
                     .tr(),
                 style: AppFont.poppins(
@@ -434,7 +435,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 (pending
-                        ? 'adDetail.pendingAfterEditBody'
+                        ? 'adDetail.pendingBody'
                         : 'adDetail.unavailableBody')
                     .tr(),
                 style: AppFont.inter(fontSize: 14, color: Colors.grey[600]),
