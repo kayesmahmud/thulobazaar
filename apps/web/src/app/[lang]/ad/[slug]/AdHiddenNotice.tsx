@@ -3,9 +3,9 @@ import { Clock, EyeOff } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 /**
- * Shown in place of an ad that exists but is not public: a pending one (the
- * seller just edited it and it went back to review) or one that is rejected,
- * expired or removed. Mirrors the app's hidden-ad screen and the API's 404
+ * Shown in place of an ad that exists but is not public: a pending one (just
+ * posted, or edited and sent back to review) or one that is rejected, expired
+ * or removed. Mirrors the app's hidden-ad screen and the API's 404
  * reason codes, so the website never reveals more than the app does.
  */
 export default async function AdHiddenNotice({
@@ -29,10 +29,10 @@ export default async function AdHiddenNotice({
           <Icon className="w-8 h-8" />
         </div>
         <h1 className="text-xl font-bold text-gray-900 mb-2">
-          {pending ? t('pendingAfterEditTitle') : t('unavailableTitle')}
+          {pending ? t('pendingTitle') : t('unavailableTitle')}
         </h1>
         <p className="text-gray-600 mb-6">
-          {pending ? t('pendingAfterEditBody') : t('unavailableBody')}
+          {pending ? t('pendingBody') : t('unavailableBody')}
         </p>
         <Link
           href={`/${lang}/ads`}

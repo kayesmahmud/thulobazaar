@@ -902,31 +902,43 @@ export async function getUserAds(userId: number) {
   return ads.map(transformAdForDashboard);
 }
 
-// 🔒 DB-3: a non-approved or soft-deleted ad may only be viewed by its owner.
-// Everyone else (incl. anonymous) gets null → 404, preventing enumeration of
-// pending/rejected/deleted ads via sequential IDs or guessed slugs.
-function isAdViewable(ad: { status: string | null; deleted_at: Date | null; user_id: number }, viewerUserId?: number): boolean {
-  if (viewerUserId && ad.user_id === viewerUserId) return true;
+/** Who is asking for an ad — from the JWT, so the role cannot be faked. */
+export interface AdViewer {
+  userId?: number;
+  role?: string;
+}
+
+// Same list as requireEditor in middleware/auth.ts.
+const STAFF_ROLES = ['editor', 'admin', 'super_admin'];
+
+// 🔒 DB-3: a non-approved or soft-deleted ad may only be viewed by its owner
+// (their own ad must not vanish while an edit or a fresh post waits for review)
+// and by staff (editors open the real ad to approve it). Everyone else (incl.
+// anonymous) gets null → 404, preventing enumeration of pending/rejected/deleted
+// ads via sequential IDs or guessed slugs. Mirrors canViewNonPublicAd on the web.
+function isAdViewable(ad: { status: string | null; deleted_at: Date | null; user_id: number }, viewer?: AdViewer): boolean {
+  if (viewer?.userId && ad.user_id === viewer.userId) return true;
+  if (viewer?.role && STAFF_ROLES.includes(viewer.role)) return true;
   return ad.status === 'approved' && ad.deleted_at == null;
 }
 
-export async function getAdBySlug(slug: string, viewerUserId?: number) {
+export async function getAdBySlug(slug: string, viewer?: AdViewer) {
   const ad = await prisma.ads.findFirst({
     where: { slug },
     ...adDetailSelect,
   });
 
-  if (!ad || !isAdViewable(ad, viewerUserId)) return null;
+  if (!ad || !isAdViewable(ad, viewer)) return null;
   return await transformAdForDetail(ad);
 }
 
-export async function getAdById(id: number, viewerUserId?: number) {
+export async function getAdById(id: number, viewer?: AdViewer) {
   const ad = await prisma.ads.findUnique({
     where: { id },
     ...adDetailSelect,
   });
 
-  if (!ad || !isAdViewable(ad, viewerUserId)) return null;
+  if (!ad || !isAdViewable(ad, viewer)) return null;
   return await transformAdForDetail(ad);
 }
 
