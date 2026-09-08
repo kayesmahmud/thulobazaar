@@ -2,18 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>method</key><string>app-store</string>
-  <key>teamID</key><string>6AFL485WA2</string>
-  <!-- Manual: this Mac signs with a fastlane-fetched cert and profile rather
-       than an Apple ID logged into Xcode, so automatic signing has no account
-       to resolve against. -->
-  <key>signingStyle</key><string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>com.thulobazaar.mobile</key>
-    <string>com.thulobazaar.mobile AppStore</string>
-  </dict>
-  <key>uploadSymbols</key><true/>
-  <key>destination</key><string>export</string>
+	<key>destination</key>
+	<string>export</string>
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>method</key>
+	<string>app-store</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.thulobazaar.mobile</key>
+		<string>com.thulobazaar.mobile AppStore</string>
+	</dict>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>teamID</key>
+	<string>6AFL485WA2</string>
+	<key>uploadSymbols</key>
+	<true/>
 </dict>
 </plist>

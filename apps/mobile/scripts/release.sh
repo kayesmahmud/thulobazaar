@@ -67,7 +67,22 @@ fi
 for f in "$apk" "$aab" "$ipa"; do
   [ -f "$f" ] || { echo "FAIL: missing $f (drop --skip-build?)"; exit 1; }
 done
-echo "==> artifacts in $out"
+
+# The IPA's real build number must match pubspec. Xcode's export step used to
+# silently bump it when App Store Connect already had that number
+# (manageAppVersionAndBuildNumber, now false in ios/ExportOptions.plist), which
+# left iOS on 29 while Android shipped 28 under a filename that said 28.
+ipa_tmp="$(mktemp -d)"
+unzip -q -o "$ipa" 'Payload/*.app/Info.plist' -d "$ipa_tmp"
+ipa_build="$(plutil -extract CFBundleVersion raw -o - \
+  "$(find "$ipa_tmp/Payload" -maxdepth 2 -name Info.plist | head -1)" 2>/dev/null || echo '?')"
+rm -rf "$ipa_tmp"
+[ "$ipa_build" = "$build" ] || {
+  echo "FAIL: IPA is build $ipa_build but pubspec says $build."
+  echo "      Rebuild, or bump pubspec if $build is already taken on App Store Connect."
+  exit 1
+}
+echo "==> artifacts in $out (iOS build $ipa_build)"
 
 # 4. Prove the credentials and the artifacts belong to THIS company before
 #    anything leaves the machine (two companies publish from this Mac).
