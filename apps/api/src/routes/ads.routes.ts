@@ -159,6 +159,29 @@ router.get(
 );
 
 /**
+ * A public ad lookup that found nothing viewable. Still a 404 (pending and
+ * rejected ads must not be enumerable), but with a reason the apps can word:
+ * an ad the seller just edited is "waiting for review", not "failed to load".
+ */
+export const AD_PENDING_CODE = 'AD_PENDING';
+export const AD_UNAVAILABLE_CODE = 'AD_UNAVAILABLE';
+
+async function respondAdNotViewable(res: Response, where: { id: number } | { slug: string }) {
+  const hidden = await prisma.ads.findFirst({
+    where: { ...where, deleted_at: null },
+    select: { status: true },
+  });
+  const pending = hidden?.status === 'pending';
+  res.status(404).json({
+    success: false,
+    code: pending ? AD_PENDING_CODE : AD_UNAVAILABLE_CODE,
+    message: pending
+      ? 'This ad was edited by the seller and is waiting for editor approval'
+      : 'Ad not found',
+  });
+}
+
+/**
  * GET /api/ads/slug/:slug
  * Get ad by SEO slug
  */
@@ -170,7 +193,7 @@ router.get(
     const ad = await getAdBySlug(slug, req.user?.userId);
 
     if (!ad) {
-      throw new NotFoundError('Ad not found');
+      return respondAdNotViewable(res, { slug: String(slug) });
     }
 
     await incrementAdViews(ad.id);
@@ -198,7 +221,10 @@ router.get(
       : await getAdBySlug(id, req.user?.userId);
 
     if (!ad) {
-      throw new NotFoundError('Ad not found');
+      return respondAdNotViewable(
+        res,
+        !isNaN(Number(id)) ? { id: parseInt(String(id)) } : { slug: String(id) }
+      );
     }
 
     await incrementAdViews(ad.id);

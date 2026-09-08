@@ -427,6 +427,42 @@ describe('Ads Routes', () => {
       const response = await request(app).get('/api/ads/slug/non-existent-slug');
 
       expect(response.status).toBe(404);
+      expect(response.body.code).toBe('AD_UNAVAILABLE');
+    });
+
+    it('tells the client an ad is pending (seller edit under review) rather than missing', async () => {
+      const { prisma } = await import('@thulobazaar/database');
+
+      // First lookup: the full ad, not viewable to the public; second: the
+      // status probe behind the 404.
+      vi.mocked(prisma.ads.findFirst).mockResolvedValue({
+        ...mockAd,
+        status: 'pending',
+        deleted_at: null,
+        user_id: 1,
+      } as any);
+
+      const response = await request(app).get('/api/ads/slug/test-iphone-15-pro-for-sale-kathmandu-1');
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.code).toBe('AD_PENDING');
+    });
+
+    it('says AD_UNAVAILABLE for a rejected ad, so pending is the only state it reveals', async () => {
+      const { prisma } = await import('@thulobazaar/database');
+
+      vi.mocked(prisma.ads.findFirst).mockResolvedValue({
+        ...mockAd,
+        status: 'rejected',
+        deleted_at: null,
+        user_id: 1,
+      } as any);
+
+      const response = await request(app).get('/api/ads/slug/test-iphone-15-pro-for-sale-kathmandu-1');
+
+      expect(response.status).toBe(404);
+      expect(response.body.code).toBe('AD_UNAVAILABLE');
     });
   });
 
