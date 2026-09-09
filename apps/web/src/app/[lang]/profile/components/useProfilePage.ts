@@ -116,7 +116,7 @@ export function useProfilePage(lang: string) {
   // Redirect if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push(`/${lang}/auth/signin`);
+      router.push(`/${lang}/auth/signin?callbackUrl=${encodeURIComponent(`/${lang}/profile`)}`);
     }
   }, [status, router, lang]);
 

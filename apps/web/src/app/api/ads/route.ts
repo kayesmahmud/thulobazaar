@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  findProhibitedAccountSale,
+  PROHIBITED_ACCOUNT_SALE_MESSAGE,
+  isLimitedDigitalService,
+  MAX_LIMITED_DIGITAL_ADS_PER_USER,
+  LIMITED_DIGITAL_ADS_MESSAGE,
+} from '@thulobazaar/types';
 import { optionalAuth, requireAuth } from '@/lib/auth';
 import {
   listAds,
@@ -15,6 +22,7 @@ import {
   AD_LIMIT_REACHED_CODE,
   calculateExpiresAt,
   getBooleanSetting,
+  countUserLimitedDigitalAds,
 } from '@/lib/services/adLimits.service';
 import { prisma } from '@thulobazaar/database';
 
@@ -127,6 +135,26 @@ export async function POST(request: NextRequest) {
         { success: false, message: 'Missing required fields: title, description, price' },
         { status: 400 }
       );
+    }
+
+    // Banned outright (not held for review): game IDs and social accounts.
+    // Same shared rule the Express/mobile path uses — see @thulobazaar/types.
+    if (findProhibitedAccountSale(title)) {
+      return NextResponse.json(
+        { success: false, message: PROHIBITED_ACCOUNT_SALE_MESSAGE },
+        { status: 400 }
+      );
+    }
+
+    // Allowed but capped: follower services and shared subscription logins.
+    if (isLimitedDigitalService(title)) {
+      const existing = await countUserLimitedDigitalAds(userId);
+      if (existing >= MAX_LIMITED_DIGITAL_ADS_PER_USER) {
+        return NextResponse.json(
+          { success: false, message: LIMITED_DIGITAL_ADS_MESSAGE },
+          { status: 400 }
+        );
+      }
     }
 
     const price = parseFloat(priceStr);

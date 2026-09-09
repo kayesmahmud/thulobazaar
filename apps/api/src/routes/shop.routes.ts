@@ -49,6 +49,22 @@ router.put(
       throw new ValidationError('User not authenticated');
     }
 
+    // Same gate as the website's Shop tab: only a verified business owns a
+    // custom shop address. Everyone else keeps the generated one.
+    const owner = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { business_verification_status: true },
+    });
+    const verifiedBusiness = ['approved', 'verified'].includes(
+      owner?.business_verification_status ?? ''
+    );
+    if (!verifiedBusiness) {
+      return res.status(403).json({
+        success: false,
+        message: 'Custom shop URLs are available to verified businesses',
+      });
+    }
+
     const { slug: rawSlug } = req.body;
     if (!rawSlug || typeof rawSlug !== 'string') {
       throw new ValidationError('Slug is required');

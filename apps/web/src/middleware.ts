@@ -214,7 +214,10 @@ export default async function middleware(req: NextRequest) {
   // User protected routes - just require any authenticated user
   if (isProtectedRoute) {
     if (!token) {
-      return NextResponse.redirect(new URL(`/${lang}/auth/signin`, req.url));
+      // Carry the destination so sign-in returns here instead of the homepage.
+      const signIn = new URL(`/${lang}/auth/signin`, req.url);
+      signIn.searchParams.set('callbackUrl', pathname + req.nextUrl.search);
+      return NextResponse.redirect(signIn);
     }
     return NextResponse.next();
   }

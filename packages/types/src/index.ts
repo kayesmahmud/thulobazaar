@@ -28,5 +28,8 @@ export * from './upload';
 // Export category policy (negotiable / COD / condition / price label per category slug)
 export * from './categoryPolicy';
 
+// Export prohibited-listing rules (game/social account sales — blocked at submit)
+export * from './prohibitedListings';
+
 // Export the public-badge rule (suspended/deactivated accounts never show verified)
 export * from './publicVerification';

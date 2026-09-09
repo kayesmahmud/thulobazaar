@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@thulobazaar/database';
+import { isLimitedDigitalService } from '@thulobazaar/types';
 
 export interface AdLimits {
   maxAdsPerUser: number;
@@ -109,6 +110,27 @@ export async function countUserActiveAds(userId: number): Promise<number> {
       status: { notIn: ['expired', 'deleted'] },
     },
   });
+}
+
+/**
+ * How many follower-service / subscription-login ads this seller already has
+ * live. Titles are matched in JS rather than SQL because the rule is a keyword
+ * list that changes often — see @thulobazaar/types.
+ */
+export async function countUserLimitedDigitalAds(
+  userId: number,
+  excludeAdId?: number
+): Promise<number> {
+  const ads = await prisma.ads.findMany({
+    where: {
+      user_id: userId,
+      deleted_at: null,
+      status: { notIn: ['expired', 'deleted'] },
+      ...(excludeAdId ? { id: { not: excludeAdId } } : {}),
+    },
+    select: { title: true },
+  });
+  return ads.filter((ad) => isLimitedDigitalService(ad.title ?? '')).length;
 }
 
 /**

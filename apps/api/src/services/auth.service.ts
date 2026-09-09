@@ -611,7 +611,16 @@ export async function changePassword(userId: number, currentPassword: string, ne
     data: { password_hash: newHash },
   });
 
-  return { success: true };
+  // A password change is how someone ends a session they no longer trust, so the
+  // refresh chain has to die with the old password. Access tokens already issued
+  // stay valid until they expire; the refresh tokens are what would otherwise let
+  // an attacker keep renewing indefinitely.
+  const { count: revokedSessions } = await prisma.refresh_tokens.updateMany({
+    where: { user_id: userId, is_revoked: false },
+    data: { is_revoked: true },
+  });
+
+  return { success: true, revokedSessions };
 }
 
 export async function getSessions(userId: number) {
